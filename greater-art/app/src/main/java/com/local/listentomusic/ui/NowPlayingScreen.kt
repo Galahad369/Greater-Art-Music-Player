@@ -83,6 +83,7 @@ import androidx.compose.material.icons.rounded.Share
 import androidx.compose.material.icons.rounded.Favorite
 import androidx.compose.material.icons.rounded.FavoriteBorder
 import androidx.compose.material.icons.rounded.MyLocation
+import androidx.compose.material.icons.rounded.QueueMusic
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.DropdownMenu
@@ -353,11 +354,6 @@ fun NowPlayingScreen(
                             editableQueue = editableQueue,
                             blackDiscMode = blackDiscMode,
                             language = language,
-                            fullscreen = fullscreen,
-                            onHome = onHome,
-                            onClose = onClose,
-                            onPictureInPicture = onPictureInPicture,
-                            onFullscreen = { fullscreen = !fullscreen },
                             onTogglePlay = onTogglePlay,
                             onPrevious = onPrevious,
                             onNext = onNext,
@@ -639,11 +635,6 @@ private fun AudioPlayer(
     editableQueue: Boolean,
     blackDiscMode: Boolean,
     language: AppLanguage,
-    fullscreen: Boolean,
-    onHome: () -> Unit,
-    onClose: () -> Unit,
-    onPictureInPicture: () -> Unit,
-    onFullscreen: () -> Unit,
     onTogglePlay: () -> Unit,
     onPrevious: () -> Unit,
     onNext: () -> Unit,
@@ -685,15 +676,6 @@ private fun AudioPlayer(
         val artSize = minOf(maxWidth * 0.72f, maxHeight * 0.30f)
         var seekFeedback by remember { mutableStateOf(0L to 0L) }
         Column(Modifier.fillMaxSize(), horizontalAlignment = Alignment.CenterHorizontally) {
-        NowPlayingTopBar(
-                    language = language,
-                    onPictureInPicture = onPictureInPicture,
-                    onHome = onHome,
-                    onFullscreen = onFullscreen,
-                    onClose = onClose,
-                    fullscreen = fullscreen,
-                    onLocateCurrent = onLocateCurrent,
-                )
         LiquidMetalSurface(
             modifier = Modifier.padding(vertical = 4.dp).size(artSize)
                 .graphicsLayer { scaleX = artworkScale.value; scaleY = artworkScale.value }
@@ -1603,7 +1585,7 @@ private fun NowPlayingTopBar(
         }
         onLocateCurrent?.let { locateAction ->
             IconButton(onClick = locateAction, modifier = Modifier.inspectElement("LOCATE_CURRENT_BUTTON", "Scroll to currently playing song in queue")) {
-                Icon(Icons.Rounded.MyLocation, uiText(language, "Locate current song", "定位當前播放"), Modifier.size(30.dp), tint = foreground)
+                Icon(Icons.Rounded.QueueMusic, uiText(language, "Locate current song", "定位當前播放"), Modifier.size(30.dp), tint = foreground)
             }
         }
         Spacer(Modifier.weight(1f))

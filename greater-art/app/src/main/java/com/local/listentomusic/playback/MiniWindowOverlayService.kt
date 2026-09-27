@@ -100,10 +100,10 @@ class MiniWindowOverlayService : Service(), LifecycleOwner, ViewModelStoreOwner,
         // The visible target sits immediately above the real navigation-bar inset.
         // Visible circle and collision radius are identical. With BOTTOM gravity, larger y is higher.
         private val crossHitSize = 57
-        private val crossSize = 25
-        private val crossMargin = 11
-        private val crossBaseAlpha = 1f
-        private val crossRaisePx = 22
+                private val crossSize = 25
+                private val crossMargin = 11
+                private val crossBaseAlpha = 1f
+                private val crossRaisePx = 28
         private var crossActive: Boolean? = null
         private var framePending = false
         private var openingApp = false

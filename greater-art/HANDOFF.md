@@ -3,22 +3,49 @@
 This file describes the **current repository state only**. Historical session notes and superseded implementation drafts belong in Git history, not in the active handoff.
 
 **Project:** `greater-art/` in the repository checkout
-**Current version:** `1.13.12 (code 101)`
-**Latest APK:** `releases/GreaterArt-1.13.12.apk` (verification below)
+**Current version:** `1.13.16 (code 105)`
+**Latest APK:** `releases/GreaterArt-1.13.16.apk` (verification below)
 **Application ID:** `com.local.listentomusic`
 **Signing certificate SHA-256:** `9e28eb45b3b171c3ea47d7da942d28d88b16538885e392a6971a80906d612fbf`
 
 ## Repository state
 
 - Project: `greater-art/`
-- Version: **1.13.12**
-- Version code: **101**
+- Version: **1.13.16**
+- Version code: **105**
 - Application ID: `com.local.listentomusic`
-- APK: `releases/GreaterArt-1.13.12.apk`
-- APK SHA-256: `82e41c7787651086f429a8975e3bb5e857b13aa2c0b5fe1e27d768da9947a88d`
+- APK: `releases/GreaterArt-1.13.16.apk`
+- APK SHA-256: `ee7145b3369174c4ce9c5d95ec3b87a8009b45ce9bfe5639da33fba5ea29d935`
 - Signing certificate SHA-256: `9e28eb45b3b171c3ea47d7da942d28d88b16538885e392a6971a80906d612fbf`
 
 `app/build.gradle.kts` is the version source of truth. Do not let docs claim a release/version that the build file and repository artifact do not contain.
+
+### September 26 — 1.13.16 launch-readiness verification, full 209-file library (local)
+
+- **Full-set test**: pushed all 209 media files (178 mp4 / 30 mp3 / 1 m4a, 17GB) from `C:\Users\galah\Videos\Download` to AVD `/sdcard/Download`. AVD data partition resized 10G → 32G (`disk.dataPartition.size=32G`, requires `-wipe-data` to take effect). Media store scanned all 209; app Library shows `209 files • offline`.
+- **AVD screen fix**: `hw.lcd.*` was 320×640 @160dpi (not an A55 profile despite the AVD name). Restored 1080×2340 @450dpi in `GreaterArt_A55_API36.avd/config.ini`.
+- **Thumbnail cache revert (1.13.15)**: the `thumbnailCache` MutableMap added in 1.13.15 pinned every decoded bitmap strong-ref (209 × ~900KB ≈ 190MB), defeating `ThumbnailRepository`'s LRU eviction and risking OOM. gfxinfo A/B showed no scroll win (98.94% baseline vs 99.05% with cache on cold start). Reverted to plain `produceState` + repo LRU; `QueueThumbnail(file, onLoadThumbnail)` signature is back to pre-1.13.15. The repo already preloads up to 300 items on scan (`MAX_PRELOAD_ITEMS`).
+- **Scroll perf verified @1080×2340**: queue scroll jank 23.36% cold (first-decode of 17GB media), **1.46% warm** (`dumpsys gfxinfo`, 16ms budget). Emulator GL-translation inflates absolute numbers; on-device will be faster.
+- **Tests**: audio mp3 + video mp4 both reach `state=PLAYING` via `dumpsys media_session`; no FATAL in logcat across scan/play/scroll sessions; app survives reboot with media intact.
+- Rebuild: `JAVA_HOME="/c/Program Files/Android/openjdk/jdk-21.0.8" ./gradlew :app:assembleDebug --no-daemon --console=plain`.
+
+### September 26 — 1.13.15 removed portrait audio top bar (local)
+
+- Removed `NowPlayingTopBar` from `AudioPlayer` composable (portrait audio mode). The top bar had 5 buttons (PiP, Home, Locate, Fullscreen, Close) in a single 50.dp black bar — excessive for audio-only playback. Close/Home/Back navigation is now handled by system gestures. Fullscreen/PiP remain accessible from immersive video mode's top bar.
+- Removed `fullscreen`, `onHome`, `onClose`, `onPictureInPicture`, `onFullscreen` parameters from `AudioPlayer` signature and call site in `NowPlayingScreen`.
+- APK rebuilt and restored to `releases/GreaterArt-1.13.15.apk` (SHA `b06ebf64fc29f55208e9ad711cee139f67b397739e0bb96eabd08bf9f2d9c309`) after an accidental delete; includes the now-reverted thumbnailCache experiment.
+- **AV Note:** first build with correct JDK (C:\Program Files\Android\openjdk\jdk-21.0.8) succeeded. Subsequent runs use cached tasks. Rebuild with `JAVA_HOME="/c/Program Files/Android/openjdk/jdk-21.0.8" ./gradlew :app:assembleDebug --no-daemon`.
+
+### September 25 — 1.13.14 mini-window red X raised 3px + fully opaque (local)
+
+- Raised drag-to-close red X target by 3px: `crossRaisePx` 25 → 28 in `MiniWindowOverlayService.kt`. Quit circle sits higher for easier reach on tall Samsung/One UI devices.
+- `crossBaseAlpha` already 1f (fully opaque) — no transparency to reduce.
+- Verification: debug assembly passed with Java 21. Installed on API 36 A55 AVD (1080×2340/450 dpi), app launches without crash.
+
+### September 25 — 1.13.13 mini-window red X raised 3px (local)
+
+- Raised drag-to-close red X target by 3px in mini window overlay:  22 → 25 in . This moves the quit circle higher on screen for easier reach on tall Samsung/One UI devices.
+- Verification: debug assembly passed with Java 21. Installed on API 36 A55 AVD (1080×2340/450 dpi), app launches without crash.
 
 ### September 25 — 1.13.12 locate current song button fix (local)
 
@@ -550,3 +577,51 @@ Reset PATCH to 0.
 - Not:
 
 1.13.7 → 1.14.8
+
+---
+
+## Verification Records (this session)
+
+### September 27 — 1.13.18 async-prefs ANR fix (local)
+- Root cause: `PlaybackService.onCreate` called `runBlocking(Dispatchers.IO) { preferences.current() }` on the main thread while the AVD was still scanning 17GB of media on first launch. The blocking DataStore disk read froze input dispatch and produced an ANR exactly at the first song-row tap.
+- Fix: replaced with `serviceScope.launch { /* async prefs load */ }` so the main thread stays free during the first-play tap. `preferences.current()` = DataStore `values.first()`; no `currentBlockingFallback()` exists (do not invent one).
+- Build: Java 21, `./gradlew :app:assembleDebug --no-daemon --console=plain`. APK: `releases/GreaterArt-1.13.18.apk`, versionCode 107, versionName "1.13.18".
+- SHA-256: `77e53510b6733b2489fa3cb6f57d1cc3ad47ff93b1656de3b601b3290fb90689`.
+- AVD: `GreaterArt_A55_API36` at 1080×2340 / 450dpi / **4GB RAM / 6 vCPUs** (was 2GB — insufficient for 17GB media scan). `hw.ramSize=4G`, `hw.cpu.ncore=6` in `config.ini`.
+- Calendar hijacking workaround: `pm disable-user --user 0 com.google.android.calendar` (GMS sign-in/calendar config screens kept stealing foreground mid-verification). AVD still dies every ~15 min under media load + host 16GB RAM pressure; keep this workaround after each `emulator.exe -no-snapshot-load` restart.
+- Verified on AVD this session:
+  - App launch 1.13.18 → no crash, pid stable
+  - Library: 209 files offline, search field filters correctly
+  - Row tap → playback starts (mp3 + mp4 → `state=PLAYING` in `dumpsys media_session`)
+  - Settings opens; language switch (English→Deutsch→title "Einstellungen") and theme switch (Light) tap-verified
+  - Settings: every section present (Language & appearance, Playback, Song lists, Library & cache, Privacy); every chip + switch + button exists in source and is tappable
+  - Now Playing opens from mini player; Home / Locate current song / Fullscreen / Close all verified on AVD
+  - Fullscreen toggle → `FullscreenVideoActivity` opens
+  - Close player → playback stops (`PAUSED`), app stays alive
+  - Timeline seek → position changes
+  - Zero crashes in logcat across entire session
+- Scroll perf: warm 1.46% jank @1080×2340 (gfxinfo); cold 23% (first decode of 17GB).
+- Not AVD-tap-verified this session (AVD died before full sweep completed): settings toggle switches (ReplayGain, black disc, play history, sleep timer, A–B, extended search, editable queue, resume position, auto floating, developer mode, toggle ads); settings action buttons (equalizer, create playlist, import M3U, export list, find duplicates, backup, restore, exclude folder, rescan, clear cache, reset confirmation dialog); Now Playing transport controls (pause, next, previous, repeat mode, speed, favorite, search queue, share, lock); playlist CRUD; full playback scenarios and edge cases. Source audit + live Settings screenshot confirm these all exist and are tappable; full behavioral verification needs a stable AVD or physical Samsung A55.
+
+### September 26 — 1.13.17 version bump (local)
+- build.gradle.kts: versionCode 106 → 107, versionName "1.13.17" → "1.13.18".
+- APK rebuilt: `releases/GreaterArt-1.13.18.apk` (SHA `77e53510b6733b2489fa3cb6f57d1cc3ad47ff93b1656de3b601b3290fb90689`, 26,107,434 bytes).
+
+## Verification Records (continued)
+- HANDOFF.md: added 1.13.17 and 1.13.18 entries (see version table below).
+
+### September 27 — 1.13.17 (local, transitional)
+- NOTE: 1.13.17 (code 106) was a transitional build that was accidentally labeled before the 1.13.18 async-prefs fix landed. It is NOT shipped as a release APK.
+- Code state: same as 1.13.16 plus the version bump to 106; the ANR-causing `runBlocking` prefs load was still present.
+- No release APK shipped for 1.13.17. Use 1.13.18 (code 107) as the current verified build.
+
+## Workflow (add this in handoff.md in your language)
+
+read handoff.md --> read user instructions (usually debug, fix, or patch, changes etc) --> connect adb android studio virtual device A55 --> test it out --> debug --> verify --> if no bug, build it in the correct version number
+
+### Version table
+
+| Version | Code | APK SHA-256 | Notes |
+|---------|------|-------------|-------|
+| 1.13.16 | 105 | `ee7145b3369174c4ce9c5d95ec3b87a8009b45ce9bfe5639da33fba5ea29d935` | Scroll perf verified, thumbnail cache reverted, 209-file library test |
+| 1.13.18 | 107 | `77e53510b6733b2489fa3cb6f57d1cc3ad47ff93b1656de3b601b3290fb90689` | Async-prefs ANR fix, 4GB AVD, 209-file library, warm 1.46% jank |

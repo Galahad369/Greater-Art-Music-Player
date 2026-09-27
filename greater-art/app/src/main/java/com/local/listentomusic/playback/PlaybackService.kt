@@ -128,10 +128,12 @@ class PlaybackService : MediaLibraryService() {
             }
         }
         audioManager.registerAudioDeviceCallback(audioDeviceCallback, Handler(mainLooper))
-        val saved = runBlocking(Dispatchers.IO) {
-            runCatching { preferences.current() }.getOrDefault(UserPreferences())
+        // ponytail: async prefs load; runBlocking here froze main and ANR'd the first play tap.
+        serviceScope.launch {
+            val saved = runCatching { preferences.current() }.getOrDefault(UserPreferences())
+            if (mediaSession == null) return@launch // service already destroyed
+            restoreLastSession(saved)
         }
-        restoreLastSession(saved)
 
         mediaSession = MediaLibrarySession.Builder(this, player, LocalLibraryCallback(this, serviceScope)).build()
         player.addListener(object : Player.Listener {
@@ -229,12 +231,17 @@ class PlaybackService : MediaLibraryService() {
         enhancer = null
         saveJob?.cancel()
         runCatching { audioManager.unregisterAudioDeviceCallback(audioDeviceCallback) }
+        // Player is main-thread-only; read state here, then only the disk write runs on IO.
+        val savedPath = player.currentMediaItem?.mediaId?.takeIf { it.isNotBlank() }
+        val savedPosition = player.currentPosition
+        val savedSpeed = speedBeforeTemporaryHold ?: player.playbackParameters.speed
+        val savedRepeat = player.repeatMode
         runBlocking(Dispatchers.IO) {
             preferences.savePlayback(
-                path = player.currentMediaItem?.mediaId?.takeIf { it.isNotBlank() },
-                positionMs = player.currentPosition,
-                speed = speedBeforeTemporaryHold ?: player.playbackParameters.speed,
-                repeatMode = player.repeatMode,
+                path = savedPath,
+                positionMs = savedPosition,
+                speed = savedSpeed,
+                repeatMode = savedRepeat,
             )
         }
         mediaSession.release()
