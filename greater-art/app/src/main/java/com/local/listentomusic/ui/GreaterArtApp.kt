@@ -69,6 +69,7 @@ import com.local.listentomusic.ui.theme.GreaterArtTheme
 private enum class Screen { LIBRARY, NOW_PLAYING, SETTINGS }
 
 @Composable
+@android.annotation.SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
 fun GreaterArtApp(
     viewModel: MainViewModel,
     openPlayerRequest: Int,

@@ -675,19 +675,19 @@ class MiniWindowOverlayService : Service(), LifecycleOwner, ViewModelStoreOwner,
 
     private fun dp(v: Int) = (v * resources.displayMetrics.density).toInt()
 
-    private fun miniWidthPx(): Int {
-        if (docked || expanded) return WindowManager.LayoutParams.MATCH_PARENT
+    private fun detachedSizePx(): Pair<Int, Int> {
         val size = controller?.videoSize
         val aspect = if (isVideo.value) {
             if (size != null && size.height > 0) size.width.toFloat() * size.pixelWidthHeightRatio / size.height
             else 16f / 9f
         } else artworkAspect
-        return if (MiniWindowMetrics.isSquareAspect(aspect))
-            MiniWindowMetrics.squareWidthPx(resources.displayMetrics.density)
-        else MiniWindowMetrics.widthPx(resources.displayMetrics.density)
+        return MiniWindowMetrics.detachedSizePx(resources.displayMetrics.density, aspect)
     }
+    private fun miniWidthPx() = if (docked || expanded) WindowManager.LayoutParams.MATCH_PARENT
+        else detachedSizePx().first
     private fun miniHeightPx() = if (expanded) WindowManager.LayoutParams.MATCH_PARENT
-        else MiniWindowMetrics.heightPx(resources.displayMetrics.density)
+        else if (docked) MiniWindowMetrics.heightPx(resources.displayMetrics.density)
+        else detachedSizePx().second
 
     private fun switchMode(toDocked: Boolean) {
         switchMode(if (toDocked) PlayerWindowMode.DOCKED else PlayerWindowMode.DETACHED)

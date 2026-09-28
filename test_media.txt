@@ -1,1 +1,1 @@
-MEDIA:C:/Users/galah/Desktop/Knowledge-Base/Random Coding stuff/App/greater-art/releases/GreaterArt-1.13.9.apk
+MEDIA:greater-art/releases/GreaterArt-1.13.9.apk

@@ -171,11 +171,13 @@ class MainActivity : ComponentActivity() {
 
     override fun onStart() {
         super.onStart()
+        com.local.listentomusic.playback.PlayerWindowVisibility.app(true)
         com.local.listentomusic.playback.PlayerWindowVisibility.library(libraryScreenVisible)
     }
 
     override fun onStop() {
         com.local.listentomusic.playback.PlayerWindowVisibility.library(false)
+        com.local.listentomusic.playback.PlayerWindowVisibility.app(false)
         super.onStop()
     }
 

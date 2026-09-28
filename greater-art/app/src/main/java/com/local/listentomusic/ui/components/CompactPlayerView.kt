@@ -44,6 +44,7 @@ class CompactPlayerView(context: Context) : FrameLayout(context) {
     private var pauseLabel = "Pause"
     private var nextLabel = "Next"
     private var appearanceKey: List<Any>? = null
+    private var paletteBackground = Color.rgb(22, 30, 28)
     private var detached = false
     private var expanded = false
     var onOpen: () -> Unit = {}
@@ -106,7 +107,8 @@ class CompactPlayerView(context: Context) : FrameLayout(context) {
         next.contentDescription = nextLabel
     }
     fun colors(background: Int, foreground: Int, accent: Int) {
-        setBackgroundColor(background)
+        paletteBackground = background
+        setBackgroundColor(if (detached) Color.TRANSPARENT else background)
         title.setTextColor(foreground)
         listOf(previous, toggle, next).forEach { it.imageTintList = ColorStateList.valueOf(accent) }
         progress.progressTintList = ColorStateList.valueOf(accent)
@@ -147,7 +149,25 @@ class CompactPlayerView(context: Context) : FrameLayout(context) {
         lastArtwork = bitmap
         if (bitmap == null) artwork.setImageResource(R.drawable.ic_launcher_foreground) else artwork.setImageBitmap(bitmap)
     }
-    /** Resize the existing PlayerView in place; no player or surface is recreated. */
+    private fun updateDetachedLayout() {
+        // Keep the whole detached window transparent even after theme updates.
+        if (detached) {
+            setBackgroundColor(Color.TRANSPARENT)
+            preview.setBackgroundColor(Color.TRANSPARENT)
+            val lp = preview.layoutParams as LinearLayout.LayoutParams
+            lp.width = LayoutParams.MATCH_PARENT
+            lp.height = LayoutParams.MATCH_PARENT
+            lp.setMargins(0, 0, 0, 0)
+            preview.layoutParams = lp
+        } else {
+            setBackgroundColor(paletteBackground)
+            val lp = preview.layoutParams as LinearLayout.LayoutParams
+            lp.width = MiniWindowMetrics.squareWidthPx(resources.displayMetrics.density)
+            lp.height = LayoutParams.MATCH_PARENT
+            preview.layoutParams = lp
+        }
+    }
+
     fun setDetached(value: Boolean) {
         if (detached == value) return
         detached = value
@@ -156,6 +176,7 @@ class CompactPlayerView(context: Context) : FrameLayout(context) {
         }
         removeCallbacks(ticker)
         if (!value && player != null) post(ticker)
+        updateDetachedLayout()
         refresh()
     }
     fun setExpanded(value: Boolean) {

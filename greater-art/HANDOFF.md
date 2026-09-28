@@ -3,26 +3,43 @@
 This file describes the **current repository state only**. Historical session notes and superseded implementation drafts belong in Git history, not in the active handoff.
 
 **Project:** `greater-art/` in the repository checkout
-**Current version:** `1.13.16 (code 105)`
-**Latest APK:** `releases/GreaterArt-1.13.16.apk` (verification below)
+**Current version:** `1.13.20 (code 109)`
+**Latest APK:** `releases/GreaterArt-1.13.20.apk` (verification below)
 **Application ID:** `com.local.listentomusic`
 **Signing certificate SHA-256:** `9e28eb45b3b171c3ea47d7da942d28d88b16538885e392a6971a80906d612fbf`
 
 ## Repository state
 
 - Project: `greater-art/`
-- Version: **1.13.16**
-- Version code: **105**
+- Version: **1.13.20**
+- Version code: **109**
 - Application ID: `com.local.listentomusic`
-- APK: `releases/GreaterArt-1.13.16.apk`
-- APK SHA-256: `ee7145b3369174c4ce9c5d95ec3b87a8009b45ce9bfe5639da33fba5ea29d935`
+- APK: `releases/GreaterArt-1.13.20.apk`
+- APK SHA-256: `99b33938b216c5b40d6c14dc4145fdcc1138b3a94f440c5843ca0b36a34973ce`
 - Signing certificate SHA-256: `9e28eb45b3b171c3ea47d7da942d28d88b16538885e392a6971a80906d612fbf`
 
 `app/build.gradle.kts` is the version source of truth. Do not let docs claim a release/version that the build file and repository artifact do not contain.
 
+### September 28 — 1.13.20 foreground-window visibility fix (local)
+
+- Emulator Settings inspection found detached Mini covering the Settings page. The old visibility rule equated "not Library" with "outside the app". The new rule uses MainActivity's started/stopped lifecycle for detached visibility and still docks only on Library. A regression test covers Settings, expanded overlay, and returning to the Library dock.
+- 1.13.19 remains an immutable intermediate APK. 1.13.20 is the intended handoff build: `releases/GreaterArt-1.13.20.apk`, 26,107,434 bytes, SHA-256 `99b33938b216c5b40d6c14dc4145fdcc1138b3a94f440c5843ca0b36a34973ce`.
+- Verification: JDK 21 offline `testDebugUnitTest lintDebug assembleDebug` passed (124 unit tests, 0 failures/errors). Installed APK on the 1080×2340 API 36 emulator: Settings showed no detached overlay; pressing Android Home showed the media-only detached Mini; tapping it opened Now Playing with the video and fixed transport controls visible. Recent logcat had no app fatal exception or ANR. `aapt` reports version 1.13.20/code 109 and no `INTERNET` permission; `apksigner` reports the pinned certificate. Public-repo audit passed. These checks do not prove all OEM/codec paths crash-free; a physical A55 reproduction log is still needed if the intermittent crash recurs.
+
+### September 28 — 1.13.19 stability and restrained UI (local)
+
+- Evidence: Android's emulator `dumpsys activity exit-info` retained an older app crash and startup ANRs even though no in-app crash report appeared. This run did not reproduce a new fatal exception; do not label the historical entries as a proven 1.13.18 crash.
+- Found a concrete 1.13.18 race: the asynchronous DataStore restore could finish after a Library tap and call `setMediaItem` on the newly selected queue. Restore now proceeds only while the service is alive and the player still has no media. The old `mediaSession == null` check was invalid for a `lateinit` property.
+- `onDestroy()` still performed a blocking DataStore write on the main thread. Final and periodic playback snapshots now write on IO, serialize through one mutex, discard stale snapshots, and contain write failures. The existing 5-second/transition snapshots remain; a sudden process kill can still lose the last few seconds of position.
+- Detached Mini now fits the actual media aspect inside the old 103×56dp maximum. Its preview fills that window without margins, and theme updates cannot put an opaque background back behind it. No source-video crop, resolution cap, bitrate cap, FPS cap, or new permission was added. A source video's own black pixels remain part of the video.
+- Removed the continuous liquid-metal sweep across static surfaces and audio-cover pulse. Long Now Playing titles make one marquee reveal rather than an endless duplicated ticker. Preserved the Library inset behavior after an attempted `consumeWindowInsets` caused status-bar overlap; the intentional Scaffold-padding exception is narrowly documented.
+- Verification: 123 unit tests (0 failures), debug lint (0 errors), and assemble pass on JDK 21. A55-sized API 36 emulator with 209 local files: Library top bar aligned; video row starts playback; Now Playing controls/video visible; Android Home shows a media-only detached Mini; tapping Mini reopens Now Playing; playback stays `PLAYING`; no fresh AndroidRuntime fatal line in the cleared log. This is emulator evidence, not a guarantee against every OEM/codec failure. Physical Samsung A55 follow-up remains useful.
+- Security check: merged debug APK has no `INTERNET` permission; no new permission or dependency, app backup remains disabled, sideload signing identity is unchanged. Exported MediaLibraryService still gates non-app controllers through Media3 trust in `LocalLibraryCallback`. The public-repo audit passed after removing workstation paths from tracked scripts/logs and treating GitHub Copilot's bot email as non-personal. This is not a full penetration test; do not infer that all historical source code is vulnerability-free.
+- APK: `releases/GreaterArt-1.13.19.apk`, 26,742,103 bytes; SHA-256 `1bcd4032606518f7bd03e42cc6d83fcd9539ecf6f18b54b07500483391e8e854`.
+
 ### September 26 — 1.13.16 launch-readiness verification, full 209-file library (local)
 
-- **Full-set test**: pushed all 209 media files (178 mp4 / 30 mp3 / 1 m4a, 17GB) from `C:\Users\galah\Videos\Download` to AVD `/sdcard/Download`. AVD data partition resized 10G → 32G (`disk.dataPartition.size=32G`, requires `-wipe-data` to take effect). Media store scanned all 209; app Library shows `209 files • offline`.
+- **Full-set test**: pushed all 209 media files (178 mp4 / 30 mp3 / 1 m4a, 17GB) from the workstation's `Videos/Download` folder to AVD `/sdcard/Download`. AVD data partition resized 10G → 32G (`disk.dataPartition.size=32G`, requires `-wipe-data` to take effect). Media store scanned all 209; app Library shows `209 files • offline`.
 - **AVD screen fix**: `hw.lcd.*` was 320×640 @160dpi (not an A55 profile despite the AVD name). Restored 1080×2340 @450dpi in `GreaterArt_A55_API36.avd/config.ini`.
 - **Thumbnail cache revert (1.13.15)**: the `thumbnailCache` MutableMap added in 1.13.15 pinned every decoded bitmap strong-ref (209 × ~900KB ≈ 190MB), defeating `ThumbnailRepository`'s LRU eviction and risking OOM. gfxinfo A/B showed no scroll win (98.94% baseline vs 99.05% with cache on cold start). Reverted to plain `produceState` + repo LRU; `QueueThumbnail(file, onLoadThumbnail)` signature is back to pre-1.13.15. The repo already preloads up to 300 items on scan (`MAX_PRELOAD_ITEMS`).
 - **Scroll perf verified @1080×2340**: queue scroll jank 23.36% cold (first-decode of 17GB media), **1.46% warm** (`dumpsys gfxinfo`, 16ms budget). Emulator GL-translation inflates absolute numbers; on-device will be faster.

@@ -30,14 +30,22 @@ import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import java.io.File
+import java.util.concurrent.atomic.AtomicLong
+
+internal fun shouldRestoreSavedSession(serviceAlive: Boolean, mediaItemCount: Int): Boolean =
+    serviceAlive && mediaItemCount == 0
 
 class PlaybackService : MediaLibraryService() {
     private lateinit var player: ExoPlayer
     private lateinit var mediaSession: MediaLibrarySession
     private lateinit var preferences: AppPreferences
     private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
+    private val saveMutex = Mutex()
+    private val saveGeneration = AtomicLong()
+    private var destroyed = false
     private var saveJob: Job? = null
     private var speedBeforeTemporaryHold: Float? = null
     private var retriedPath: String? = null
@@ -131,7 +139,9 @@ class PlaybackService : MediaLibraryService() {
         // ponytail: async prefs load; runBlocking here froze main and ANR'd the first play tap.
         serviceScope.launch {
             val saved = runCatching { preferences.current() }.getOrDefault(UserPreferences())
-            if (mediaSession == null) return@launch // service already destroyed
+            // A tap can arrive while DataStore is loading. Never replace that live queue
+            // with the previous session, and never touch the player after release.
+            if (!shouldRestoreSavedSession(!destroyed && ::mediaSession.isInitialized, player.mediaItemCount)) return@launch
             restoreLastSession(saved)
         }
 
@@ -221,6 +231,7 @@ class PlaybackService : MediaLibraryService() {
     }
 
     override fun onDestroy() {
+        destroyed = true
         TemporaryPlaybackSpeed.end()
         TemporaryPlaybackSpeed.detach()
         ParallelPlayback.detach()
@@ -236,14 +247,7 @@ class PlaybackService : MediaLibraryService() {
         val savedPosition = player.currentPosition
         val savedSpeed = speedBeforeTemporaryHold ?: player.playbackParameters.speed
         val savedRepeat = player.repeatMode
-        runBlocking(Dispatchers.IO) {
-            preferences.savePlayback(
-                path = savedPath,
-                positionMs = savedPosition,
-                speed = savedSpeed,
-                repeatMode = savedRepeat,
-            )
-        }
+        persistPlayback(savedPath, savedPosition, savedSpeed, savedRepeat)
         mediaSession.release()
         player.release()
         serviceScope.cancel()
@@ -397,8 +401,19 @@ class PlaybackService : MediaLibraryService() {
         val position = player.currentPosition
         val speed = speedBeforeTemporaryHold ?: player.playbackParameters.speed
         val repeat = player.repeatMode
-        serviceScope.launch(Dispatchers.IO) {
-            preferences.savePlayback(path, position, speed, repeat)
+        persistPlayback(path, position, speed, repeat)
+    }
+
+    private fun persistPlayback(path: String?, position: Long, speed: Float, repeat: Int) {
+        val generation = saveGeneration.incrementAndGet()
+        // DataStore writes may outlive Service teardown. Keep them off the main thread,
+        // serialize them, and prevent an older snapshot from overwriting the newest.
+        CoroutineScope(Dispatchers.IO).launch {
+            saveMutex.withLock {
+                if (generation != saveGeneration.get()) return@withLock
+                runCatching { preferences.savePlayback(path, position, speed, repeat) }
+                    .onFailure { android.util.Log.w("PlaybackService", "Playback snapshot could not be saved", it) }
+            }
         }
     }
 

@@ -1,11 +1,5 @@
 package com.local.listentomusic.ui.components
 
-import androidx.compose.animation.core.FastOutSlowInEasing
-import androidx.compose.animation.core.RepeatMode
-import androidx.compose.animation.core.animateFloat
-import androidx.compose.animation.core.infiniteRepeatable
-import androidx.compose.animation.core.rememberInfiniteTransition
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
@@ -15,7 +9,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
-import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.draw.clip
@@ -26,9 +19,8 @@ import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.unit.dp
 
 /**
- * Restrained animated metal: graphite, silver and a narrow teal reflection.
- * It is intentionally reserved for a few important surfaces so the interface
- * stays calm, readable and cheap to render while a list is scrolling.
+ * Restrained metal: graphite, silver and a narrow teal reflection. A fixed
+ * reflection avoids continuous redraws behind scrolling lists or live video.
  */
 @Composable
 fun LiquidMetalSurface(
@@ -39,16 +31,6 @@ fun LiquidMetalSurface(
     accentColor: Color? = null,
     content: @Composable BoxScope.() -> Unit,
 ) {
-    val transition = rememberInfiniteTransition(label = "liquidMetal")
-    val travel by transition.animateFloat(
-        initialValue = -0.35f,
-        targetValue = 1.35f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(durationMillis = 5_600, easing = FastOutSlowInEasing),
-            repeatMode = RepeatMode.Reverse,
-        ),
-        label = "metalReflection",
-    )
     val base = baseColor ?: MaterialTheme.colorScheme.surface
     val teal = accentColor ?: MaterialTheme.colorScheme.secondary
 
@@ -61,19 +43,18 @@ fun LiquidMetalSurface(
         // was used inside Scaffold.bottomBar, expanding the mini player over
         // the whole library.
         Canvas(Modifier.matchParentSize()) {
-            val focus = size.width * travel
             drawRect(
                 brush = Brush.linearGradient(
                     colors = listOf(
                         Color.Black.copy(alpha = 0.16f),
                         Color.White.copy(alpha = 0.04f),
-                        Color.White.copy(alpha = 0.19f),
-                        teal.copy(alpha = 0.15f),
+                        Color.White.copy(alpha = 0.11f),
+                        teal.copy(alpha = 0.08f),
                         Color.White.copy(alpha = 0.04f),
                         Color.Black.copy(alpha = 0.14f),
                     ),
-                    start = Offset(focus - size.width * 0.72f, size.height),
-                    end = Offset(focus + size.width * 0.72f, 0f),
+                    start = Offset.Zero,
+                    end = Offset(size.width, size.height),
                 ),
             )
         }

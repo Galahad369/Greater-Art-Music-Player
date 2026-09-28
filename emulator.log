@@ -1,6 +1,6 @@
 INFO         | Android emulator version 37.1.11.0 (build_id 15917651) (CL:N/A)
 INFO         | Graphics backend: gfxstream
-INFO         | Found systemPath C:\Users\galah\AppData\Local\Android\Sdk\system-images\android-36\google_apis\x86_64\
+INFO         | Found systemPath %LOCALAPPDATA%\Android\Sdk\system-images\android-36\google_apis\x86_64\
 INFO         | Guest usage of host flag 'VulkanVirtualQueue' will be ignored.
 INFO         | Increasing RAM size to 2560MB
 INFO         | IPv4 server found: 144.214.2.32
@@ -27,7 +27,7 @@ INFO         |   Checking: hasSufficientDiskSpace
 INFO         |      Ok: Disk space requirements to run avd: `GreaterArt_A55_API36` are met
 INFO         | Critical: Failed to load opengl32sw (The specified module could not be found.) (:0, )
 INFO         | Warning: Software OpenGL failed. Falling back to system OpenGL. (:0, )
-INFO         | Storing crashdata in: C:\Users\galah\AppData\Local\Temp\\AndroidEmulator\emu-crash-37.1.11.db, detection is enabled for process: 34060
+INFO         | Storing crashdata in: %LOCALAPPDATA%\Temp\\AndroidEmulator\emu-crash-37.1.11.db, detection is enabled for process: 34060
 INFO         | Initializing gfxstream backend
 INFO         | startOpenglesRendererImpl: gpu info
 INFO         | GPU #1
@@ -36,9 +36,9 @@ INFO         | GPU #1
   Device ID: 2d18
 
 INFO         | Disabling implicit Vulkan layers to avoid compatibility issues. Set VK_LOADER_LAYERS_DISABLE manually to disable this behavior.
-INFO         | SharedLibrary::open for [C:\Users\galah\AppData\Local\Android\Sdk\emulator\qemu\windows-x86_64\lib64\vulkan\vulkan-1.dll]
-INFO         | SharedLibrary::open for [C:\Users\galah\AppData\Local\Android\Sdk\emulator\lib64\vulkan\vulkan-1.dll]
-INFO         | Added library: C:\Users\galah\AppData\Local\Android\Sdk\emulator\lib64\vulkan\vulkan-1.dll
+INFO         | SharedLibrary::open for [%LOCALAPPDATA%\Android\Sdk\emulator\qemu\windows-x86_64\lib64\vulkan\vulkan-1.dll]
+INFO         | SharedLibrary::open for [%LOCALAPPDATA%\Android\Sdk\emulator\lib64\vulkan\vulkan-1.dll]
+INFO         | Added library: %LOCALAPPDATA%\Android\Sdk\emulator\lib64\vulkan\vulkan-1.dll
 INFO         | Selecting Vulkan device: NVIDIA GeForce RTX 5070 Laptop GPU, Version: 1.4.351
 INFO         | Using Vulkan externalMemoryMode: OpaqueWin32 for VkEmulation
 INFO         | Initializing VkEmulation features:
@@ -93,7 +93,7 @@ INFO         |   androidboot.vbmeta.size=6848
 INFO         |   androidboot.veritymode=enforcing
 WHPX on Windows 10.0.26200 detected.
 Windows Hypervisor Platform accelerator is operational
-netsimd I 09-25 01:34:30.853 external/netsim+/rust/daemon/src\rust_main.rs:93 - netsim artifacts path: "C:\\Users\\galah\\AppData\\Local\\Temp\\netsimd"
+netsimd I 09-25 01:34:30.853 external/netsim+/rust/daemon/src\rust_main.rs:93 - netsim artifacts path: "%LOCALAPPDATA%\\Temp\\netsimd"
 netsimd I 09-25 01:34:30.853 external/netsim+/rust/daemon/src\rust_main.rs:96 - NetsimdArgs {
     fd_startup_str: None,
     no_cli_ui: true,
@@ -130,11 +130,11 @@ netsimd I 09-25 01:34:30.853 external/netsim+/rust/daemon/src\rust_main.rs:96 - 
 }
 INFO         | Monitoring duration of emulator setup.
 WARNING      | The emulator now requires a signed jwt token for gRPC access! Use the -grpc flag if you really want an open unprotected grpc port
-INFO         | Using security allow list from: C:\Users\galah\AppData\Local\Android\Sdk\emulator\lib\emulator_access.json
-INFO         | The active JSON Web Key Sets can be found here: C:\Users\galah\AppData\Local\Temp\avd\running\34060\jwks\035ff4e8-136d-4e99-b8a5-397934096978\active.jwk
-INFO         | Scanning C:\Users\galah\AppData\Local\Temp\avd\running\34060\jwks\035ff4e8-136d-4e99-b8a5-397934096978 for jwk keys.
+INFO         | Using security allow list from: %LOCALAPPDATA%\Android\Sdk\emulator\lib\emulator_access.json
+INFO         | The active JSON Web Key Sets can be found here: %LOCALAPPDATA%\Temp\avd\running\34060\jwks\035ff4e8-136d-4e99-b8a5-397934096978\active.jwk
+INFO         | Scanning %LOCALAPPDATA%\Temp\avd\running\34060\jwks\035ff4e8-136d-4e99-b8a5-397934096978 for jwk keys.
 INFO         | Started GRPC server at 127.0.0.1:8554, security: Local, auth: +token
-INFO         | Advertising in: C:\Users\galah\AppData\Local\Temp\avd\running\pid_34060.ini
+INFO         | Advertising in: %LOCALAPPDATA%\Temp\avd\running\pid_34060.ini
 INFO         | Successfully initialized netsim WiFi
 INFO         | Activated packet streamer for bluetooth emulation
 INFO         | Activated packet streamer for uwb emulation

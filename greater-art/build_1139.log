@@ -24,7 +24,7 @@
 > Task :app:extractDeepLinksDebug UP-TO-DATE
 
 > Task :app:processDebugMainManifest
-C:\Users\galah\Desktop\Knowledge-Base\Random Coding stuff\App\greater-art\app\src\main\AndroidManifest.xml:29:5-87 Warning:
+greater-art\app\src\main\AndroidManifest.xml:29:5-87 Warning:
 	uses-permission#android.permission.INTERNET was tagged at AndroidManifest.xml:29 to remove other declarations but no other declaration present
 
 > Task :app:processDebugManifest

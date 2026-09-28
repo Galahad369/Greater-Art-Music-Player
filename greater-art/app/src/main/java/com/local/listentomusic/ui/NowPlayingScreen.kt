@@ -666,9 +666,6 @@ private fun AudioPlayer(
         value = playback.currentPath?.let { onLoadWaveform(it) }
         waveformLoading = false
     }
-    val artworkMotion = motionActive(playback.isPlaying)
-    val artworkScale = animateFloatAsState(if (artworkMotion) 1.004f + .008f * waveformEnvelope(waveform, playback.positionMs, playback.durationMs) else 1f,
-        androidx.compose.animation.core.tween(480), label = "cover-envelope")
     BoxWithConstraints(
         modifier = Modifier.fillMaxSize().windowInsetsPadding(playerStatusInsets())
             .windowInsetsPadding(playerNavigationInsets()),
@@ -678,7 +675,6 @@ private fun AudioPlayer(
         Column(Modifier.fillMaxSize(), horizontalAlignment = Alignment.CenterHorizontally) {
         LiquidMetalSurface(
             modifier = Modifier.padding(vertical = 4.dp).size(artSize)
-                .graphicsLayer { scaleX = artworkScale.value; scaleY = artworkScale.value }
                 .pointerInput(seekOffsetMs) {
                     detectTapGestures(
                         onDoubleTap = { offset ->
@@ -1412,7 +1408,9 @@ private fun CurrentMediaHeader(
             overflow = TextOverflow.Clip,
             color = MaterialTheme.colorScheme.onSurface,
             modifier = Modifier.weight(1f).padding(start = if (headline) 0.dp else 2.dp, end = 4.dp)
-                .basicMarquee(),
+                // One slow reveal per title; an endless ticker puts duplicated
+                // fragments next to the media actions and looks broken mid-loop.
+                .basicMarquee(iterations = 1, initialDelayMillis = 1_200),
         )
         IconButton(
             onClick = onToggleFavourite,
