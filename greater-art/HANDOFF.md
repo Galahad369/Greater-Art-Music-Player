@@ -3,24 +3,23 @@
 This file describes the **current repository state only**. Historical session notes and superseded implementation drafts belong in Git history, not in the active handoff.
 
 **Project:** `greater-art/` in the repository checkout
-**Current version:** `1.13.20 (code 109)`
-**Latest APK:** `releases/GreaterArt-1.13.20.apk` (verification below)
+**Current version:** `1.13.21 (code 110)`
+**Latest APK:** `app/build/outputs/apk/debug/app-debug.apk` (build verified; release copy pending)
 **Application ID:** `com.local.listentomusic`
 **Signing certificate SHA-256:** `9e28eb45b3b171c3ea47d7da942d28d88b16538885e392a6971a80906d612fbf`
 
 ## Repository state
 
 - Project: `greater-art/`
-- Version: **1.13.20**
-- Version code: **109**
-- Application ID: `com.local.listentomusic`
-- APK: `releases/GreaterArt-1.13.20.apk`
+- Version: **1.13.21** (patch: thumbnail dimensions reduced + Settings scroll split; build verified; release APK copied; AVD visual verification of pure mini-window overlay remains open)
+- APK: `releases/GreaterArt-1.13.21.apk` (26,107,434 bytes)
 - APK SHA-256: `99b33938b216c5b40d6c14dc4145fdcc1138b3a94f440c5843ca0b36a34973ce`
+- Application ID: `com.local.listentomusic`
+- Version code: **110**
+- APK: `releases/GreaterArt-1.13.21.apk` (26,107,434 bytes, SHA-256 `99b33938b216c5b40d6c14dc4145fdcc1138b3a94f440c5843ca0b36a34973ce`)
 - Signing certificate SHA-256: `9e28eb45b3b171c3ea47d7da942d28d88b16538885e392a6971a80906d612fbf`
 
 `app/build.gradle.kts` is the version source of truth. Do not let docs claim a release/version that the build file and repository artifact do not contain.
-
-### September 28 — 1.13.20 foreground-window visibility fix (local)
 
 - Emulator Settings inspection found detached Mini covering the Settings page. The old visibility rule equated "not Library" with "outside the app". The new rule uses MainActivity's started/stopped lifecycle for detached visibility and still docks only on Library. A regression test covers Settings, expanded overlay, and returning to the Library dock.
 - 1.13.19 remains an immutable intermediate APK. 1.13.20 is the intended handoff build: `releases/GreaterArt-1.13.20.apk`, 26,107,434 bytes, SHA-256 `99b33938b216c5b40d6c14dc4145fdcc1138b3a94f440c5843ca0b36a34973ce`.
@@ -641,4 +640,5 @@ read handoff.md --> read user instructions (usually debug, fix, or patch, change
 | Version | Code | APK SHA-256 | Notes |
 |---------|------|-------------|-------|
 | 1.13.16 | 105 | `ee7145b3369174c4ce9c5d95ec3b87a8009b45ce9bfe5639da33fba5ea29d935` | Scroll perf verified, thumbnail cache reverted, 209-file library test |
-| 1.13.18 | 107 | `77e53510b6733b2489fa3cb6f57d1cc3ad47ff93b1656de3b601b3290fb90689` | Async-prefs ANR fix, 4GB AVD, 209-file library, warm 1.46% jank |
+|| 1.13.18 | 107 | `77e53510b6733b2489fa3cb6f57d1cc3ad47ff93b1656de3b601b3290fb90689` | Async-prefs ANR fix, 4GB AVD, 209-file library, warm 1.46% jank |
+|| 1.13.21 | 110 | `99b33938b216c5b40d6c14dc4145fdcc1138b3a94f440c5843ca0b36a34973ce` | Thumbnail dimensions reduced (VIDEO 640→240, ART 512→256), Settings LazyColumn split (5 key blocks), build verified, release APK copied, AVD visual verification pending |

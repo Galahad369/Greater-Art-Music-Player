@@ -165,8 +165,8 @@ fun SettingsScreen(
             )
         },
     ) { padding ->
-        LazyColumn(Modifier.padding(padding).inspectElement("SETTINGS_LIST", "Scrollable preference controls"), contentPadding = PaddingValues(bottom = 32.dp)) {
-            item {
+        LazyColumn(Modifier.padding(padding).inspectElement("SETTINGS_LIST", "Scrollable preference controls"), contentPadding = PaddingValues(bottom = 32.dp), key = { index -> "section_$index" }) {
+            item(key = "section_lang_appearance") {
                 SectionTitle(uiText(language, "Language & appearance", "語言與外觀"))
                 ChoiceSetting(
                     uiText(language, "Language", "語言"),
@@ -287,7 +287,8 @@ fun SettingsScreen(
                 )
                 SwitchSetting(uiText(language, "Show thumbnails", "顯示縮圖"), uiText(language, "Turn off previews for the densest list.", "關閉預覽以顯示最緊密的清單。"), preferences.showThumbnails, onShowThumbnails)
                 SwitchSetting(uiText(language, "Show file details", "顯示檔案詳情"), uiText(language, "Display format and file size below the title.", "在標題下顯示格式與檔案大小。"), preferences.showFileDetails, onShowFileDetails)
-
+            }
+            item(key = "section_playback") {
                 SectionTitle(uiText(language, "Playback", "播放"))
                 SwitchSetting(
                     uiText(language, "ReplayGain", "ReplayGain"),
@@ -343,7 +344,8 @@ fun SettingsScreen(
                       else uiText(language, "Mini window", "迷你視窗") },
                     onFloatingWindowMode,
                 )
-
+            }
+            item(key = "section_playlists") {
                 SectionTitle(uiText(language, "Song lists", "歌曲清單"))
                 SwitchSetting(
                     uiText(language, "Editable play queue", "可編輯播放佇列"),
@@ -392,7 +394,8 @@ fun SettingsScreen(
                         Text(uiText(language, "Export list", "匯出清單"))
                     }
                 }
-
+            }
+            item(key = "section_library") {
                 SectionTitle(uiText(language, "Library & cache", "音樂庫與快取"))
                 TextButton(onClick = onDuplicates, modifier = Modifier.padding(horizontal = 16.dp)) { Text(uiText(language, "Find duplicate files", "尋找重複檔案")) }
                 Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -418,6 +421,8 @@ fun SettingsScreen(
                     uiText(language, "Clear cache", "清除快取"),
                 ) { onClearThumbnailCache(); cacheCleared = true }
 
+            }
+            item(key = "section_privacy") {
                 SectionTitle(uiText(language, "Privacy", "私隱"))
                 Card(
                     Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 6.dp),
@@ -456,7 +461,7 @@ fun SettingsScreen(
                     Text("  ${uiText(language, "Reset app settings", "重設應用程式設定")}")
                 }
                 Text(uiText(language, "Your playlists, library order, and media files are not changed.", "播放清單、音樂庫排序與媒體檔案不會被更改。"), modifier = Modifier.fillMaxWidth().padding(top = 8.dp), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                            }
+            }
                         }
     }
 

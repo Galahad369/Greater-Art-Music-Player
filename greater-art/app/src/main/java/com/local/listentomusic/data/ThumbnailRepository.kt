@@ -311,9 +311,9 @@ class ThumbnailRepository(private val context: Context) {
         (Runtime.getRuntime().maxMemory() / 12L / 1024L).coerceIn(8_192L, 65_536L).toInt()
 
     private companion object {
-        const val VIDEO_WIDTH = 640
-        const val VIDEO_HEIGHT = 360
-        const val ARTWORK_SIZE = 512
+        const val VIDEO_WIDTH = 240
+        const val VIDEO_HEIGHT = 135
+        const val ARTWORK_SIZE = 256
         const val MAX_DISK_FILES = 600
         const val MAX_DISK_BYTES = 256L * 1024L * 1024L
         const val PRELOAD_COROUTINES = 2
