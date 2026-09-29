@@ -34,6 +34,7 @@ import com.local.listentomusic.ui.DeveloperDiagnostics
 import com.local.listentomusic.ui.NowPlayingScreen
 import com.local.listentomusic.ui.UiInspectorHost
 import com.local.listentomusic.ui.UiInspectorState
+import com.local.listentomusic.ui.inspectElement
 import com.local.listentomusic.ui.theme.GreaterArtTheme
 import com.local.listentomusic.ui.uiText
 import com.local.listentomusic.ui.components.VideoSurfaceOwner
@@ -79,16 +80,6 @@ internal fun PlayerWindowExpandedContent(
                 contentColor = MaterialTheme.colorScheme.onBackground,
                 shape = RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp)) {
                 Column(Modifier.fillMaxSize()) {
-                    if (!fullscreen) Box(Modifier.fillMaxWidth().height(32.dp).pointerInput(Unit) {
-                        detectVerticalDragGestures(
-                            onDragEnd = onPullEnd,
-                            onDragCancel = onPullCancel,
-                            onVerticalDrag = { change, amount -> change.consume(); onPull(amount) },
-                        )
-                    }, contentAlignment = Alignment.Center) {
-                        Box(Modifier.size(36.dp, 4.dp).background(
-                            MaterialTheme.colorScheme.onSurfaceVariant, RoundedCornerShape(2.dp)))
-                    }
                     Box(Modifier.fillMaxWidth().weight(1f)) {
                         NowPlayingScreen(
                             playback = playback,

@@ -31,14 +31,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.Construction
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.size
-import androidx.compose.material3.Icon
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -143,6 +135,17 @@ fun GreaterArtApp(
     var screen by rememberSaveable { mutableStateOf(Screen.LIBRARY) }
     LaunchedEffect(screen) { onLibraryScreenChanged(screen == Screen.LIBRARY) }
     val libraryPager = rememberPagerState(initialPage = 0, pageCount = { 2 })
+    val graph by viewModel.graph.collectAsStateWithLifecycle()
+    val graphLoading by viewModel.graphLoading.collectAsStateWithLifecycle()
+    val graphError by viewModel.graphError.collectAsStateWithLifecycle()
+    val backgroundHorizontalPosition = androidx.compose.runtime.remember(libraryPager, screen) {
+        {
+            if (screen == Screen.LIBRARY) {
+                val progress = (libraryPager.currentPage + libraryPager.currentPageOffsetFraction).coerceIn(0f, 1f)
+                .5f + progress * .5f
+            } else .5f
+        }
+    }
     val navigationScope = rememberCoroutineScope()
     LaunchedEffect(libraryPager.currentPage) { if (libraryPager.currentPage == 1) viewModel.requestGraph() }
     var editDisplay by remember { mutableStateOf<com.local.listentomusic.model.MediaFile?>(null) }
@@ -227,7 +230,7 @@ fun GreaterArtApp(
             // Stable ownership across navigation: prepare once, pause when covered,
             // and resume immediately when Library or Settings reveals the wallpaper.
             AppBackground(preferences = settings, currentPath = playback.currentPath, isVideo = playback.isVideo, controller = controller,
-                visible = true)
+                visible = true, horizontalPosition = backgroundHorizontalPosition)
             Surface(
                 modifier = Modifier.fillMaxSize(),
                 // A light palette needs an opaque-enough base over black/custom media.
@@ -273,18 +276,18 @@ fun GreaterArtApp(
                 ) { padding ->
                                     HorizontalPager(state = libraryPager, modifier = Modifier.fillMaxSize(), key = { if (it == 1) "NODES" else "LIBRARY" }) { page ->
                                                                             if (page == 1) {
-                                                                                // NodesScreen temporarily disabled - will be redesigned
-                                                                                Box(
-                                                                                    modifier = Modifier.fillMaxSize()
-                                                                                        .background(MaterialTheme.colorScheme.surface),
-                                                                                    contentAlignment = Alignment.Center
-                                                                                ) {
-                                                                                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                                                                        Icon(Icons.Rounded.Construction, null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(48.dp))
-                                                                                        Spacer(Modifier.height(12.dp))
-                                                                                        Text("Nodes page redesigned - coming soon", style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                                                                                    }
-                                                                                }
+                                                                                NodesScreen(
+                                                                                    graph = graph,
+                                                                                    loading = graphLoading,
+                                                                                    error = graphError,
+                                                                                    currentPath = playback.currentPath,
+                                                                                    contentPadding = PaddingValues(bottom = if (playback.hasMedia) com.local.listentomusic.model.MiniWindowMetrics.HEIGHT_DP.dp else 0.dp),
+                                                                                    onLibrary = { navigationScope.launch { libraryPager.animateScrollToPage(0) } },
+                                                                                    onRetry = viewModel::requestGraph,
+                                                                                    onPlay = viewModel::playGraphNode,
+                                                                                    options = settings.graphOptions,
+                                                                                    onOptions = viewModel::setGraphOptions,
+                                                                                )
                                                                             } else {
                                             LibraryScreen(
                         appName = appName,
@@ -467,7 +470,11 @@ fun GreaterArtApp(
                 DeveloperDiagnostics(
                     report = buildString {
                         appendLine("version=${com.local.listentomusic.BuildConfig.VERSION_NAME}")
-                        appendLine("screen=${if (com.local.listentomusic.ui.components.VideoSurfaceOwner.systemOverlayActive) Screen.NOW_PLAYING.name else if (screen == Screen.LIBRARY && libraryPager.currentPage == 1) "NODES" else screen.name} systemPlayerOverlay=${com.local.listentomusic.ui.components.VideoSurfaceOwner.systemOverlayActive}")
+                        // This inspector belongs to MainActivity. A system-player
+                        // ownership flag can outlive its visible window and must not
+                        // relabel the page the user is actually inspecting.
+                        appendLine("screen=${if (screen == Screen.LIBRARY && libraryPager.currentPage == 1) "NODES" else screen.name}")
+                        appendLine("systemPlayerOverlay=${com.local.listentomusic.ui.components.VideoSurfaceOwner.systemOverlayActive}")
                         appendLine("playerWindowMode=${windowMode ?: "none"} playerWindowService=${windowMode != null} $windowIdentities")
                         appendLine("media=${playback.currentPath?.let { com.local.listentomusic.model.sourceMediaPath(it).substringAfterLast('.') } ?: "none"} (paths omitted)")
                         appendLine("playing=${playback.isPlaying} video=${playback.isVideo}")

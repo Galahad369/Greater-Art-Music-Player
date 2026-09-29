@@ -16,6 +16,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
@@ -47,6 +48,7 @@ import com.local.listentomusic.playback.installVideoDiagnostics
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.flow.collect
 import java.io.File
 import kotlin.math.abs
 import kotlin.math.max
@@ -70,6 +72,7 @@ fun AppBackground(
     controller: MediaController?,
     modifier: Modifier = Modifier,
     visible: Boolean = true,
+    horizontalPosition: (() -> Float)? = null,
 ) {
     val mode = preferences.backgroundMode
     val currentVideoUri = currentPath
@@ -149,6 +152,7 @@ fun AppBackground(
                     shouldPlay = true,
                     syncController = controller,
                     scaleMode = preferences.backgroundScaleMode,
+                    horizontalPosition = horizontalPosition,
                 )
             }
         }
@@ -230,9 +234,11 @@ private fun BackgroundVideo(
     shouldPlay: Boolean,
     scaleMode: BackgroundScaleMode = BackgroundScaleMode.CROP,
     syncController: MediaController? = null,
+    horizontalPosition: (() -> Float)? = null,
 ) {
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
+    var videoView by remember { mutableStateOf<PlayerView?>(null) }
     var lifecycleActive by remember(lifecycleOwner) {
         mutableStateOf(lifecycleOwner.lifecycle.currentState.isAtLeast(Lifecycle.State.STARTED))
     }
@@ -311,6 +317,29 @@ private fun BackgroundVideo(
         }
     }
 
+    // The pager owns this presentation-only position. Updating the already-attached
+    // content frame does not rebuild the player, seek, or recompose the page tree.
+    LaunchedEffect(videoView, horizontalPosition, scaleMode) {
+        val view = videoView ?: return@LaunchedEffect
+        val frame = view.findViewById<android.view.View>(androidx.media3.ui.R.id.exo_content_frame)
+            ?: return@LaunchedEffect
+        fun move(position: Float) {
+            frame.translationX = backgroundCropTranslationX(frame.width, view.width, scaleMode, position)
+        }
+        val layoutListener = android.view.View.OnLayoutChangeListener { _, _, _, _, _, _, _, _, _ ->
+            move(horizontalPosition?.invoke() ?: .5f)
+        }
+        view.addOnLayoutChangeListener(layoutListener)
+        frame.addOnLayoutChangeListener(layoutListener)
+        try {
+            snapshotFlow { horizontalPosition?.invoke() ?: .5f }.collect(::move)
+        } finally {
+            frame.removeOnLayoutChangeListener(layoutListener)
+            view.removeOnLayoutChangeListener(layoutListener)
+            frame.translationX = 0f
+        }
+    }
+
     AndroidView(
         factory = { viewContext ->
             (android.view.LayoutInflater.from(viewContext).inflate(com.local.listentomusic.R.layout.background_video, android.widget.FrameLayout(viewContext), false) as PlayerView).apply {
@@ -322,6 +351,7 @@ private fun BackgroundVideo(
                 }
                 setKeepContentOnPlayerReset(true)
                 player = backgroundPlayer
+                videoView = this
             }
         },
         update = {
@@ -331,9 +361,22 @@ private fun BackgroundVideo(
                 BackgroundScaleMode.CROP -> AspectRatioFrameLayout.RESIZE_MODE_ZOOM
             }
             it.player = backgroundPlayer
+            if (videoView !== it) videoView = it
         },
         modifier = Modifier.fillMaxSize(),
     )
+}
+
+/** PlayerView centers its enlarged ZOOM content frame; shift only within valid overflow. */
+internal fun backgroundCropTranslationX(
+    contentWidth: Int,
+    viewportWidth: Int,
+    scaleMode: BackgroundScaleMode,
+    horizontalPosition: Float,
+): Float {
+    if (scaleMode != BackgroundScaleMode.CROP) return 0f
+    val overflow = (contentWidth - viewportWidth).coerceAtLeast(0)
+    return -overflow * (horizontalPosition.coerceIn(.5f, 1f) - .5f)
 }
 
 private fun decodeSampledBitmap(

@@ -949,7 +949,7 @@ private fun NowPlayingQueue(
         if (visibleIndex >= 0 && !listState.isScrollInProgress) listState.scrollToItem(visibleIndex)
     }
     Column(modifier.inspectElement("NOW_PLAYING_QUEUE", "Ordered playback queue and optional synchronized lyrics")) {
-        if (searchOpen) Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+        if (searchOpen) Row(Modifier.fillMaxWidth().inspectElement("QUEUE_SEARCH_FIELD", "Filters the current playback queue"), verticalAlignment = Alignment.CenterVertically) {
                 OutlinedTextField(
                     value = query,
                     onValueChange = { query = it },
@@ -983,7 +983,7 @@ private fun NowPlayingQueue(
             }
         } else {
             LazyColumn(
-                modifier = Modifier.fillMaxSize(),
+                modifier = Modifier.fillMaxSize().inspectElement("NOW_PLAYING_QUEUE_LIST", "Scrollable playback queue"),
                 state = listState,
                 contentPadding = PaddingValues(vertical = 4.dp),
             ) {
@@ -992,7 +992,8 @@ private fun NowPlayingQueue(
                     val file = indexed.value
                     val selected = file.path == currentPath
         Row(
-                        modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp))
+                        modifier = Modifier.fillMaxWidth().inspectElement("NOW_PLAYING_QUEUE_ROW", file.name)
+                            .clip(RoundedCornerShape(12.dp))
                             .background(
                                 if (selected) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.72f)
                                 else Color.Transparent,
@@ -1407,7 +1408,8 @@ private fun CurrentMediaHeader(
             maxLines = 1,
             overflow = TextOverflow.Clip,
             color = MaterialTheme.colorScheme.onSurface,
-            modifier = Modifier.weight(1f).padding(start = if (headline) 0.dp else 2.dp, end = 4.dp)
+            modifier = Modifier.weight(1f).inspectElement("CURRENT_MEDIA_TITLE", playback.title)
+                .padding(start = if (headline) 0.dp else 2.dp, end = 4.dp)
                 // One slow reveal per title; an endless ticker puts duplicated
                 // fragments next to the media actions and looks broken mid-loop.
                 .basicMarquee(iterations = 1, initialDelayMillis = 1_200),

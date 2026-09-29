@@ -109,6 +109,10 @@ import com.local.listentomusic.ui.components.LiquidMetalSurface
 import kotlin.math.abs
 import kotlinx.coroutines.launch
 
+// Aligned chrome translucency: top bar, search filter, playlist and Nodes buttons
+// all sit half-transparent over the app background (video wallpaper / metal).
+private const val CHROME_ALPHA = 0.5f
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun LibraryScreen(
@@ -241,7 +245,7 @@ fun LibraryScreen(
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.background.copy(alpha = 0.88f),
+                    containerColor = MaterialTheme.colorScheme.background.copy(alpha = CHROME_ALPHA),
                 ),
             )
         },
@@ -280,6 +284,7 @@ fun LibraryScreen(
                     .border(1.dp, searchGlow, RoundedCornerShape(18.dp))
                     .inspectElement("LIBRARY_FILTER", "Animated local filename search and clear control"),
                 shape = RoundedCornerShape(18.dp),
+                baseColor = MaterialTheme.colorScheme.background.copy(alpha = CHROME_ALPHA),
             ) {
                 OutlinedTextField(
                     value = state.query,
@@ -311,7 +316,10 @@ fun LibraryScreen(
             ) {
                 Box(Modifier.weight(1f)) {
                     Button(onClick = { playlistMenuOpen = true }, modifier = Modifier
-                        .inspectElement("PLAYLIST_BUTTON", "Selects or manages a playlist")) {
+                        .inspectElement("PLAYLIST_BUTTON", "Selects or manages a playlist"),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = MaterialTheme.colorScheme.primary.copy(alpha = CHROME_ALPHA),
+                        )) {
                         Icon(Icons.AutoMirrored.Rounded.QueueMusic, null)
                         Spacer(Modifier.width(8.dp))
                         Text(when {
@@ -378,6 +386,9 @@ fun LibraryScreen(
                     onClick = onOpenNodes,
                     modifier = Modifier.inspectElement("NODES_BUTTON", "Opens filename-similarity graph"),
                     contentPadding = PaddingValues(horizontal = 12.dp, vertical = 7.dp),
+                    colors = ButtonDefaults.outlinedButtonColors(
+                        containerColor = MaterialTheme.colorScheme.surface.copy(alpha = CHROME_ALPHA),
+                    ),
                 ) {
                     Icon(Icons.Rounded.Hub, null, Modifier.size(18.dp))
                     Spacer(Modifier.width(6.dp))

@@ -165,7 +165,7 @@ fun SettingsScreen(
             )
         },
     ) { padding ->
-        LazyColumn(Modifier.padding(padding).inspectElement("SETTINGS_LIST", "Scrollable preference controls"), contentPadding = PaddingValues(bottom = 32.dp), key = { index -> "section_$index" }) {
+        LazyColumn(Modifier.padding(padding).inspectElement("SETTINGS_LIST", "Scrollable preference controls"), contentPadding = PaddingValues(bottom = 32.dp)) {
             item(key = "section_lang_appearance") {
                 SectionTitle(uiText(language, "Language & appearance", "語言與外觀"))
                 ChoiceSetting(
@@ -561,6 +561,8 @@ private fun <T> ChoiceSetting(title: String, description: String, values: List<T
 
 @Composable
 private fun DimSliderSetting(title: String, description: String, value: Float, onValue: (Float) -> Unit) {
+    var inputOpen by remember { mutableStateOf(false) }
+    var inputText by remember { mutableStateOf("") }
     Column(Modifier.fillMaxWidth().inspectElement("SETTING_SLIDER", title).padding(horizontal = 16.dp, vertical = 10.dp)) {
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
             Column(Modifier.weight(1f)) {
@@ -569,7 +571,7 @@ private fun DimSliderSetting(title: String, description: String, value: Float, o
             }
             Text(
                 "${(value * 100).toInt()}%",
-                modifier = Modifier.padding(start = 12.dp, top = 2.dp),
+                modifier = Modifier.padding(start = 12.dp, top = 2.dp).clickable { inputText = "${(value * 100).toInt()}"; inputOpen = true },
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.SemiBold,
                 color = MaterialTheme.colorScheme.secondary,

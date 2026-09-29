@@ -1,10 +1,27 @@
 package com.local.listentomusic.ui.components
 
+import com.local.listentomusic.data.BackgroundScaleMode
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class AppBackgroundSyncTest {
+    @Test
+    fun cropPanUsesOnlyValidHorizontalOverflow() {
+        assertEquals(0f, backgroundCropTranslationX(1600, 1080, BackgroundScaleMode.CROP, .5f), 0f)
+        assertEquals(-130f, backgroundCropTranslationX(1600, 1080, BackgroundScaleMode.CROP, .75f), 0f)
+        assertEquals(-260f, backgroundCropTranslationX(1600, 1080, BackgroundScaleMode.CROP, 1f), 0f)
+        assertEquals(-260f, backgroundCropTranslationX(1600, 1080, BackgroundScaleMode.CROP, 2f), 0f)
+    }
+
+    @Test
+    fun noCropPanWithoutOverflowOrInOtherScaleModes() {
+        assertEquals(0f, backgroundCropTranslationX(900, 1080, BackgroundScaleMode.CROP, 1f), 0f)
+        assertEquals(0f, backgroundCropTranslationX(1600, 1080, BackgroundScaleMode.FIT, 1f), 0f)
+        assertEquals(0f, backgroundCropTranslationX(1600, 1080, BackgroundScaleMode.STRETCH, 1f), 0f)
+    }
+
     @Test
     fun videoBackgroundWaitsForPrimaryVideoFrame() {
         assertFalse(shouldAttachVideoBackground(visible = true, primaryIsVideo = true, primaryFrameReady = false))

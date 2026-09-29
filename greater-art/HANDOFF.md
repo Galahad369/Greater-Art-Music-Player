@@ -3,7 +3,7 @@
 This file describes the **current repository state only**. Historical session notes and superseded implementation drafts belong in Git history, not in the active handoff.
 
 **Project:** `greater-art/` in the repository checkout
-**Current version:** `1.13.21 (code 110)`
+**Current version:** `1.13.23 (code 112)`
 **Latest APK:** `app/build/outputs/apk/debug/app-debug.apk` (build verified; release copy pending)
 **Application ID:** `com.local.listentomusic`
 **Signing certificate SHA-256:** `9e28eb45b3b171c3ea47d7da942d28d88b16538885e392a6971a80906d612fbf`
@@ -11,15 +11,24 @@ This file describes the **current repository state only**. Historical session no
 ## Repository state
 
 - Project: `greater-art/`
-- Version: **1.13.21** (patch: thumbnail dimensions reduced + Settings scroll split; build verified; release APK copied; AVD visual verification of pure mini-window overlay remains open)
+- Version: **1.13.23** (patch: Nodes screen fix + inspector tags, library chrome transparency; build verified; release APK copied pending)
 - APK: `releases/GreaterArt-1.13.21.apk` (26,107,434 bytes)
 - APK SHA-256: `99b33938b216c5b40d6c14dc4145fdcc1138b3a94f440c5843ca0b36a34973ce`
 - Application ID: `com.local.listentomusic`
-- Version code: **110**
+- Version code: **112**
 - APK: `releases/GreaterArt-1.13.21.apk` (26,107,434 bytes, SHA-256 `99b33938b216c5b40d6c14dc4145fdcc1138b3a94f440c5843ca0b36a34973ce`)
 - Signing certificate SHA-256: `9e28eb45b3b171c3ea47d7da942d28d88b16538885e392a6971a80906d612fbf`
 
 `app/build.gradle.kts` is the version source of truth. Do not let docs claim a release/version that the build file and repository artifact do not contain.
+
+### September 29 — Nodes visual work (local, not a numbered release)
+
+- Dev Mode follow-up: its Activity report incorrectly labeled a visible Nodes page `NOW_PLAYING` whenever the system-video ownership flag remained true. It now reports the actual pager screen and lists the overlay flag separately. Nodes has explicit tags for navigation, toolbar, loading/errors, canvas, and a lightweight hit resolver for individual Canvas media nodes (filename + playing state) without registering hundreds of Compose regions. Now Playing queue rows/title/search and the expanded-player pull handle gained inspector tags; blank background is described honestly instead of `UNREGISTERED_AREA`.
+- Emulator visual check found the Nodes `← Library` button colliding with the DEV badge, so navigation moved beside the Nodes title. The selected-element card now clears the dock and keeps copy/next/close actions in a separate aligned row. A live pick on the A55-sized API 36 emulator identified the playing graph node by filename and bounds. This work stays local while the concurrent 1.13.22 UI branch is active; the numbered release APK was not overwritten.
+- Final local verification: `:app:testDebugUnitTest :app:lintDebug :app:assembleDebug` passed on JDK 21 (128 tests, 0 failures/errors). Installed the debug APK on the 1080×2340 API 36 emulator: Nodes header and DEV badge do not collide; Inspector shows `screen=NODES` rather than `NOW_PLAYING`; graph-node pick identifies the playing filename; the NEXT/COPY/close row remains above the Library dock. Other screens and physical Samsung A55 were not rechecked for this Dev Mode patch. No new permission, network access, dependency, or numbered release artifact.
+- Restored the cached filename-similarity graph from the earlier graph UI instead of the temporary “coming soon” placeholder. Kept pan/pinch/node drag/tap, Find, current-track emphasis, and graph controls. Dense libraries now show only selected/playing and a few strong-hub labels with collision checks; a left-edge swipe still returns to Library.
+- `CURRENT_VIDEO` now keeps one existing background PlayerView and moves its valid `CROP` content-frame overflow from center (Library) to right-aligned (Nodes) using continuous pager offset. The view and decoder are not recreated during a swipe. FIT/STRETCH and no-overflow media do not pan; Settings and other pages stay centered. The Nodes scrim remains translucent for graph contrast.
+- Local debug validation against the concurrent 1.13.22 working tree: 126 unit tests passed, lint passed, `assembleDebug` passed. On the 1080×2340 API 36 emulator with 209 files, the graph rendered, a paused landscape video's Library and Nodes crops were visibly different without an empty edge, a slow swipe showed the shared frame behind both moving pages mid-gesture, and a left-edge swipe returned to Library. Do not treat this debug build as Hermes's numbered release; reconcile version/docs and run a final device check after both workstreams merge.
 
 - Emulator Settings inspection found detached Mini covering the Settings page. The old visibility rule equated "not Library" with "outside the app". The new rule uses MainActivity's started/stopped lifecycle for detached visibility and still docks only on Library. A regression test covers Settings, expanded overlay, and returning to the Library dock.
 - 1.13.19 remains an immutable intermediate APK. 1.13.20 is the intended handoff build: `releases/GreaterArt-1.13.20.apk`, 26,107,434 bytes, SHA-256 `99b33938b216c5b40d6c14dc4145fdcc1138b3a94f440c5843ca0b36a34973ce`.

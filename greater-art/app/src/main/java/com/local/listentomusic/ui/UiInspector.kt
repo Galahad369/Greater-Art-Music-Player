@@ -38,6 +38,7 @@ internal data class InspectorRegion(
 @Stable
 internal class UiInspectorState {
     internal val regions = mutableStateMapOf<Any, InspectorRegion>()
+    private val hitProviders = mutableMapOf<Any, (Offset) -> InspectorRegion?>()
     var armed by mutableStateOf(false)
     var selected by mutableStateOf<InspectorRegion?>(null)
         private set
@@ -57,20 +58,23 @@ internal class UiInspectorState {
     }
 
     fun remove(key: Any) { regions.remove(key) }
+    fun setHitProvider(key: Any, provider: (Offset) -> InspectorRegion?) { hitProviders[key] = provider }
+    fun removeHitProvider(key: Any) { hitProviders.remove(key) }
     fun arm() { selected = null; matchingRegions = emptyList(); selectedMatchIndex = 0; armed = true }
     fun cancel() { armed = false }
     fun clearSelection() { selected = null; matchingRegions = emptyList(); selectedMatchIndex = 0 }
-    fun clear() { armed = false; clearSelection(); regions.clear() }
+    fun clear() { armed = false; clearSelection(); regions.clear(); hitProviders.clear() }
 
     fun pick(point: Offset) {
         lastTouch = point
-        matchingRegions = regions.values.asSequence()
+        val preciseHits = hitProviders.values.mapNotNull { it(point) }
+        matchingRegions = (preciseHits + regions.values).asSequence()
             .filter { it.bounds.contains(point) }
             .sortedWith(compareBy<InspectorRegion> { it.bounds.width * it.bounds.height }.thenByDescending { it.order })
             .toList()
         selectedMatchIndex = 0
         selected = matchingRegions.firstOrNull()
-            ?: InspectorRegion("UNREGISTERED_AREA", "No tagged Compose element at this point", Rect(point, 1f), Long.MAX_VALUE)
+            ?: InspectorRegion("WINDOW_BACKGROUND", "No interactive element at this point", Rect(point, 1f), Long.MAX_VALUE)
         armed = false
     }
 
@@ -147,24 +151,31 @@ internal fun UiInspectorHost(
                     }
                 }
                 Surface(
-                    modifier = Modifier.align(Alignment.BottomCenter).navigationBarsPadding().padding(12.dp).zIndex(99f),
+                    // Library's detached-size dock is a separate WindowManager
+                    // surface. Keep the inspector's actions above that dock.
+                    modifier = Modifier.align(Alignment.BottomCenter).navigationBarsPadding()
+                        .padding(start = 12.dp, end = 12.dp, bottom = 76.dp).zIndex(99f),
                     color = Color(0xFF090D0E).copy(alpha = 0.98f),
                     contentColor = Color.White,
                     shape = RoundedCornerShape(14.dp),
                     tonalElevation = 6.dp,
                 ) {
-                    Row(Modifier.padding(start = 14.dp, top = 10.dp, bottom = 10.dp), verticalAlignment = Alignment.CenterVertically) {
-                        Text(report, Modifier.weight(1f), color = Color.White, fontFamily = FontFamily.Monospace, style = MaterialTheme.typography.labelSmall)
-                        TextButton(onClick = {
-                            context.getSystemService(ClipboardManager::class.java)
-                                ?.setPrimaryClip(ClipData.newPlainText("Greater Art element", report))
-                        }) { Text("COPY", color = inspectorAccent) }
-                        if (state.matchingRegions.size > 1) {
-                            TextButton(onClick = state::selectNextMatch) {
-                                Text("NEXT ${state.selectedMatchIndex + 1}/${state.matchingRegions.size}", color = inspectorAccent)
+                    Column(Modifier.fillMaxWidth().padding(start = 14.dp, top = 10.dp, end = 6.dp, bottom = 6.dp)) {
+                        Text(report, Modifier.fillMaxWidth(), color = Color.White,
+                            fontFamily = FontFamily.Monospace, style = MaterialTheme.typography.labelSmall)
+                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End,
+                            verticalAlignment = Alignment.CenterVertically) {
+                            if (state.matchingRegions.size > 1) {
+                                TextButton(onClick = state::selectNextMatch) {
+                                    Text("NEXT ${state.selectedMatchIndex + 1}/${state.matchingRegions.size}", color = inspectorAccent)
+                                }
                             }
+                            TextButton(onClick = {
+                                context.getSystemService(ClipboardManager::class.java)
+                                    ?.setPrimaryClip(ClipData.newPlainText("Greater Art element", report))
+                            }) { Text("COPY", color = inspectorAccent) }
+                            IconButton(onClick = state::clearSelection) { Icon(Icons.Rounded.Close, "Close selection", tint = Color.White) }
                         }
-                        IconButton(onClick = state::clearSelection) { Icon(Icons.Rounded.Close, "Close selection", tint = Color.White) }
                     }
                 }
             }

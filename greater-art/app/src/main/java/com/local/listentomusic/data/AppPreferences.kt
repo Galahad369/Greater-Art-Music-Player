@@ -39,7 +39,7 @@ data class UserPreferences(
     val backgroundMode: AppBackgroundMode = AppBackgroundMode.CURRENT_VIDEO,
     val customBackgroundImageUri: String? = null,
     val customBackgroundVideoUri: String? = null,
-    val backgroundDim: Float = 0.55f,
+    val backgroundDim: Float = 0.35f,
         val backgroundScaleMode: BackgroundScaleMode = BackgroundScaleMode.CROP,
         val playlists: List<LocalPlaylist> = emptyList(),
     val activePlaylistId: String? = null,
@@ -177,7 +177,7 @@ class AppPreferences(private val context: Context) {
             ),
             customBackgroundImageUri = prefs[Keys.customBackgroundImageUri],
             customBackgroundVideoUri = prefs[Keys.customBackgroundVideoUri],
-            backgroundDim = (prefs[Keys.backgroundDim] ?: 0.55f).coerceIn(0.25f, 0.85f),
+            backgroundDim = (prefs[Keys.backgroundDim] ?: 0.35f).coerceIn(0.25f, 0.85f),
                         backgroundScaleMode = enumValueOrDefault(
                             prefs[Keys.backgroundScaleMode],
                             BackgroundScaleMode.CROP,
