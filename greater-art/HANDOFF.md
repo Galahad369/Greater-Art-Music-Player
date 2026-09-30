@@ -3,12 +3,19 @@
 This file describes the **current repository state only**. Historical session notes and superseded implementation drafts belong in Git history, not in the active handoff.
 
 **Project:** `greater-art/` in the repository checkout
-**Current version:** `1.14.4 (code 119)`
-**Latest APK:** `releases/GreaterArt-1.14.4.apk` (pending — build blocked by jlink.exe missing; version verified in build.gradle.kts) (`26,254,894 bytes`; SHA-256 to be computed after final device check)
+**Current version:** `1.14.3 (code 118)`
+**Latest APK:** `releases/GreaterArt-1.14.3.apk` (`26,254,894 bytes`; latest verified release while newer source remains SOURCE_ONLY)
 **Application ID:** `com.local.listentomusic`
 **Signing certificate SHA-256:** `9e28eb45b3b171c3ea47d7da942d28d88b16538885e392a6971a80906d612fbf`
 
 ## Repository state
+
+### September 30 — 1.14.7 compile repair + source-only metadata correction
+
+- 1.14.6 was consumed but Android CI exposed a compile-only defect: the stationary underlay implementation used `clipRect` without importing `androidx.compose.ui.graphics.drawscope.clipRect`. 1.14.7 adds that import in both Now Playing and Library row implementations; interaction behavior is otherwise unchanged.
+- Restored the HANDOFF release header required by the hardened SOURCE_ONLY contract: it describes the latest verified APK (1.14.3/code 118), while VERSION_RULES/Gradle track current source separately as 1.14.7/code 122.
+- No playback-quality, decoder, PlayerView ownership, background dim, or thumbnail-quality setting changed.
+- State remains **SOURCE_ONLY** pending CI/build and device fast-fling profiling.
 
 ### September 30 — 1.14.6 row-action correctness + queue identity hardening (source only)
 
