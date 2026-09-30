@@ -25,9 +25,11 @@ import kotlinx.coroutines.launch
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.weight
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -198,9 +200,9 @@ fun GreaterArtApp(
 
     LaunchedEffect(Unit) { onPlayerScreenChanged(false) }
 
-    BackHandler(enabled = screen != Screen.LIBRARY || libraryPager.currentPage == 1) {
+    BackHandler(enabled = screen != Screen.LIBRARY || libraryPager.currentPage != 1) {
         if (screen != Screen.LIBRARY) screen = Screen.LIBRARY
-        else navigationScope.launch { libraryPager.animateScrollToPage(0) }
+        else navigationScope.launch { libraryPager.animateScrollToPage(1) }
     }
 
     val appName = if (settings.silianRail) "PIERCE&PIERCE" else "Greater Art"
@@ -272,17 +274,25 @@ fun GreaterArtApp(
                             Spacer(Modifier.fillMaxWidth().height(com.local.listentomusic.model.MiniWindowMetrics.HEIGHT_DP.dp))
                         }
                     },
-                ) { padding ->
-                                    HorizontalPager(state = libraryPager, modifier = Modifier.fillMaxSize(), key = {
-                                        when (it) { 0 -> "STACK"; 2 -> "NODES"; else -> "LIBRARY" }
-                                    }) { page ->
+                ) { _ ->
+                    Column(Modifier.fillMaxSize()) {
+                        LibraryFamilyNavigationBar(
+                            currentPage = libraryPager.currentPage,
+                            pageOffsetFraction = libraryPager.currentPageOffsetFraction,
+                            language = settings.appLanguage,
+                            onPage = { page -> navigationScope.launch { libraryPager.animateScrollToPage(page) } },
+                        )
+                        HorizontalPager(
+                            state = libraryPager,
+                            modifier = Modifier.fillMaxWidth().weight(1f),
+                            key = { when (it) { 0 -> "STACK"; 2 -> "NODES"; else -> "LIBRARY" } },
+                        ) { page ->
                                                                             if (page == 0) {
                                                                                 val stackFiles by viewModel.stackFiles.collectAsStateWithLifecycle()
                                                                                 StackScreen(
                                                                                     files = stackFiles,
                                                                                     language = settings.appLanguage,
                                                                                     contentPadding = PaddingValues(bottom = if (playback.hasMedia) (com.local.listentomusic.model.MiniWindowMetrics.HEIGHT_DP + 24).dp else 0.dp),
-                                                                                    onLibrary = { navigationScope.launch { libraryPager.animateScrollToPage(1) } },
                                                                                     onLoadThumbnail = viewModel::loadThumbnail,
                                                                                 )
                                                                             } else if (page == 2) {
@@ -292,7 +302,6 @@ fun GreaterArtApp(
                                                                                     error = graphError,
                                                                                     currentPath = playback.currentPath,
                                                                                     contentPadding = PaddingValues(bottom = if (playback.hasMedia) com.local.listentomusic.model.MiniWindowMetrics.HEIGHT_DP.dp else 0.dp),
-                                                                                    onLibrary = { navigationScope.launch { libraryPager.animateScrollToPage(1) } },
                                                                                     onRetry = viewModel::requestGraph,
                                                                                     onPlay = viewModel::playGraphNode,
                                                                                     options = settings.graphOptions,
@@ -350,8 +359,6 @@ fun GreaterArtApp(
                         onLoadThumbnail = viewModel::loadThumbnail,
                         onPreloadAhead = viewModel::preloadThumbnailsStartingAt,
                         onOpenSettings = { screen = Screen.SETTINGS },
-                        onOpenStack = { navigationScope.launch { libraryPager.animateScrollToPage(0) } },
-                        onOpenNodes = { navigationScope.launch { libraryPager.animateScrollToPage(2) } },
                         onStackTogether = { files ->
                             val started = com.local.listentomusic.playback.StackPlayback.start(files)
                             if (started) navigationScope.launch { libraryPager.animateScrollToPage(0) }
@@ -365,7 +372,8 @@ fun GreaterArtApp(
                             viewModel.play(it)
                         },
                     )
-                    }
+                                                                            }
+                        }
                     }
                 }
                 Screen.NOW_PLAYING -> Unit // Legacy saved enum; playback now lives in the overlay.
@@ -502,7 +510,7 @@ fun GreaterArtApp(
                         appendLine("firstFrameAttribution=renderer timestamp after transfer; not a screen-capture proof")
                         appendLine("queue=${queue.size} library=${library.files.size}")
                         appendLine("stack=${stackSession.slots.size} primarySelected=${stackSession.primaryPath != null}")
-                        appendLine("libraryPager=${libraryPager.currentPage} offset=${libraryPager.currentPageOffsetFraction} backgroundCrop=$backgroundHorizontalPosition")
+                        appendLine("libraryPager=${libraryPager.currentPage} offset=${libraryPager.currentPageOffsetFraction} navPosition=${libraryPagerNavigationPosition(libraryPager.currentPage, libraryPager.currentPageOffsetFraction)} backgroundCrop=$backgroundHorizontalPosition")
                         appendLine("backgroundDim=${settings.backgroundDim} sharedDimLayer=AppBackground")
                         appendLine("repeat=${playback.repeatMode} random=${playback.shuffleEnabled}")
                         appendLine("floating=${settings.floatingWindowMode} auto=${settings.autoPictureInPicture}")

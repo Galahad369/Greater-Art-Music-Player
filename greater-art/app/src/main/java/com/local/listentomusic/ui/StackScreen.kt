@@ -35,7 +35,7 @@ import com.local.listentomusic.ui.components.LiquidMetalSurface
 @Composable
 fun StackScreen(
     files: List<MediaFile>, language: AppLanguage, contentPadding: PaddingValues,
-    onLibrary: () -> Unit, onLoadThumbnail: suspend (MediaFile) -> Bitmap?,
+    onLoadThumbnail: suspend (MediaFile) -> Bitmap?,
 ) {
     val session by StackPlayback.state.collectAsState()
     var stagedPaths by rememberSaveable { mutableStateOf(emptyList<String>()) }
@@ -48,13 +48,7 @@ fun StackScreen(
     val canAdd = displayed.size < StackPlayback.MAX_TRACKS
 
     Column(Modifier.fillMaxSize().inspectElement("STACK_SCREEN", "Simultaneous local playback")
-        .padding(contentPadding).consumeWindowInsets(contentPadding).statusBarsPadding()) {
-        LibraryPageHeader(
-            title = uiText(language, "Stack", "疊播"),
-            subtitle = uiText(language, "Mix up to eight local tracks", "混合最多八首本機歌曲"),
-            onLibrary = onLibrary,
-            elementName = "STACK_TOP_BAR",
-        )
+        .padding(contentPadding).consumeWindowInsets(contentPadding)) {
         Row(Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 5.dp),
             verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
             Surface(shape = RoundedCornerShape(50), color = MaterialTheme.colorScheme.surface.copy(alpha = .62f)) {

@@ -22,6 +22,7 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.items
@@ -42,7 +43,6 @@ import androidx.compose.material.icons.rounded.Refresh
 import androidx.compose.material.icons.rounded.Search
 import androidx.compose.material.icons.rounded.Share
 import androidx.compose.material.icons.rounded.Settings
-import androidx.compose.material.icons.rounded.Hub
 import androidx.compose.material.icons.rounded.History
 import androidx.compose.material.icons.rounded.LocalFireDepartment
 import androidx.compose.material.icons.rounded.Favorite
@@ -144,8 +144,6 @@ fun LibraryScreen(
     onLoadThumbnail: suspend (MediaFile) -> Bitmap?,
     onPreloadAhead: (Int, Int) -> Unit,
     onOpenSettings: () -> Unit,
-    onOpenStack: () -> Unit,
-    onOpenNodes: () -> Unit,
     onStackTogether: (List<MediaFile>) -> Boolean,
     onPlay: (MediaFile) -> Unit,
     onEditDisplay: (MediaFile) -> Unit,
@@ -249,6 +247,7 @@ fun LibraryScreen(
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = MaterialTheme.colorScheme.background.copy(alpha = CHROME_ALPHA),
                 ),
+                windowInsets = WindowInsets(0, 0, 0, 0),
             )
         },
     ) { innerPadding ->
@@ -326,13 +325,6 @@ fun LibraryScreen(
                 Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 2.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                OutlinedButton(
-                    onClick = onOpenStack,
-                    modifier = Modifier.inspectElement("STACK_BUTTON", "Opens simultaneous local playback"),
-                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 7.dp),
-                    colors = ButtonDefaults.outlinedButtonColors(containerColor = MaterialTheme.colorScheme.surface.copy(alpha = CHROME_ALPHA)),
-                ) { Text(uiText(language, "Stack", "疊播"), style = MaterialTheme.typography.labelLarge) }
-                Spacer(Modifier.width(8.dp))
                 Box(Modifier.weight(1f)) {
                     Button(onClick = { playlistMenuOpen = true }, modifier = Modifier
                         .inspectElement("PLAYLIST_BUTTON", "Selects or manages a playlist"),
@@ -401,19 +393,6 @@ fun LibraryScreen(
                         }
                     }
                 }
-                OutlinedButton(
-                    onClick = onOpenNodes,
-                    modifier = Modifier.inspectElement("NODES_BUTTON", "Opens filename-similarity graph"),
-                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 7.dp),
-                    colors = ButtonDefaults.outlinedButtonColors(
-                        containerColor = MaterialTheme.colorScheme.surface.copy(alpha = CHROME_ALPHA),
-                    ),
-                ) {
-                    Icon(Icons.Rounded.Hub, null, Modifier.size(18.dp))
-                    Spacer(Modifier.width(6.dp))
-                    Text(uiText(language, "Nodes", "關聯圖"), style = MaterialTheme.typography.labelLarge)
-                }
-                Spacer(Modifier.width(8.dp))
                 if (activePlaylist != null) {
                     Text(
                         uiText(language, "Hold + drag to reorder", "長按拖曳排序"),

@@ -3,12 +3,20 @@
 This file describes the **current repository state only**. Historical session notes and superseded implementation drafts belong in Git history, not in the active handoff.
 
 **Project:** `greater-art/` in the repository checkout
-**Current version:** `1.14.1 (code 116)`
+**Current version:** `1.14.2 (code 117)`
 **Latest APK:** `releases/GreaterArt-1.14.1.apk` (26,392,330 bytes; SHA-256 `0116E2521D126F3E0B8487723C6BBC53A565E1C956CC80F537E282E079016421`)
 **Application ID:** `com.local.listentomusic`
 **Signing certificate SHA-256:** `9e28eb45b3b171c3ea47d7da942d28d88b16538885e392a6971a80906d612fbf`
 
 ## Repository state
+
+### September 30 — 1.14.2 persistent Library-family navigation (source; APK build pending)
+
+- Promoted Stack / All songs / Nodes from Library-only controls into one persistent top navigation bar owned by the three-page container. The bar is visible in the same physical position on Stack, Library, and Nodes; tapping a destination animates the existing pager rather than creating another screen.
+- The navigation indicator follows the actual pager offset continuously during slow drags, reversals, and fling settling. It uses the same pager position that drives the existing shared CURRENT_VIDEO crop, so Stack / Library / Nodes remain synchronized with LEFT / CENTER / RIGHT background positioning.
+- Removed the redundant per-page return-to-Library headers from Stack and Nodes and the old Stack/Nodes buttons from Library. Library retains its playlist selector as a Library-specific filter/management control. Android Back now returns Stack/Nodes to the center Library page; Back from Library remains available to the system.
+- Background ownership and dimming were intentionally not moved into the pager: AppBackground and its one effective dim layer remain shared outside all three pages. The new navigation is foreground chrome only, so it does not add another scrim or change user-configured dim strength.
+- Source version is 1.14.2/code 117. No 1.14.2 APK is committed here; Hermes must pull this commit, run tests/lint/assemble locally, sign with the existing local keystore, and only then create/finalize the numbered artifact and release-document hashes.
 
 ### September 30 — 1.14.1 Library-family alignment and fullscreen return fix (local)
 

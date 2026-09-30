@@ -46,19 +46,10 @@ import kotlin.math.*
 /** Nodes is to the right of Library: swipe left to enter. The header still pages. */
 @Composable
 fun NodesScreen(graph: LibraryGraph?, loading: Boolean, error: String?, currentPath: String?,
-    contentPadding: PaddingValues, onLibrary: () -> Unit, onRetry: () -> Unit, onPlay: (String) -> Unit,
+    contentPadding: PaddingValues, onRetry: () -> Unit, onPlay: (String) -> Unit,
     options: GraphOptions, onOptions: (GraphOptions) -> Unit) {
     Column(Modifier.fillMaxSize().inspectElement("NODES_SCREEN", "Filename-similarity graph and controls")
-        .padding(contentPadding).consumeWindowInsets(contentPadding).statusBarsPadding()) {
-        LibraryPageHeader(
-            title = "Nodes",
-            subtitle = when {
-                graph == null -> "Building filename connections"
-                else -> "${graph.nodes.size} media files • offline graph"
-            },
-            onLibrary = onLibrary,
-            elementName = "NODES_TOP_BAR",
-        )
+        .padding(contentPadding).consumeWindowInsets(contentPadding)) {
         when {
             error != null -> { Text(error, Modifier.padding(16.dp).inspectElement("NODES_ERROR", error)); TextButton(onClick = onRetry, modifier = Modifier.inspectElement("NODES_RETRY_BUTTON", "Rebuild graph")) { Text("Retry") } }
             graph == null -> { LinearProgressIndicator(Modifier.fillMaxWidth().inspectElement("NODES_LOADING", "Building filename graph")); Text("Preparing filename connections…", Modifier.padding(16.dp)) }
