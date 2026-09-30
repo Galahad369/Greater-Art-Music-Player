@@ -14,12 +14,18 @@ internal object PlayerWindowVisibility {
     private val detached = MutableStateFlow(true)
     private val library = MutableStateFlow(false)
     private val docked = MutableStateFlow(false)
+    private val expanded = MutableStateFlow(false)
     val detachedVisible = detached.asStateFlow()
     val libraryShowing = library.asStateFlow()
     val dockedVisible = docked.asStateFlow()
+    val expandedShowing = expanded.asStateFlow()
     fun app(visible: Boolean) { appVisible = visible; publish() }
     fun library(visible: Boolean) { libraryVisible = visible; library.value = visible; publish() }
-    fun expanded(visible: Boolean) { expandedVisible = visible; publish() }
+    fun expanded(visible: Boolean) {
+        expandedVisible = visible
+        expanded.value = visible
+        publish()
+    }
     private fun publish() {
         detached.value = showDetachedPlayer(appVisible, expandedVisible)
         docked.value = appVisible && libraryVisible && !expandedVisible
