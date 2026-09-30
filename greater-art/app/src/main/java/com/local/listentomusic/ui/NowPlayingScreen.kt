@@ -25,8 +25,11 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.interaction.collectIsDraggedAsState
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
+import androidx.compose.foundation.gestures.calculatePan
+import androidx.compose.foundation.gestures.calculateZoom
 import androidx.compose.foundation.gestures.detectTapGestures
-import androidx.compose.foundation.gestures.detectTransformGestures
 import androidx.compose.foundation.gestures.detectVerticalDragGestures
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.foundation.layout.Arrangement
@@ -465,35 +468,58 @@ private fun VideoPlayerStage(
             .background(Color.Black),
         contentAlignment = Alignment.Center,
     ) {
-        // Video with pinch-to-zoom support in fullscreen
+        // The video itself is transformed, but gesture ownership lives on the
+        // transparent layer above PlayerView. PlayerView/native AndroidView can
+        // otherwise consume touches before Compose's transform detector sees them.
         Box(
-            Modifier
-                .graphicsLayer {
-                    scaleX = videoScale
-                    scaleY = videoScale
-                    translationX = videoOffset.x
-                    translationY = videoOffset.y
-                }
-                .pointerInput(immersive) {
-                    if (immersive) {
-                                        detectTransformGestures(
-                                            onGesture = { centroid, pan, zoom, rotation ->
-                                                videoOffset = Offset(
-                                                    (videoOffset.x + pan.x).coerceIn(-size.width * (videoScale - 1) / 2, size.width * (videoScale - 1) / 2),
-                                                    (videoOffset.y + pan.y).coerceIn(-size.height * (videoScale - 1) / 2, size.height * (videoScale - 1) / 2)
-                                                )
-                                                videoScale = (videoScale * zoom).coerceIn(1f, 4f)
-                                            }
-                                        )
-                                    }
-                                }
+            Modifier.graphicsLayer {
+                scaleX = videoScale
+                scaleY = videoScale
+                translationX = videoOffset.x
+                translationY = videoOffset.y
+            }
         ) {
             VideoSurface(playback.currentPath, controller, onVideoBoundsChanged, Modifier.fillMaxSize(),
                 sharedVideoView, onSharedVideoReleased)
         }
-        // PlayerView is a native AndroidView and can consume taps before a parent
-        // gesture detector sees them. Keep this transparent hit layer above video.
-        Box(Modifier.fillMaxSize().pointerInput(Unit) {
+        // PlayerView is a native AndroidView and can consume touches before a
+        // parent detector sees them. This transparent layer is the single input
+        // surface for fullscreen gestures. It only consumes the transform after a
+        // second pointer appears, so ordinary one-finger tap/drag controls remain.
+        Box(Modifier.fillMaxSize().pointerInput(immersive) {
+            if (immersive) {
+                awaitEachGesture {
+                    awaitFirstDown(requireUnconsumed = false)
+                    var multiTouch = false
+                    do {
+                        val event = awaitPointerEvent()
+                        val pressedCount = event.changes.count { it.pressed }
+                        multiTouch = multiTouch || pressedCount > 1
+                        if (multiTouch) {
+                            if (pressedCount > 1) {
+                                val oldScale = videoScale
+                                val newScale = (oldScale * event.calculateZoom()).coerceIn(1f, 4f)
+                                val twoFingerPan = event.calculatePan()
+                                val maxX = size.width * (newScale - 1f) / 2f
+                                val maxY = size.height * (newScale - 1f) / 2f
+                                videoOffset = if (newScale <= 1.001f) {
+                                    Offset.Zero
+                                } else {
+                                    Offset(
+                                        (videoOffset.x + twoFingerPan.x).coerceIn(-maxX, maxX),
+                                        (videoOffset.y + twoFingerPan.y).coerceIn(-maxY, maxY),
+                                    )
+                                }
+                                videoScale = newScale
+                            }
+                            // Keep the rest of a pinch away from tap, seek and
+                            // one-finger vertical-drag handling until every finger lifts.
+                            event.changes.forEach { it.consume() }
+                        }
+                    } while (event.changes.any { it.pressed })
+                }
+            }
+        }.pointerInput(Unit) {
             detectVerticalDragGestures(onVerticalDrag = { change, amount ->
                 if (abs(amount) > 4f) {
                     controlsVisible = true
