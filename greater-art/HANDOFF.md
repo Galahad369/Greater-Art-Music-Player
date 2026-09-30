@@ -20,7 +20,7 @@ This file describes the **current repository state only**. Historical session no
 - 1.14.6 was consumed but Android CI exposed a compile-only defect: the stationary underlay implementation used `clipRect` without importing `androidx.compose.ui.graphics.drawscope.clipRect`. 1.14.7 adds that import in both Now Playing and Library row implementations; interaction behavior is otherwise unchanged.
 - Restored the HANDOFF release header required by the hardened SOURCE_ONLY contract: it describes the latest verified APK (1.14.3/code 118), while VERSION_RULES/Gradle track current source separately as 1.14.7/code 122.
 - No playback-quality, decoder, PlayerView ownership, background dim, or thumbnail-quality setting changed.
-- State remains **SOURCE_ONLY** pending CI/build and device fast-fling profiling.
+- Java 21 GitHub Android CI passed `testDebugUnitTest`, `lintDebug`, and `assembleDebug`; Version Consistency also passed. State remains **SOURCE_ONLY** because no exact 1.14.8 APK/device verification was finalized. Device fast-fling profiling remains outstanding.
 
 ### September 30 — 1.14.6 row-action correctness + queue identity hardening (source only)
 
