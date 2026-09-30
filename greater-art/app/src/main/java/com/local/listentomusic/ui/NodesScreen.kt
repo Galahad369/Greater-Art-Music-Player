@@ -142,42 +142,64 @@ private fun GraphCanvas(graph: LibraryGraph, currentPath: String?, onPlay: (Stri
                 GraphTool(Icons.Rounded.Tune, "Controls", "NODES_CONTROLS_BUTTON") { controls = true }
             }
         }
-        Canvas(Modifier.fillMaxWidth().weight(1f).inspectElement("NODES_GRAPH_CANVAS", "Pan, zoom, drag a node, or tap it to play")
+        Canvas(Modifier.fillMaxWidth().weight(1f).inspectElement("NODES_GRAPH_CANVAS", "Pinch to zoom, drag nodes, tap to play; empty-space swipes navigate pages")
             .onGloballyPositioned { canvasBounds = it.boundsInRoot() }.onSizeChanged { viewport = it }
-            .semantics { contentDescription = "Filename similarity graph. Pan or pinch to explore, drag nodes, tap to play. Use Find / play a node for a text list." }
+            .semantics { contentDescription = "Filename similarity graph. Pinch to zoom, drag individual nodes, tap a node to play, or swipe empty space to change page. Use Find / play a node for a text list." }
             .pointerInput(graph, presentation.visibleNodes, current) {
                 awaitEachGesture {
                     val down = awaitFirstDown(requireUnconsumed = false)
-                    // Keep the system-like edge swipe available for Nodes → Library;
-                    // the graph owns drags started farther inside its canvas.
-                    if (down.position.x < 56.dp.toPx()) return@awaitEachGesture
-                    down.consume()
                     val center = Offset(viewport.width / 2f, viewport.height / 2f)
                     fun position(i: Int) = moved[i] ?: Offset(graph.points[i].x, graph.points[i].y)
-                    val hit = (presentation.visibleNodes + listOfNotNull(current.takeIf { it >= 0 })).minByOrNull { (position(it) * scale + pan + center - down.position).getDistanceSquared() }
-                        ?.takeIf { (position(it) * scale + pan + center - down.position).getDistance() < 28.dp.toPx() }
+                    val hit = (presentation.visibleNodes + listOfNotNull(current.takeIf { it >= 0 })).minByOrNull {
+                        (position(it) * scale + pan + center - down.position).getDistanceSquared()
+                    }?.takeIf {
+                        (position(it) * scale + pan + center - down.position).getDistance() < 28.dp.toPx()
+                    }
+
+                    // Single-finger ownership is intentionally conditional:
+                    // - direct node touch -> Nodes consumes it for tap/drag;
+                    // - empty canvas -> leave it unconsumed so HorizontalPager can
+                    //   swipe Nodes <-> All songs from anywhere on the empty map.
+                    if (hit != null) down.consume()
+
                     var travelled = 0f
                     var multi = false
                     do {
                         val event = awaitPointerEvent()
-                        val zoom = event.calculateZoom()
-                        val delta = event.calculatePan()
-                        multi = multi || event.changes.count { it.pressed } > 1
-                        travelled += delta.getDistance()
+                        val pressedCount = event.changes.count { it.pressed }
+                        multi = multi || pressedCount > 1
+
                         if (multi) {
-                            val old = scale
-                            scale = (scale * zoom).coerceIn(0.08f, 8f)
-                            val pointers = event.changes.filter { it.pressed }
-                            val focus = if (pointers.isEmpty()) center else pointers.map { it.position }.reduce(Offset::plus) / pointers.size.toFloat()
-                            pan = (pan - (focus - center)) * (scale / old) + (focus - center) + delta
-                        } else if (travelled > viewConfiguration.touchSlop) {
-                            if (hit != null) { moved[hit] = position(hit) + delta / scale; selected = hit }
-                            else pan += delta
+                            // Two fingers belong to graph zoom. There is deliberately
+                            // no user-driven map translation: preserve the currently
+                            // centered graph point while scale changes.
+                            if (pressedCount > 1) {
+                                val oldScale = scale
+                                val newScale = (oldScale * event.calculateZoom()).coerceIn(0.08f, 8f)
+                                if (newScale != oldScale) {
+                                    pan *= newScale / oldScale
+                                    scale = newScale
+                                }
+                            }
+                            // Once a pinch begins, keep the whole gesture away from
+                            // the pager and node-tap handlers until all pointers lift.
+                            event.changes.forEach { it.consume() }
+                        } else if (hit != null) {
+                            val delta = event.calculatePan()
+                            travelled += delta.getDistance()
+                            if (travelled > viewConfiguration.touchSlop) {
+                                moved[hit] = position(hit) + delta / scale
+                                selected = hit
+                                event.changes.forEach { it.consume() }
+                            }
                         }
-                        if (multi || travelled > viewConfiguration.touchSlop) event.changes.forEach { it.consume() }
+                        // Empty single-finger gestures are never consumed here.
+                        // The parent HorizontalPager therefore owns horizontal swipes.
                     } while (event.changes.any { it.pressed })
+
                     if (!multi && travelled <= viewConfiguration.touchSlop && hit != null) {
-                        selected = hit; onPlayCurrent(graph.nodes[hit].id)
+                        selected = hit
+                        onPlayCurrent(graph.nodes[hit].id)
                     }
                 }
             }) {
@@ -236,7 +258,7 @@ private fun GraphCanvas(graph: LibraryGraph, currentPath: String?, onPlay: (Stri
                 }
             }
         }
-        Text("Pinch to zoom  •  Drag to move  •  Tap to play", style = MaterialTheme.typography.labelSmall,
+        Text("Pinch to zoom  •  Drag nodes  •  Swipe empty space to navigate", style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
                 .inspectElement("NODES_GESTURE_HINT", "Graph gesture instructions"))
     }

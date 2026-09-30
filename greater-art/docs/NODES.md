@@ -2,13 +2,17 @@
 
 ## Navigation and controls
 
-Library is page 0 (initial page); Nodes is page 1 in the same HorizontalPager.
-Swipe left from Library or tap Nodes. Swipe right across the Nodes header or tap
-Library to return. Canvas gestures are reserved for pan, pinch zoom and node dragging;
-this prevents a drag from unexpectedly changing pages. Tap a node to play it and open
-Now Playing. Fit graph resets the viewport and temporary dragged positions. Find / play
-a node exposes filenames as searchable, accessible buttons. Home in Now Playing goes
-back to the normal Library page, even if playback began from Nodes.
+Stack, All songs (Library), and Nodes are pages 0, 1, and 2 of the same
+HorizontalPager, with All songs as the initial page. The persistent navigation bar and
+the pager share one position source.
+
+On Nodes, an empty-area one-finger horizontal drag is intentionally left unconsumed by
+the graph so the parent pager can swipe back to All songs from anywhere on empty canvas.
+A one-finger drag that starts directly on a node moves only that node; the graph/map
+itself cannot be manually panned. Two-finger pinch remains reserved for graph zoom and
+does not add free map translation. Tap a node to play it. Fit resets the viewport and
+temporary dragged positions; Playing may programmatically recenter the current node.
+Find exposes filenames as searchable, accessible buttons.
 
 ### 1.9.18 display controls
 
