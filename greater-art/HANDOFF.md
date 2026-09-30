@@ -3,8 +3,8 @@
 This file describes the **current repository state only**. Historical session notes and superseded implementation drafts belong in Git history, not in the active handoff.
 
 **Project:** `greater-art/` in the repository checkout
-**Current version:** `1.14.8 (code 123)`
-**Latest APK:** `releases/GreaterArt-1.14.8.apk` (`26,254,894 bytes`; latest verified release while newer source remains SOURCE_ONLY)
+**Current version:** `1.14.11 (code 126)`
+**Latest APK:** latest verified remains **1.14.3 (code 118)**; current source is SOURCE_ONLY (no 1.14.11 APK finalized)
 **Application ID:** `com.local.listentomusic`
 **Signing certificate SHA-256:** `9e28eb45b3b171c3ea47d7da942d28d88b16538885e392a6971a80906d612fbf`
 
@@ -21,13 +21,20 @@ This file describes the **current repository state only**. Historical session no
 
 ## Repository state
 
+### September 30 - 1.14.11 CURRENT_VIDEO static frame + scroll freeze (source only)
+
+- After 1.14.10 (release wallpaper under expanded Now Playing), idle Library still dual-decoded CURRENT_VIDEO with the primary player.
+- CURRENT_VIDEO wallpaper stays paused on a position-aligned frame; CUSTOM_VIDEO still plays when not scrolling. UiScrollContention freezes wallpaper during Library/queue flings. ThumbnailRepository memory hits skip Dispatchers.IO. AndroidView skips no-op player reassignment.
+- Primary quality/surfaces/INTERNET unchanged. Lag not claimed solved.
+- Source version: **1.14.11 (code 126)**. State **SOURCE_ONLY**. Latest verified APK remains 1.14.3.
+
 ### September 30 — 1.14.10 expanded-player video contention fix (source only)
 
 - Re-review of the fast-scroll lag found a stronger source-level contention bug than queue thumbnail loading: MainActivity always called `AppBackground(... visible = true)`, so the default `CURRENT_VIDEO` wallpaper kept an independent full-screen ExoPlayer/PlayerView alive underneath the expanded system Now Playing window.
 - `PlayerWindowVisibility` now publishes expanded-player visibility. MainActivity passes `visible = !expandedPlayerVisible` to `AppBackground`, so CURRENT_VIDEO/CUSTOM_VIDEO wallpaper output leaves composition and releases its secondary player while expanded Now Playing is visible, then resumes when the user returns to Library/Settings.
 - This preserves the foreground Media3 item, PlayerView/surface ownership, source resolution, bitrate, FPS, decoder selection, and thumbnail quality. Queue thumbnail deferral from 1.14.5 remains in place.
 - Added a unit regression covering the expanded visibility signal. This is a targeted contention fix, not a claim that device jank is fully eliminated; the A55/API 36 fast-fling test should be repeated on the exact 1.14.10 source.
-- Source version: **1.14.10 (code 125)**. State remains **SOURCE_ONLY**. Latest verified APK remains 1.14.3.
+- Source version: **1.14.11 (code 126)**. State remains **SOURCE_ONLY**. Latest verified APK remains 1.14.3.
 
 ### September 30 — 1.14.9 compact square Add-to-list actions (source only)
 

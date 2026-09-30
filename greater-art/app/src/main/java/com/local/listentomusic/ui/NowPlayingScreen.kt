@@ -60,6 +60,8 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
+import com.local.listentomusic.ui.components.UiScrollContention
+import com.local.listentomusic.ui.components.UiScrollSource
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Home
 import androidx.compose.material.icons.rounded.Lock
@@ -991,8 +993,12 @@ private fun NowPlayingQueue(
     }
     LaunchedEffect(listState) {
         snapshotFlow { listState.isScrollInProgress }.collect { scrolling ->
+            UiScrollContention.set(UiScrollSource.NOW_PLAYING_QUEUE, scrolling)
             if (scrolling) openActionsPath = null
         }
+    }
+    DisposableEffect(listState) {
+        onDispose { UiScrollContention.set(UiScrollSource.NOW_PLAYING_QUEUE, false) }
     }
     Column(modifier.inspectElement("NOW_PLAYING_QUEUE", "Ordered playback queue and optional synchronized lyrics")) {
         if (searchOpen) Row(Modifier.fillMaxWidth().inspectElement("QUEUE_SEARCH_FIELD", "Filters the current playback queue"), verticalAlignment = Alignment.CenterVertically) {

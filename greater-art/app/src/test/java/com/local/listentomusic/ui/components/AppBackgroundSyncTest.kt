@@ -63,4 +63,31 @@ class AppBackgroundSyncTest {
         assertTrue(shouldResyncBackground(1_000, 1_081, false))
         assertTrue(shouldResyncBackground(30_000, 1_000, false))
     }
+
+    @Test
+    fun wallpaperPausesWhileListsAreFlinging() {
+        assertTrue(shouldPlayBackgroundVideo(lifecycleActive = true, primaryIsPlaying = true, listScrolling = false))
+        assertFalse(shouldPlayBackgroundVideo(lifecycleActive = true, primaryIsPlaying = true, listScrolling = true))
+        assertFalse(shouldPlayBackgroundVideo(lifecycleActive = true, primaryIsPlaying = false, listScrolling = false))
+    }
+
+    @Test
+    fun currentVideoWallpaperStaysPausedToAvoidDualDecode() {
+        assertFalse(
+            shouldPlayBackgroundVideo(
+                lifecycleActive = true,
+                primaryIsPlaying = true,
+                listScrolling = false,
+                sameFileAsPrimary = true,
+            ),
+        )
+        assertTrue(
+            shouldPlayBackgroundVideo(
+                lifecycleActive = true,
+                primaryIsPlaying = true,
+                listScrolling = false,
+                sameFileAsPrimary = false,
+            ),
+        )
+    }
 }

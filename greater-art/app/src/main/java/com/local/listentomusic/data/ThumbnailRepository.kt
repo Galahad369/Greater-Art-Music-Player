@@ -60,12 +60,13 @@ class ThumbnailRepository(private val context: Context) {
         override fun sizeOf(key: String, value: Bitmap): Int = max(1, value.byteCount / 1024)
     }
 
-    suspend fun load(file: MediaFile): Bitmap? = withContext(Dispatchers.IO) {
+    suspend fun load(file: MediaFile): Bitmap? {
         val key = cacheKey(file)
         memoryCache.get(key)?.let {
             _stats.update { value -> value.copy(memoryHits = value.memoryHits + 1) }
-            return@withContext it
+            return it
         }
+        return withContext(Dispatchers.IO) {
         _stats.update { it.copy(inFlight = it.inFlight + 1) }
 
         val mutex = locks[(key.hashCode() and Int.MAX_VALUE) % locks.size]
@@ -96,6 +97,7 @@ class ThumbnailRepository(private val context: Context) {
             }
         } finally {
             _stats.update { it.copy(inFlight = (it.inFlight - 1).coerceAtLeast(0)) }
+        }
         }
     }
 

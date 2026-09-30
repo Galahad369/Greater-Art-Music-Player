@@ -27,6 +27,8 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
+import com.local.listentomusic.ui.components.UiScrollContention
+import com.local.listentomusic.ui.components.UiScrollSource
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.Sort
@@ -69,6 +71,7 @@ import androidx.compose.material3.Switch
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.animateColorAsState
@@ -474,8 +477,12 @@ fun LibraryScreen(
                     }
                     LaunchedEffect(listState) {
                         snapshotFlow { listState.isScrollInProgress }.collect { scrolling ->
+                            UiScrollContention.set(UiScrollSource.LIBRARY, scrolling)
                             if (scrolling) openRowActionsPath = null
                         }
+                    }
+                    DisposableEffect(listState) {
+                        onDispose { UiScrollContention.set(UiScrollSource.LIBRARY, false) }
                     }
                     LazyColumn(
                         state = listState,

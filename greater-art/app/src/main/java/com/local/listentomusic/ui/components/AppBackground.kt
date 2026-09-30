@@ -10,6 +10,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -123,6 +124,15 @@ fun AppBackground(
         primaryIsVideo = isVideo,
         primaryFrameReady = primaryFrameReady,
     )
+    // CURRENT_VIDEO duplicates the primary decoder; keep a paused aligned frame.
+    // Also freeze CUSTOM_VIDEO while lists fling. Expanded overlay already sets visible=false.
+    val listScrolling by UiScrollContention.busy.collectAsState()
+    val wallpaperShouldPlay = shouldPlayBackgroundVideo(
+        lifecycleActive = true,
+        primaryIsPlaying = true,
+        listScrolling = listScrolling,
+        sameFileAsPrimary = mode == AppBackgroundMode.CURRENT_VIDEO,
+    )
 
     Box(modifier.fillMaxSize().graphicsLayer()) {
         // Avoid an animated full-screen metal pass underneath opaque media wallpaper.
@@ -139,7 +149,7 @@ fun AppBackground(
                     ?.let {
                         BackgroundVideo(
                             source = it,
-                            shouldPlay = true,
+                            shouldPlay = wallpaperShouldPlay,
                             scaleMode = preferences.backgroundScaleMode,
                         )
                     }
@@ -149,7 +159,7 @@ fun AppBackground(
             AppBackgroundMode.CURRENT_VIDEO -> if (currentVideoUri != null && attachVideoBackground) {
                 BackgroundVideo(
                     source = currentVideoUri,
-                    shouldPlay = true,
+                    shouldPlay = wallpaperShouldPlay,
                     syncController = controller,
                     scaleMode = preferences.backgroundScaleMode,
                     horizontalPosition = horizontalPosition,
@@ -354,14 +364,15 @@ private fun BackgroundVideo(
                 videoView = this
             }
         },
-        update = {
-            it.resizeMode = when (scaleMode) {
+        update = { view ->
+            val nextMode = when (scaleMode) {
                 BackgroundScaleMode.FIT -> AspectRatioFrameLayout.RESIZE_MODE_FIT
                 BackgroundScaleMode.STRETCH -> AspectRatioFrameLayout.RESIZE_MODE_FILL
                 BackgroundScaleMode.CROP -> AspectRatioFrameLayout.RESIZE_MODE_ZOOM
             }
-            it.player = backgroundPlayer
-            if (videoView !== it) videoView = it
+            if (view.resizeMode != nextMode) view.resizeMode = nextMode
+            if (view.player !== backgroundPlayer) view.player = backgroundPlayer
+            if (videoView !== view) videoView = view
         },
         modifier = Modifier.fillMaxSize(),
     )
