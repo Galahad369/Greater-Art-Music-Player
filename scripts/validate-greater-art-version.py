@@ -1,130 +1,513 @@
 #!/usr/bin/env python3
 from __future__ import annotations
 
+import argparse
 import hashlib
+import os
 import re
+import shutil
+import subprocess
 import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
+GRADLE_REL = "greater-art/app/build.gradle.kts"
+RULES_REL = "greater-art/VERSION_RULES.md"
+HANDOFF_REL = "greater-art/HANDOFF.md"
+RELEASES_REL = "greater-art/releases"
+PACKAGE_ID = "com.local.listentomusic"
 
-
-def read(path: str) -> str:
-    return (ROOT / path).read_text(encoding="utf-8")
+SEMVER_RE = re.compile(r"^(\d+)\.(\d+)\.(\d+)$")
+APK_NAME_RE = re.compile(r"^GreaterArt-(\d+\.\d+\.\d+)\.apk$")
+VERSION_LINE_RE = re.compile(r"^\s*version(?:Code|Name)\s*=")
 
 
 def fail(errors: list[str], message: str) -> None:
     errors.append(message)
 
 
-def expect(errors: list[str], text: str, pattern: str, expected: str, label: str) -> None:
-    match = re.search(pattern, text, re.MULTILINE)
+def run_git(*args: str, check: bool = True) -> str:
+    proc = subprocess.run(
+        ["git", *args],
+        cwd=ROOT,
+        text=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+    )
+    if check and proc.returncode:
+        raise RuntimeError(f"git {' '.join(args)} failed: {proc.stderr.strip()}")
+    return proc.stdout
+
+
+def read(path: str) -> str:
+    return (ROOT / path).read_text(encoding="utf-8")
+
+
+def parse_gradle(text: str, label: str) -> tuple[str, int]:
+    version_match = re.search(r'versionName\s*=\s*"([^"]+)"', text)
+    code_match = re.search(r"versionCode\s*=\s*(\d+)", text)
+    if not version_match or not code_match:
+        raise ValueError(f"{label}: versionName/versionCode not found")
+    version = version_match.group(1)
+    if not SEMVER_RE.fullmatch(version):
+        raise ValueError(f"{label}: versionName {version!r} is not major.minor.patch")
+    return version, int(code_match.group(1))
+
+
+def parse_version(value: str) -> tuple[int, int, int]:
+    match = SEMVER_RE.fullmatch(value)
     if not match:
-        fail(errors, f"{label}: expected field not found")
+        raise ValueError(f"invalid semantic version {value!r}")
+    major, minor, patch = match.groups()
+    return int(major), int(minor), int(patch)
+
+
+def version_from_ref(ref: str) -> tuple[str, int]:
+    return parse_gradle(run_git("show", f"{ref}:{GRADLE_REL}"), ref)
+
+
+def parse_rules(text: str) -> tuple[str, int, str, str, int, list[tuple[str, int]]]:
+    current = re.search(
+        r"^Current source:\s*\*\*(\d+\.\d+\.\d+) \(code (\d+)\)\*\*$",
+        text,
+        re.MULTILINE,
+    )
+    state = re.search(
+        r"^Current release state:\s*\*\*(SOURCE_ONLY|VERIFIED)\*\*$",
+        text,
+        re.MULTILINE,
+    )
+    latest = re.search(
+        r"^Latest verified APK:\s*\*\*(\d+\.\d+\.\d+) \(code (\d+)\)\*\*$",
+        text,
+        re.MULTILINE,
+    )
+    tracked = [
+        (version, int(code))
+        for version, code in re.findall(
+            r"^- (\d+\.\d+\.\d+) \(code (\d+)\)",
+            text,
+            re.MULTILINE,
+        )
+    ]
+    if not current or not state or not latest or not tracked:
+        raise ValueError("VERSION_RULES.md is missing hardened machine-checkable state")
+    return (
+        current.group(1),
+        int(current.group(2)),
+        state.group(1),
+        latest.group(1),
+        int(latest.group(2)),
+        tracked,
+    )
+
+
+def is_next_patch(previous: str, current: str) -> bool:
+    p_major, p_minor, p_patch = parse_version(previous)
+    c_major, c_minor, c_patch = parse_version(current)
+    return (c_major, c_minor, c_patch) == (p_major, p_minor, p_patch + 1)
+
+
+def gradle_has_substantive_change(parent: str, commit: str) -> bool:
+    diff = run_git("diff", "--unified=0", parent, commit, "--", GRADLE_REL)
+    for line in diff.splitlines():
+        if not line or line.startswith(("+++", "---", "@@")):
+            continue
+        if line[0] not in "+-":
+            continue
+        if not VERSION_LINE_RE.match(line[1:]):
+            return True
+    return False
+
+
+def changed_paths(parent: str, commit: str) -> list[str]:
+    return [
+        path.strip()
+        for path in run_git("diff", "--name-only", parent, commit).splitlines()
+        if path.strip()
+    ]
+
+
+def is_versioned_code_path(path: str, parent: str, commit: str) -> bool:
+    if path == GRADLE_REL:
+        return gradle_has_substantive_change(parent, commit)
+
+    if path.startswith("greater-art/app/src/"):
+        return Path(path).suffix.lower() in {
+            ".kt", ".java", ".xml", ".aidl", ".c", ".cc", ".cpp", ".h", ".hpp",
+        }
+
+    if path in {
+        "greater-art/build.gradle.kts",
+        "greater-art/settings.gradle.kts",
+        "greater-art/gradle.properties",
+        "greater-art/gradle/libs.versions.toml",
+    }:
+        return True
+
+    if path.startswith("greater-art/gradle/") and not path.endswith(".md"):
+        return True
+
+    if path.startswith("scripts/"):
+        return Path(path).suffix.lower() in {".py", ".ps1", ".sh", ".js", ".ts"}
+
+    if path.startswith(".github/workflows/"):
+        return Path(path).suffix.lower() in {".yml", ".yaml"}
+
+    return False
+
+
+def rules_from_ref(ref: str) -> tuple[str, int, str, str, int, list[tuple[str, int]]]:
+    return parse_rules(run_git("show", f"{ref}:{RULES_REL}"))
+
+
+def validate_commit_range(errors: list[str], base: str, head: str = "HEAD") -> None:
+    commits = [
+        commit
+        for commit in run_git("rev-list", "--reverse", f"{base}..{head}").splitlines()
+        if commit
+    ]
+
+    for commit in commits:
+        parent = run_git("rev-parse", f"{commit}^").strip()
+        paths = changed_paths(parent, commit)
+        substantive = any(
+            is_versioned_code_path(path, parent, commit)
+            for path in paths
+        )
+
+        if substantive:
+            try:
+                previous_version, previous_code = version_from_ref(parent)
+                current_version, current_code = version_from_ref(commit)
+            except Exception as exc:
+                fail(errors, f"{commit[:12]}: cannot read version metadata: {exc}")
+                continue
+
+            if not is_next_patch(previous_version, current_version):
+                fail(
+                    errors,
+                    f"{commit[:12]}: versioned code changed but versionName must be "
+                    f"exactly {previous_version} -> next PATCH; found {current_version}",
+                )
+
+            if current_code != previous_code + 1:
+                fail(
+                    errors,
+                    f"{commit[:12]}: versioned code changed but versionCode must be "
+                    f"{previous_code} -> {previous_code + 1}; found {current_code}",
+                )
+
+            try:
+                rule_version, rule_code, state, _, _, tracked = rules_from_ref(commit)
+                if (rule_version, rule_code) != (current_version, current_code):
+                    fail(
+                        errors,
+                        f"{commit[:12]}: VERSION_RULES current source "
+                        f"{rule_version}/code {rule_code} does not match Gradle "
+                        f"{current_version}/code {current_code}",
+                    )
+                if not tracked or tracked[-1] != (current_version, current_code):
+                    fail(
+                        errors,
+                        f"{commit[:12]}: tracked version ledger must end at "
+                        f"{current_version} (code {current_code})",
+                    )
+                if state != "SOURCE_ONLY":
+                    fail(
+                        errors,
+                        f"{commit[:12]}: a code-changing commit must land as SOURCE_ONLY; "
+                        "local build verification is a separate follow-up",
+                    )
+            except Exception as exc:
+                fail(errors, f"{commit[:12]}: VERSION_RULES check failed: {exc}")
+
+        status = run_git(
+            "diff-tree",
+            "--no-commit-id",
+            "--name-status",
+            "-r",
+            "-M",
+            "-C",
+            "--find-copies-harder",
+            parent,
+            commit,
+            "--",
+            RELEASES_REL,
+        )
+
+        for line in status.splitlines():
+            parts = line.split("\t")
+            if not parts:
+                continue
+            kind = parts[0][0]
+            apk_paths = [path for path in parts[1:] if path.endswith(".apk")]
+            if not apk_paths:
+                continue
+
+            if kind in {"M", "R", "C"}:
+                fail(
+                    errors,
+                    f"{commit[:12]}: release APKs are immutable; "
+                    f"modification/rename/copy detected: {line}",
+                )
+
+            if kind == "A":
+                apk_path = apk_paths[-1]
+                match = APK_NAME_RE.fullmatch(Path(apk_path).name)
+                if not match:
+                    fail(errors, f"{commit[:12]}: invalid release APK filename: {apk_path}")
+                    continue
+                try:
+                    current_version, _ = version_from_ref(commit)
+                except Exception as exc:
+                    fail(
+                        errors,
+                        f"{commit[:12]}: cannot validate APK filename against Gradle: {exc}",
+                    )
+                    continue
+                if match.group(1) != current_version:
+                    fail(
+                        errors,
+                        f"{commit[:12]}: new APK {Path(apk_path).name} does not match "
+                        f"Gradle version {current_version}",
+                    )
+
+
+def find_aapt() -> str | None:
+    explicit = os.environ.get("AAPT")
+    if explicit and Path(explicit).is_file():
+        return explicit
+
+    direct = shutil.which("aapt")
+    if direct:
+        return direct
+
+    sdk = os.environ.get("ANDROID_HOME") or os.environ.get("ANDROID_SDK_ROOT")
+    if sdk:
+        build_tools = Path(sdk) / "build-tools"
+        if build_tools.is_dir():
+            candidates = sorted(build_tools.glob("*/aapt"), reverse=True)
+            if candidates:
+                return str(candidates[0])
+
+    return None
+
+
+def validate_release_artifact(
+    errors: list[str],
+    version: str,
+    code: int,
+    handoff: str,
+) -> None:
+    apk_rel = f"{RELEASES_REL}/GreaterArt-{version}.apk"
+    apk = ROOT / apk_rel
+
+    if not apk.is_file():
+        fail(errors, f"verified release is missing APK: {apk_rel}")
         return
-    actual = match.group(1)
-    if actual != expected:
-        fail(errors, f"{label}: expected {expected!r}, found {actual!r}")
+
+    if f"releases/GreaterArt-{version}.apk" not in handoff:
+        fail(
+            errors,
+            f"HANDOFF Latest APK must point to releases/GreaterArt-{version}.apk",
+        )
+
+    digest = hashlib.sha256()
+    with apk.open("rb") as handle:
+        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
+            digest.update(chunk)
+    apk_hash = digest.hexdigest()
+
+    if apk_hash.lower() not in handoff.lower():
+        fail(errors, "HANDOFF must record the exact SHA-256 of the verified APK")
+
+    aapt = find_aapt()
+    if not aapt:
+        fail(
+            errors,
+            "aapt not found; --release validation requires Android build-tools",
+        )
+        return
+
+    proc = subprocess.run(
+        [aapt, "dump", "badging", str(apk)],
+        text=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+    )
+    if proc.returncode:
+        fail(errors, f"aapt dump badging failed: {proc.stderr.strip()}")
+        return
+
+    package = re.search(
+        r"package: name='([^']+)' versionCode='([^']+)' versionName='([^']+)'",
+        proc.stdout,
+    )
+    if not package:
+        fail(errors, "aapt output did not contain package/version metadata")
+        return
+
+    package_name, apk_code, apk_version = package.groups()
+    if package_name != PACKAGE_ID:
+        fail(errors, f"APK package must be {PACKAGE_ID}, found {package_name}")
+    if apk_version != version:
+        fail(errors, f"APK versionName must be {version}, found {apk_version}")
+    if apk_code != str(code):
+        fail(errors, f"APK versionCode must be {code}, found {apk_code}")
+
+
+def validate_current_state(errors: list[str], require_release: bool) -> None:
+    try:
+        gradle_version, gradle_code = parse_gradle(read(GRADLE_REL), "Gradle")
+        (
+            rules_version,
+            rules_code,
+            state,
+            latest_version,
+            latest_code,
+            tracked,
+        ) = parse_rules(read(RULES_REL))
+    except Exception as exc:
+        fail(errors, str(exc))
+        return
+
+    if (rules_version, rules_code) != (gradle_version, gradle_code):
+        fail(
+            errors,
+            f"VERSION_RULES current source {rules_version}/code {rules_code} "
+            f"does not match Gradle {gradle_version}/code {gradle_code}",
+        )
+
+    if tracked[-1] != (gradle_version, gradle_code):
+        fail(
+            errors,
+            f"VERSION_RULES tracked ledger must end at "
+            f"{gradle_version} (code {gradle_code})",
+        )
+
+    for (previous_version, previous_code), (current_version, current_code) in zip(
+        tracked,
+        tracked[1:],
+    ):
+        if not is_next_patch(previous_version, current_version) or current_code != previous_code + 1:
+            fail(
+                errors,
+                f"VERSION_RULES ledger is not sequential: "
+                f"{previous_version}/code {previous_code} -> "
+                f"{current_version}/code {current_code}",
+            )
+
+    handoff = read(HANDOFF_REL)
+    handoff_current = re.search(
+        r"^\*\*Current version:\*\*\s*\x60(\d+\.\d+\.\d+) \(code (\d+)\)\x60",
+        handoff,
+        re.MULTILINE,
+    )
+    handoff_apk = re.search(
+        r"^\*\*Latest APK:\*\*\s*\x60releases/GreaterArt-(\d+\.\d+\.\d+)\.apk\x60",
+        handoff,
+        re.MULTILINE,
+    )
+
+    expected_handoff = (
+        (gradle_version, gradle_code)
+        if state == "VERIFIED"
+        else (latest_version, latest_code)
+    )
+
+    if not handoff_current:
+        fail(errors, "HANDOFF Current version line not found")
+    elif (
+        handoff_current.group(1),
+        int(handoff_current.group(2)),
+    ) != expected_handoff:
+        fail(
+            errors,
+            f"HANDOFF Current version must describe latest verified release "
+            f"{expected_handoff[0]} (code {expected_handoff[1]}) while state={state}",
+        )
+
+    if not handoff_apk:
+        fail(errors, "HANDOFF Latest APK line not found")
+    elif handoff_apk.group(1) != latest_version:
+        fail(
+            errors,
+            f"HANDOFF Latest APK must be GreaterArt-{latest_version}.apk, "
+            f"found {handoff_apk.group(1)}",
+        )
+
+    current_apk = ROOT / RELEASES_REL / f"GreaterArt-{gradle_version}.apk"
+    latest_apk = ROOT / RELEASES_REL / f"GreaterArt-{latest_version}.apk"
+
+    if state == "SOURCE_ONLY":
+        if current_apk.exists():
+            fail(
+                errors,
+                f"SOURCE_ONLY forbids a current-version APK at "
+                f"{current_apk.relative_to(ROOT)}; verify it first, then mark VERIFIED",
+            )
+        if not latest_apk.exists():
+            fail(
+                errors,
+                f"latest verified APK is missing: {latest_apk.relative_to(ROOT)}",
+            )
+        if require_release:
+            fail(
+                errors,
+                "release validation requested but VERSION_RULES state is SOURCE_ONLY",
+            )
+
+    elif state == "VERIFIED":
+        if (latest_version, latest_code) != (gradle_version, gradle_code):
+            fail(
+                errors,
+                "VERIFIED state requires Latest verified APK to equal Current source",
+            )
+        validate_release_artifact(errors, gradle_version, gradle_code, handoff)
 
 
 def main() -> int:
+    parser = argparse.ArgumentParser(
+        description="Greater Art version and immutable-release guard",
+    )
+    parser.add_argument(
+        "--base",
+        help="Validate every commit in BASE..HEAD for exact version bumps and APK immutability",
+    )
+    parser.add_argument(
+        "--release",
+        action="store_true",
+        help="Require current source to have a locally verified current-version APK",
+    )
+    args = parser.parse_args()
+
     errors: list[str] = []
+    validate_current_state(errors, require_release=args.release)
 
-    gradle = read("greater-art/app/build.gradle.kts")
-    version_name_match = re.search(r'versionName\s*=\s*"([^"]+)"', gradle)
-    version_code_match = re.search(r"versionCode\s*=\s*(\d+)", gradle)
-
-    if not version_name_match:
-        fail(errors, "Gradle: versionName not found")
-    if not version_code_match:
-        fail(errors, "Gradle: versionCode not found")
-    if errors:
-        for error in errors:
-            print(f"ERROR: {error}", file=sys.stderr)
-        return 1
-
-    version = version_name_match.group(1)
-    code = version_code_match.group(1)
-
-    if not re.fullmatch(r"\d+\.\d+\.\d+", version):
-        fail(errors, f"Gradle: versionName {version!r} is not major.minor.patch")
-    if int(code) <= 0:
-        fail(errors, f"Gradle: versionCode must be positive, found {code}")
-
-    apk_rel = f"greater-art/releases/GreaterArt-{version}.apk"
-    apk = ROOT / apk_rel
-    if not apk.is_file():
-        fail(errors, f"Artifact missing: {apk_rel}")
-        apk_hash = None
-    else:
-        digest = hashlib.sha256()
-        with apk.open("rb") as handle:
-            for chunk in iter(lambda: handle.read(1024 * 1024), b""):
-                digest.update(chunk)
-        apk_hash = digest.hexdigest()
-
-    root_readme = read("README.md")
-    expect(
-        errors,
-        root_readme,
-        r"Current repository version:\s*\*\*([^*]+)\*\*",
-        f"{version} (code {code})",
-        "Root README version",
-    )
-    expected_root_link = f"[greater-art/releases/GreaterArt-{version}.apk](greater-art/releases/GreaterArt-{version}.apk)"
-    if expected_root_link not in root_readme:
-        fail(errors, f"Root README APK link must point to {apk_rel}")
-
-    app_readme = read("greater-art/README.md")
-    expect(errors, app_readme, r"^- Version:\s*\*\*([^*]+)\*\*", version, "Greater Art README version")
-    expect(errors, app_readme, r"^- Version code:\s*\*\*([^*]+)\*\*", code, "Greater Art README version code")
-    expect(errors, app_readme, r"^- APK:\s*\x60([^\x60]+)\x60", f"releases/GreaterArt-{version}.apk", "Greater Art README APK")
-    if apk_hash:
-        expect(errors, app_readme, r"^- APK SHA-256:\s*\x60([^\x60]+)\x60", apk_hash, "Greater Art README APK SHA-256")
-
-    handoff = read("greater-art/HANDOFF.md")
-    expect(
-        errors,
-        handoff,
-        r"^\*\*Current version:\*\*\s*\x60([^\x60]+)\x60",
-        f"{version} (code {code})",
-        "HANDOFF current version",
-    )
-    expect(
-        errors,
-        handoff,
-        r"^\*\*Latest APK:\*\*\s*\x60([^\x60]+)\x60",
-        f"releases/GreaterArt-{version}.apk",
-        "HANDOFF latest APK",
-    )
-
-    state_match = re.search(r"## Repository state\s*(.*?)(?=\n## |\n### )", handoff, re.DOTALL)
-    if not state_match:
-        fail(errors, "HANDOFF: Repository state section not found")
-    else:
-        state = state_match.group(1)
-        expect(errors, state, r"^- Version:\s*\*\*([^*]+)\*\*", version, "HANDOFF repository-state version")
-        expect(errors, state, r"^- Version code:\s*\*\*([^*]+)\*\*", code, "HANDOFF repository-state version code")
-        expect(errors, state, r"^- APK:\s*\x60([^\x60]+)\x60", f"releases/GreaterArt-{version}.apk", "HANDOFF repository-state APK")
-        if apk_hash:
-            expect(errors, state, r"^- APK SHA-256:\s*\x60([^\x60]+)\x60", apk_hash, "HANDOFF repository-state APK SHA-256")
-
-    landing = read("index.html")
-    if f"GREATER ART · {version}" not in landing:
-        fail(errors, f"index.html hero version must be {version}")
-    if f'greater-art/releases/GreaterArt-{version}.apk' not in landing:
-        fail(errors, f"index.html APK link must point to {apk_rel}")
+    if args.base:
+        try:
+            run_git("rev-parse", "--verify", args.base)
+            validate_commit_range(errors, args.base)
+        except Exception as exc:
+            fail(errors, f"commit-range validation failed: {exc}")
 
     if errors:
-        print(f"Version consistency check FAILED with {len(errors)} problem(s):", file=sys.stderr)
+        print(
+            f"Greater Art version guard FAILED with {len(errors)} problem(s):",
+            file=sys.stderr,
+        )
         for error in errors:
             print(f" - {error}", file=sys.stderr)
         return 1
 
-    print(f"Version consistency OK: Greater Art {version} (code {code})")
-    print(f"Artifact: {apk_rel}")
-    if apk_hash:
-        print(f"SHA-256: {apk_hash}")
+    version, code = parse_gradle(read(GRADLE_REL), "Gradle")
+    _, _, state, latest_version, latest_code, _ = parse_rules(read(RULES_REL))
+    print(
+        f"Greater Art version guard OK: source {version} (code {code}), "
+        f"state={state}"
+    )
+    print(f"Latest verified APK: {latest_version} (code {latest_code})")
     return 0
 
 

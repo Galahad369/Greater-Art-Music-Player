@@ -12,14 +12,38 @@ permissions:
 
 jobs:
   greater-art-version:
-    name: Greater Art version consistency
+    name: Greater Art version guard
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
-      - name: Check out source
+      - name: Check out full history
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
+          fetch-depth: 0
 
-      - name: Validate version metadata and artifact
+      - name: Validate current source/release state
         run: python3 scripts/validate-greater-art-version.py
+
+      - name: Enforce per-commit version bumps and immutable APKs
+        if: github.event_name != 'workflow_dispatch'
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          PUSH_BASE: ${{ github.event.before }}
+          PR_BASE: ${{ github.event.pull_request.base.sha }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ "$EVENT_NAME" = "pull_request" ]; then
+            BASE="$PR_BASE"
+          else
+            BASE="$PUSH_BASE"
+          fi
+
+          if [ -z "$BASE" ] || [ "$BASE" = "0000000000000000000000000000000000000000" ]; then
+            echo "No usable base SHA; current-state validation already passed."
+            exit 0
+          fi
+
+          git cat-file -e "$BASE^{commit}"
+          python3 scripts/validate-greater-art-version.py --base "$BASE"
