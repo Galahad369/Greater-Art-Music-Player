@@ -6,7 +6,7 @@ This file is the authoritative version policy for Greater Art. If any handoff no
 
 ## Machine-checkable state
 
-Current source: **1.14.4 (code 119)**
+Current source: **1.14.5 (code 120)**
 Current release state: **SOURCE_ONLY**
 Latest verified APK: **1.14.3 (code 118)**
 
@@ -108,6 +108,7 @@ The guard checks:
 - 1.14.2 (code 117) — shared navigation container
 - 1.14.3 (code 118) — crossMargin=9; local build verified
 - 1.14.4 (code 119) — version-policy/CI hardening; source only, local build pending
+- 1.14.5 (code 120) — inline row actions + queue-fling thumbnail deferral; source only, local build pending
 
 Previous baseline: 1.13.26 (code 115).
 

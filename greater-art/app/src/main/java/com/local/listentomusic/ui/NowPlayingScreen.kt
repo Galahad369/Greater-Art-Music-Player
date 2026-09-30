@@ -86,6 +86,8 @@ import androidx.compose.material.icons.rounded.Share
 import androidx.compose.material.icons.rounded.Favorite
 import androidx.compose.material.icons.rounded.FavoriteBorder
 import androidx.compose.material.icons.rounded.MyLocation
+import androidx.compose.material.icons.rounded.MoreVert
+import androidx.compose.material.icons.automirrored.rounded.PlaylistAdd
 import androidx.compose.material.icons.rounded.QueueMusic
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -111,6 +113,7 @@ import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -131,6 +134,7 @@ import androidx.compose.ui.layout.boundsInWindow
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
@@ -214,6 +218,7 @@ fun NowPlayingScreen(
     onToggleFavourite: (String) -> Unit,
     onShareCurrentMedia: () -> Unit,
     onShareQueue: () -> Unit,
+    onAddQueueItemToList: (MediaFile) -> Unit = {},
     systemOverlay: Boolean = false,
     initialFullscreen: Boolean = false,
     forceLandscapeFullscreen: Boolean = false,
@@ -338,6 +343,7 @@ fun NowPlayingScreen(
                                         onMoveQueueItem = onMoveQueueItem,
                                         onRemoveQueueItem = onRemoveQueueItem,
                                         onShareQueue = onShareQueue,
+                                        onAddQueueItemToList = onAddQueueItemToList,
                                         isFavourite = isFavourite,
                                         onToggleFavourite = { playback.currentPath?.let(onToggleFavourite) },
                                         onShareCurrentMedia = onShareCurrentMedia,
@@ -373,6 +379,7 @@ fun NowPlayingScreen(
                             onMoveQueueItem = onMoveQueueItem,
                             onRemoveQueueItem = onRemoveQueueItem,
                             onShareQueue = onShareQueue,
+                            onAddQueueItemToList = onAddQueueItemToList,
                             isFavourite = isFavourite,
                             onToggleFavourite = { playback.currentPath?.let(onToggleFavourite) },
                             onShareCurrentMedia = onShareCurrentMedia,
@@ -677,6 +684,7 @@ private fun AudioPlayer(
     onMoveQueueItem: (Int, Int) -> Unit,
     onRemoveQueueItem: (Int) -> Unit,
     onShareQueue: () -> Unit,
+    onAddQueueItemToList: (MediaFile) -> Unit,
     isFavourite: Boolean,
     onToggleFavourite: () -> Unit,
     onShareCurrentMedia: () -> Unit,
@@ -775,6 +783,7 @@ private fun AudioPlayer(
                                 onLoadThumbnail = onLoadThumbnail,
                                 onMoveQueueItem = onMoveQueueItem,
                                 onRemoveQueueItem = onRemoveQueueItem,
+                                onAddQueueItemToList = onAddQueueItemToList,
                                 modifier = Modifier.fillMaxWidth().weight(1f),
                                 queueListState = queueListState,
                                 onLocateCurrent = onLocateCurrent,
@@ -862,6 +871,7 @@ private fun SecondaryControls(
     onMoveQueueItem: (Int, Int) -> Unit,
     onRemoveQueueItem: (Int) -> Unit,
     onShareQueue: () -> Unit,
+    onAddQueueItemToList: (MediaFile) -> Unit,
     isFavourite: Boolean,
     onToggleFavourite: () -> Unit,
     onShareCurrentMedia: () -> Unit,
@@ -913,6 +923,7 @@ private fun SecondaryControls(
                     onLoadThumbnail = onLoadThumbnail,
                     onMoveQueueItem = onMoveQueueItem,
                     onRemoveQueueItem = onRemoveQueueItem,
+                    onAddQueueItemToList = onAddQueueItemToList,
                     modifier = Modifier.fillMaxWidth().weight(1f),
                     queueListState = queueListState,
                     onLocateCurrent = onLocateCurrent,
@@ -943,6 +954,7 @@ private fun NowPlayingQueue(
     onLoadThumbnail: suspend (MediaFile) -> Bitmap?,
     onMoveQueueItem: (Int, Int) -> Unit,
     onRemoveQueueItem: (Int) -> Unit,
+    onAddQueueItemToList: (MediaFile) -> Unit,
     modifier: Modifier = Modifier,
     queueListState: androidx.compose.foundation.lazy.LazyListState,
     onLocateCurrent: () -> Unit,
@@ -970,9 +982,15 @@ private fun NowPlayingQueue(
         }
     }
     val listState = queueListState
+    var openActionsPath by rememberSaveable { mutableStateOf<String?>(null) }
     val visibleIndex = visibleQueue.indexOfFirst { it.value.path == currentPath }
     LaunchedEffect(currentPath, visibleIndex) {
         if (visibleIndex >= 0 && !listState.isScrollInProgress) listState.scrollToItem(visibleIndex)
+    }
+    LaunchedEffect(listState) {
+        snapshotFlow { listState.isScrollInProgress }.collect { scrolling ->
+            if (scrolling) openActionsPath = null
+        }
     }
     Column(modifier.inspectElement("NOW_PLAYING_QUEUE", "Ordered playback queue and optional synchronized lyrics")) {
         if (searchOpen) Row(Modifier.fillMaxWidth().inspectElement("QUEUE_SEARCH_FIELD", "Filters the current playback queue"), verticalAlignment = Alignment.CenterVertically) {
@@ -1017,54 +1035,96 @@ private fun NowPlayingQueue(
                     val index = indexed.index
                     val file = indexed.value
                     val selected = file.path == currentPath
-        Row(
-                        modifier = Modifier.fillMaxWidth().inspectElement("NOW_PLAYING_QUEUE_ROW", file.name)
-                            .clip(RoundedCornerShape(12.dp))
-                            .background(
-                                if (selected) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.72f)
-                                else Color.Transparent,
-                            )
-                            .clickable { onPlay(file) }
-                            .padding(horizontal = 7.dp, vertical = 4.dp),
-                        verticalAlignment = Alignment.CenterVertically,
+                    val actionsOpen = openActionsPath == file.path
+                    val revealProgress by animateFloatAsState(
+                        targetValue = if (actionsOpen) 1f else 0f,
+                        animationSpec = tween(durationMillis = 200),
+                        label = "queue-actions-reveal",
+                    )
+                    val density = LocalDensity.current
+                    val actionWidth = 128.dp
+                    val actionWidthPx = with(density) { actionWidth.toPx() }
+                    Box(
+                        Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp))
+                            .inspectElement("NOW_PLAYING_QUEUE_ROW", file.name),
                     ) {
-                        QueueThumbnail(file = file, onLoadThumbnail = onLoadThumbnail)
-                        Spacer(Modifier.width(10.dp))
-                        Column(Modifier.weight(1f)) {
-                            Text(
-                                com.local.listentomusic.model.mediaTitle(file.name, file.sourcePath),
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis,
-                                style = MaterialTheme.typography.bodyMedium,
-                                fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal,
-                                color = if (selected) MaterialTheme.colorScheme.onPrimaryContainer
-                                    else MaterialTheme.colorScheme.onSurface,
+                        TextButton(
+                            onClick = {
+                                openActionsPath = null
+                                onAddQueueItemToList(file)
+                            },
+                            modifier = Modifier.align(Alignment.CenterEnd).width(actionWidth)
+                                .graphicsLayer {
+                                    translationX = actionWidthPx * (1f - revealProgress)
+                                    alpha = revealProgress
+                                }
+                                .inspectElement("QUEUE_ADD_TO_LIST", "Add ${file.name} to a song list"),
+                        ) {
+                            Icon(Icons.AutoMirrored.Rounded.PlaylistAdd, null, Modifier.size(19.dp))
+                            Spacer(Modifier.width(5.dp))
+                            Text(uiText(language, "Add to list", "加入列表"))
+                        }
+                        Row(
+                            modifier = Modifier.fillMaxWidth()
+                                .graphicsLayer { translationX = -actionWidthPx * revealProgress }
+                                .background(
+                                    if (selected) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.72f)
+                                    else MaterialTheme.colorScheme.surface,
+                                )
+                                .clickable {
+                                    if (actionsOpen) openActionsPath = null else onPlay(file)
+                                }
+                                .padding(horizontal = 7.dp, vertical = 4.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            QueueThumbnail(
+                                file = file,
+                                onLoadThumbnail = onLoadThumbnail,
+                                deferHeavyLoad = listState.isScrollInProgress,
                             )
-                            if (showFileDetails) {
+                            Spacer(Modifier.width(10.dp))
+                            Column(Modifier.weight(1f)) {
                                 Text(
-                                    queueDetails(file),
+                                    com.local.listentomusic.model.mediaTitle(file.name, file.sourcePath),
                                     maxLines = 1,
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = if (selected) MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.72f)
-                                        else MaterialTheme.colorScheme.onSurfaceVariant,
+                                    overflow = TextOverflow.Ellipsis,
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal,
+                                    color = if (selected) MaterialTheme.colorScheme.onPrimaryContainer
+                                        else MaterialTheme.colorScheme.onSurface,
+                                )
+                                if (showFileDetails) {
+                                    Text(
+                                        queueDetails(file),
+                                        maxLines = 1,
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = if (selected) MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.72f)
+                                            else MaterialTheme.colorScheme.onSurfaceVariant,
+                                    )
+                                }
+                            }
+                            if (selected) {
+                                Box(
+                                    Modifier.size(7.dp).clip(CircleShape)
+                                        .background(MaterialTheme.colorScheme.secondary),
                                 )
                             }
-                        }
-                        if (selected) {
-                            Box(
-                                Modifier.size(7.dp).clip(CircleShape)
-                                    .background(MaterialTheme.colorScheme.secondary),
-                            )
-                        }
-                        if (editableQueue) {
-                            IconButton(onClick = { onMoveQueueItem(index, index - 1) }, enabled = index > 0) {
-                                Icon(Icons.Rounded.KeyboardArrowUp, uiText(language, "Move up", "上移"))
+                            IconButton(
+                                onClick = { openActionsPath = if (actionsOpen) null else file.path },
+                                modifier = Modifier.size(40.dp).inspectElement("QUEUE_MORE_BUTTON", "Actions for ${file.name}"),
+                            ) {
+                                Icon(Icons.Rounded.MoreVert, uiText(language, "Actions", "操作"))
                             }
-                            IconButton(onClick = { onMoveQueueItem(index, index + 1) }, enabled = index < queue.lastIndex) {
-                                Icon(Icons.Rounded.KeyboardArrowDown, uiText(language, "Move down", "下移"))
-                            }
-                            IconButton(onClick = { onRemoveQueueItem(index) }, enabled = queue.size > 1) {
-                                Icon(Icons.Rounded.RemoveCircleOutline, uiText(language, "Remove", "移除"))
+                            if (editableQueue) {
+                                IconButton(onClick = { onMoveQueueItem(index, index - 1) }, enabled = index > 0) {
+                                    Icon(Icons.Rounded.KeyboardArrowUp, uiText(language, "Move up", "上移"))
+                                }
+                                IconButton(onClick = { onMoveQueueItem(index, index + 1) }, enabled = index < queue.lastIndex) {
+                                    Icon(Icons.Rounded.KeyboardArrowDown, uiText(language, "Move down", "下移"))
+                                }
+                                IconButton(onClick = { onRemoveQueueItem(index) }, enabled = queue.size > 1) {
+                                    Icon(Icons.Rounded.RemoveCircleOutline, uiText(language, "Remove", "移除"))
+                                }
                             }
                         }
                     }
@@ -1138,9 +1198,14 @@ private fun formatBytes(bytes: Long): String = when {
 internal fun QueueThumbnail(
     file: MediaFile,
     onLoadThumbnail: suspend (MediaFile) -> Bitmap?,
+    deferHeavyLoad: Boolean = false,
 ) {
-    val thumbnail by produceState<Bitmap?>(null, file.path, "${file.modifiedMs}:${file.coverUri}") {
-        value = onLoadThumbnail(file)
+    var thumbnail by remember(file.path, file.modifiedMs, file.coverUri) { mutableStateOf<Bitmap?>(null) }
+    LaunchedEffect(file.path, file.modifiedMs, file.coverUri, deferHeavyLoad) {
+        // Fast queue flings should not launch fresh disk reads / frame extraction for
+        // every transient row. Keep thumbnails already loaded on-screen and request
+        // missing ones only after scrolling settles so video composition stays first.
+        if (!deferHeavyLoad && thumbnail == null) thumbnail = onLoadThumbnail(file)
     }
     Box(
         modifier = Modifier.size(40.dp).clip(RoundedCornerShape(9.dp))

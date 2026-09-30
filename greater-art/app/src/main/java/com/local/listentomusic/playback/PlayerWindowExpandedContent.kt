@@ -12,8 +12,11 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -66,6 +69,7 @@ internal fun PlayerWindowExpandedContent(
     val sleepTimer by viewModel.sleepTimer.collectAsState()
     val inspector = remember { UiInspectorState() }
     var fullscreen by remember { mutableStateOf(false) }
+    var addToListFile by remember { mutableStateOf<com.local.listentomusic.model.MediaFile?>(null) }
     val artwork by produceState<android.graphics.Bitmap?>(null, playback.currentPath,
         settings.localOverrides[playback.currentPath]) {
         value = viewModel.loadCurrentArtwork(playback.currentPath)
@@ -126,6 +130,7 @@ internal fun PlayerWindowExpandedContent(
                                     uiText(settings.appLanguage, "Share media file", "分享媒體檔案"))
                                     .onSuccess(onShare).onFailure { onShareFailure(it.message.orEmpty()) }
                             },
+                            onAddQueueItemToList = { addToListFile = it },
                             onShareQueue = {
                                 scope.launch {
                                     AndroidShare.listChooser(viewModel.getApplication(),
@@ -141,6 +146,55 @@ internal fun PlayerWindowExpandedContent(
                         )
                     }
                 }
+            }
+            addToListFile?.let { file ->
+                val manualLists = settings.playlists.filter { it.rule == null }
+                val favourite = file.path in settings.favouritePaths
+                AlertDialog(
+                    onDismissRequest = { addToListFile = null },
+                    title = { Text(uiText(settings.appLanguage, "Add to list", "加入列表")) },
+                    text = {
+                        Column {
+                            TextButton(
+                                enabled = !favourite,
+                                onClick = {
+                                    viewModel.toggleFavourite(file.path)
+                                    addToListFile = null
+                                },
+                            ) {
+                                Text(if (favourite)
+                                    uiText(settings.appLanguage, "✓ Favorites", "✓ 我的最愛")
+                                else uiText(settings.appLanguage, "Favorites", "我的最愛"))
+                            }
+                            manualLists.forEach { playlist ->
+                                val added = file.path in playlist.paths
+                                TextButton(
+                                    enabled = !added,
+                                    onClick = {
+                                        viewModel.addToPlaylist(playlist.id, file.path)
+                                        addToListFile = null
+                                    },
+                                ) {
+                                    Text(if (added) "✓  ${playlist.name}" else playlist.name)
+                                }
+                            }
+                            if (manualLists.isEmpty()) {
+                                Text(
+                                    uiText(settings.appLanguage,
+                                        "No manual playlists yet. Favorites is still available above.",
+                                        "尚未有手動播放清單；你仍可加入上方的我的最愛。"),
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                            }
+                        }
+                    },
+                    confirmButton = {
+                        TextButton(onClick = { addToListFile = null }) {
+                            Text(uiText(settings.appLanguage, "Done", "完成"))
+                        }
+                    },
+                )
             }
             if (settings.developerMode) {
                 val engine by PlaybackDiagnostics.report.collectAsState()

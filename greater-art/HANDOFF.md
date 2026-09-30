@@ -10,6 +10,19 @@ This file describes the **current repository state only**. Historical session no
 
 ## Repository state
 
+### September 30 — 1.14.5 inline list actions + queue-scroll playback protection (source only)
+
+- Now Playing queue rows now expose a persistent three-dot affordance. Tapping it translates the row left with a short 200 ms reveal and exposes one stationary `Add to list` action. Only one row can stay open; starting a queue scroll closes it.
+- Library media rows use the same reveal grammar. The row moves left and exposes exactly two actions: `Add to list` and `Delete`. Add reuses the existing song-list workflow; Delete enters the existing three-step permanent-file confirmation without bypassing any destructive guard.
+- Lag investigation found a concrete source of avoidable contention during violent Now Playing queue flings: newly composed queue rows immediately launched thumbnail disk/decode work while Media3 was presenting video. Queue thumbnails now preserve images already loaded, but defer fresh thumbnail loads while `LazyListState.isScrollInProgress`; missing thumbnails load after the fling settles. This changes no decoder quality, bitrate, resolution, FPS, PlayerView ownership, or video surface lifecycle.
+- This is a targeted mitigation, not a claim that all frame drops are solved. Hermes should compare video smoothness during fast queue flings, inspect logcat/Media3 dropped-frame diagnostics, and verify that thumbnail placeholders fill after scroll settles.
+- Source version: **1.14.5 (code 120)**. State remains **SOURCE_ONLY**. Latest verified APK remains 1.14.3; do not create/rename/copy a 1.14.5 APK until the exact commit is built and smoke-tested locally.
+
+### September 30 — 1.14.4 version-policy hardening (source only)
+
+- VERSION_RULES.md is authoritative and machine-checkable. Every versioned code commit consumes exactly one new PATCH/versionCode in the same commit; failed builds do not permit version reuse.
+- CI checks per-commit version bumps and rejects release APK modification/rename/copy. Source-only and verified-release states are separate.
+
 ### September 30 — 1.14.2 persistent Library-family navigation (source; APK build pending)
 
 - Promoted Stack / All songs / Nodes from Library-only controls into one persistent top navigation bar owned by the three-page container. The bar is visible in the same physical position on Stack, Library, and Nodes; tapping a destination animates the existing pager rather than creating another screen.
