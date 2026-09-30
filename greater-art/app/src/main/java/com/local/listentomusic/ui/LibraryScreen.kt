@@ -83,6 +83,7 @@ import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -833,9 +834,12 @@ private fun MediaFileRow(
     ) {
         Row(
             modifier = Modifier.align(Alignment.CenterEnd).width(actionWidth)
-                .graphicsLayer {
-                    translationX = actionWidthPx * (1f - revealProgress)
-                    alpha = revealProgress
+                .drawWithContent {
+                    // Keep the action underlay fixed. Only draw the portion physically
+                    // uncovered by the translated foreground; no width/height animation.
+                    clipRect(left = size.width * (1f - revealProgress)) {
+                        drawContent()
+                    }
                 },
             verticalAlignment = Alignment.CenterVertically,
         ) {

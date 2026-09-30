@@ -10,6 +10,14 @@ This file describes the **current repository state only**. Historical session no
 
 ## Repository state
 
+### September 30 — 1.14.6 row-action correctness + queue identity hardening (source only)
+
+- Corrected the 1.14.5 inline reveal implementation so action underlays stay physically stationary. Their drawing is clipped to the strip exposed by the translated foreground; row height/width remains fixed and only the foreground translates.
+- Now Playing queue LazyColumn keys use the stable MediaFile identity (id/path) instead of index:path, preventing identity churn when queue order/filtering changes.
+- Static lag review: fresh queue thumbnail work remains deferred while LazyListState.isScrollInProgress; ThumbnailRepository performs disk/decode work on Dispatchers.IO with two decode permits, and the queue path does not call Media3 prepare/reseek/surface reassignment on scroll.
+- Existing diagnostics already track surface owner generation and dropped frames, but the repository currently contains no post-change fast-fling device trace. Runtime frame/jank numbers therefore remain unverified and must be collected on the A55/API 36 target before declaring the lag solved.
+- Source version: **1.14.6 (code 121)**. State remains **SOURCE_ONLY**. Latest verified APK remains 1.14.3.
+
 ### September 30 — 1.14.5 inline list actions + queue-scroll playback protection (source only)
 
 - Now Playing queue rows now expose a persistent three-dot affordance. Tapping it translates the row left with a short 200 ms reveal and exposes one stationary `Add to list` action. Only one row can stay open; starting a queue scroll closes it.
