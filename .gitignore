@@ -106,3 +106,11 @@ id_ed25519*
 !**/photos/**
 !**/sprites/**
 /.hermes
+
+# Generated build, emulator, and lint output can reveal workstation identities
+*.log
+**/logs/
+**/lint-results-*.html
+**/lint-results-*.xml
+**/lint-results-*.txt
+**/lint-results-*.sarif
