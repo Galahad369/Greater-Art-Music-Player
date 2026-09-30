@@ -19,6 +19,24 @@ class PlayerWindowVisibilityTest {
         PlayerWindowVisibility.app(false)
         assertTrue(PlayerWindowVisibility.detachedVisible.value)
     }
+    @Test fun expandedVisibilityIsPublishedForCoveredBackgroundConsumers() {
+        PlayerWindowVisibility.app(true)
+        PlayerWindowVisibility.library(true)
+        PlayerWindowVisibility.expanded(false)
+        assertFalse(PlayerWindowVisibility.expandedShowing.value)
+
+        PlayerWindowVisibility.expanded(true)
+        assertTrue(PlayerWindowVisibility.expandedShowing.value)
+        assertFalse(PlayerWindowVisibility.dockedVisible.value)
+
+        PlayerWindowVisibility.expanded(false)
+        assertFalse(PlayerWindowVisibility.expandedShowing.value)
+        assertTrue(PlayerWindowVisibility.dockedVisible.value)
+
+        PlayerWindowVisibility.library(false)
+        PlayerWindowVisibility.app(false)
+    }
+
     @Test fun switchingHostsNeverBrieflyShowsDetached() {
         PlayerWindowVisibility.app(true)
         PlayerWindowVisibility.library(true)

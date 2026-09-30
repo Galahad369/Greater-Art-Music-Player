@@ -21,6 +21,14 @@ This file describes the **current repository state only**. Historical session no
 
 ## Repository state
 
+### September 30 — 1.14.10 expanded-player video contention fix (source only)
+
+- Re-review of the fast-scroll lag found a stronger source-level contention bug than queue thumbnail loading: MainActivity always called `AppBackground(... visible = true)`, so the default `CURRENT_VIDEO` wallpaper kept an independent full-screen ExoPlayer/PlayerView alive underneath the expanded system Now Playing window.
+- `PlayerWindowVisibility` now publishes expanded-player visibility. MainActivity passes `visible = !expandedPlayerVisible` to `AppBackground`, so CURRENT_VIDEO/CUSTOM_VIDEO wallpaper output leaves composition and releases its secondary player while expanded Now Playing is visible, then resumes when the user returns to Library/Settings.
+- This preserves the foreground Media3 item, PlayerView/surface ownership, source resolution, bitrate, FPS, decoder selection, and thumbnail quality. Queue thumbnail deferral from 1.14.5 remains in place.
+- Added a unit regression covering the expanded visibility signal. This is a targeted contention fix, not a claim that device jank is fully eliminated; the A55/API 36 fast-fling test should be repeated on the exact 1.14.10 source.
+- Source version: **1.14.10 (code 125)**. State remains **SOURCE_ONLY**. Latest verified APK remains 1.14.3.
+
 ### September 30 — 1.14.9 compact square Add-to-list actions (source only)
 
 - Now Playing queue `Add to list` is now a compact 48 dp square icon action instead of the previous 128 dp text action. The foreground reveal therefore travels only 48 dp while preserving the same stationary underlay and one-row-open behavior.
