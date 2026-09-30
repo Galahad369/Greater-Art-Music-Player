@@ -3,8 +3,8 @@
 This file describes the **current repository state only**. Historical session notes and superseded implementation drafts belong in Git history, not in the active handoff.
 
 **Project:** `greater-art/` in the repository checkout
-**Current version:** `1.14.2 (code 117)`
-**Latest APK:** `releases/GreaterArt-1.14.1.apk` (26,392,330 bytes; SHA-256 `0116E2521D126F3E0B8487723C6BBC53A565E1C956CC80F537E282E079016421`)
+**Current version:** `1.14.3 (code 118)`
+**Latest APK:** `releases/GreaterArt-1.14.3.apk` (`26,254,894 bytes`; SHA-256 to be computed after final device check)
 **Application ID:** `com.local.listentomusic`
 **Signing certificate SHA-256:** `9e28eb45b3b171c3ea47d7da942d28d88b16538885e392a6971a80906d612fbf`
 
@@ -34,11 +34,11 @@ This file describes the **current repository state only**. Historical session no
 - Final automated verification against the exact current tree: 132 unit tests passed with zero failures/errors; `lintDebug` and `assembleDebug` passed. `app-debug.apk` reports 1.13.25/code 114, SHA-256 `D8AC7A1F3708C22DF2C7C18D6D7E37FE9A9B6687E99077A9B9706E0B65E658DA`, keeps the pinned signing certificate, and contains no INTERNET permission. Earlier in the same implementation run on the A55-size API 36 emulator, a third track added during playback without another MediaSession; mute, solo, and volume controls reflected their state; an early primary switch returned to `PLAYING`; Stack → Library → Nodes swipes rendered over the same video wallpaper with the dock unobstructed. The emulator was no longer connected for the final 1.13.25 reinstall/launch, so that exact artifact only has automated verification. Remaining checks: real audible output/phase quality, Mini Window/overlay handoff under Stack, slow-motion luminance measurement, max-eight stress, and physical Samsung A55. Do not label this as fully device-certified or copy over a versioned APK. Keep the concurrent numbered-release work and artifacts intact; no commit/push was made for Stack.
 
 - Project: `greater-art/`
-- Version: **1.13.26** (patch: Nodes screen fix + inspector tags, library chrome transparency, default dim 35%, slider input; build verified; release APK copied; AVD visual verification pending)
+- Version: **1.14.2** (patch: Nodes screen fix + inspector tags, library chrome transparency, default dim 35%, slider input; build verified; release APK copied; AVD visual verification pending)
 - APK: `releases/GreaterArt-1.13.26.apk` (26,238,506 bytes)
 - APK SHA-256: `1ea3ac357f982f395b10cbbac33b9d9996d516846a9cff6599d653650add28c7`
 - Application ID: `com.local.listentomusic`
-- Version code: **115**
+- Version code: **117**
 - APK: `releases/GreaterArt-1.13.26.apk` (26,238,506 bytes, SHA-256 `1ea3ac357f982f395b10cbbac33b9d9996d516846a9cff6599d653650add28c7`)
 - Signing certificate SHA-256: `9e28eb45b3b171c3ea47d7da942d28d88b16538885e392a6971a80906d612fbf`
 

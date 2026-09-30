@@ -101,7 +101,7 @@ class MiniWindowOverlayService : Service(), LifecycleOwner, ViewModelStoreOwner,
         // Visible circle and collision radius are identical. With BOTTOM gravity, larger y is higher.
         private val crossHitSize = 57
                 private val crossSize = 25
-                private val crossMargin = 11
+                private val crossMargin = 9
                 private val crossBaseAlpha = 1f
                 private val crossRaisePx = 28
         private var crossActive: Boolean? = null
