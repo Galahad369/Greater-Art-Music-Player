@@ -10,6 +10,14 @@ This file describes the **current repository state only**. Historical session no
 
 ## Repository state
 
+### September 30 — 1.14.9 privacy audit hardening
+
+- Removed generated build/emulator/lint output from the current tree and ignored future copies. The legitimate lint.xml configuration remains tracked.
+- Workstation paths are now checked in every reachable commit, including tags; shallow clones fail rather than claiming complete coverage. Findings show filenames and commits without printing private path values.
+- Historical leaks remain reachable until an explicitly reviewed history cleanup. CI must continue to fail when it finds them; deleting current files alone is insufficient.
+- Source is 1.14.9/code 124, SOURCE_ONLY. Existing APKs and signing identity are preserved. No Android/device verification was performed for this tooling-only change.
+
+
 ### September 30 — 1.14.8 clipped-underlay compile repair
 
 - 1.14.7 passed the hardened version guard but Android CI found the nested `clipRect` draw scope could not implicitly resolve `drawContent()`. The reveal now labels the outer `drawWithContent` scope and explicitly calls `this@content.drawContent()` in both row implementations.
