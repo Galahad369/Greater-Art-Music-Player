@@ -11,6 +11,14 @@
 **/.cxx/
 **/app/build/
 
+# Build/lint reports and logs — never commit (workstation-path leaks)
+*.log
+*.sarif
+lint-results-*.txt
+lint-results-*.xml
+lint-results-*.html
+**/logs/
+
 # Apple/Xcode local and signed output
 **/xcuserdata/
 *.xcuserstate
