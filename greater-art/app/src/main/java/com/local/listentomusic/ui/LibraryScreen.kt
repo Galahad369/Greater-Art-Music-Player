@@ -835,8 +835,8 @@ private fun MediaFileRow(
     )
     val density = LocalDensity.current
     val addActionSize = 48.dp
-    val deleteActionWidth = 94.dp
-    val actionWidth = addActionSize + deleteActionWidth
+    val deleteActionSize = 48.dp
+    val actionWidth = addActionSize + deleteActionSize
     val actionWidthPx = with(density) { actionWidth.toPx() }
     Box(
         Modifier.fillMaxWidth().clip(androidx.compose.ui.graphics.RectangleShape)
