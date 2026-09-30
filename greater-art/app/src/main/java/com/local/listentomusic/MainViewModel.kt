@@ -109,6 +109,7 @@ data class PlaybackUiState(
     val appLanguage: AppLanguage = AppLanguage.ENGLISH,
     val showSleepControl: Boolean = false,
     val showAbRepeat: Boolean = false,
+    val stackCount: Int = 0,
 ) {
     val hasMedia: Boolean get() = currentPath != null
     val isVideo: Boolean
@@ -153,6 +154,8 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     private val _library = MutableStateFlow(LibraryUiState())
     val library: StateFlow<LibraryUiState> = _library.asStateFlow()
+    private val _stackFiles = MutableStateFlow<List<MediaFile>>(emptyList())
+    val stackFiles: StateFlow<List<MediaFile>> = _stackFiles.asStateFlow()
 
     private val _queue = MutableStateFlow<List<MediaFile>>(emptyList())
     val queue: StateFlow<List<MediaFile>> = _queue.asStateFlow()
@@ -262,6 +265,11 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     init {
+        viewModelScope.launch {
+            com.local.listentomusic.playback.StackPlayback.state.collect {
+                _controller.value?.let(::publishPlayback)
+            }
+        }
         viewModelScope.launch { preferences.playHistory.collect { _playHistory.value = it } }
         viewModelScope.launch {
             preferences.values.collect {
@@ -303,6 +311,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     fun rescan() {
         if (!preferencesLoaded) return
         if (!hasStorageAccess()) {
+            _stackFiles.value = emptyList()
             _library.value = _library.value.copy(status = LibraryStatus.NEEDS_PERMISSION)
             return
         }
@@ -395,6 +404,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     private fun playNow(player: Player, file: MediaFile) {
+        com.local.listentomusic.playback.StackPlayback.stop()
         expandRestoredQueue = false
         com.local.listentomusic.playback.PlaybackDiagnostics.requestedAtMs = android.os.SystemClock.elapsedRealtime()
         com.local.listentomusic.playback.PlaybackDiagnostics.firstFrameDelayMs = null
@@ -464,23 +474,40 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun togglePlayPause() {
+        val stack = com.local.listentomusic.playback.StackPlayback.state.value
+        if (stack.active) {
+            if (stack.playing) com.local.listentomusic.playback.StackPlayback.pause()
+            else com.local.listentomusic.playback.StackPlayback.play()
+            return
+        }
         _controller.value?.let { if (it.isPlaying) it.pause() else it.play() }
     }
 
     fun seekBy(deltaMs: Long) {
+        val stack = com.local.listentomusic.playback.StackPlayback.state.value
+        if (stack.active) { com.local.listentomusic.playback.StackPlayback.seek(stack.positionMs + deltaMs); return }
         _controller.value?.let { seekTo(it.currentPosition + deltaMs) }
     }
 
     fun seekTo(positionMs: Long) {
+        if (com.local.listentomusic.playback.StackPlayback.state.value.active) {
+            com.local.listentomusic.playback.StackPlayback.seek(positionMs)
+            return
+        }
         _controller.value?.seekTo(positionMs.coerceAtLeast(0L))
         _controller.value?.let(::publishPlayback)
     }
 
     fun next() {
+        if (com.local.listentomusic.playback.StackPlayback.state.value.active) return
         _controller.value?.seekToNextMediaItem()
     }
 
     fun previous() {
+        if (com.local.listentomusic.playback.StackPlayback.state.value.active) {
+            com.local.listentomusic.playback.StackPlayback.seek(0L)
+            return
+        }
         _controller.value?.let {
             if (it.currentPosition > 4_000) it.seekTo(0) else it.seekToPreviousMediaItem()
         }
@@ -498,6 +525,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         com.local.listentomusic.playback.TemporaryPlaybackSpeed.end()
 
     fun setPlaybackCycle(mode: Int, random: Boolean) {
+        if (com.local.listentomusic.playback.StackPlayback.state.value.active) return
         _controller.value?.let {
             it.shuffleModeEnabled = random
             it.repeatMode = if (random) Player.REPEAT_MODE_ALL else mode
@@ -905,7 +933,8 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     private fun publishPlayback(player: Player) {
-        val path = player.currentMediaItem?.mediaId?.takeIf { it.isNotBlank() }
+        val stack = com.local.listentomusic.playback.StackPlayback.state.value.takeIf { it.active }
+        val path = stack?.primaryPath ?: player.currentMediaItem?.mediaId?.takeIf { it.isNotBlank() }
         val timelineDuration = if (
             !player.currentTimeline.isEmpty &&
             player.currentMediaItemIndex in 0 until player.currentTimeline.windowCount
@@ -931,16 +960,16 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             16f / 9f
         }
         // Match the UI cadence so player callbacks do not emit redundant state.
-        val quantizedPosition = (player.currentPosition / 500L) * 500L
+        val quantizedPosition = ((stack?.positionMs ?: player.currentPosition) / 500L) * 500L
         val next = PlaybackUiState(
             connected = true,
             currentPath = path,
             title = orderedFiles.firstOrNull { it.path == path }?.name ?: player.mediaMetadata.title?.toString()
                 ?: player.currentMediaItem?.mediaId?.substringAfterLast('/')
                 ?: "Nothing playing",
-            isPlaying = player.isPlaying,
+            isPlaying = stack?.playing ?: player.isPlaying,
             positionMs = quantizedPosition.coerceAtLeast(0L),
-            durationMs = duration,
+            durationMs = stack?.durationMs ?: duration,
             speed = player.playbackParameters.speed,
             repeatMode = player.repeatMode,
             shuffleEnabled = player.shuffleModeEnabled,
@@ -954,6 +983,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             appLanguage = userPreferences.appLanguage,
             showSleepControl = userPreferences.showSleepControl,
             showAbRepeat = userPreferences.showAbRepeat,
+            stackCount = stack?.slots?.size ?: 0,
         )
         // Skip identical emits. Every StateFlow update triggers a
         // recomposition storm across every screen that reads `playback`.
@@ -967,7 +997,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         val raw = scannedFiles
         val query = _library.value.query.trim()
         sortingJob = viewModelScope.launch {
-        val (ordered, shown) = withContext(Dispatchers.Default) {
+        val (all, ordered, shown) = withContext(Dispatchers.Default) {
         val decorated = raw.map { file -> prefs.localOverrides[file.path]?.let { override ->
             file.copy(name = override.title.ifBlank { file.name }, coverUri = override.coverUri)
         } ?: file }
@@ -1000,8 +1030,9 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             com.local.listentomusic.model.searchText(it.name).contains(normalized) ||
                 (prefs.extendedSearch && it.searchExtras.contains(normalized))
         }
-        ordered to shown
+        Triple(sortedLibrary, ordered, shown)
         }
+        _stackFiles.value = all
         orderedFiles = ordered
         if (syncQueueAfterSort) {
             syncQueueAfterSort = false

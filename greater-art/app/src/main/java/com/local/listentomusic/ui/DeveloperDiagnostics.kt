@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
@@ -131,7 +132,7 @@ internal fun DeveloperDiagnostics(
             systemOverlay = systemOverlay,
         ) {
             Surface(
-                modifier = Modifier.fillMaxWidth().padding(16.dp),
+                modifier = Modifier.fillMaxWidth().padding(16.dp).widthIn(max = 420.dp),
                 color = Color(0xFF080C0D),
                 contentColor = Color.White,
                 shape = RoundedCornerShape(18.dp),

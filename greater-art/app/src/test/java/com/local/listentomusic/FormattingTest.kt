@@ -50,7 +50,7 @@ class FormattingTest {
         assertEquals(AppBackgroundMode.CURRENT_VIDEO, defaults.backgroundMode)
         assertFalse(defaults.blackDiscMode)
         assertFalse(defaults.playHistoryEnabled)
-        assertEquals(0.55f, defaults.backgroundDim, 0.001f)
+        assertEquals(0.35f, defaults.backgroundDim, 0.001f)
         assertEquals(
             setOf(SortMode.CUSTOM, SortMode.NAME_ASC, SortMode.NAME_DESC, SortMode.DATE_DESC, SortMode.DATE_ASC),
             SortMode.entries.toSet(),

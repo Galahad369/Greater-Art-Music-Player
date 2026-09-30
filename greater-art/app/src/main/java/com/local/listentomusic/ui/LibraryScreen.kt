@@ -144,7 +144,9 @@ fun LibraryScreen(
     onLoadThumbnail: suspend (MediaFile) -> Bitmap?,
     onPreloadAhead: (Int, Int) -> Unit,
     onOpenSettings: () -> Unit,
+    onOpenStack: () -> Unit,
     onOpenNodes: () -> Unit,
+    onStackTogether: (List<MediaFile>) -> Boolean,
     onPlay: (MediaFile) -> Unit,
     onEditDisplay: (MediaFile) -> Unit,
     onCreateRule: () -> Unit,
@@ -251,11 +253,20 @@ fun LibraryScreen(
         },
     ) { innerPadding ->
         Column(Modifier.fillMaxSize().padding(innerPadding)) {
-            if (selected.isNotEmpty()) Row(Modifier.fillMaxWidth().padding(horizontal = 14.dp), verticalAlignment = Alignment.CenterVertically) {
-                Text("${selected.size}", style = MaterialTheme.typography.labelLarge)
-                TextButton(onClick = { selected = (selected + state.files.map { it.path }).distinct() }) { Text(uiText(language, "Select matches", "選取搜尋結果")) }
-                TextButton(onClick = { selected = emptyList() }) { Text(uiText(language, "Clear", "清除")) }
-                Box {
+            if (selected.isNotEmpty()) Column(Modifier.fillMaxWidth().padding(horizontal = 14.dp)) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text("${selected.size}", style = MaterialTheme.typography.labelLarge)
+                    TextButton(onClick = { selected = (selected + state.files.map { it.path }).distinct() }) { Text(uiText(language, "Select matches", "選取搜尋結果")) }
+                    TextButton(onClick = { selected = emptyList() }) { Text(uiText(language, "Clear", "清除")) }
+                }
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    TextButton(enabled = selected.size in 2..com.local.listentomusic.playback.StackPlayback.MAX_TRACKS,
+                    onClick = {
+                        if (onStackTogether(state.files.filter { it.path in selected })) selected = emptyList()
+                    }, modifier = Modifier.inspectElement("STACK_TOGETHER_BUTTON", "Play 2–8 selected files simultaneously")) {
+                        Text(uiText(language, "Stack together", "一齊播放"))
+                    }
+                    Box {
                     TextButton(onClick = { selectionMenu = true }) { Text(uiText(language, "Add to…", "加入…")) }
                     DropdownMenu(selectionMenu, { selectionMenu = false }) {
                         preferences.playlists.filter { it.rule == null }.forEach { playlist ->
@@ -267,6 +278,7 @@ fun LibraryScreen(
                             leadingIcon = { Icon(Icons.Rounded.Share, null) },
                             onClick = { selectionMenu = false; shareSelectedConfirm = true },
                         )
+                    }
                     }
                 }
             }
@@ -314,6 +326,13 @@ fun LibraryScreen(
                 Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 2.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
+                OutlinedButton(
+                    onClick = onOpenStack,
+                    modifier = Modifier.inspectElement("STACK_BUTTON", "Opens simultaneous local playback"),
+                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 7.dp),
+                    colors = ButtonDefaults.outlinedButtonColors(containerColor = MaterialTheme.colorScheme.surface.copy(alpha = CHROME_ALPHA)),
+                ) { Text(uiText(language, "Stack", "疊播"), style = MaterialTheme.typography.labelLarge) }
+                Spacer(Modifier.width(8.dp))
                 Box(Modifier.weight(1f)) {
                     Button(onClick = { playlistMenuOpen = true }, modifier = Modifier
                         .inspectElement("PLAYLIST_BUTTON", "Selects or manages a playlist"),

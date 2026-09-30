@@ -20,6 +20,7 @@ import com.local.listentomusic.ui.theme.GreaterArtTheme
 class FullscreenVideoActivity : ComponentActivity() {
     private val viewModel: MainViewModel by viewModels()
     private var returnDestination = "EXPANDED"
+    private var returnDispatched = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -45,16 +46,16 @@ class FullscreenVideoActivity : ComponentActivity() {
                     contentPadding = PaddingValues(0.dp),
                     isPictureInPicture = false,
                     onVideoBoundsChanged = {},
-                    onPictureInPicture = { returnDestination = "DETACHED"; finish() },
+                    onPictureInPicture = { finishTo("DETACHED") },
                     onHome = {
                         returnDestination = "DOCKED"
                         startActivity(Intent(this, MainActivity::class.java).apply {
                             addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP or
                                 Intent.FLAG_ACTIVITY_NO_ANIMATION)
                         })
-                        finish()
+                        finishTo("DOCKED")
                     },
-                    onClose = { returnDestination = "DETACHED"; finish() },
+                    onClose = { finishTo("DETACHED") },
                     onTogglePlay = viewModel::togglePlayPause,
                     onPrevious = viewModel::previous,
                     onNext = viewModel::next,
@@ -78,7 +79,7 @@ class FullscreenVideoActivity : ComponentActivity() {
                     onShareQueue = {},
                     initialFullscreen = true,
                     forceLandscapeFullscreen = true,
-                    onFullscreenChanged = { if (!it) finish() },
+                    onFullscreenChanged = { if (!it) finishTo("EXPANDED") },
                 )
             }
         }
@@ -97,18 +98,28 @@ class FullscreenVideoActivity : ComponentActivity() {
 
     override fun onUserLeaveHint() {
         super.onUserLeaveHint()
-        returnDestination = "DETACHED"
-        finish()
+        finishTo("DETACHED")
     }
 
     override fun onDestroy() {
-        if (isFinishing && !isChangingConfigurations) {
-            VideoSurfaceOwner.beginHandoff("MINI_WINDOW")
-            startService(Intent(this, MiniWindowOverlayService::class.java).apply {
-                action = MiniWindowOverlayService.ACTION_FULLSCREEN_RETURN
-                putExtra(MiniWindowOverlayService.EXTRA_FULLSCREEN_DESTINATION, returnDestination)
-            })
-        }
+        if (isFinishing && !isChangingConfigurations) dispatchReturn()
         super.onDestroy()
+    }
+
+    /** Clear the service's fullscreen suppression before Android tears this Activity down. */
+    private fun finishTo(destination: String) {
+        returnDestination = destination
+        dispatchReturn()
+        finish()
+    }
+
+    private fun dispatchReturn() {
+        if (returnDispatched) return
+        returnDispatched = true
+        VideoSurfaceOwner.beginHandoff("MINI_WINDOW")
+        startService(Intent(this, MiniWindowOverlayService::class.java).apply {
+            action = MiniWindowOverlayService.ACTION_FULLSCREEN_RETURN
+            putExtra(MiniWindowOverlayService.EXTRA_FULLSCREEN_DESTINATION, returnDestination)
+        })
     }
 }

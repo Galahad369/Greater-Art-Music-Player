@@ -3,20 +3,35 @@
 This file describes the **current repository state only**. Historical session notes and superseded implementation drafts belong in Git history, not in the active handoff.
 
 **Project:** `greater-art/` in the repository checkout
-**Current version:** `1.13.23 (code 112)`
-**Latest APK:** `app/build/outputs/apk/debug/app-debug.apk` (build verified; release copy pending)
+**Current version:** `1.14.1 (code 116)`
+**Latest APK:** `releases/GreaterArt-1.14.1.apk` (26,392,330 bytes; SHA-256 `0116E2521D126F3E0B8487723C6BBC53A565E1C956CC80F537E282E079016421`)
 **Application ID:** `com.local.listentomusic`
 **Signing certificate SHA-256:** `9e28eb45b3b171c3ea47d7da942d28d88b16538885e392a6971a80906d612fbf`
 
 ## Repository state
 
+### September 30 — 1.14.1 Library-family alignment and fullscreen return fix (local)
+
+- Stack and Nodes now share a deliberate Library-family hierarchy: the same title/subtitle baseline, 40dp navigation slot, horizontal margins, translucent chrome, fixed dock clearance, and typography. The alternate views no longer look like unrelated utility screens.
+- Stack empty slots are compact media-row cards instead of loose text. The Add flow is now a searchable miniature Library with thumbnails, cleaned titles, artist/duration metadata, dividers, and the full sorted offline scan. It excludes files already in the Stack and adds no network work or playback-quality limits.
+- Nodes replaced four loose text links with one contained icon toolbar. Graph controls are grouped into Obsidian-style Connections and Nodes cards, with labeled live values, switches, Apply/Cancel, and a full-width reset action. The graph canvas, gestures, similarity logic, and playback behavior are unchanged.
+- Fixed fullscreen → Mini/Library return suppression. Cause: `FullscreenVideoActivity` cleared `fullscreenActivityActive` only indirectly from `onDestroy()`, which Android can delay after Home/navigation. It now dispatches the selected return destination before `finish()`, once, with `onDestroy()` retained as an idempotent fallback.
+- A55-size API 36 emulator verification: Library, Stack, thumbnail picker, Nodes, and shared wallpaper were visually inspected at 1080×2340. Expanded Now Playing → landscape fullscreen → Android Home restored the detached video Mini Window; the screenshot and WindowManager both showed its overlay, with no crash-buffer entry. Automated verification passed: 132 unit tests, zero failures/errors, `lintDebug`, and `assembleDebug`. APK reports 1.14.1/code 116, SHA-256 `0116E2521D126F3E0B8487723C6BBC53A565E1C956CC80F537E282E079016421`, and the pinned signing certificate. Physical Samsung/OEM behavior remains unverified; no numbered release APK was overwritten and no commit/push was made.
+
+### September 30 — Stack pager and shared video wallpaper (local, not a numbered release)
+
+- Added a three-page `Stack | Library | Nodes` pager. Library remains the opening/default page; Stack is one swipe to the right, Nodes one swipe to the left. The existing `AppBackground` and its one effective dim layer stay outside the pager. `CURRENT_VIDEO` crop position now moves continuously left/center/right with the pager offset; removed the extra Nodes-only dark scrim that changed apparent brightness during swipes.
+- Stack stages or adds 2–8 local media tracks, with one main Media3 session/video surface plus up to seven audio-only companion players. The Stack picker reads the sorted, full scanned library even when Library search or a playlist is active. The Stack page has a shared timeline/transport and per-track volume, mute, solo, remove, and primary-visual selection. It validates local files inside the existing scan root and requests no network permission or media-quality cap. The normal Library play path stops Stack first; red-X shutdown also stops its companions. Repeat/random are disabled during Stack so they cannot silently restart only the visual track.
+- Emulator regression (A55-size API 36, 209 local files): two video files played together; `dumpsys media_session` showed one Greater Art session in `PLAYING`. The first live run exposed duration 0 despite playback because scanner metadata can be unknown. Stack now uses each prepared player's resolved duration, and the shared timer advanced to 0:15 / 20:37; seeking halfway moved the session to about 10:31. A visual check also found the dock obscuring the fixed Stack controls; extra bottom clearance restored the full Play/Stop row. Switching primary after seeking beyond the selected track's duration left the main MediaSession `STOPPED` while companion audio continued. Primary selection now rejects ended tracks; the ticker promotes a still-active companion when the current primary ends. Reverify this last guard on the rebuilt APK. Screenshots from this run are in ignored `app/build/` diagnostics, not a release.
+- Final automated verification against the exact current tree: 132 unit tests passed with zero failures/errors; `lintDebug` and `assembleDebug` passed. `app-debug.apk` reports 1.13.25/code 114, SHA-256 `D8AC7A1F3708C22DF2C7C18D6D7E37FE9A9B6687E99077A9B9706E0B65E658DA`, keeps the pinned signing certificate, and contains no INTERNET permission. Earlier in the same implementation run on the A55-size API 36 emulator, a third track added during playback without another MediaSession; mute, solo, and volume controls reflected their state; an early primary switch returned to `PLAYING`; Stack → Library → Nodes swipes rendered over the same video wallpaper with the dock unobstructed. The emulator was no longer connected for the final 1.13.25 reinstall/launch, so that exact artifact only has automated verification. Remaining checks: real audible output/phase quality, Mini Window/overlay handoff under Stack, slow-motion luminance measurement, max-eight stress, and physical Samsung A55. Do not label this as fully device-certified or copy over a versioned APK. Keep the concurrent numbered-release work and artifacts intact; no commit/push was made for Stack.
+
 - Project: `greater-art/`
-- Version: **1.13.23** (patch: Nodes screen fix + inspector tags, library chrome transparency; build verified; release APK copied pending)
-- APK: `releases/GreaterArt-1.13.21.apk` (26,107,434 bytes)
-- APK SHA-256: `99b33938b216c5b40d6c14dc4145fdcc1138b3a94f440c5843ca0b36a34973ce`
+- Version: **1.13.26** (patch: Nodes screen fix + inspector tags, library chrome transparency, default dim 35%, slider input; build verified; release APK copied; AVD visual verification pending)
+- APK: `releases/GreaterArt-1.13.26.apk` (26,238,506 bytes)
+- APK SHA-256: `1ea3ac357f982f395b10cbbac33b9d9996d516846a9cff6599d653650add28c7`
 - Application ID: `com.local.listentomusic`
-- Version code: **112**
-- APK: `releases/GreaterArt-1.13.21.apk` (26,107,434 bytes, SHA-256 `99b33938b216c5b40d6c14dc4145fdcc1138b3a94f440c5843ca0b36a34973ce`)
+- Version code: **115**
+- APK: `releases/GreaterArt-1.13.26.apk` (26,238,506 bytes, SHA-256 `1ea3ac357f982f395b10cbbac33b9d9996d516846a9cff6599d653650add28c7`)
 - Signing certificate SHA-256: `9e28eb45b3b171c3ea47d7da942d28d88b16538885e392a6971a80906d612fbf`
 
 `app/build.gradle.kts` is the version source of truth. Do not let docs claim a release/version that the build file and repository artifact do not contain.
@@ -31,7 +46,7 @@ This file describes the **current repository state only**. Historical session no
 - Local debug validation against the concurrent 1.13.22 working tree: 126 unit tests passed, lint passed, `assembleDebug` passed. On the 1080×2340 API 36 emulator with 209 files, the graph rendered, a paused landscape video's Library and Nodes crops were visibly different without an empty edge, a slow swipe showed the shared frame behind both moving pages mid-gesture, and a left-edge swipe returned to Library. Do not treat this debug build as Hermes's numbered release; reconcile version/docs and run a final device check after both workstreams merge.
 
 - Emulator Settings inspection found detached Mini covering the Settings page. The old visibility rule equated "not Library" with "outside the app". The new rule uses MainActivity's started/stopped lifecycle for detached visibility and still docks only on Library. A regression test covers Settings, expanded overlay, and returning to the Library dock.
-- 1.13.19 remains an immutable intermediate APK. 1.13.20 is the intended handoff build: `releases/GreaterArt-1.13.20.apk`, 26,107,434 bytes, SHA-256 `99b33938b216c5b40d6c14dc4145fdcc1138b3a94f440c5843ca0b36a34973ce`.
+- 1.13.19 remains an immutable intermediate APK. 1.13.20 is the intended handoff build: `releases/GreaterArt-1.13.20.apk`, 26,107,434 bytes, SHA-256 `99b33938b216c5b40d6c14dc4145fdcc1158b3a94f440c5843ca0b36a34973ce`.
 - Verification: JDK 21 offline `testDebugUnitTest lintDebug assembleDebug` passed (124 unit tests, 0 failures/errors). Installed APK on the 1080×2340 API 36 emulator: Settings showed no detached overlay; pressing Android Home showed the media-only detached Mini; tapping it opened Now Playing with the video and fixed transport controls visible. Recent logcat had no app fatal exception or ANR. `aapt` reports version 1.13.20/code 109 and no `INTERNET` permission; `apksigner` reports the pinned certificate. Public-repo audit passed. These checks do not prove all OEM/codec paths crash-free; a physical A55 reproduction log is still needed if the intermittent crash recurs.
 
 ### September 28 — 1.13.19 stability and restrained UI (local)
@@ -650,4 +665,4 @@ read handoff.md --> read user instructions (usually debug, fix, or patch, change
 |---------|------|-------------|-------|
 | 1.13.16 | 105 | `ee7145b3369174c4ce9c5d95ec3b87a8009b45ce9bfe5639da33fba5ea29d935` | Scroll perf verified, thumbnail cache reverted, 209-file library test |
 || 1.13.18 | 107 | `77e53510b6733b2489fa3cb6f57d1cc3ad47ff93b1656de3b601b3290fb90689` | Async-prefs ANR fix, 4GB AVD, 209-file library, warm 1.46% jank |
-|| 1.13.21 | 110 | `99b33938b216c5b40d6c14dc4145fdcc1138b3a94f440c5843ca0b36a34973ce` | Thumbnail dimensions reduced (VIDEO 640→240, ART 512→256), Settings LazyColumn split (5 key blocks), build verified, release APK copied, AVD visual verification pending |
+|| 1.13.21 | 110 | `99b33938b216c5b40d6c14dc4145fdcc1158b3a94f440c5843ca0b36a34973ce` | Thumbnail dimensions reduced (VIDEO 640→240, ART 512→256), Settings LazyColumn split (5 key blocks), build verified, release APK copied, AVD visual verification pending |

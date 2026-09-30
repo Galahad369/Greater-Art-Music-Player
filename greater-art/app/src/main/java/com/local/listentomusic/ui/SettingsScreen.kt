@@ -1,6 +1,9 @@
 package com.local.listentomusic.ui
 
+import kotlin.math.ceil
+
 import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -584,6 +587,23 @@ private fun DimSliderSetting(title: String, description: String, value: Float, o
             modifier = Modifier.fillMaxWidth().padding(top = 4.dp),
         )
     }
+    if (inputOpen) AlertDialog(
+        onDismissRequest = { inputOpen = false },
+        title = { Text("Background dimming %") },
+        text = { OutlinedTextField(
+            value = inputText,
+            onValueChange = { inputText = it.filter { c -> c.isDigit() }.take(3) },
+            label = { Text("Enter % (25-85)") },
+            singleLine = true,
+            modifier = Modifier.fillMaxWidth(),
+        ) },
+        confirmButton = { TextButton(onClick = {
+            val pct = inputText.toFloatOrNull() ?: value * 100
+            val rounded = kotlin.math.ceil(pct.coerceIn(25f, 85f) / 5f) * 5f / 100f
+            onValue(rounded.coerceIn(0.25f, 0.85f))
+            inputOpen = false
+        }) { Text("Set") } },
+    )
     HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.45f))
 }
 

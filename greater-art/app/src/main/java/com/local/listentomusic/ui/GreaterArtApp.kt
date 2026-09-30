@@ -134,20 +134,19 @@ fun GreaterArtApp(
     }
     var screen by rememberSaveable { mutableStateOf(Screen.LIBRARY) }
     LaunchedEffect(screen) { onLibraryScreenChanged(screen == Screen.LIBRARY) }
-    val libraryPager = rememberPagerState(initialPage = 0, pageCount = { 2 })
+    val libraryPager = rememberPagerState(initialPage = 1, pageCount = { 3 })
     val graph by viewModel.graph.collectAsStateWithLifecycle()
     val graphLoading by viewModel.graphLoading.collectAsStateWithLifecycle()
     val graphError by viewModel.graphError.collectAsStateWithLifecycle()
     val backgroundHorizontalPosition = androidx.compose.runtime.remember(libraryPager, screen) {
         {
             if (screen == Screen.LIBRARY) {
-                val progress = (libraryPager.currentPage + libraryPager.currentPageOffsetFraction).coerceIn(0f, 1f)
-                .5f + progress * .5f
+                libraryPagerBackgroundPosition(libraryPager.currentPage, libraryPager.currentPageOffsetFraction)
             } else .5f
         }
     }
     val navigationScope = rememberCoroutineScope()
-    LaunchedEffect(libraryPager.currentPage) { if (libraryPager.currentPage == 1) viewModel.requestGraph() }
+    LaunchedEffect(libraryPager.currentPage) { if (libraryPager.currentPage == 2) viewModel.requestGraph() }
     var editDisplay by remember { mutableStateOf<com.local.listentomusic.model.MediaFile?>(null) }
     var createRule by remember { mutableStateOf(false) }
     var pendingNowPlayingOpen by remember { mutableStateOf(false) }
@@ -274,15 +273,26 @@ fun GreaterArtApp(
                         }
                     },
                 ) { padding ->
-                                    HorizontalPager(state = libraryPager, modifier = Modifier.fillMaxSize(), key = { if (it == 1) "NODES" else "LIBRARY" }) { page ->
-                                                                            if (page == 1) {
+                                    HorizontalPager(state = libraryPager, modifier = Modifier.fillMaxSize(), key = {
+                                        when (it) { 0 -> "STACK"; 2 -> "NODES"; else -> "LIBRARY" }
+                                    }) { page ->
+                                                                            if (page == 0) {
+                                                                                val stackFiles by viewModel.stackFiles.collectAsStateWithLifecycle()
+                                                                                StackScreen(
+                                                                                    files = stackFiles,
+                                                                                    language = settings.appLanguage,
+                                                                                    contentPadding = PaddingValues(bottom = if (playback.hasMedia) (com.local.listentomusic.model.MiniWindowMetrics.HEIGHT_DP + 24).dp else 0.dp),
+                                                                                    onLibrary = { navigationScope.launch { libraryPager.animateScrollToPage(1) } },
+                                                                                    onLoadThumbnail = viewModel::loadThumbnail,
+                                                                                )
+                                                                            } else if (page == 2) {
                                                                                 NodesScreen(
                                                                                     graph = graph,
                                                                                     loading = graphLoading,
                                                                                     error = graphError,
                                                                                     currentPath = playback.currentPath,
                                                                                     contentPadding = PaddingValues(bottom = if (playback.hasMedia) com.local.listentomusic.model.MiniWindowMetrics.HEIGHT_DP.dp else 0.dp),
-                                                                                    onLibrary = { navigationScope.launch { libraryPager.animateScrollToPage(0) } },
+                                                                                    onLibrary = { navigationScope.launch { libraryPager.animateScrollToPage(1) } },
                                                                                     onRetry = viewModel::requestGraph,
                                                                                     onPlay = viewModel::playGraphNode,
                                                                                     options = settings.graphOptions,
@@ -340,7 +350,13 @@ fun GreaterArtApp(
                         onLoadThumbnail = viewModel::loadThumbnail,
                         onPreloadAhead = viewModel::preloadThumbnailsStartingAt,
                         onOpenSettings = { screen = Screen.SETTINGS },
-                        onOpenNodes = { navigationScope.launch { libraryPager.animateScrollToPage(1) } },
+                        onOpenStack = { navigationScope.launch { libraryPager.animateScrollToPage(0) } },
+                        onOpenNodes = { navigationScope.launch { libraryPager.animateScrollToPage(2) } },
+                        onStackTogether = { files ->
+                            val started = com.local.listentomusic.playback.StackPlayback.start(files)
+                            if (started) navigationScope.launch { libraryPager.animateScrollToPage(0) }
+                            started
+                        },
                         onEditDisplay = { editDisplay = it },
                         onCreateRule = { createRule = true },
                         onAddSelected = viewModel::addAllToPlaylist,
@@ -449,6 +465,7 @@ fun GreaterArtApp(
                 val thumbnailStats by viewModel.thumbnailStats.collectAsStateWithLifecycle()
                 val waveformDiagnostics by viewModel.waveformDiagnostics.collectAsStateWithLifecycle()
                 val engineReport by com.local.listentomusic.playback.PlaybackDiagnostics.report.collectAsStateWithLifecycle()
+                val stackSession by com.local.listentomusic.playback.StackPlayback.state.collectAsStateWithLifecycle()
                 val windowMode by MiniWindowOverlayService.modeSnapshot.collectAsStateWithLifecycle()
                 val windowIdentities by MiniWindowOverlayService.identities.collectAsStateWithLifecycle()
                 val indexStatus by viewModel.indexStatus.collectAsStateWithLifecycle()
@@ -473,7 +490,7 @@ fun GreaterArtApp(
                         // This inspector belongs to MainActivity. A system-player
                         // ownership flag can outlive its visible window and must not
                         // relabel the page the user is actually inspecting.
-                        appendLine("screen=${if (screen == Screen.LIBRARY && libraryPager.currentPage == 1) "NODES" else screen.name}")
+                        appendLine("screen=${if (screen == Screen.LIBRARY) when (libraryPager.currentPage) { 0 -> "STACK"; 2 -> "NODES"; else -> "LIBRARY" } else screen.name}")
                         appendLine("systemPlayerOverlay=${com.local.listentomusic.ui.components.VideoSurfaceOwner.systemOverlayActive}")
                         appendLine("playerWindowMode=${windowMode ?: "none"} playerWindowService=${windowMode != null} $windowIdentities")
                         appendLine("media=${playback.currentPath?.let { com.local.listentomusic.model.sourceMediaPath(it).substringAfterLast('.') } ?: "none"} (paths omitted)")
@@ -484,6 +501,9 @@ fun GreaterArtApp(
                         appendLine(com.local.listentomusic.ui.components.VideoSurfaceOwner.describe())
                         appendLine("firstFrameAttribution=renderer timestamp after transfer; not a screen-capture proof")
                         appendLine("queue=${queue.size} library=${library.files.size}")
+                        appendLine("stack=${stackSession.slots.size} primarySelected=${stackSession.primaryPath != null}")
+                        appendLine("libraryPager=${libraryPager.currentPage} offset=${libraryPager.currentPageOffsetFraction} backgroundCrop=$backgroundHorizontalPosition")
+                        appendLine("backgroundDim=${settings.backgroundDim} sharedDimLayer=AppBackground")
                         appendLine("repeat=${playback.repeatMode} random=${playback.shuffleEnabled}")
                         appendLine("floating=${settings.floatingWindowMode} auto=${settings.autoPictureInPicture}")
                         appendLine("background=${settings.backgroundMode} theme=${settings.themeMode}")

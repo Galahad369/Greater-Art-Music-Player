@@ -474,8 +474,8 @@ private fun VideoPlayerStage(
                     translationX = videoOffset.x
                     translationY = videoOffset.y
                 }
-                .pointerInput(Unit) {
-                                    if (immersive) {
+                .pointerInput(immersive) {
+                    if (immersive) {
                                         detectTransformGestures(
                                             onGesture = { centroid, pan, zoom, rotation ->
                                                 videoOffset = Offset(
@@ -1338,7 +1338,8 @@ private fun PlayerBottomControls(
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        IconButton(onClick = onRepeat, modifier = Modifier.size(48.dp).inspectElement("REPEAT_BUTTON", cycleLabel)) {
+        IconButton(onClick = onRepeat, enabled = playback.stackCount == 0,
+            modifier = Modifier.size(48.dp).inspectElement("REPEAT_BUTTON", if (playback.stackCount > 0) "Stack controls repeat" else cycleLabel)) {
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                 Icon(when {
                     playback.shuffleEnabled -> Icons.Rounded.Shuffle
@@ -1401,19 +1402,22 @@ private fun CurrentMediaHeader(
     onSearch: () -> Unit,
 ) {
     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-        Text(
-            com.local.listentomusic.model.mediaTitle(playback.title, playback.currentPath),
-            style = if (headline) MaterialTheme.typography.headlineSmall else MaterialTheme.typography.titleMedium,
-            fontWeight = if (headline) FontWeight.Bold else FontWeight.SemiBold,
-            maxLines = 1,
-            overflow = TextOverflow.Clip,
-            color = MaterialTheme.colorScheme.onSurface,
-            modifier = Modifier.weight(1f).inspectElement("CURRENT_MEDIA_TITLE", playback.title)
-                .padding(start = if (headline) 0.dp else 2.dp, end = 4.dp)
-                // One slow reveal per title; an endless ticker puts duplicated
-                // fragments next to the media actions and looks broken mid-loop.
-                .basicMarquee(iterations = 1, initialDelayMillis = 1_200),
-        )
+        Column(Modifier.weight(1f)) {
+            Text(
+                com.local.listentomusic.model.mediaTitle(playback.title, playback.currentPath),
+                style = if (headline) MaterialTheme.typography.headlineSmall else MaterialTheme.typography.titleMedium,
+                fontWeight = if (headline) FontWeight.Bold else FontWeight.SemiBold,
+                maxLines = 1,
+                overflow = TextOverflow.Clip,
+                color = MaterialTheme.colorScheme.onSurface,
+                modifier = Modifier.fillMaxWidth().inspectElement("CURRENT_MEDIA_TITLE", playback.title)
+                    .padding(start = if (headline) 0.dp else 2.dp, end = 4.dp)
+                    .basicMarquee(iterations = 1, initialDelayMillis = 1_200),
+            )
+            if (playback.stackCount > 0) Text("Stack · ${playback.stackCount} tracks",
+                style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.secondary,
+                modifier = Modifier.inspectElement("STACK_NOW_PLAYING_BADGE", "Shared Stack transport"))
+        }
         IconButton(
             onClick = onToggleFavourite,
             modifier = Modifier.inspectElement("FAVOURITE_BUTTON", "Stores the current file in the local Favorites list"),

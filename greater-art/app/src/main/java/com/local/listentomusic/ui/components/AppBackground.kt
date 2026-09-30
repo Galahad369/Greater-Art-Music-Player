@@ -376,7 +376,7 @@ internal fun backgroundCropTranslationX(
 ): Float {
     if (scaleMode != BackgroundScaleMode.CROP) return 0f
     val overflow = (contentWidth - viewportWidth).coerceAtLeast(0)
-    return -overflow * (horizontalPosition.coerceIn(.5f, 1f) - .5f)
+    return overflow * (.5f - horizontalPosition.coerceIn(0f, 1f))
 }
 
 private fun decodeSampledBitmap(

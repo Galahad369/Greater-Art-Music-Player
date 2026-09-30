@@ -21,7 +21,7 @@ const val FAVOURITES_PLAYLIST_ID = "__greater_art_favourites__"
 
 data class UserPreferences(
     val graphOptions: com.local.listentomusic.graph.GraphOptions = com.local.listentomusic.graph.GraphOptions(),
-    val sortMode: SortMode = SortMode.NAME_ASC,
+    val sortMode: SortMode = SortMode.DATE_DESC,
     val customOrder: List<String> = emptyList(),
     val lastPath: String? = null,
     val lastPositionMs: Long = 0L,

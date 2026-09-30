@@ -15,6 +15,26 @@ internal fun additionalUiText(language: AppLanguage, key: String): String? {
 }
 
 internal val additionalTranslations = """
+Stack|疊播|重ねて再生|Mehrfachmix|Mix simultané
+Stack together|一齊播放|まとめて重ねる|Zusammen mischen|Mixer ensemble
+Add track|加入歌曲|曲を追加|Titel hinzufügen|Ajouter un titre
+Tap to add track|按此加入歌曲|タップして曲を追加|Tippen, um Titel hinzuzufügen|Touchez pour ajouter un titre
+Add local track|加入本機歌曲|ローカル曲を追加|Lokalen Titel hinzufügen|Ajouter un titre local
+Primary visual|主要畫面|メイン映像|Hauptbild|Image principale
+Make primary|設為主要|メインにする|Als Hauptbild|Définir comme image principale
+Ended|已播完|終了|Beendet|Terminé
+Mute|靜音|ミュート|Stumm|Couper le son
+Unmute|取消靜音|ミュート解除|Ton an|Rétablir le son
+Solo|獨奏|ソロ|Solo|Solo
+Unsolo|取消獨奏|ソロ解除|Solo aus|Quitter solo
+Remove track|移除歌曲|曲を削除|Titel entfernen|Retirer le titre
+Play together|一齊播放|まとめて再生|Zusammen abspielen|Lire ensemble
+Could not add this track|無法加入這首歌曲|この曲を追加できません|Titel konnte nicht hinzugefügt werden|Impossible d’ajouter ce titre
+Could not start these files on this device|這部裝置無法播放這些檔案|この端末では再生できません|Dateien konnten auf diesem Gerät nicht gestartet werden|Lecture impossible sur cet appareil
+Playback unavailable|無法播放|再生できません|Wiedergabe nicht verfügbar|Lecture indisponible
+Pause Stack|暫停疊播|重ね再生を一時停止|Mix pausieren|Mettre le mix en pause
+Play Stack|播放疊播|重ね再生を開始|Mix abspielen|Lire le mix
+Stop|停止|停止|Stopp|Arrêter
 Nodes|關聯圖|関連グラフ|Verbindungen|Connexions
 Restore settings and playlists?|還原設定與播放清單？|設定とプレイリストを復元しますか？|Einstellungen und Wiedergabelisten wiederherstellen?|Restaurer les réglages et playlists ?
 Choose backup|選擇備份|バックアップを選択|Sicherung auswählen|Choisir une sauvegarde

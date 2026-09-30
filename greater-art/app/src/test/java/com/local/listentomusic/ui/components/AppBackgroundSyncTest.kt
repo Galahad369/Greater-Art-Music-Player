@@ -9,10 +9,13 @@ import org.junit.Test
 class AppBackgroundSyncTest {
     @Test
     fun cropPanUsesOnlyValidHorizontalOverflow() {
+        assertEquals(260f, backgroundCropTranslationX(1600, 1080, BackgroundScaleMode.CROP, 0f), 0f)
+        assertEquals(130f, backgroundCropTranslationX(1600, 1080, BackgroundScaleMode.CROP, .25f), 0f)
         assertEquals(0f, backgroundCropTranslationX(1600, 1080, BackgroundScaleMode.CROP, .5f), 0f)
         assertEquals(-130f, backgroundCropTranslationX(1600, 1080, BackgroundScaleMode.CROP, .75f), 0f)
         assertEquals(-260f, backgroundCropTranslationX(1600, 1080, BackgroundScaleMode.CROP, 1f), 0f)
         assertEquals(-260f, backgroundCropTranslationX(1600, 1080, BackgroundScaleMode.CROP, 2f), 0f)
+        assertEquals(260f, backgroundCropTranslationX(1600, 1080, BackgroundScaleMode.CROP, -1f), 0f)
     }
 
     @Test
