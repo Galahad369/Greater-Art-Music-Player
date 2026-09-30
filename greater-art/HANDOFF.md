@@ -3,10 +3,21 @@
 This file describes the **current repository state only**. Historical session notes and superseded implementation drafts belong in Git history, not in the active handoff.
 
 **Project:** `greater-art/` in the repository checkout
-**Current version:** `1.14.3 (code 118)`
-**Latest APK:** `releases/GreaterArt-1.14.3.apk` (`26,254,894 bytes`; latest verified release while newer source remains SOURCE_ONLY)
+**Current version:** `1.14.8 (code 123)`
+**Latest APK:** `releases/GreaterArt-1.14.8.apk` (`26,254,894 bytes`; latest verified release while newer source remains SOURCE_ONLY)
 **Application ID:** `com.local.listentomusic`
 **Signing certificate SHA-256:** `9e28eb45b3b171c3ea47d7da942d28d88b16538885e392a6971a80906d612fbf`
+
+## AGENT HANDOFF — New agent / Grok bot (read first)
+- Mode: Ponytail Ultra + Caveman Ultra (terse, no essays, delete before add).
+- SSOT: `VERSION_RULES.md` (absolute PATCH: ANY change = new version, even 1px; `build.gradle.kts` is version truth; never rename/reuse APK; never delete files without authorization).
+- Pipeline: `git pull origin main` -> read `VERSION_RULES.md` + `HANDOFF.md` -> `gradlew :app:testDebugUnitTest :app:lintDebug :app:assembleDebug --offline` -> `aapt` verify (`versionName`/`versionCode` must match `gradle`) -> AVD smoke (`0 FATAL`) -> copy verified APK to `releases/GreaterArt-<version>.apk` -> clean stale releases -> sync `HANDOFF.md`.
+- Blocker: `jlink.exe` missing from VS Code Java JRE; fix: `JAVA_HOME=C:/Program Files/Android/openjdk/jdk-21.0.8` + `--no-daemon`.
+- Key code: `MiniWindowOverlayService.kt` (`crossMargin=9`, 2px higher); `NodesScreen.kt` (`.35f`); `AppPreferences.kt` (`DATE_DESC`); `NowPlayingScreen.kt` (`.pointerInput(immersive)`); `PLAYER_PULL_HANDLE` removed; `AppBackground` unchanged (single shared dim layer); Nodes/Library/Stack shared container nav.
+- Telegram: `telegram-send-apk` skill; never retry blindly on timeout; confirm delivery before retry.
+- What NOT to do: invent AVD results; claim playback/fling solved without device evidence; skip HANDOFF.md sync; overwrite/reuse release APK; delete any file without authorization; add `INTERNET` permission; change version silently.
+- Output: brief facts + paths; `--- END OF OUTPUT ---` delimiter (Telegram exception: plain bullets, no delimiter/code fences).
+- References: `VERSION_RULES.md`, `HANDOFF.md` (this file), `.gitignore` (new: `logs/`, `build_*.log`, `lint-results-debug.*`), `releases/GreaterArt-1.14.8.apk` (current build; release file needs build fix), `screenshots/` (49 PNG), `logs/` (9 clean).
 
 ## Repository state
 
