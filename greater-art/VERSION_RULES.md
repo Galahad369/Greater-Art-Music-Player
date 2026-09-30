@@ -1,4 +1,6 @@
-# Greater Art version rules
+VERSION_RULES.md — Greater Art APK (HARDENED)
+
+PATCH RULE (ABSOLUTE, ZERO EXCEPTIONS): ANY change to ANY file — code, constant, comment, spacing, pixel position (e.g. 11→9), resource, manifest, version file — requires versionName += PATCH increment (X.Y.Z → X.Y.Z+1) and versionCode +=1. Even a single byte or a 1px offset change. No silent builds. No reused version numbers. No exceptions.
 
 This file is the authoritative version policy for Greater Art. If any handoff note, README, old commit message, or conversation conflicts with this file, this file wins.
 

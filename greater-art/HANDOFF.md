@@ -3,8 +3,8 @@
 This file describes the **current repository state only**. Historical session notes and superseded implementation drafts belong in Git history, not in the active handoff.
 
 **Project:** `greater-art/` in the repository checkout
-**Current version:** `1.14.3 (code 118)`
-**Latest APK:** `releases/GreaterArt-1.14.3.apk` (`26,254,894 bytes`; SHA-256 to be computed after final device check)
+**Current version:** `1.14.4 (code 119)`
+**Latest APK:** `releases/GreaterArt-1.14.4.apk` (pending — build blocked by jlink.exe missing; version verified in build.gradle.kts) (`26,254,894 bytes`; SHA-256 to be computed after final device check)
 **Application ID:** `com.local.listentomusic`
 **Signing certificate SHA-256:** `9e28eb45b3b171c3ea47d7da942d28d88b16538885e392a6971a80906d612fbf`
 
