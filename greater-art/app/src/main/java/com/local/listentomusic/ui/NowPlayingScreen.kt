@@ -1044,18 +1044,19 @@ private fun NowPlayingQueue(
                         label = "queue-actions-reveal",
                     )
                     val density = LocalDensity.current
-                    val actionWidth = 128.dp
+                    val actionSize = 48.dp
+                    val actionWidth = actionSize
                     val actionWidthPx = with(density) { actionWidth.toPx() }
                     Box(
                         Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp))
                             .inspectElement("NOW_PLAYING_QUEUE_ROW", file.name),
                     ) {
-                        TextButton(
+                        IconButton(
                             onClick = {
                                 openActionsPath = null
                                 onAddQueueItemToList(file)
                             },
-                            modifier = Modifier.align(Alignment.CenterEnd).width(actionWidth)
+                            modifier = Modifier.align(Alignment.CenterEnd).size(actionSize)
                                 .drawWithContent content@{
                                     // The underlay never moves. Reveal only the strip exposed
                                     // by the translated foreground so transparent rows cannot
@@ -1066,9 +1067,11 @@ private fun NowPlayingQueue(
                                 }
                                 .inspectElement("QUEUE_ADD_TO_LIST", "Add ${file.name} to a song list"),
                         ) {
-                            Icon(Icons.AutoMirrored.Rounded.PlaylistAdd, null, Modifier.size(19.dp))
-                            Spacer(Modifier.width(5.dp))
-                            Text(uiText(language, "Add to list", "加入列表"))
+                            Icon(
+                                Icons.AutoMirrored.Rounded.PlaylistAdd,
+                                uiText(language, "Add to list", "加入列表"),
+                                Modifier.size(22.dp),
+                            )
                         }
                         Row(
                             modifier = Modifier.fillMaxWidth()

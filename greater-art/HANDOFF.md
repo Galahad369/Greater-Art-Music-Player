@@ -21,6 +21,13 @@ This file describes the **current repository state only**. Historical session no
 
 ## Repository state
 
+### September 30 — 1.14.9 compact square Add-to-list actions (source only)
+
+- Now Playing queue `Add to list` is now a compact 48 dp square icon action instead of the previous 128 dp text action. The foreground reveal therefore travels only 48 dp while preserving the same stationary underlay and one-row-open behavior.
+- Library `Add to list` now uses the same 48 dp square icon action. The existing 94 dp `Delete` action and three-step permanent-file confirmation flow are unchanged.
+- Both square actions keep a full Android-safe 48 dp touch target and expose `Add to list` through the icon content description.
+- Source version: **1.14.9 (code 124)**. State remains **SOURCE_ONLY**. Latest verified APK remains 1.14.3.
+
 ### September 30 — 1.14.8 clipped-underlay compile repair
 
 - 1.14.7 passed the hardened version guard but Android CI found the nested `clipRect` draw scope could not implicitly resolve `drawContent()`. The reveal now labels the outer `drawWithContent` scope and explicitly calls `this@content.drawContent()` in both row implementations.
