@@ -1056,12 +1056,12 @@ private fun NowPlayingQueue(
                                 onAddQueueItemToList(file)
                             },
                             modifier = Modifier.align(Alignment.CenterEnd).width(actionWidth)
-                                .drawWithContent {
+                                .drawWithContent content@{
                                     // The underlay never moves. Reveal only the strip exposed
                                     // by the translated foreground so transparent rows cannot
                                     // leak the action through before it is uncovered.
                                     clipRect(left = size.width * (1f - revealProgress)) {
-                                        drawContent()
+                                        this@content.drawContent()
                                     }
                                 }
                                 .inspectElement("QUEUE_ADD_TO_LIST", "Add ${file.name} to a song list"),

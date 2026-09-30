@@ -835,11 +835,11 @@ private fun MediaFileRow(
     ) {
         Row(
             modifier = Modifier.align(Alignment.CenterEnd).width(actionWidth)
-                .drawWithContent {
+                .drawWithContent content@{
                     // Keep the action underlay fixed. Only draw the portion physically
                     // uncovered by the translated foreground; no width/height animation.
                     clipRect(left = size.width * (1f - revealProgress)) {
-                        drawContent()
+                        this@content.drawContent()
                     }
                 },
             verticalAlignment = Alignment.CenterVertically,

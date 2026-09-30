@@ -10,6 +10,11 @@ This file describes the **current repository state only**. Historical session no
 
 ## Repository state
 
+### September 30 — 1.14.8 clipped-underlay compile repair
+
+- 1.14.7 passed the hardened version guard but Android CI found the nested `clipRect` draw scope could not implicitly resolve `drawContent()`. The reveal now labels the outer `drawWithContent` scope and explicitly calls `this@content.drawContent()` in both row implementations.
+- 1.14.7 remains consumed. Current source is **1.14.8 (code 123)** and remains **SOURCE_ONLY**.
+
 ### September 30 — 1.14.7 compile repair + source-only metadata correction
 
 - 1.14.6 was consumed but Android CI exposed a compile-only defect: the stationary underlay implementation used `clipRect` without importing `androidx.compose.ui.graphics.drawscope.clipRect`. 1.14.7 adds that import in both Now Playing and Library row implementations; interaction behavior is otherwise unchanged.
