@@ -81,6 +81,7 @@ fun GreaterArtApp(
     val settings by viewModel.settings.collectAsStateWithLifecycle()
     val playHistory by viewModel.playHistory.collectAsStateWithLifecycle()
     val sleepTimer by viewModel.sleepTimer.collectAsStateWithLifecycle()
+    val expandedPlayerVisible by com.local.listentomusic.playback.PlayerWindowVisibility.expandedShowing.collectAsStateWithLifecycle()
     val context = LocalContext.current
     val backupPicker = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("application/json")) { uri -> uri?.let { viewModel.backupSettings(it) } }
     val restorePicker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri -> uri?.let { viewModel.restoreSettings(it) } }
@@ -227,10 +228,11 @@ fun GreaterArtApp(
         }
         UiInspectorHost(enabled = settings.developerMode, state = inspector) {
         Box(modifier = Modifier.fillMaxSize().inspectElement("APP_VIEWPORT", "Greater Art root viewport")) {
-            // Stable ownership across navigation: prepare once, pause when covered,
-            // and resume immediately when Library or Settings reveals the wallpaper.
+            // The expanded player fully covers MainActivity. Do not leave the independent
+            // CURRENT_VIDEO/CUSTOM_VIDEO wallpaper decoder running underneath it: fast queue
+            // flings then compete with two video decoders plus Compose/GPU work.
             AppBackground(preferences = settings, currentPath = playback.currentPath, isVideo = playback.isVideo, controller = controller,
-                visible = true, horizontalPosition = backgroundHorizontalPosition)
+                visible = !expandedPlayerVisible, horizontalPosition = backgroundHorizontalPosition)
             Surface(
                 modifier = Modifier.fillMaxSize(),
                 // A light palette needs an opaque-enough base over black/custom media.
