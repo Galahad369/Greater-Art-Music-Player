@@ -43,7 +43,7 @@ import com.local.listentomusic.graph.GraphOptions
 import com.local.listentomusic.graph.presentGraph
 import kotlin.math.*
 
-/** Nodes is to the right of Library: swipe left to enter. The header still pages. */
+/** Nodes is the right-hand page of the persistent Stack | All songs | Nodes navigator. */
 @Composable
 fun NodesScreen(graph: LibraryGraph?, loading: Boolean, error: String?, currentPath: String?,
     contentPadding: PaddingValues, onRetry: () -> Unit, onPlay: (String) -> Unit,
