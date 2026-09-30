@@ -161,6 +161,7 @@ fun LibraryScreen(
     var playlistName by remember { mutableStateOf("") }
     var seedKeyword by remember { mutableStateOf("") }
     var songListFile by remember { mutableStateOf<MediaFile?>(null) }
+    var openRowActionsPath by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf<String?>(null) }
     var deleteCandidate by remember { mutableStateOf<MediaFile?>(null) }
     var deleteStep by remember { mutableStateOf(0) }
     var deleteError by remember { mutableStateOf<String?>(null) }
@@ -469,6 +470,11 @@ fun LibraryScreen(
                                 }
                             }
                     }
+                    LaunchedEffect(listState) {
+                        snapshotFlow { listState.isScrollInProgress }.collect { scrolling ->
+                            if (scrolling) openRowActionsPath = null
+                        }
+                    }
                     LazyColumn(
                         state = listState,
                         modifier = Modifier.fillMaxSize().inspectElement("LIBRARY_LIST", "Virtualized ordered media rows"),
@@ -491,9 +497,22 @@ fun LibraryScreen(
                                 rowSize = preferences.libraryRowSize,
                                 showThumbnails = preferences.showThumbnails,
                                 showFileDetails = preferences.showFileDetails,
+                                language = language,
+                                actionsOpen = openRowActionsPath == item.path,
                                 onPlay = { if (selected.isEmpty()) onPlay(item) else selected = if (item.path in selected) selected - item.path else selected + item.path },
-                                onMore = { songListFile = item },
-                                moreDescription = uiText(language, "Song list", "歌曲清單"),
+                                onToggleActions = {
+                                    openRowActionsPath = if (openRowActionsPath == item.path) null else item.path
+                                },
+                                onAddToList = {
+                                    openRowActionsPath = null
+                                    songListFile = item
+                                },
+                                onDelete = {
+                                    openRowActionsPath = null
+                                    deleteCandidate = item
+                                    deleteStep = 1
+                                },
+                                moreDescription = uiText(language, "Actions", "操作"),
                             )
                             HorizontalDivider(
                                 Modifier.padding(start = 26.dp + if (preferences.showThumbnails)
@@ -758,8 +777,12 @@ private fun MediaFileRow(
     rowSize: LibraryRowSize,
     showThumbnails: Boolean,
     showFileDetails: Boolean,
+    language: AppLanguage,
+    actionsOpen: Boolean,
     onPlay: () -> Unit,
-    onMore: () -> Unit,
+    onToggleActions: () -> Unit,
+    onAddToList: () -> Unit,
+    onDelete: () -> Unit,
     moreDescription: String,
 ) {
     var accumulatedDrag by remember(index, file.path) { mutableFloatStateOf(0f) }
@@ -796,59 +819,105 @@ private fun MediaFileRow(
             },
         )
     } else Modifier
-    Row(
-        Modifier.fillMaxWidth()
-            .inspectElement("LIBRARY_MEDIA_ROW", file.name)
-            .graphicsLayer { translationX = tapOffset.dp.toPx() }
-            .clip(androidx.compose.ui.graphics.RectangleShape)
-            .background(rowColor)
-            .clickable(interactionSource = pressSource, indication = androidx.compose.material3.ripple(), onClick = onPlay)
-            .then(dragModifier)
-            .then(if (rowSize == LibraryRowSize.SMALL) Modifier.heightIn(min = com.local.listentomusic.model.CompactPlayerMetrics.HEIGHT_DP.dp) else Modifier)
-            .padding(horizontal = 14.dp, vertical = rowSize.verticalPadding),
-        verticalAlignment = Alignment.CenterVertically,
+    val revealProgress by animateFloatAsState(
+        targetValue = if (actionsOpen) 1f else 0f,
+        animationSpec = androidx.compose.animation.core.tween(durationMillis = 200),
+        label = "library-row-actions-reveal",
+    )
+    val density = LocalDensity.current
+    val actionWidth = 188.dp
+    val actionWidthPx = with(density) { actionWidth.toPx() }
+    Box(
+        Modifier.fillMaxWidth().clip(androidx.compose.ui.graphics.RectangleShape)
+            .inspectElement("LIBRARY_MEDIA_ROW", file.name),
     ) {
-        // Reserve the same 12 dp for every row so artwork and titles never jump
-        // sideways when the active song changes.
-        Box(Modifier.width(12.dp), contentAlignment = Alignment.CenterStart) {
-            if (isCurrent) Row(horizontalArrangement = Arrangement.spacedBy(2.dp)) {
-                repeat(2) {
-                    Box(Modifier.width(2.dp).height(18.dp).background(MaterialTheme.colorScheme.secondary))
+        Row(
+            modifier = Modifier.align(Alignment.CenterEnd).width(actionWidth)
+                .graphicsLayer {
+                    translationX = actionWidthPx * (1f - revealProgress)
+                    alpha = revealProgress
+                },
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            TextButton(
+                onClick = onAddToList,
+                modifier = Modifier.weight(1f).inspectElement("LIBRARY_ADD_TO_LIST", "Add ${file.name} to a song list"),
+            ) {
+                Icon(Icons.AutoMirrored.Rounded.PlaylistAdd, null, Modifier.size(18.dp))
+                Spacer(Modifier.width(4.dp))
+                Text(uiText(language, "Add to list", "加入列表"), maxLines = 1)
+            }
+            TextButton(
+                onClick = onDelete,
+                modifier = Modifier.weight(1f).inspectElement("LIBRARY_DELETE_INLINE", "Delete ${file.name}"),
+                colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error),
+            ) {
+                Icon(Icons.Rounded.Delete, null, Modifier.size(18.dp))
+                Spacer(Modifier.width(4.dp))
+                Text(uiText(language, "Delete", "刪除"), maxLines = 1)
+            }
+        }
+        Row(
+            Modifier.fillMaxWidth()
+                .graphicsLayer { translationX = tapOffset.dp.toPx() - actionWidthPx * revealProgress }
+                .background(rowColor)
+                .clickable(
+                    interactionSource = pressSource,
+                    indication = androidx.compose.material3.ripple(),
+                    onClick = { if (actionsOpen) onToggleActions() else onPlay() },
+                )
+                .then(if (!actionsOpen) dragModifier else Modifier)
+                .then(if (rowSize == LibraryRowSize.SMALL) Modifier.heightIn(min = com.local.listentomusic.model.CompactPlayerMetrics.HEIGHT_DP.dp) else Modifier)
+                .padding(horizontal = 14.dp, vertical = rowSize.verticalPadding),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            // Reserve the same 12 dp for every row so artwork and titles never jump
+            // sideways when the active song changes.
+            Box(Modifier.width(12.dp), contentAlignment = Alignment.CenterStart) {
+                if (isCurrent) Row(horizontalArrangement = Arrangement.spacedBy(2.dp)) {
+                    repeat(2) {
+                        Box(Modifier.width(2.dp).height(18.dp).background(MaterialTheme.colorScheme.secondary))
+                    }
                 }
             }
-        }
-        if (showThumbnails) {
-            MediaThumbnail(file, thumbnail, rowSize)
-            Spacer(Modifier.width(rowSize.textSpacing))
-        }
-        Column(Modifier.weight(1f), verticalArrangement = Arrangement.Center) {
-            Text(
-                file.name.substringBeforeLast('.', file.name),
-                style = when (rowSize) {
-                    LibraryRowSize.SMALL -> MaterialTheme.typography.bodyLarge
-                    LibraryRowSize.MEDIUM -> MaterialTheme.typography.titleMedium
-                    LibraryRowSize.LARGE -> MaterialTheme.typography.titleLarge
-                },
-                fontWeight = FontWeight.SemiBold,
-                maxLines = 2,
-                overflow = TextOverflow.Ellipsis,
-            )
-            if (showFileDetails) {
-                Spacer(Modifier.height(if (rowSize == LibraryRowSize.SMALL) 2.dp else 4.dp))
+            if (showThumbnails) {
+                MediaThumbnail(file, thumbnail, rowSize)
+                Spacer(Modifier.width(rowSize.textSpacing))
+            }
+            Column(Modifier.weight(1f), verticalArrangement = Arrangement.Center) {
                 Text(
-                    buildString {
-                        append(file.name.substringAfterLast('.', "media").uppercase())
-                        append("  •  ${formatBytes(file.sizeBytes)}")
-                        if (file.durationMs > 0) append("  •  ${formatDuration(file.durationMs)}")
+                    file.name.substringBeforeLast('.', file.name),
+                    style = when (rowSize) {
+                        LibraryRowSize.SMALL -> MaterialTheme.typography.bodyLarge
+                        LibraryRowSize.MEDIUM -> MaterialTheme.typography.titleMedium
+                        LibraryRowSize.LARGE -> MaterialTheme.typography.titleLarge
                     },
-                    style = if (rowSize == LibraryRowSize.LARGE) MaterialTheme.typography.bodyMedium else MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 1,
+                    fontWeight = FontWeight.SemiBold,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
                 )
+                if (showFileDetails) {
+                    Spacer(Modifier.height(if (rowSize == LibraryRowSize.SMALL) 2.dp else 4.dp))
+                    Text(
+                        buildString {
+                            append(file.name.substringAfterLast('.', "media").uppercase())
+                            append("  •  ${formatBytes(file.sizeBytes)}")
+                            if (file.durationMs > 0) append("  •  ${formatDuration(file.durationMs)}")
+                        },
+                        style = if (rowSize == LibraryRowSize.LARGE) MaterialTheme.typography.bodyMedium else MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1,
+                    )
+                }
+            }
+            if (dragEnabled) Icon(Icons.Rounded.DragHandle, "Reorder", tint = MaterialTheme.colorScheme.onSurfaceVariant)
+            IconButton(
+                onClick = onToggleActions,
+                modifier = Modifier.size(40.dp).inspectElement("MEDIA_MORE_BUTTON", "Actions for ${file.name}"),
+            ) {
+                Icon(Icons.Rounded.MoreVert, moreDescription)
             }
         }
-        if (dragEnabled) Icon(Icons.Rounded.DragHandle, "Reorder", tint = MaterialTheme.colorScheme.onSurfaceVariant)
-        IconButton(onClick = onMore, modifier = Modifier.size(40.dp).inspectElement("MEDIA_MORE_BUTTON", "Actions for ${file.name}")) { Icon(Icons.Rounded.MoreVert, moreDescription) }
     }
 }
 
