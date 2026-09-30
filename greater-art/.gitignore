@@ -1,0 +1,9 @@
+# Build / lint artifacts that expose workspace identity (Windows home path, username)
+logs/
+build_*.log
+lint-results-debug.*
+
+# Standard Android build outputs
+app/build/
+*.apk
+releases/*.apk
