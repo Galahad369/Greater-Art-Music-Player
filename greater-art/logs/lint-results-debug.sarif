@@ -1,0 +1,1564 @@
+{
+    "$schema" : "https://docs.oasis-open.org/sarif/sarif/v2.1.0/errata01/os/schemas/sarif-schema-2.1.0.json",
+    "version" : "2.1.0",
+    "runs" : [
+        {
+            "tool": {
+                "driver": {
+                    "name": "Android Lint",
+                    "fullName": "Android Lint (in gradle)",
+                    "version": "9.4.0",
+                    "semanticVersion": "9.4.0",
+                    "organization": "Google",
+                    "informationUri": "https://developer.android.com/studio/write/lint",
+                    "fullDescription": {
+                        "text": "Static analysis originally for Android source code but now performing general analysis"
+                    },
+                    "language": "en-US",
+                    "rules": [
+                        {
+                            "id": "AutoboxingStateCreation",
+                            "shortDescription": {
+                                "text": "State<T> will autobox values assigned to this state. Use a specialized state type instead.",
+                                "markdown": "`State<T>` will autobox values assigned to this state. Use a specialized state type instead."
+                            },
+                            "fullDescription": {
+                                "text": "Calling mutableStateOf<T>() when T is either backed by a primitive type on the JVM or is a value class results in a state implementation that requires all state values to be boxed. This usually causes an additional allocation for each state write, and adds some additional work to auto-unbox values when reading the value of the state. Instead, prefer to use a specialized primitive state implementation for Int, Long, Float, and Double when the state does not need to track null values and does not override the default SnapshotMutationPolicy. See mutableIntStateOf(), mutableLongStateOf(), mutableFloatStateOf(), and mutableDoubleStateOf() for more information.",
+                                "markdown": "Calling `mutableStateOf<T>()` when `T` is either backed by a primitive type on the JVM or is a value class results in a state implementation that requires all state values to be boxed. This usually causes an additional allocation for each state write, and adds some additional work to auto-unbox values when reading the value of the state. Instead, prefer to use a specialized primitive state implementation for `Int`, `Long`, `Float`, and `Double` when the state does not need to track null values and does not override the default `SnapshotMutationPolicy`. See `mutableIntStateOf()`, `mutableLongStateOf()`, `mutableFloatStateOf()`, and `mutableDoubleStateOf()` for more information."
+                            },
+                            "defaultConfiguration": {
+                                "level": "note",
+                                "rank": 80
+                            },
+                            "properties": {
+                                "tags": [
+                                    "Performance"
+                                ]
+                            }
+                        },
+                        {
+                            "id": "EmptySuperCall",
+                            "shortDescription": {
+                                "text": "Calling an empty super method"
+                            },
+                            "fullDescription": {
+                                "text": "For methods annotated with @EmptySuper, overriding methods should not also call the super implementation, either because it is empty, or perhaps it contains code not intended to be run when the method is overridden.",
+                                "markdown": "For methods annotated with `@EmptySuper`, overriding methods should not also call the super implementation, either because it is empty, or perhaps it contains code not intended to be run when the method is overridden."
+                            },
+                            "defaultConfiguration": {
+                                "level": "warning",
+                                "rank": 20
+                            },
+                            "properties": {
+                                "tags": [
+                                    "Correctness"
+                                ]
+                            }
+                        },
+                        {
+                            "id": "ExportedService",
+                            "shortDescription": {
+                                "text": "Exported service does not require permission"
+                            },
+                            "fullDescription": {
+                                "text": "Exported services (services which either set exported=true or contain an intent-filter and do not specify exported=false) should define a permission that an entity must have in order to launch the service or bind to it. Without this, any application can use this service.",
+                                "markdown": "Exported services (services which either set `exported=true` or contain an intent-filter and do not specify `exported=false`) should define a permission that an entity must have in order to launch the service or bind to it. Without this, any application can use this service."
+                            },
+                            "defaultConfiguration": {
+                                "level": "warning",
+                                "rank": 60
+                            },
+                            "properties": {
+                                "tags": [
+                                    "Security"
+                                ]
+                            }
+                        },
+                        {
+                            "id": "FrequentlyChangingValue",
+                            "shortDescription": {
+                                "text": "Reading a value annotated with @FrequentlyChangingValue inside composition"
+                            },
+                            "fullDescription": {
+                                "text": "Reading a value annotated with @FrequentlyChangingValue inside composition can cause performance issues due to frequent recompositions. To avoid frequent recompositions, instead consider:\n\n- Using derivedStateOf to filter state changes based on a provided calculation. For example, rather than recomposing on every scroll position change, only recomposing if the scroll position changes from 0 (at the top of the list) to greater than 0 (not at the top of the list), and vice versa.\n- Using snapshotFlow to create a flow of changes from a provided state. This can then be collected inside a LaunchedEffect, and used to make changes without needing to recompose.\n- If using Compose UI, read this value inside measure / layout / draw, depending on where it is needed. This will cause invalidation of the corresponding phase, instead of a recomposition. See developer.android.com for more information on Jetpack Compose phases."
+                            },
+                            "defaultConfiguration": {
+                                "level": "warning",
+                                "rank": 60
+                            },
+                            "properties": {
+                                "tags": [
+                                    "Performance"
+                                ]
+                            }
+                        },
+                        {
+                            "id": "GradleDependency",
+                            "shortDescription": {
+                                "text": "Obsolete Gradle Dependency"
+                            },
+                            "fullDescription": {
+                                "text": "This detector looks for usages of libraries where the version you are using is not the current stable release. Using older versions is fine, and there are cases where you deliberately want to stick with an older version. However, you may simply not be aware that a more recent version is available, and that is what this lint check helps find."
+                            },
+                            "defaultConfiguration": {
+                                "level": "warning",
+                                "rank": 70
+                            },
+                            "properties": {
+                                "tags": [
+                                    "Correctness"
+                                ]
+                            }
+                        },
+                        {
+                            "id": "HardcodedText",
+                            "shortDescription": {
+                                "text": "Hardcoded text"
+                            },
+                            "fullDescription": {
+                                "text": "Hardcoding text attributes directly in layout files is bad for several reasons:\n\n* When creating configuration variations (for example for landscape or portrait) you have to repeat the actual text (and keep it up to date when making changes)\n\n* The application cannot be translated to other languages by just adding new translations for existing string resources.\n\nThere are quickfixes to automatically extract this hardcoded string into a resource lookup."
+                            },
+                            "defaultConfiguration": {
+                                "level": "warning",
+                                "rank": 60
+                            },
+                            "properties": {
+                                "tags": [
+                                    "Internationalization"
+                                ]
+                            }
+                        },
+                        {
+                            "id": "Overdraw",
+                            "shortDescription": {
+                                "text": "Overdraw: Painting regions more than once"
+                            },
+                            "fullDescription": {
+                                "text": "If you set a background drawable on a root view, then you should use a custom theme where the theme background is null. Otherwise, the theme background will be painted first, only to have your custom background completely cover it; this is called \"overdraw\".\n\nNOTE: This detector relies on figuring out which layouts are associated with which activities based on scanning the Java code, and it's currently doing that using an inexact pattern matching algorithm. Therefore, it can incorrectly conclude which activity the layout is associated with and then wrongly complain that a background-theme is hidden.\n\nIf you want your custom background on multiple pages, then you should consider making a custom theme with your custom background and just using that theme instead of a root element background.\n\nOf course it's possible that your custom drawable is translucent and you want it to be mixed with the background. However, you will get better performance if you pre-mix the background with your drawable and use that resulting image or color as a custom theme background instead."
+                            },
+                            "defaultConfiguration": {
+                                "level": "warning",
+                                "rank": 80
+                            },
+                            "properties": {
+                                "tags": [
+                                    "Performance"
+                                ]
+                            }
+                        },
+                        {
+                            "id": "RtlHardcoded",
+                            "shortDescription": {
+                                "text": "Using left/right instead of start/end attributes"
+                            },
+                            "fullDescription": {
+                                "text": "Using Gravity#LEFT and Gravity#RIGHT can lead to problems when a layout is rendered in locales where text flows from right to left. Use Gravity#START and Gravity#END instead. Similarly, in XML gravity and layout_gravity attributes, use start rather than left.\n\nFor XML attributes such as paddingLeft and layout_marginLeft, use paddingStart and layout_marginStart. NOTE: If your minSdkVersion is less than 17, you should add both the older left/right attributes as well as the new start/end attributes. On older platforms, where RTL is not supported and the start/end attributes are unknown and therefore ignored, you need the older left/right attributes. There is a separate lint check which catches that type of error.\n\n(Note: For Gravity#LEFT and Gravity#START, you can use these constants even when targeting older platforms, because the start bitmask is a superset of the left bitmask. Therefore, you can use gravity=\"start\" rather than gravity=\"left|start\".)",
+                                "markdown": "Using `Gravity#LEFT` and `Gravity#RIGHT` can lead to problems when a layout is rendered in locales where text flows from right to left. Use `Gravity#START` and `Gravity#END` instead. Similarly, in XML `gravity` and `layout_gravity` attributes, use `start` rather than `left`.\n\nFor XML attributes such as paddingLeft and `layout_marginLeft`, use `paddingStart` and `layout_marginStart`. **NOTE**: If your `minSdkVersion` is less than 17, you should add **both** the older left/right attributes **as well as** the new start/end attributes. On older platforms, where RTL is not supported and the start/end attributes are unknown and therefore ignored, you need the older left/right attributes. There is a separate lint check which catches that type of error.\n\n(Note: For `Gravity#LEFT` and `Gravity#START`, you can use these constants even when targeting older platforms, because the `start` bitmask is a superset of the `left` bitmask. Therefore, you can use `gravity=\"start\"` rather than `gravity=\"left|start\"`.)"
+                            },
+                            "defaultConfiguration": {
+                                "level": "warning",
+                                "rank": 60
+                            },
+                            "properties": {
+                                "tags": [
+                                    "Bidirectional Text",
+                                    "Internationalization"
+                                ]
+                            }
+                        },
+                        {
+                            "id": "UnusedResources",
+                            "shortDescription": {
+                                "text": "Unused resources"
+                            },
+                            "fullDescription": {
+                                "text": "Unused resources make applications larger and slow down builds.\n\n\nThe unused resource check can ignore tests. If you want to include resources that are only referenced from tests, consider packaging them in a test source set instead.\n\nYou can include test sources in the unused resource check by setting the system property lint.unused-resources.include-tests=true, and to exclude them (usually for performance reasons), use lint.unused-resources.exclude-tests=true.\n",
+                                "markdown": "Unused resources make applications larger and slow down builds.\n\n\nThe unused resource check can ignore tests. If you want to include resources that are only referenced from tests, consider packaging them in a test source set instead.\n\nYou can include test sources in the unused resource check by setting the system property `lint.unused-resources.include-tests=true`, and to exclude them (usually for performance reasons), use `lint.unused-resources.exclude-tests=true`.\n"
+                            },
+                            "defaultConfiguration": {
+                                "level": "warning",
+                                "rank": 80
+                            },
+                            "properties": {
+                                "tags": [
+                                    "Performance"
+                                ]
+                            }
+                        },
+                        {
+                            "id": "UseKtx",
+                            "shortDescription": {
+                                "text": "Use KTX extension function"
+                            },
+                            "fullDescription": {
+                                "text": "The Android KTX libraries decorates the Android platform SDK as well as various libraries with more convenient extension functions available from Kotlin, allowing you to use default parameters, named parameters, and more."
+                            },
+                            "defaultConfiguration": {
+                                "level": "warning",
+                                "rank": 50
+                            },
+                            "properties": {
+                                "tags": [
+                                    "Productivity"
+                                ]
+                            }
+                        },
+                        {
+                            "id": "VectorRaster",
+                            "shortDescription": {
+                                "text": "Vector Image Generation"
+                            },
+                            "fullDescription": {
+                                "text": "Vector icons require API 21 or API 24 depending on used features, but when minSdkVersion is less than 21 or 24 and Android Gradle plugin 1.4 or higher is used, a vector drawable placed in the drawable folder is automatically moved to drawable-anydpi-v21 or drawable-anydpi-v24 and bitmap images are generated for different screen resolutions for backwards compatibility.\n\nHowever, there are some limitations to this raster image generation, and this lint check flags elements and attributes that are not fully supported. You should manually check whether the generated output is acceptable for those older devices.",
+                                "markdown": "Vector icons require API 21 or API 24 depending on used features, but when `minSdkVersion` is less than 21 or 24 and Android Gradle plugin 1.4 or higher is used, a vector drawable placed in the `drawable` folder is automatically moved to `drawable-anydpi-v21` or `drawable-anydpi-v24` and bitmap images are generated for different screen resolutions for backwards compatibility.\n\nHowever, there are some limitations to this raster image generation, and this lint check flags elements and attributes that are not fully supported. You should manually check whether the generated output is acceptable for those older devices."
+                            },
+                            "defaultConfiguration": {
+                                "level": "warning",
+                                "rank": 60
+                            },
+                            "properties": {
+                                "tags": [
+                                    "Correctness"
+                                ]
+                            }
+                        }
+                    ]
+                }
+            },
+            "originalUriBaseIds": {
+                "%SRCROOT%": {
+                    "uri": "file:///C:/Users/galah/Desktop/Knowledge-Base/Random%20Coding%20stuff/App/Greater-Art-Music-Player/greater-art/"
+                }
+            },
+            "results": [
+                {
+                    "ruleId": "EmptySuperCall",
+                    "ruleIndex": 1,
+                    "message": {
+                        "text": "No need to call super.onCleared; the super method is defined to be empty",
+                        "markdown": "No need to call `super.onCleared`; the super method is defined to be empty"
+                    },
+                    "locations": [
+                        {
+                            "physicalLocation": {
+                                "artifactLocation": {
+                                    "uriBaseId": "%SRCROOT%",
+                                    "uri": "app/src/main/java/com/local/listentomusic/MainViewModel.kt"
+                                },
+                                "region": {
+                                    "startLine": 1182,
+                                    "startColumn": 15,
+                                    "endLine": 1182,
+                                    "endColumn": 24,
+                                    "charOffset": 56693,
+                                    "charLength": 9,
+                                    "snippet": {
+                                        "text": "onCleared"
+                                    }
+                                },
+                                "contextRegion": {
+                                    "startLine": 1180,
+                                    "endLine": 1185,
+                                    "snippet": {
+                                        "text": "        controllerLease = null\n        _controller.value = null\n        super.onCleared()\n    }\n\n"
+                                    }
+                                }
+                            }
+                        }
+                    ],
+                    "partialFingerprints": {
+                        "sourceContext/v1": "e5f70280cbde8908"
+                    }
+                },
+                {
+                    "ruleId": "VectorRaster",
+                    "ruleIndex": 10,
+                    "message": {
+                        "text": "Limit vector icons sizes to 200×200 to keep icon drawing fast; see https://developer.android.com/studio/write/vector-asset-studio#when for more"
+                    },
+                    "locations": [
+                        {
+                            "physicalLocation": {
+                                "artifactLocation": {
+                                    "uriBaseId": "%SRCROOT%",
+                                    "uri": "app/src/main/res/drawable/splash_mark.xml"
+                                },
+                                "region": {
+                                    "startLine": 2,
+                                    "startColumn": 20,
+                                    "endLine": 2,
+                                    "endColumn": 25,
+                                    "charOffset": 87,
+                                    "charLength": 5,
+                                    "snippet": {
+                                        "text": "288dp"
+                                    }
+                                },
+                                "contextRegion": {
+                                    "startLine": 1,
+                                    "endLine": 5,
+                                    "snippet": {
+                                        "text": "<vector xmlns:android=\"http://schemas.android.com/apk/res/android\"\r\n    android:width=\"288dp\"\r\n    android:height=\"288dp\"\r\n    android:viewportWidth=\"288\"\r\n"
+                                    }
+                                }
+                            }
+                        }
+                    ],
+                    "partialFingerprints": {
+                        "sourceContext/v1": "6b2b071f77747d8f"
+                    }
+                },
+                {
+                    "ruleId": "GradleDependency",
+                    "ruleIndex": 4,
+                    "message": {
+                        "text": "A newer version of androidx.media3:media3-exoplayer than 1.11.0 is available: 1.11.1"
+                    },
+                    "locations": [
+                        {
+                            "physicalLocation": {
+                                "artifactLocation": {
+                                    "uriBaseId": "%SRCROOT%",
+                                    "uri": "app/build.gradle.kts"
+                                },
+                                "region": {
+                                    "startLine": 106,
+                                    "startColumn": 20,
+                                    "endLine": 106,
+                                    "endColumn": 69,
+                                    "charOffset": 3843,
+                                    "charLength": 49,
+                                    "snippet": {
+                                        "text": "\"androidx.media3:media3-exoplayer:$media3Version\""
+                                    }
+                                },
+                                "contextRegion": {
+                                    "startLine": 104,
+                                    "endLine": 109,
+                                    "snippet": {
+                                        "text": "\n    val media3Version = \"1.11.0\"\n    implementation(\"androidx.media3:media3-exoplayer:$media3Version\")\n    implementation(\"androidx.media3:media3-session:$media3Version\")\n    implementation(\"androidx.media3:media3-ui:$media3Version\")\n"
+                                    }
+                                }
+                            }
+                        }
+                    ],
+                    "partialFingerprints": {
+                        "sourceContext/v1": "15d2c0c23dc8e38f"
+                    }
+                },
+                {
+                    "ruleId": "GradleDependency",
+                    "ruleIndex": 4,
+                    "message": {
+                        "text": "A newer version of androidx.media3:media3-session than 1.11.0 is available: 1.11.1"
+                    },
+                    "locations": [
+                        {
+                            "physicalLocation": {
+                                "artifactLocation": {
+                                    "uriBaseId": "%SRCROOT%",
+                                    "uri": "app/build.gradle.kts"
+                                },
+                                "region": {
+                                    "startLine": 107,
+                                    "startColumn": 20,
+                                    "endLine": 107,
+                                    "endColumn": 67,
+                                    "charOffset": 3913,
+                                    "charLength": 47,
+                                    "snippet": {
+                                        "text": "\"androidx.media3:media3-session:$media3Version\""
+                                    }
+                                },
+                                "contextRegion": {
+                                    "startLine": 105,
+                                    "endLine": 110,
+                                    "snippet": {
+                                        "text": "    val media3Version = \"1.11.0\"\n    implementation(\"androidx.media3:media3-exoplayer:$media3Version\")\n    implementation(\"androidx.media3:media3-session:$media3Version\")\n    implementation(\"androidx.media3:media3-ui:$media3Version\")\n\n"
+                                    }
+                                }
+                            }
+                        }
+                    ],
+                    "partialFingerprints": {
+                        "sourceContext/v1": "4b26d879cea0b281"
+                    }
+                },
+                {
+                    "ruleId": "GradleDependency",
+                    "ruleIndex": 4,
+                    "message": {
+                        "text": "A newer version of androidx.media3:media3-ui than 1.11.0 is available: 1.11.1"
+                    },
+                    "locations": [
+                        {
+                            "physicalLocation": {
+                                "artifactLocation": {
+                                    "uriBaseId": "%SRCROOT%",
+                                    "uri": "app/build.gradle.kts"
+                                },
+                                "region": {
+                                    "startLine": 108,
+                                    "startColumn": 20,
+                                    "endLine": 108,
+                                    "endColumn": 62,
+                                    "charOffset": 3981,
+                                    "charLength": 42,
+                                    "snippet": {
+                                        "text": "\"androidx.media3:media3-ui:$media3Version\""
+                                    }
+                                },
+                                "contextRegion": {
+                                    "startLine": 106,
+                                    "endLine": 111,
+                                    "snippet": {
+                                        "text": "    implementation(\"androidx.media3:media3-exoplayer:$media3Version\")\n    implementation(\"androidx.media3:media3-session:$media3Version\")\n    implementation(\"androidx.media3:media3-ui:$media3Version\")\n\n    testImplementation(\"junit:junit:4.13.2\")\n"
+                                    }
+                                }
+                            }
+                        }
+                    ],
+                    "partialFingerprints": {
+                        "sourceContext/v1": "972fe1bc0f022c57"
+                    }
+                },
+                {
+                    "ruleId": "ExportedService",
+                    "ruleIndex": 2,
+                    "message": {
+                        "text": "Exported service does not require permission"
+                    },
+                    "locations": [
+                        {
+                            "physicalLocation": {
+                                "artifactLocation": {
+                                    "uriBaseId": "%SRCROOT%",
+                                    "uri": "app/src/main/AndroidManifest.xml"
+                                },
+                                "region": {
+                                    "startLine": 67,
+                                    "startColumn": 10,
+                                    "endLine": 67,
+                                    "endColumn": 17,
+                                    "charOffset": 3085,
+                                    "charLength": 7,
+                                    "snippet": {
+                                        "text": "service"
+                                    }
+                                },
+                                "contextRegion": {
+                                    "startLine": 65,
+                                    "endLine": 70,
+                                    "snippet": {
+                                        "text": "            android:theme=\"@style/Theme.GreaterArt\" />\n\r\n        <service\r\n            android:name=\".playback.PlaybackService\"\r\n            android:exported=\"true\"\r\n"
+                                    }
+                                }
+                            }
+                        }
+                    ],
+                    "fixes": [
+                        {
+                            "description": {
+                                "text": "Set permission"
+                            },
+                            "artifactChanges": [
+                                {
+                                    "artifactLocation": {
+                                        "uriBaseId": "%SRCROOT%",
+                                        "uri": "app/src/main/AndroidManifest.xml"
+                                    },
+                                    "replacements": [
+                                        {
+                                            "deletedRegion": {
+                                                "startLine": 70,
+                                                "startColumn": 58,
+                                                "charOffset": 3242
+                                            },
+                                            "insertedContent": {
+                                                "text": " android:permission=\"TODO\"\n"
+                                            }
+                                        }
+                                    ]
+                                }
+                            ]
+                        },
+                        {
+                            "description": {
+                                "text": "Set exported=\"false\""
+                            },
+                            "artifactChanges": [
+                                {
+                                    "artifactLocation": {
+                                        "uriBaseId": "%SRCROOT%",
+                                        "uri": "app/src/main/AndroidManifest.xml"
+                                    },
+                                    "replacements": [
+                                        {
+                                            "deletedRegion": {
+                                                "startLine": 69,
+                                                "startColumn": 13,
+                                                "charOffset": 3160,
+                                                "endLine": 69,
+                                                "endColumn": 36,
+                                                "charLength": 23
+                                            },
+                                            "insertedContent": {
+                                                "text": "android:exported=\"false\"\n"
+                                            }
+                                        }
+                                    ]
+                                }
+                            ]
+                        }
+                    ],
+                    "partialFingerprints": {
+                        "sourceContext/v1": "8722d286fd4272da"
+                    }
+                },
+                {
+                    "ruleId": "FrequentlyChangingValue",
+                    "ruleIndex": 3,
+                    "message": {
+                        "text": "Reading a value annotated with @FrequentlyChangingValue inside composition"
+                    },
+                    "locations": [
+                        {
+                            "physicalLocation": {
+                                "artifactLocation": {
+                                    "uriBaseId": "%SRCROOT%",
+                                    "uri": "app/src/main/java/com/local/listentomusic/ui/GreaterArtApp.kt"
+                                },
+                                "region": {
+                                    "startLine": 280,
+                                    "startColumn": 63,
+                                    "endLine": 280,
+                                    "endColumn": 88,
+                                    "charOffset": 13933,
+                                    "charLength": 25,
+                                    "snippet": {
+                                        "text": "currentPageOffsetFraction"
+                                    }
+                                },
+                                "contextRegion": {
+                                    "startLine": 278,
+                                    "endLine": 283,
+                                    "snippet": {
+                                        "text": "                        LibraryFamilyNavigationBar(\n                            currentPage = libraryPager.currentPage,\n                            pageOffsetFraction = libraryPager.currentPageOffsetFraction,\n                            language = settings.appLanguage,\n                            onPage = { page -> navigationScope.launch { libraryPager.animateScrollToPage(page) } },\n"
+                                    }
+                                }
+                            }
+                        }
+                    ],
+                    "partialFingerprints": {
+                        "sourceContext/v1": "69b5287d8f5f8a93"
+                    }
+                },
+                {
+                    "ruleId": "FrequentlyChangingValue",
+                    "ruleIndex": 3,
+                    "message": {
+                        "text": "Reading a value annotated with @FrequentlyChangingValue inside composition"
+                    },
+                    "locations": [
+                        {
+                            "physicalLocation": {
+                                "artifactLocation": {
+                                    "uriBaseId": "%SRCROOT%",
+                                    "uri": "app/src/main/java/com/local/listentomusic/ui/GreaterArtApp.kt"
+                                },
+                                "region": {
+                                    "startLine": 512,
+                                    "startColumn": 100,
+                                    "endLine": 512,
+                                    "endColumn": 125,
+                                    "charOffset": 32635,
+                                    "charLength": 25,
+                                    "snippet": {
+                                        "text": "currentPageOffsetFraction"
+                                    }
+                                },
+                                "contextRegion": {
+                                    "startLine": 510,
+                                    "endLine": 515,
+                                    "snippet": {
+                                        "text": "                        appendLine(\"queue=${queue.size} library=${library.files.size}\")\n                        appendLine(\"stack=${stackSession.slots.size} primarySelected=${stackSession.primaryPath != null}\")\n                        appendLine(\"libraryPager=${libraryPager.currentPage} offset=${libraryPager.currentPageOffsetFraction} navPosition=${libraryPagerNavigationPosition(libraryPager.currentPage, libraryPager.currentPageOffsetFraction)} backgroundCrop=$backgroundHorizontalPosition\")\n                        appendLine(\"backgroundDim=${settings.backgroundDim} sharedDimLayer=AppBackground\")\n                        appendLine(\"repeat=${playback.repeatMode} random=${playback.shuffleEnabled}\")\n"
+                                    }
+                                }
+                            }
+                        }
+                    ],
+                    "partialFingerprints": {
+                        "sourceContext/v1": "499e1d017879411a"
+                    }
+                },
+                {
+                    "ruleId": "FrequentlyChangingValue",
+                    "ruleIndex": 3,
+                    "message": {
+                        "text": "Reading a value annotated with @FrequentlyChangingValue inside composition"
+                    },
+                    "locations": [
+                        {
+                            "physicalLocation": {
+                                "artifactLocation": {
+                                    "uriBaseId": "%SRCROOT%",
+                                    "uri": "app/src/main/java/com/local/listentomusic/ui/GreaterArtApp.kt"
+                                },
+                                "region": {
+                                    "startLine": 512,
+                                    "startColumn": 211,
+                                    "endLine": 512,
+                                    "endColumn": 236,
+                                    "charOffset": 32746,
+                                    "charLength": 25,
+                                    "snippet": {
+                                        "text": "currentPageOffsetFraction"
+                                    }
+                                },
+                                "contextRegion": {
+                                    "startLine": 510,
+                                    "endLine": 515,
+                                    "snippet": {
+                                        "text": "                        appendLine(\"queue=${queue.size} library=${library.files.size}\")\n                        appendLine(\"stack=${stackSession.slots.size} primarySelected=${stackSession.primaryPath != null}\")\n                        appendLine(\"libraryPager=${libraryPager.currentPage} offset=${libraryPager.currentPageOffsetFraction} navPosition=${libraryPagerNavigationPosition(libraryPager.currentPage, libraryPager.currentPageOffsetFraction)} backgroundCrop=$backgroundHorizontalPosition\")\n                        appendLine(\"backgroundDim=${settings.backgroundDim} sharedDimLayer=AppBackground\")\n                        appendLine(\"repeat=${playback.repeatMode} random=${playback.shuffleEnabled}\")\n"
+                                    }
+                                }
+                            }
+                        }
+                    ],
+                    "partialFingerprints": {
+                        "sourceContext/v1": "499e1d017879411a"
+                    }
+                },
+                {
+                    "ruleId": "AutoboxingStateCreation",
+                    "ruleIndex": 0,
+                    "message": {
+                        "text": "Prefer mutableIntStateOf instead of mutableStateOf",
+                        "markdown": "Prefer `mutableIntStateOf` instead of `mutableStateOf`"
+                    },
+                    "locations": [
+                        {
+                            "physicalLocation": {
+                                "artifactLocation": {
+                                    "uriBaseId": "%SRCROOT%",
+                                    "uri": "app/src/main/java/com/local/listentomusic/ui/LibraryScreen.kt"
+                                },
+                                "region": {
+                                    "startLine": 165,
+                                    "startColumn": 34,
+                                    "endLine": 165,
+                                    "endColumn": 48,
+                                    "charOffset": 7926,
+                                    "charLength": 14,
+                                    "snippet": {
+                                        "text": "mutableStateOf"
+                                    }
+                                },
+                                "contextRegion": {
+                                    "startLine": 163,
+                                    "endLine": 168,
+                                    "snippet": {
+                                        "text": "    var songListFile by remember { mutableStateOf<MediaFile?>(null) }\n    var deleteCandidate by remember { mutableStateOf<MediaFile?>(null) }\n    var deleteStep by remember { mutableStateOf(0) }\n    var deleteError by remember { mutableStateOf<String?>(null) }\n    var deleting by remember { mutableStateOf(false) }\n"
+                                    }
+                                }
+                            }
+                        }
+                    ],
+                    "fixes": [
+                        {
+                            "description": {
+                                "text": "Replace with mutableIntStateOf"
+                            },
+                            "artifactChanges": [
+                                {
+                                    "artifactLocation": {
+                                        "uriBaseId": "%SRCROOT%",
+                                        "uri": "app/src/main/java/com/local/listentomusic/ui/LibraryScreen.kt"
+                                    },
+                                    "replacements": [
+                                        {
+                                            "deletedRegion": {
+                                                "startLine": 165,
+                                                "startColumn": 34,
+                                                "charOffset": 7926,
+                                                "endLine": 165,
+                                                "endColumn": 48,
+                                                "charLength": 14
+                                            },
+                                            "insertedContent": {
+                                                "text": "androidx.compose.runtime.mutableIntStateOf\n"
+                                            }
+                                        }
+                                    ]
+                                }
+                            ]
+                        }
+                    ],
+                    "partialFingerprints": {
+                        "sourceContext/v1": "f3997cc2c0e75014"
+                    }
+                },
+                {
+                    "ruleId": "AutoboxingStateCreation",
+                    "ruleIndex": 0,
+                    "message": {
+                        "text": "Prefer mutableIntStateOf instead of mutableStateOf",
+                        "markdown": "Prefer `mutableIntStateOf` instead of `mutableStateOf`"
+                    },
+                    "locations": [
+                        {
+                            "physicalLocation": {
+                                "artifactLocation": {
+                                    "uriBaseId": "%SRCROOT%",
+                                    "uri": "app/src/main/java/com/local/listentomusic/ui/NowPlayingScreen.kt"
+                                },
+                                "region": {
+                                    "startLine": 236,
+                                    "startColumn": 41,
+                                    "endLine": 236,
+                                    "endColumn": 55,
+                                    "charOffset": 10921,
+                                    "charLength": 14,
+                                    "snippet": {
+                                        "text": "mutableStateOf"
+                                    }
+                                },
+                                "contextRegion": {
+                                    "startLine": 234,
+                                    "endLine": 239,
+                                    "snippet": {
+                                        "text": "    // Shared list state for queue scrolling (used by locate button)\n        val queueListState = rememberLazyListState()\n        var locateTrigger by remember { mutableStateOf(0) }\n\n        // Callback to scroll queue to currently playing item\n"
+                                    }
+                                }
+                            }
+                        }
+                    ],
+                    "fixes": [
+                        {
+                            "description": {
+                                "text": "Replace with mutableIntStateOf"
+                            },
+                            "artifactChanges": [
+                                {
+                                    "artifactLocation": {
+                                        "uriBaseId": "%SRCROOT%",
+                                        "uri": "app/src/main/java/com/local/listentomusic/ui/NowPlayingScreen.kt"
+                                    },
+                                    "replacements": [
+                                        {
+                                            "deletedRegion": {
+                                                "startLine": 236,
+                                                "startColumn": 41,
+                                                "charOffset": 10921,
+                                                "endLine": 236,
+                                                "endColumn": 55,
+                                                "charLength": 14
+                                            },
+                                            "insertedContent": {
+                                                "text": "androidx.compose.runtime.mutableIntStateOf\n"
+                                            }
+                                        }
+                                    ]
+                                }
+                            ]
+                        }
+                    ],
+                    "partialFingerprints": {
+                        "sourceContext/v1": "02815b838ae55ef0"
+                    }
+                },
+                {
+                    "ruleId": "Overdraw",
+                    "ruleIndex": 6,
+                    "message": {
+                        "text": "Possible overdraw: Root element paints background #151C1A with a theme that also paints a background (inferred theme is @style/Theme.GreaterArt)",
+                        "markdown": "Possible overdraw: Root element paints background `#151C1A` with a theme that also paints a background (inferred theme is `@style/Theme.GreaterArt`)"
+                    },
+                    "locations": [
+                        {
+                            "physicalLocation": {
+                                "artifactLocation": {
+                                    "uriBaseId": "%SRCROOT%",
+                                    "uri": "app/src/main/res/layout/playback_widget.xml"
+                                },
+                                "region": {
+                                    "startLine": 1,
+                                    "startColumn": 237,
+                                    "endLine": 1,
+                                    "endColumn": 265,
+                                    "charOffset": 236,
+                                    "charLength": 28,
+                                    "snippet": {
+                                        "text": "android:background=\"#151C1A\""
+                                    }
+                                },
+                                "contextRegion": {
+                                    "startLine": 1,
+                                    "endLine": 4,
+                                    "snippet": {
+                                        "text": "<LinearLayout xmlns:android=\"http://schemas.android.com/apk/res/android\" android:layout_width=\"match_parent\" android:layout_height=\"match_parent\" android:orientation=\"horizontal\" android:gravity=\"center_vertical\" android:padding=\"12dp\" android:background=\"#151C1A\">\r\n    <ImageView android:id=\"@+id/widget_art\" android:layout_width=\"48dp\" android:layout_height=\"48dp\" android:src=\"@drawable/ic_launcher_foreground\" android:contentDescription=\"Artwork\" />\r\n    <TextView android:id=\"@+id/widget_title\" android:layout_width=\"0dp\" android:layout_weight=\"1\" android:layout_height=\"wrap_content\" android:text=\"Greater Art\" android:textColor=\"#FFFFFF\" android:maxLines=\"2\" android:ellipsize=\"end\" android:padding=\"8dp\" />\r\n"
+                                    }
+                                }
+                            }
+                        }
+                    ],
+                    "partialFingerprints": {
+                        "sourceContext/v1": "c342deb9ec22eeb5"
+                    }
+                },
+                {
+                    "ruleId": "UnusedResources",
+                    "ruleIndex": 8,
+                    "message": {
+                        "text": "The resource R.drawable.ic_close appears to be unused",
+                        "markdown": "The resource `R.drawable.ic_close` appears to be unused"
+                    },
+                    "locations": [
+                        {
+                            "physicalLocation": {
+                                "artifactLocation": {
+                                    "uriBaseId": "%SRCROOT%",
+                                    "uri": "app/src/main/res/drawable/ic_close.xml"
+                                },
+                                "region": {
+                                    "startLine": 1,
+                                    "startColumn": 1,
+                                    "endLine": 5,
+                                    "endColumn": 10,
+                                    "charOffset": 0,
+                                    "charLength": 361,
+                                    "snippet": {
+                                        "text": "<vector xmlns:android=\"http://schemas.android.com/apk/res/android\"\r\n    android:width=\"24dp\" android:height=\"24dp\"\r\n    android:viewportWidth=\"24\" android:viewportHeight=\"24\">\r\n    <path android:fillColor=\"#A9B5AF\" android:pathData=\"M18.3,5.71L12,12l6.3,6.29l-1.41,1.42L10.59,13.4L4.3,19.71L2.89,18.3L9.18,12L2.89,5.71L4.3,4.29l6.29,6.3l6.3,-6.3z\" />\r\n</vector>"
+                                    }
+                                },
+                                "contextRegion": {
+                                    "startLine": 1,
+                                    "endLine": 6,
+                                    "snippet": {
+                                        "text": "<vector xmlns:android=\"http://schemas.android.com/apk/res/android\"\r\n    android:width=\"24dp\" android:height=\"24dp\"\r\n    android:viewportWidth=\"24\" android:viewportHeight=\"24\">\r\n    <path android:fillColor=\"#A9B5AF\" android:pathData=\"M18.3,5.71L12,12l6.3,6.29l-1.41,1.42L10.59,13.4L4.3,19.71L2.89,18.3L9.18,12L2.89,5.71L4.3,4.29l6.29,6.3l6.3,-6.3z\" />\r\n</vector>\r\n"
+                                    }
+                                }
+                            }
+                        }
+                    ],
+                    "fixes": [
+                    ],
+                    "partialFingerprints": {
+                        "sourceContext/v1": "c3ecb9897d1f5bef"
+                    }
+                },
+                {
+                    "ruleId": "UnusedResources",
+                    "ruleIndex": 8,
+                    "message": {
+                        "text": "The resource R.drawable.ic_music_note appears to be unused",
+                        "markdown": "The resource `R.drawable.ic_music_note` appears to be unused"
+                    },
+                    "locations": [
+                        {
+                            "physicalLocation": {
+                                "artifactLocation": {
+                                    "uriBaseId": "%SRCROOT%",
+                                    "uri": "app/src/main/res/drawable/ic_music_note.xml"
+                                },
+                                "region": {
+                                    "startLine": 1,
+                                    "startColumn": 1,
+                                    "endLine": 5,
+                                    "endColumn": 10,
+                                    "charOffset": 0,
+                                    "charLength": 282,
+                                    "snippet": {
+                                        "text": "<vector xmlns:android=\"http://schemas.android.com/apk/res/android\"\r\n    android:width=\"24dp\" android:height=\"24dp\"\r\n    android:viewportWidth=\"24\" android:viewportHeight=\"24\">\r\n    <path android:fillColor=\"#72D7C0\" android:pathData=\"M12,3v10.55A4,4 0 1,0 14,17V7h4V3z\" />\r\n</vector>"
+                                    }
+                                },
+                                "contextRegion": {
+                                    "startLine": 1,
+                                    "endLine": 6,
+                                    "snippet": {
+                                        "text": "<vector xmlns:android=\"http://schemas.android.com/apk/res/android\"\r\n    android:width=\"24dp\" android:height=\"24dp\"\r\n    android:viewportWidth=\"24\" android:viewportHeight=\"24\">\r\n    <path android:fillColor=\"#72D7C0\" android:pathData=\"M12,3v10.55A4,4 0 1,0 14,17V7h4V3z\" />\r\n</vector>\r\n"
+                                    }
+                                }
+                            }
+                        }
+                    ],
+                    "fixes": [
+                    ],
+                    "partialFingerprints": {
+                        "sourceContext/v1": "9b0e708b4d6be1e3"
+                    }
+                },
+                {
+                    "ruleId": "UnusedResources",
+                    "ruleIndex": 8,
+                    "message": {
+                        "text": "The resource R.drawable.mini_player_bg appears to be unused",
+                        "markdown": "The resource `R.drawable.mini_player_bg` appears to be unused"
+                    },
+                    "locations": [
+                        {
+                            "physicalLocation": {
+                                "artifactLocation": {
+                                    "uriBaseId": "%SRCROOT%",
+                                    "uri": "app/src/main/res/drawable/mini_player_bg.xml"
+                                },
+                                "region": {
+                                    "startLine": 2,
+                                    "startColumn": 1,
+                                    "endLine": 10,
+                                    "endColumn": 9,
+                                    "charOffset": 40,
+                                    "charLength": 310,
+                                    "snippet": {
+                                        "text": "<shape xmlns:android=\"http://schemas.android.com/apk/res/android\"\r\n    android:shape=\"rectangle\">\r\n    <gradient\r\n        android:angle=\"0\"\r\n        android:startColor=\"#F0080A09\"\r\n        android:centerColor=\"#ED1B2824\"\r\n        android:endColor=\"#F00B0E0D\" />\r\n    <corners android:radius=\"12dp\" />\r\n</shape>"
+                                    }
+                                },
+                                "contextRegion": {
+                                    "startLine": 1,
+                                    "endLine": 11,
+                                    "snippet": {
+                                        "text": "<?xml version=\"1.0\" encoding=\"utf-8\"?>\r\n<shape xmlns:android=\"http://schemas.android.com/apk/res/android\"\r\n    android:shape=\"rectangle\">\r\n    <gradient\r\n        android:angle=\"0\"\r\n        android:startColor=\"#F0080A09\"\r\n        android:centerColor=\"#ED1B2824\"\r\n        android:endColor=\"#F00B0E0D\" />\r\n    <corners android:radius=\"12dp\" />\r\n</shape>\r\n"
+                                    }
+                                }
+                            }
+                        }
+                    ],
+                    "fixes": [
+                    ],
+                    "partialFingerprints": {
+                        "sourceContext/v1": "475e63553987c1ee"
+                    }
+                },
+                {
+                    "ruleId": "UnusedResources",
+                    "ruleIndex": 8,
+                    "message": {
+                        "text": "The resource R.drawable.splash_mark appears to be unused",
+                        "markdown": "The resource `R.drawable.splash_mark` appears to be unused"
+                    },
+                    "locations": [
+                        {
+                            "physicalLocation": {
+                                "artifactLocation": {
+                                    "uriBaseId": "%SRCROOT%",
+                                    "uri": "app/src/main/res/drawable/splash_mark.xml"
+                                },
+                                "region": {
+                                    "startLine": 1,
+                                    "startColumn": 1,
+                                    "endLine": 24,
+                                    "endColumn": 10,
+                                    "charOffset": 0,
+                                    "charLength": 1031,
+                                    "snippet": {
+                                        "text": "<vector xmlns:android=\"http://schemas.android.com/apk/res/android\"\r\n    android:width=\"288dp\"\r\n    android:height=\"288dp\"\r\n    android:viewportWidth=\"288\"\r\n    android:viewportHeight=\"288\">\r\n    <!-- Compact centered mark: stays inside the Android splash icon mask. -->\r\n    <path\r\n        android:fillColor=\"@android:color/transparent\"\r\n        android:strokeColor=\"#111614\"\r\n        android:strokeLineCap=\"round\"\r\n        android:strokeLineJoin=\"round\"\r\n        android:strokeWidth=\"14\"\r\n        android:pathData=\"M76,150 L105,150 L122,116 L145,192 L171,92 L190,150 L216,150\" />\r\n    <path\r\n        android:fillColor=\"@android:color/transparent\"\r\n        android:strokeColor=\"#DDE6E2\"\r\n        android:strokeLineCap=\"round\"\r\n        android:strokeLineJoin=\"round\"\r\n        android:strokeWidth=\"8\"\r\n        android:pathData=\"M76,150 L105,150 L122,116 L145,192 L171,92 L190,150 L216,150\" />\r\n    <path\r\n        android:fillColor=\"#8BE9D3\"\r\n        android:pathData=\"M211,150 A11,11 0,1 1,189 150 A11,11 0,1 1,211 150\" />\r\n</vector>"
+                                    }
+                                },
+                                "contextRegion": {
+                                    "startLine": 1,
+                                    "endLine": 25,
+                                    "snippet": {
+                                        "text": "<vector xmlns:android=\"http://schemas.android.com/apk/res/android\"\r\n    android:width=\"288dp\"\r\n    android:height=\"288dp\"\r\n    android:viewportWidth=\"288\"\r\n    android:viewportHeight=\"288\">\r\n    <!-- Compact centered mark: stays inside the Android splash icon mask. -->\r\n    <path\r\n        android:fillColor=\"@android:color/transparent\"\r\n        android:strokeColor=\"#111614\"\r\n        android:strokeLineCap=\"round\"\r\n        android:strokeLineJoin=\"round\"\r\n        android:strokeWidth=\"14\"\r\n        android:pathData=\"M76,150 L105,150 L122,116 L145,192 L171,92 L190,150 L216,150\" />\r\n    <path\r\n        android:fillColor=\"@android:color/transparent\"\r\n        android:strokeColor=\"#DDE6E2\"\r\n        android:strokeLineCap=\"round\"\r\n        android:strokeLineJoin=\"round\"\r\n        android:strokeWidth=\"8\"\r\n        android:pathData=\"M76,150 L105,150 L122,116 L145,192 L171,92 L190,150 L216,150\" />\r\n    <path\r\n        android:fillColor=\"#8BE9D3\"\r\n        android:pathData=\"M211,150 A11,11 0,1 1,189 150 A11,11 0,1 1,211 150\" />\r\n</vector>\r\n"
+                                    }
+                                }
+                            }
+                        }
+                    ],
+                    "fixes": [
+                    ],
+                    "partialFingerprints": {
+                        "sourceContext/v1": "765c9c24c3f7abe4"
+                    }
+                },
+                {
+                    "ruleId": "UseKtx",
+                    "ruleIndex": 9,
+                    "message": {
+                        "text": "Use the KTX extension function Bitmap.get instead?",
+                        "markdown": "Use the KTX extension function `Bitmap.get` instead?"
+                    },
+                    "locations": [
+                        {
+                            "physicalLocation": {
+                                "artifactLocation": {
+                                    "uriBaseId": "%SRCROOT%",
+                                    "uri": "app/src/main/java/com/local/listentomusic/ui/components/ArtworkBackdrop.kt"
+                                },
+                                "region": {
+                                    "startLine": 25,
+                                    "startColumn": 25,
+                                    "endLine": 25,
+                                    "endColumn": 111,
+                                    "charOffset": 1187,
+                                    "charLength": 86,
+                                    "snippet": {
+                                        "text": "readable.getPixel(index % 12 * readable.width / 12, index / 12 * readable.height / 12)"
+                                    }
+                                },
+                                "contextRegion": {
+                                    "startLine": 23,
+                                    "endLine": 28,
+                                    "snippet": {
+                                        "text": "                try {\n                    if (readable == null) intArrayOf() else IntArray(144) { index ->\n                        readable.getPixel(index % 12 * readable.width / 12, index / 12 * readable.height / 12)\n                    }\n                } finally { if (readable !== artwork) readable?.recycle() }\n"
+                                    }
+                                }
+                            }
+                        }
+                    ],
+                    "fixes": [
+                        {
+                            "description": {
+                                "text": "Replace with the get extension function"
+                            },
+                            "artifactChanges": [
+                                {
+                                    "artifactLocation": {
+                                        "uriBaseId": "%SRCROOT%",
+                                        "uri": "app/src/main/java/com/local/listentomusic/ui/components/ArtworkBackdrop.kt"
+                                    },
+                                    "replacements": [
+                                        {
+                                            "deletedRegion": {
+                                                "startLine": 25,
+                                                "startColumn": 25,
+                                                "charOffset": 1187,
+                                                "endLine": 25,
+                                                "endColumn": 111,
+                                                "charLength": 86
+                                            },
+                                            "insertedContent": {
+                                                "text": "readable[index % 12 * readable.width / 12, index / 12 * readable.height / 12]\n"
+                                            }
+                                        }
+                                    ]
+                                }
+                            ]
+                        }
+                    ],
+                    "partialFingerprints": {
+                        "sourceContext/v1": "fdb7787d47bf7eed"
+                    }
+                },
+                {
+                    "ruleId": "UseKtx",
+                    "ruleIndex": 9,
+                    "message": {
+                        "text": "Use the KTX extension function String.toUri instead?",
+                        "markdown": "Use the KTX extension function `String.toUri` instead?"
+                    },
+                    "locations": [
+                        {
+                            "physicalLocation": {
+                                "artifactLocation": {
+                                    "uriBaseId": "%SRCROOT%",
+                                    "uri": "app/src/main/java/com/local/listentomusic/ui/DeveloperDiagnostics.kt"
+                                },
+                                "region": {
+                                    "startLine": 164,
+                                    "startColumn": 29,
+                                    "endLine": 164,
+                                    "endColumn": 72,
+                                    "charOffset": 7439,
+                                    "charLength": 43,
+                                    "snippet": {
+                                        "text": "Uri.parse(\"package:${context.packageName}\")"
+                                    }
+                                },
+                                "contextRegion": {
+                                    "startLine": 162,
+                                    "endLine": 167,
+                                    "snippet": {
+                                        "text": "                    if (!overlayAllowed) TextButton(onClick = {\n                        runCatching { context.startActivity(Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION,\n                            Uri.parse(\"package:${context.packageName}\"))) }\n                    }) { Text(\"Open floating window permission\") }\n                    Button(\n"
+                                    }
+                                }
+                            }
+                        }
+                    ],
+                    "fixes": [
+                        {
+                            "description": {
+                                "text": "Replace with the toUri extension function"
+                            },
+                            "artifactChanges": [
+                                {
+                                    "artifactLocation": {
+                                        "uriBaseId": "%SRCROOT%",
+                                        "uri": "app/src/main/java/com/local/listentomusic/ui/DeveloperDiagnostics.kt"
+                                    },
+                                    "replacements": [
+                                        {
+                                            "deletedRegion": {
+                                                "startLine": 164,
+                                                "startColumn": 29,
+                                                "charOffset": 7439,
+                                                "endLine": 164,
+                                                "endColumn": 72,
+                                                "charLength": 43
+                                            },
+                                            "insertedContent": {
+                                                "text": "\"package:${context.packageName}\".toUri()\n"
+                                            }
+                                        }
+                                    ]
+                                }
+                            ]
+                        }
+                    ],
+                    "partialFingerprints": {
+                        "sourceContext/v1": "6c7e50dda05b27e7"
+                    }
+                },
+                {
+                    "ruleId": "UseKtx",
+                    "ruleIndex": 9,
+                    "message": {
+                        "text": "Use the KTX extension function String.toUri instead?",
+                        "markdown": "Use the KTX extension function `String.toUri` instead?"
+                    },
+                    "locations": [
+                        {
+                            "physicalLocation": {
+                                "artifactLocation": {
+                                    "uriBaseId": "%SRCROOT%",
+                                    "uri": "app/src/main/java/com/local/listentomusic/data/ThumbnailRepository.kt"
+                                },
+                                "region": {
+                                    "startLine": 132,
+                                    "startColumn": 26,
+                                    "endLine": 132,
+                                    "endColumn": 52,
+                                    "charOffset": 5611,
+                                    "charLength": 26,
+                                    "snippet": {
+                                        "text": "android.net.Uri.parse(uri)"
+                                    }
+                                },
+                                "contextRegion": {
+                                    "startLine": 130,
+                                    "endLine": 135,
+                                    "snippet": {
+                                        "text": "    private fun customArtwork(uri: String): Bitmap? = if (uri.isBlank()) null else runCatching {\n        if (Build.VERSION.SDK_INT < 28) {\n            val parsed = android.net.Uri.parse(uri)\n            val options = BitmapFactory.Options().apply { inJustDecodeBounds = true }\n            context.contentResolver.openInputStream(parsed)?.use { BitmapFactory.decodeStream(it, null, options) }\n"
+                                    }
+                                }
+                            }
+                        }
+                    ],
+                    "fixes": [
+                        {
+                            "description": {
+                                "text": "Replace with the toUri extension function"
+                            },
+                            "artifactChanges": [
+                                {
+                                    "artifactLocation": {
+                                        "uriBaseId": "%SRCROOT%",
+                                        "uri": "app/src/main/java/com/local/listentomusic/data/ThumbnailRepository.kt"
+                                    },
+                                    "replacements": [
+                                        {
+                                            "deletedRegion": {
+                                                "startLine": 132,
+                                                "startColumn": 26,
+                                                "charOffset": 5611,
+                                                "endLine": 132,
+                                                "endColumn": 52,
+                                                "charLength": 26
+                                            },
+                                            "insertedContent": {
+                                                "text": "uri.toUri()\n"
+                                            }
+                                        }
+                                    ]
+                                }
+                            ]
+                        }
+                    ],
+                    "partialFingerprints": {
+                        "sourceContext/v1": "834eba490ea47640"
+                    }
+                },
+                {
+                    "ruleId": "UseKtx",
+                    "ruleIndex": 9,
+                    "message": {
+                        "text": "Use the KTX extension function String.toUri instead?",
+                        "markdown": "Use the KTX extension function `String.toUri` instead?"
+                    },
+                    "locations": [
+                        {
+                            "physicalLocation": {
+                                "artifactLocation": {
+                                    "uriBaseId": "%SRCROOT%",
+                                    "uri": "app/src/main/java/com/local/listentomusic/data/ThumbnailRepository.kt"
+                                },
+                                "region": {
+                                    "startLine": 140,
+                                    "startColumn": 90,
+                                    "endLine": 140,
+                                    "endColumn": 116,
+                                    "charOffset": 6326,
+                                    "charLength": 26,
+                                    "snippet": {
+                                        "text": "android.net.Uri.parse(uri)"
+                                    }
+                                },
+                                "contextRegion": {
+                                    "startLine": 138,
+                                    "endLine": 143,
+                                    "snippet": {
+                                        "text": "            return@runCatching context.contentResolver.openInputStream(parsed)?.use { BitmapFactory.decodeStream(it, null, options) }\n        }\n        val source = android.graphics.ImageDecoder.createSource(context.contentResolver, android.net.Uri.parse(uri))\n        android.graphics.ImageDecoder.decodeBitmap(source) { decoder, info, _ ->\n            val ratio = 384f / maxOf(info.size.width, info.size.height).coerceAtLeast(1)\n"
+                                    }
+                                }
+                            }
+                        }
+                    ],
+                    "fixes": [
+                        {
+                            "description": {
+                                "text": "Replace with the toUri extension function"
+                            },
+                            "artifactChanges": [
+                                {
+                                    "artifactLocation": {
+                                        "uriBaseId": "%SRCROOT%",
+                                        "uri": "app/src/main/java/com/local/listentomusic/data/ThumbnailRepository.kt"
+                                    },
+                                    "replacements": [
+                                        {
+                                            "deletedRegion": {
+                                                "startLine": 140,
+                                                "startColumn": 90,
+                                                "charOffset": 6326,
+                                                "endLine": 140,
+                                                "endColumn": 116,
+                                                "charLength": 26
+                                            },
+                                            "insertedContent": {
+                                                "text": "uri.toUri()\n"
+                                            }
+                                        }
+                                    ]
+                                }
+                            ]
+                        }
+                    ],
+                    "partialFingerprints": {
+                        "sourceContext/v1": "9f25abc9289d77ea"
+                    }
+                },
+                {
+                    "ruleId": "HardcodedText",
+                    "ruleIndex": 5,
+                    "message": {
+                        "text": "Hardcoded string \"Artwork\", should use @string resource",
+                        "markdown": "Hardcoded string \"Artwork\", should use `@string` resource"
+                    },
+                    "locations": [
+                        {
+                            "physicalLocation": {
+                                "artifactLocation": {
+                                    "uriBaseId": "%SRCROOT%",
+                                    "uri": "app/src/main/res/layout/playback_widget.xml"
+                                },
+                                "region": {
+                                    "startLine": 2,
+                                    "startColumn": 149,
+                                    "endLine": 2,
+                                    "endColumn": 185,
+                                    "charOffset": 415,
+                                    "charLength": 36,
+                                    "snippet": {
+                                        "text": "android:contentDescription=\"Artwork\""
+                                    }
+                                },
+                                "contextRegion": {
+                                    "startLine": 1,
+                                    "endLine": 5,
+                                    "snippet": {
+                                        "text": "<LinearLayout xmlns:android=\"http://schemas.android.com/apk/res/android\" android:layout_width=\"match_parent\" android:layout_height=\"match_parent\" android:orientation=\"horizontal\" android:gravity=\"center_vertical\" android:padding=\"12dp\" android:background=\"#151C1A\">\r\n    <ImageView android:id=\"@+id/widget_art\" android:layout_width=\"48dp\" android:layout_height=\"48dp\" android:src=\"@drawable/ic_launcher_foreground\" android:contentDescription=\"Artwork\" />\r\n    <TextView android:id=\"@+id/widget_title\" android:layout_width=\"0dp\" android:layout_weight=\"1\" android:layout_height=\"wrap_content\" android:text=\"Greater Art\" android:textColor=\"#FFFFFF\" android:maxLines=\"2\" android:ellipsize=\"end\" android:padding=\"8dp\" />\r\n    <ImageButton android:id=\"@+id/widget_previous\" android:layout_width=\"48dp\" android:layout_height=\"48dp\" android:src=\"@android:drawable/ic_media_previous\" android:background=\"@android:color/transparent\" android:contentDescription=\"Previous\" />\r\n"
+                                    }
+                                }
+                            }
+                        }
+                    ],
+                    "partialFingerprints": {
+                        "sourceContext/v1": "5d12fbff7d1109c0"
+                    }
+                },
+                {
+                    "ruleId": "HardcodedText",
+                    "ruleIndex": 5,
+                    "message": {
+                        "text": "Hardcoded string \"Greater Art\", should use @string resource",
+                        "markdown": "Hardcoded string \"Greater Art\", should use `@string` resource"
+                    },
+                    "locations": [
+                        {
+                            "physicalLocation": {
+                                "artifactLocation": {
+                                    "uriBaseId": "%SRCROOT%",
+                                    "uri": "app/src/main/res/layout/playback_widget.xml"
+                                },
+                                "region": {
+                                    "startLine": 3,
+                                    "startColumn": 136,
+                                    "endLine": 3,
+                                    "endColumn": 162,
+                                    "charOffset": 591,
+                                    "charLength": 26,
+                                    "snippet": {
+                                        "text": "android:text=\"Greater Art\""
+                                    }
+                                },
+                                "contextRegion": {
+                                    "startLine": 1,
+                                    "endLine": 6,
+                                    "snippet": {
+                                        "text": "<LinearLayout xmlns:android=\"http://schemas.android.com/apk/res/android\" android:layout_width=\"match_parent\" android:layout_height=\"match_parent\" android:orientation=\"horizontal\" android:gravity=\"center_vertical\" android:padding=\"12dp\" android:background=\"#151C1A\">\r\n    <ImageView android:id=\"@+id/widget_art\" android:layout_width=\"48dp\" android:layout_height=\"48dp\" android:src=\"@drawable/ic_launcher_foreground\" android:contentDescription=\"Artwork\" />\r\n    <TextView android:id=\"@+id/widget_title\" android:layout_width=\"0dp\" android:layout_weight=\"1\" android:layout_height=\"wrap_content\" android:text=\"Greater Art\" android:textColor=\"#FFFFFF\" android:maxLines=\"2\" android:ellipsize=\"end\" android:padding=\"8dp\" />\r\n    <ImageButton android:id=\"@+id/widget_previous\" android:layout_width=\"48dp\" android:layout_height=\"48dp\" android:src=\"@android:drawable/ic_media_previous\" android:background=\"@android:color/transparent\" android:contentDescription=\"Previous\" />\r\n    <ImageButton android:id=\"@+id/widget_toggle\" android:layout_width=\"48dp\" android:layout_height=\"48dp\" android:src=\"@drawable/ic_play\" android:background=\"@android:color/transparent\" android:contentDescription=\"Play or pause\" />\r\n"
+                                    }
+                                }
+                            }
+                        }
+                    ],
+                    "partialFingerprints": {
+                        "sourceContext/v1": "dd467a0d7a7f6b6b"
+                    }
+                },
+                {
+                    "ruleId": "HardcodedText",
+                    "ruleIndex": 5,
+                    "message": {
+                        "text": "Hardcoded string \"Previous\", should use @string resource",
+                        "markdown": "Hardcoded string \"Previous\", should use `@string` resource"
+                    },
+                    "locations": [
+                        {
+                            "physicalLocation": {
+                                "artifactLocation": {
+                                    "uriBaseId": "%SRCROOT%",
+                                    "uri": "app/src/main/res/layout/playback_widget.xml"
+                                },
+                                "region": {
+                                    "startLine": 4,
+                                    "startColumn": 207,
+                                    "endLine": 4,
+                                    "endColumn": 244,
+                                    "charOffset": 923,
+                                    "charLength": 37,
+                                    "snippet": {
+                                        "text": "android:contentDescription=\"Previous\""
+                                    }
+                                },
+                                "contextRegion": {
+                                    "startLine": 2,
+                                    "endLine": 7,
+                                    "snippet": {
+                                        "text": "    <ImageView android:id=\"@+id/widget_art\" android:layout_width=\"48dp\" android:layout_height=\"48dp\" android:src=\"@drawable/ic_launcher_foreground\" android:contentDescription=\"Artwork\" />\r\n    <TextView android:id=\"@+id/widget_title\" android:layout_width=\"0dp\" android:layout_weight=\"1\" android:layout_height=\"wrap_content\" android:text=\"Greater Art\" android:textColor=\"#FFFFFF\" android:maxLines=\"2\" android:ellipsize=\"end\" android:padding=\"8dp\" />\r\n    <ImageButton android:id=\"@+id/widget_previous\" android:layout_width=\"48dp\" android:layout_height=\"48dp\" android:src=\"@android:drawable/ic_media_previous\" android:background=\"@android:color/transparent\" android:contentDescription=\"Previous\" />\r\n    <ImageButton android:id=\"@+id/widget_toggle\" android:layout_width=\"48dp\" android:layout_height=\"48dp\" android:src=\"@drawable/ic_play\" android:background=\"@android:color/transparent\" android:contentDescription=\"Play or pause\" />\r\n    <ImageButton android:id=\"@+id/widget_next\" android:layout_width=\"48dp\" android:layout_height=\"48dp\" android:src=\"@android:drawable/ic_media_next\" android:background=\"@android:color/transparent\" android:contentDescription=\"Next\" />\r\n"
+                                    }
+                                }
+                            }
+                        }
+                    ],
+                    "partialFingerprints": {
+                        "sourceContext/v1": "84ffd9271a4402d4"
+                    }
+                },
+                {
+                    "ruleId": "HardcodedText",
+                    "ruleIndex": 5,
+                    "message": {
+                        "text": "Hardcoded string \"Play or pause\", should use @string resource",
+                        "markdown": "Hardcoded string \"Play or pause\", should use `@string` resource"
+                    },
+                    "locations": [
+                        {
+                            "physicalLocation": {
+                                "artifactLocation": {
+                                    "uriBaseId": "%SRCROOT%",
+                                    "uri": "app/src/main/res/layout/playback_widget.xml"
+                                },
+                                "region": {
+                                    "startLine": 5,
+                                    "startColumn": 187,
+                                    "endLine": 5,
+                                    "endColumn": 229,
+                                    "charOffset": 1151,
+                                    "charLength": 42,
+                                    "snippet": {
+                                        "text": "android:contentDescription=\"Play or pause\""
+                                    }
+                                },
+                                "contextRegion": {
+                                    "startLine": 3,
+                                    "endLine": 8,
+                                    "snippet": {
+                                        "text": "    <TextView android:id=\"@+id/widget_title\" android:layout_width=\"0dp\" android:layout_weight=\"1\" android:layout_height=\"wrap_content\" android:text=\"Greater Art\" android:textColor=\"#FFFFFF\" android:maxLines=\"2\" android:ellipsize=\"end\" android:padding=\"8dp\" />\r\n    <ImageButton android:id=\"@+id/widget_previous\" android:layout_width=\"48dp\" android:layout_height=\"48dp\" android:src=\"@android:drawable/ic_media_previous\" android:background=\"@android:color/transparent\" android:contentDescription=\"Previous\" />\r\n    <ImageButton android:id=\"@+id/widget_toggle\" android:layout_width=\"48dp\" android:layout_height=\"48dp\" android:src=\"@drawable/ic_play\" android:background=\"@android:color/transparent\" android:contentDescription=\"Play or pause\" />\r\n    <ImageButton android:id=\"@+id/widget_next\" android:layout_width=\"48dp\" android:layout_height=\"48dp\" android:src=\"@android:drawable/ic_media_next\" android:background=\"@android:color/transparent\" android:contentDescription=\"Next\" />\r\n</LinearLayout>\r\n"
+                                    }
+                                }
+                            }
+                        }
+                    ],
+                    "partialFingerprints": {
+                        "sourceContext/v1": "12a3d04b1c89f9a8"
+                    }
+                },
+                {
+                    "ruleId": "HardcodedText",
+                    "ruleIndex": 5,
+                    "message": {
+                        "text": "Hardcoded string \"Next\", should use @string resource",
+                        "markdown": "Hardcoded string \"Next\", should use `@string` resource"
+                    },
+                    "locations": [
+                        {
+                            "physicalLocation": {
+                                "artifactLocation": {
+                                    "uriBaseId": "%SRCROOT%",
+                                    "uri": "app/src/main/res/layout/playback_widget.xml"
+                                },
+                                "region": {
+                                    "startLine": 6,
+                                    "startColumn": 199,
+                                    "endLine": 6,
+                                    "endColumn": 232,
+                                    "charOffset": 1396,
+                                    "charLength": 33,
+                                    "snippet": {
+                                        "text": "android:contentDescription=\"Next\""
+                                    }
+                                },
+                                "contextRegion": {
+                                    "startLine": 4,
+                                    "endLine": 8,
+                                    "snippet": {
+                                        "text": "    <ImageButton android:id=\"@+id/widget_previous\" android:layout_width=\"48dp\" android:layout_height=\"48dp\" android:src=\"@android:drawable/ic_media_previous\" android:background=\"@android:color/transparent\" android:contentDescription=\"Previous\" />\r\n    <ImageButton android:id=\"@+id/widget_toggle\" android:layout_width=\"48dp\" android:layout_height=\"48dp\" android:src=\"@drawable/ic_play\" android:background=\"@android:color/transparent\" android:contentDescription=\"Play or pause\" />\r\n    <ImageButton android:id=\"@+id/widget_next\" android:layout_width=\"48dp\" android:layout_height=\"48dp\" android:src=\"@android:drawable/ic_media_next\" android:background=\"@android:color/transparent\" android:contentDescription=\"Next\" />\r\n</LinearLayout>\r\n"
+                                    }
+                                }
+                            }
+                        }
+                    ],
+                    "partialFingerprints": {
+                        "sourceContext/v1": "b91fe8cf307c9037"
+                    }
+                },
+                {
+                    "ruleId": "RtlHardcoded",
+                    "ruleIndex": 7,
+                    "message": {
+                        "text": "Use \"Gravity.START\" instead of \"Gravity.LEFT\" to ensure correct behavior in right-to-left locales",
+                        "markdown": "Use \"`Gravity.START`\" instead of \"`Gravity.LEFT`\" to ensure correct behavior in right-to-left locales"
+                    },
+                    "locations": [
+                        {
+                            "physicalLocation": {
+                                "artifactLocation": {
+                                    "uriBaseId": "%SRCROOT%",
+                                    "uri": "app/src/main/java/com/local/listentomusic/playback/MiniWindowOverlayService.kt"
+                                },
+                                "region": {
+                                    "startLine": 208,
+                                    "startColumn": 46,
+                                    "endLine": 208,
+                                    "endColumn": 50,
+                                    "charOffset": 9498,
+                                    "charLength": 4,
+                                    "snippet": {
+                                        "text": "LEFT"
+                                    }
+                                },
+                                "contextRegion": {
+                                    "startLine": 206,
+                                    "endLine": 211,
+                                    "snippet": {
+                                        "text": "                    PixelFormat.RGBA_8888,\n        ).apply {\n            gravity = Gravity.TOP or Gravity.LEFT\n            alpha = 0f\n            if (alpha == 0f) flags = flags or WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE\n"
+                                    }
+                                }
+                            }
+                        }
+                    ],
+                    "partialFingerprints": {
+                        "sourceContext/v1": "2ba575699798849f"
+                    }
+                },
+                {
+                    "ruleId": "RtlHardcoded",
+                    "ruleIndex": 7,
+                    "message": {
+                        "text": "Use \"Gravity.START\" instead of \"Gravity.LEFT\" to ensure correct behavior in right-to-left locales",
+                        "markdown": "Use \"`Gravity.START`\" instead of \"`Gravity.LEFT`\" to ensure correct behavior in right-to-left locales"
+                    },
+                    "locations": [
+                        {
+                            "physicalLocation": {
+                                "artifactLocation": {
+                                    "uriBaseId": "%SRCROOT%",
+                                    "uri": "app/src/main/java/com/local/listentomusic/playback/MiniWindowOverlayService.kt"
+                                },
+                                "region": {
+                                    "startLine": 731,
+                                    "startColumn": 64,
+                                    "endLine": 731,
+                                    "endColumn": 68,
+                                    "charOffset": 32759,
+                                    "charLength": 4,
+                                    "snippet": {
+                                        "text": "LEFT"
+                                    }
+                                },
+                                "contextRegion": {
+                                    "startLine": 729,
+                                    "endLine": 734,
+                                    "snippet": {
+                                        "text": "        layout.width = miniWidthPx()\n        layout.height = miniHeightPx()\n        layout.gravity = if (docked) Gravity.BOTTOM or Gravity.LEFT else Gravity.TOP or Gravity.LEFT\n        layout.flags = if (expanded) {\n            (layout.flags and WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE.inv() and\n"
+                                    }
+                                }
+                            }
+                        }
+                    ],
+                    "partialFingerprints": {
+                        "sourceContext/v1": "904a7d86f7f7407f"
+                    }
+                },
+                {
+                    "ruleId": "RtlHardcoded",
+                    "ruleIndex": 7,
+                    "message": {
+                        "text": "Use \"Gravity.START\" instead of \"Gravity.LEFT\" to ensure correct behavior in right-to-left locales",
+                        "markdown": "Use \"`Gravity.START`\" instead of \"`Gravity.LEFT`\" to ensure correct behavior in right-to-left locales"
+                    },
+                    "locations": [
+                        {
+                            "physicalLocation": {
+                                "artifactLocation": {
+                                    "uriBaseId": "%SRCROOT%",
+                                    "uri": "app/src/main/java/com/local/listentomusic/playback/MiniWindowOverlayService.kt"
+                                },
+                                "region": {
+                                    "startLine": 731,
+                                    "startColumn": 97,
+                                    "endLine": 731,
+                                    "endColumn": 101,
+                                    "charOffset": 32792,
+                                    "charLength": 4,
+                                    "snippet": {
+                                        "text": "LEFT"
+                                    }
+                                },
+                                "contextRegion": {
+                                    "startLine": 729,
+                                    "endLine": 734,
+                                    "snippet": {
+                                        "text": "        layout.width = miniWidthPx()\n        layout.height = miniHeightPx()\n        layout.gravity = if (docked) Gravity.BOTTOM or Gravity.LEFT else Gravity.TOP or Gravity.LEFT\n        layout.flags = if (expanded) {\n            (layout.flags and WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE.inv() and\n"
+                                    }
+                                }
+                            }
+                        }
+                    ],
+                    "partialFingerprints": {
+                        "sourceContext/v1": "904a7d86f7f7407f"
+                    }
+                }
+            ]
+        }
+    ]
+}
