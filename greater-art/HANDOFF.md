@@ -3,12 +3,32 @@
 This file describes the **current repository state only**. Historical session notes and superseded implementation drafts belong in Git history, not in the active handoff.
 
 **Project:** `greater-art/` in the repository checkout
-**Current version:** `1.14.4 (code 119)`
-**Latest APK:** `releases/GreaterArt-1.14.4.apk` (pending — build blocked by jlink.exe missing; version verified in build.gradle.kts) (`26,254,894 bytes`; SHA-256 to be computed after final device check)
+**Current version:** `1.14.3 (code 118)`
+**Latest APK:** `releases/GreaterArt-1.14.3.apk` (`26,254,894 bytes`; latest verified release while newer source remains SOURCE_ONLY)
 **Application ID:** `com.local.listentomusic`
 **Signing certificate SHA-256:** `9e28eb45b3b171c3ea47d7da942d28d88b16538885e392a6971a80906d612fbf`
 
 ## Repository state
+
+### September 30 — 1.14.8 clipped-underlay compile repair
+
+- 1.14.7 passed the hardened version guard but Android CI found the nested `clipRect` draw scope could not implicitly resolve `drawContent()`. The reveal now labels the outer `drawWithContent` scope and explicitly calls `this@content.drawContent()` in both row implementations.
+- 1.14.7 remains consumed. Current source is **1.14.8 (code 123)** and remains **SOURCE_ONLY**.
+
+### September 30 — 1.14.7 compile repair + source-only metadata correction
+
+- 1.14.6 was consumed but Android CI exposed a compile-only defect: the stationary underlay implementation used `clipRect` without importing `androidx.compose.ui.graphics.drawscope.clipRect`. 1.14.7 adds that import in both Now Playing and Library row implementations; interaction behavior is otherwise unchanged.
+- Restored the HANDOFF release header required by the hardened SOURCE_ONLY contract: it describes the latest verified APK (1.14.3/code 118), while VERSION_RULES/Gradle track current source separately as 1.14.7/code 122.
+- No playback-quality, decoder, PlayerView ownership, background dim, or thumbnail-quality setting changed.
+- Java 21 GitHub Android CI passed `testDebugUnitTest`, `lintDebug`, and `assembleDebug`; Version Consistency also passed. State remains **SOURCE_ONLY** because no exact 1.14.8 APK/device verification was finalized. Device fast-fling profiling remains outstanding.
+
+### September 30 — 1.14.6 row-action correctness + queue identity hardening (source only)
+
+- Corrected the 1.14.5 inline reveal implementation so action underlays stay physically stationary. Their drawing is clipped to the strip exposed by the translated foreground; row height/width remains fixed and only the foreground translates.
+- Now Playing queue LazyColumn keys use the stable MediaFile identity (id/path) instead of index:path, preventing identity churn when queue order/filtering changes.
+- Static lag review: fresh queue thumbnail work remains deferred while LazyListState.isScrollInProgress; ThumbnailRepository performs disk/decode work on Dispatchers.IO with two decode permits, and the queue path does not call Media3 prepare/reseek/surface reassignment on scroll.
+- Existing diagnostics already track surface owner generation and dropped frames, but the repository currently contains no post-change fast-fling device trace. Runtime frame/jank numbers therefore remain unverified and must be collected on the A55/API 36 target before declaring the lag solved.
+- Source version: **1.14.6 (code 121)**. State remains **SOURCE_ONLY**. Latest verified APK remains 1.14.3.
 
 ### September 30 — 1.14.5 inline list actions + queue-scroll playback protection (source only)
 

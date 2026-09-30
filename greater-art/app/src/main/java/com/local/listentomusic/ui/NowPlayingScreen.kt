@@ -53,6 +53,7 @@ import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.drawscope.clipRect
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.lazy.LazyColumn
@@ -117,6 +118,7 @@ import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.graphics.Brush
@@ -1031,7 +1033,7 @@ private fun NowPlayingQueue(
                 state = listState,
                 contentPadding = PaddingValues(vertical = 4.dp),
             ) {
-                items(visibleQueue, key = { indexed -> "${indexed.index}:${indexed.value.path}" }, contentType = { "queue-song" }) { indexed ->
+                items(visibleQueue, key = { indexed -> indexed.value.id }, contentType = { "queue-song" }) { indexed ->
                     val index = indexed.index
                     val file = indexed.value
                     val selected = file.path == currentPath
@@ -1054,9 +1056,13 @@ private fun NowPlayingQueue(
                                 onAddQueueItemToList(file)
                             },
                             modifier = Modifier.align(Alignment.CenterEnd).width(actionWidth)
-                                .graphicsLayer {
-                                    translationX = actionWidthPx * (1f - revealProgress)
-                                    alpha = revealProgress
+                                .drawWithContent content@{
+                                    // The underlay never moves. Reveal only the strip exposed
+                                    // by the translated foreground so transparent rows cannot
+                                    // leak the action through before it is uncovered.
+                                    clipRect(left = size.width * (1f - revealProgress)) {
+                                        this@content.drawContent()
+                                    }
                                 }
                                 .inspectElement("QUEUE_ADD_TO_LIST", "Add ${file.name} to a song list"),
                         ) {
