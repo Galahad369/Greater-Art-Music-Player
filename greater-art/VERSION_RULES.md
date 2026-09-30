@@ -6,7 +6,7 @@ This file is the authoritative version policy for Greater Art. If any handoff no
 
 ## Machine-checkable state
 
-Current source: **1.14.8 (code 123)**
+Current source: **1.14.9 (code 124)**
 Current release state: **SOURCE_ONLY**
 Latest verified APK: **1.14.3 (code 118)**
 
@@ -112,6 +112,7 @@ The guard checks:
 - 1.14.6 (code 121) — stable queue row identity + stationary clipped action underlays; source only; CI compile failed on missing drawscope import
 - 1.14.7 (code 122) — drawscope import + corrected SOURCE_ONLY handoff metadata; source only; CI compile failed on nested drawContent receiver
 - 1.14.8 (code 123) — explicit ContentDrawScope receiver for clipped stationary action underlays; source only, local build pending
+- 1.14.9 (code 124) — compact 48 dp square Add-to-list actions in Now Playing and Library; source only, local build pending
 
 Previous baseline: 1.13.26 (code 115).
 

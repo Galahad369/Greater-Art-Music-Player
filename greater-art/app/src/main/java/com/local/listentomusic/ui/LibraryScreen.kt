@@ -827,7 +827,9 @@ private fun MediaFileRow(
         label = "library-row-actions-reveal",
     )
     val density = LocalDensity.current
-    val actionWidth = 188.dp
+    val addActionSize = 48.dp
+    val deleteActionWidth = 94.dp
+    val actionWidth = addActionSize + deleteActionWidth
     val actionWidthPx = with(density) { actionWidth.toPx() }
     Box(
         Modifier.fillMaxWidth().clip(androidx.compose.ui.graphics.RectangleShape)
@@ -844,17 +846,19 @@ private fun MediaFileRow(
                 },
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            TextButton(
+            IconButton(
                 onClick = onAddToList,
-                modifier = Modifier.weight(1f).inspectElement("LIBRARY_ADD_TO_LIST", "Add ${file.name} to a song list"),
+                modifier = Modifier.size(addActionSize).inspectElement("LIBRARY_ADD_TO_LIST", "Add ${file.name} to a song list"),
             ) {
-                Icon(Icons.AutoMirrored.Rounded.PlaylistAdd, null, Modifier.size(18.dp))
-                Spacer(Modifier.width(4.dp))
-                Text(uiText(language, "Add to list", "加入列表"), maxLines = 1)
+                Icon(
+                    Icons.AutoMirrored.Rounded.PlaylistAdd,
+                    uiText(language, "Add to list", "加入列表"),
+                    Modifier.size(22.dp),
+                )
             }
             TextButton(
                 onClick = onDelete,
-                modifier = Modifier.weight(1f).inspectElement("LIBRARY_DELETE_INLINE", "Delete ${file.name}"),
+                modifier = Modifier.width(deleteActionWidth).inspectElement("LIBRARY_DELETE_INLINE", "Delete ${file.name}"),
                 colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error),
             ) {
                 Icon(Icons.Rounded.Delete, null, Modifier.size(18.dp))
