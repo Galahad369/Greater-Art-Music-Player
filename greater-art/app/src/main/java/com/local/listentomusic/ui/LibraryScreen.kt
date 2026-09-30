@@ -863,14 +863,11 @@ private fun MediaFileRow(
                     Modifier.size(22.dp),
                 )
             }
-            TextButton(
+            IconButton(
                 onClick = onDelete,
-                modifier = Modifier.width(deleteActionWidth).inspectElement("LIBRARY_DELETE_INLINE", "Delete ${file.name}"),
-                colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error),
+                modifier = Modifier.size(deleteActionSize).inspectElement("LIBRARY_DELETE_INLINE", "Delete ${file.name}"),
             ) {
                 Icon(Icons.Rounded.Delete, null, Modifier.size(18.dp))
-                Spacer(Modifier.width(4.dp))
-                Text(uiText(language, "Delete", "刪除"), maxLines = 1)
             }
         }
         Row(

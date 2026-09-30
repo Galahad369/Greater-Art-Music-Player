@@ -3,8 +3,8 @@
 This file describes the **current repository state only**. Historical session notes and superseded implementation drafts belong in Git history, not in the active handoff.
 
 **Project:** `greater-art/` in the repository checkout
-**Current version:** `1.14.11 (code 126)`
-**Latest APK:** latest verified remains **1.14.3 (code 118)**; current source is SOURCE_ONLY (no 1.14.11 APK finalized)
+**Current version:** `1.14.3 (code 118)`
+**Latest APK:** `releases/GreaterArt-1.14.3.apk` (verified release; current source 1.14.11/code 126 is SOURCE_ONLY)
 **Application ID:** `com.local.listentomusic`
 **Signing certificate SHA-256:** `9e28eb45b3b171c3ea47d7da942d28d88b16538885e392a6971a80906d612fbf`
 
