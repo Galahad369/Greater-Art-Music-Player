@@ -13,6 +13,11 @@ This file describes the **current repository state only**. Historical session no
 
 ## Repository state
 
+### October 1 — 1.15.2 version-guard fix (source only)
+
+- `scripts/validate-greater-art-version.py`: Git's `--find-copies-harder` flagged 1.15.1.apk as a copy of 1.14.3.apk (95% similar). Fixed by checking SHA-256 hashes — only fail if byte-identical to an existing APK.
+- Source version: **1.15.2 (code 132)**. State: **SOURCE_ONLY**. Latest verified APK remains 1.15.1.
+
 ### October 1 — 1.15.1 restrained visual-system release (verified)
 
 - User-directed series transition from 1.14.15 to **1.15.1 (code 131)**. VERSION_RULES and the validator explicitly authorize only this exact transition; 1.15.0 is intentionally unused.
