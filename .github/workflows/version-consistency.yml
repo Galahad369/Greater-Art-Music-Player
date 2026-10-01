@@ -48,5 +48,9 @@ jobs:
             exit 0
           fi
 
-          git cat-file -e "$BASE^{commit}"
+          if ! git cat-file -e "$BASE^{commit}" 2>/dev/null; then
+            echo "Push base $BASE is no longer reachable after a history rewrite; current-state and ledger validation already passed."
+            exit 0
+          fi
+
           python3 scripts/validate-greater-art-version.py --base "$BASE" --head "$HEAD_REF"
