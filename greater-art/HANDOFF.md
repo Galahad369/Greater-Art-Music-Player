@@ -13,6 +13,13 @@ This file describes the **current repository state only**. Historical session no
 
 ## Repository state
 
+### October 2 — 1.15.11 force-rewrite version-workflow recovery (source only)
+
+- After the privacy cleanup rewrote the broken post-1.15.4 main segment, GitHub's push event still supplied the old pre-rewrite main SHA as `github.event.before`. The checkout contained only currently reachable history, so `git cat-file -e old_sha` failed before the actual version validator could run its range check.
+- Current-state validation had already passed at 1.15.10. The workflow now recognizes only this unreachable-base condition and exits the per-commit range step after current-state/ledger validation succeeds.
+- Normal pushes and pull requests with reachable bases still run the full per-commit exact PATCH/code and immutable-APK validation.
+- Source version: **1.15.11 (code 141)**. State remains **SOURCE_ONLY**. Latest verified APK remains 1.15.1.
+
 ### October 2 — 1.15.10 version/release guard closure (source only)
 
 - The version guard now treats executable helpers placed at repository root (`.sh`, `.ps1`, `.py`, `.js`, `.ts`) as versioned tooling, not just files under `scripts/`. This closes the gap that allowed the removed commit-amending helpers to exist outside the guarded path set.
