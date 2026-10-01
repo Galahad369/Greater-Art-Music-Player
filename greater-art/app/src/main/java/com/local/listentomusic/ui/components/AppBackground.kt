@@ -72,6 +72,7 @@ fun AppBackground(
     controller: MediaController?,
     modifier: Modifier = Modifier,
     visible: Boolean = true,
+    allowVideoBackground: Boolean = true,
     horizontalPosition: (() -> Float)? = null,
 ) {
     val mode = preferences.backgroundMode
@@ -118,15 +119,20 @@ fun AppBackground(
         }
     }
 
-    val attachVideoBackground = shouldAttachVideoBackground(
+    val attachVideoBackground = allowVideoBackground && shouldAttachVideoBackground(
         visible = visible,
         primaryIsVideo = isVideo,
         primaryFrameReady = primaryFrameReady,
     )
 
     Box(modifier.fillMaxSize().graphicsLayer()) {
-        // Avoid an animated full-screen metal pass underneath opaque media wallpaper.
-        if (visible && (mode == AppBackgroundMode.DEFAULT || mode == AppBackgroundMode.CURRENT_VIDEO && currentVideoUri == null)) DefaultMetalBackground()
+        // Stack can already own eight decoders. When decorative video is budgeted out,
+        // retain a static backdrop instead of allocating another ExoPlayer/PlayerView.
+        val videoFallback = mode == AppBackgroundMode.CUSTOM_VIDEO &&
+            (preferences.customBackgroundVideoUri == null || !attachVideoBackground) ||
+            mode == AppBackgroundMode.CURRENT_VIDEO &&
+            (currentVideoUri == null || !attachVideoBackground)
+        if (visible && (mode == AppBackgroundMode.DEFAULT || videoFallback)) DefaultMetalBackground()
         else Box(Modifier.fillMaxSize().background(androidx.compose.material3.MaterialTheme.colorScheme.background))
         when (mode) {
             AppBackgroundMode.DEFAULT -> Unit

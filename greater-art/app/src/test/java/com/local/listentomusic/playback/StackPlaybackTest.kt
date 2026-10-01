@@ -29,4 +29,14 @@ class StackPlaybackTest {
         assertEquals(0f, stackAudibleVolume(slot, true, 2), 0f)
         assertEquals(.3f, stackAudibleVolume(slot.copy(solo = true), true, 2), .0001f)
     }
+
+    @Test fun primaryPlayerClockWinsOverSyntheticFallback() {
+        assertEquals(1250L, stackMasterPosition(1250L, 4200L, true))
+        assertEquals(4200L, stackMasterPosition(1250L, 4200L, false))
+    }
+
+    @Test fun driftCorrectionOnlyHandlesSevereDesync() {
+        assertFalse(shouldCorrectStackVoice(4500L, 5000L))
+        assertTrue(shouldCorrectStackVoice(4300L, 5000L))
+    }
 }

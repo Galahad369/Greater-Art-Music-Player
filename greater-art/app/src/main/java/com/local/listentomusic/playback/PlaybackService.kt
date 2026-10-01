@@ -176,7 +176,10 @@ class PlaybackService : MediaLibraryService() {
             }
             override fun onTracksChanged(tracks: androidx.media3.common.Tracks) { applyGain(); publishDiagnostics() }
             override fun onAudioSessionIdChanged(audioSessionId: Int) { applyGain() }
-            override fun onIsPlayingChanged(isPlaying: Boolean) = scheduleSave()
+            override fun onIsPlayingChanged(isPlaying: Boolean) {
+                stackCoordinator.onMainIsPlayingChanged(isPlaying)
+                scheduleSave()
+            }
             override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
                 stackCoordinator.onMainMediaChanged(mediaItem?.mediaId)
                 retriedPath = null

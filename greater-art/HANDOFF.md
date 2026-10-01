@@ -13,6 +13,17 @@ This file describes the **current repository state only**. Historical session no
 
 ## Repository state
 
+### October 2 — 1.15.6 Stack playback synchronization/resource-budget fix (source only)
+
+- Stack review found concrete runtime contention independent of debug-build overhead. Stack can own one primary MediaSession player plus seven companion ExoPlayers. Its previous master timeline advanced from wall clock even while the primary was buffering, companions could run before the primary was actually rendering/audio-playing, and every 2 seconds companions more than 350 ms away were hard-seeked. On a loaded device that can become a decoder flush/rebuffer feedback loop.
+- The primary MediaSession player's real position is now the Stack master clock whenever it is available. Wall-clock time is fallback only.
+- Companion voices remain prepared, but start/resume only after the primary reports `isPlaying=true`. If the primary buffers/stalls, companions pause instead of running ahead; on primary resume they align once before continuing.
+- Periodic drift correction is recovery-only: every 5 seconds and only for severe drift greater than 600 ms. Normal playback no longer gets a 2-second hard-seek cycle.
+- Background future-track waveform warmup is cancelled while Stack is active, avoiding extra MediaCodec decoding beside up to eight playback decoders.
+- CURRENT_VIDEO/CUSTOM_VIDEO wallpaper yields its independent video ExoPlayer while Stack is active; the static Greater Art background remains. Foreground media resolution, bitrate, FPS, decoder quality and the eight-track Stack limit are unchanged.
+- Opus's preceding 1.15.5 inspector/queue-scroll fixes remain intact. Debug-vs-release APK performance is a separate build-pipeline question and is not changed in this source patch.
+- Source version: **1.15.6 (code 136)**. State remains **SOURCE_ONLY**. Latest verified APK remains 1.15.1 until exact-source local/device verification.
+
 ### October 1 — 1.15.5 lag fixes (source only)
 
 - `ui/UiInspector.kt`: region bounds no longer stored in snapshot state. Previously every `inspectElement` wrote a new `Rect` into a `mutableStateMapOf` on each layout pass, so with Developer Mode on, every scroll/animation frame recomposed the app-root diagnostics block (full `buildString` report). Now only membership/labels are snapshot state; bounds are read lazily from `LayoutCoordinates`.

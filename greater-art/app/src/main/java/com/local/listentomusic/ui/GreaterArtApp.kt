@@ -231,8 +231,17 @@ fun GreaterArtApp(
             // The expanded player fully covers MainActivity. Do not leave the independent
             // CURRENT_VIDEO/CUSTOM_VIDEO wallpaper decoder running underneath it: fast queue
             // flings then compete with two video decoders plus Compose/GPU work.
-            AppBackground(preferences = settings, currentPath = playback.currentPath, isVideo = playback.isVideo, controller = controller,
-                visible = !expandedPlayerVisible, horizontalPosition = backgroundHorizontalPosition)
+            AppBackground(
+                preferences = settings,
+                currentPath = playback.currentPath,
+                isVideo = playback.isVideo,
+                controller = controller,
+                visible = !expandedPlayerVisible,
+                // Stack already owns a dense playback budget. Decorative video
+                // wallpaper yields its independent decoder while Stack is active.
+                allowVideoBackground = playback.stackCount == 0,
+                horizontalPosition = backgroundHorizontalPosition,
+            )
             Surface(
                 modifier = Modifier.fillMaxSize(),
                 // A light palette needs an opaque-enough base over black/custom media.

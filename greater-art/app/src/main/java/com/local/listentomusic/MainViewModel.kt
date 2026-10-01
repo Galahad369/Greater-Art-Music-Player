@@ -294,11 +294,13 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 _library.map { it.files }.distinctUntilChanged(),
                 _playback.map { it.currentPath }.distinctUntilChanged(),
                 com.local.listentomusic.playback.PlayerWindowVisibility.expandedShowing,
-            ) { queue, library, path, expanded ->
-                // Expanded Now Playing owns the latency budget. Cancel background
-                // future-track decoding while it is visible; explicit current-track
-                // waveform requests still run in the presentation ViewModel.
-                if (expanded) emptyList() else com.local.listentomusic.model.waveformWarmupPaths(queue, library, path)
+                com.local.listentomusic.playback.StackPlayback.state.map { it.active }.distinctUntilChanged(),
+            ) { queue, library, path, expanded, stackActive ->
+                // Expanded Now Playing and Stack own the latency budget. Stack may
+                // already run eight decoders, so background future-track MediaCodec
+                // waveform work must not compete with active playback.
+                if (expanded || stackActive) emptyList()
+                else com.local.listentomusic.model.waveformWarmupPaths(queue, library, path)
             }.distinctUntilChanged()
                 .collectLatest { upcoming ->
                     if (upcoming.isEmpty()) return@collectLatest

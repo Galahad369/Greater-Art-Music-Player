@@ -32,6 +32,16 @@ internal fun stackAudibleVolume(slot: StackSlot, anySolo: Boolean, count: Int): 
     if (slot.muted || anySolo && !slot.solo || slot.error != null) 0f
     else slot.volume.coerceIn(0f, 1f) / count.coerceAtLeast(1)
 
+internal fun stackMasterPosition(primaryPositionMs: Long, fallbackPositionMs: Long, primaryAvailable: Boolean): Long =
+    (if (primaryAvailable) primaryPositionMs else fallbackPositionMs).coerceAtLeast(0L)
+
+internal fun shouldCorrectStackVoice(voicePositionMs: Long, masterPositionMs: Long): Boolean =
+    kotlin.math.abs(voicePositionMs - masterPositionMs) > STACK_DRIFT_CORRECTION_MS
+
+internal const val STACK_START_ALIGNMENT_MS = 120L
+internal const val STACK_DRIFT_CORRECTION_MS = 600L
+internal const val STACK_CORRECTION_INTERVAL_MS = 5_000L
+
 /** Main-thread commands are attached by the single PlaybackService. */
 object StackPlayback {
     const val MAX_TRACKS = 8
