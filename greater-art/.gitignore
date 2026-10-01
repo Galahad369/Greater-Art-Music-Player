@@ -6,3 +6,4 @@ lint-results-debug.*
 # Standard Android build outputs
 app/build/
 *.apk
+!releases/*.apk

@@ -860,7 +860,7 @@ private fun MediaFileRow(
                 onClick = onDelete,
                 modifier = Modifier.size(deleteActionSize).inspectElement("LIBRARY_DELETE_INLINE", "Delete ${file.name}"),
             ) {
-                Icon(Icons.Rounded.Delete, null, Modifier.size(18.dp))
+                Icon(Icons.Rounded.Delete, uiText(language, "Delete", "刪除"), Modifier.size(18.dp))
             }
         }
         Row(
