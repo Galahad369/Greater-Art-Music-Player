@@ -112,6 +112,7 @@ import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
@@ -168,6 +169,7 @@ import com.local.listentomusic.ui.theme.GaRadius
 import com.local.listentomusic.ui.theme.GaSpacing
 import com.local.listentomusic.ui.theme.GaVideoOverlay
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
 import kotlin.math.abs
@@ -989,7 +991,9 @@ private fun NowPlayingQueue(
     }
     val listState = queueListState
     var openActionsKey by rememberSaveable { mutableStateOf<String?>(null) }
-    val visibleIndex = visibleQueue.indexOfFirst { it.index == currentQueueIndex }
+    val visibleIndex = remember(visibleQueue, currentQueueIndex) {
+        visibleQueue.indexOfFirst { it.index == currentQueueIndex }
+    }
     LaunchedEffect(currentQueueIndex, visibleIndex) {
         if (visibleIndex >= 0 && !listState.isScrollInProgress) listState.scrollToItem(visibleIndex)
     }
@@ -1098,7 +1102,7 @@ private fun NowPlayingQueue(
                             QueueThumbnail(
                                 file = file,
                                 onLoadThumbnail = onLoadThumbnail,
-                                deferHeavyLoad = listState.isScrollInProgress,
+                                isScrolling = { listState.isScrollInProgress },
                             )
                             Spacer(Modifier.width(10.dp))
                             Column(Modifier.weight(1f)) {
@@ -1216,14 +1220,17 @@ private fun formatBytes(bytes: Long): String = when {
 internal fun QueueThumbnail(
     file: MediaFile,
     onLoadThumbnail: suspend (MediaFile) -> Bitmap?,
-    deferHeavyLoad: Boolean = false,
+    isScrolling: () -> Boolean = { false },
 ) {
     var thumbnail by remember(file.path, file.modifiedMs, file.coverUri) { mutableStateOf<Bitmap?>(null) }
-    LaunchedEffect(file.path, file.modifiedMs, file.coverUri, deferHeavyLoad) {
-        // Fast queue flings should not launch fresh disk reads / frame extraction for
-        // every transient row. Keep thumbnails already loaded on-screen and request
-        // missing ones only after scrolling settles so video composition stays first.
-        if (!deferHeavyLoad && thumbnail == null) thumbnail = onLoadThumbnail(file)
+    val currentIsScrolling by rememberUpdatedState(isScrolling)
+    LaunchedEffect(file.path, file.modifiedMs, file.coverUri) {
+        // Scroll state is read inside the effect, not composition: rows do not recompose
+        // when a fling starts/stops, and an in-flight load is never cancelled mid-fling.
+        // New loads still wait for the list to settle so video composition stays first.
+        if (thumbnail != null) return@LaunchedEffect
+        snapshotFlow { currentIsScrolling() }.first { !it }
+        thumbnail = onLoadThumbnail(file)
     }
     Box(
         modifier = Modifier.size(40.dp).clip(RoundedCornerShape(9.dp))

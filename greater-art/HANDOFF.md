@@ -13,6 +13,13 @@ This file describes the **current repository state only**. Historical session no
 
 ## Repository state
 
+### October 1 — 1.15.5 lag fixes (source only)
+
+- `ui/UiInspector.kt`: region bounds no longer stored in snapshot state. Previously every `inspectElement` wrote a new `Rect` into a `mutableStateMapOf` on each layout pass, so with Developer Mode on, every scroll/animation frame recomposed the app-root diagnostics block (full `buildString` report). Now only membership/labels are snapshot state; bounds are read lazily from `LayoutCoordinates`.
+- `ui/NowPlayingScreen.kt` `QueueThumbnail`: takes `isScrolling: () -> Boolean` instead of a `Boolean`. Rows no longer recompose at fling start/stop, in-flight thumbnail loads are not cancelled mid-fling, and new loads still wait until scrolling settles. `visibleIndex` is memoized.
+- Not changed (needs owner decision): shipped APKs are `assembleDebug` builds (`debuggable=true`, no R8, no baseline profile). Compose runs much slower in debuggable builds; this is likely the largest remaining source of perceived lag.
+- Source version: **1.15.5 (code 135)**. State: **SOURCE_ONLY**. Not compiled or device-tested in this session. Latest verified APK remains 1.15.1.
+
 ### October 1 — 1.15.4 CodeQL build-mode fix (source only)
 
 - `.github/workflows/public-repo-security.yml`: CodeQL `build-mode: autobuild` for Java/Kotlin analysis (correct mode; `auto` is invalid).

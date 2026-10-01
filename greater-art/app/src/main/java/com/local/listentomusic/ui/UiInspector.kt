@@ -20,6 +20,7 @@ import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.LayoutCoordinates
 import androidx.compose.ui.layout.boundsInRoot
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalContext
@@ -37,7 +38,17 @@ internal data class InspectorRegion(
 
 @Stable
 internal class UiInspectorState {
-    internal val regions = mutableStateMapOf<Any, InspectorRegion>()
+    private class Entry(val label: String, val detail: String, val order: Long)
+
+    // Snapshot state holds only membership + labels. Coordinates live in a plain map so
+    // scrolling (which repositions every row each frame) never writes snapshot state and
+    // never recomposes the diagnostics readers at the app root.
+    private val entries = mutableStateMapOf<Any, Entry>()
+    private val layouts = HashMap<Any, LayoutCoordinates>()
+    internal val regions: Map<Any, InspectorRegion>
+        get() = entries.mapNotNull { (key, entry) ->
+            boundsOf(key)?.let { key to InspectorRegion(entry.label, entry.detail, it, entry.order) }
+        }.toMap()
     private val hitProviders = mutableMapOf<Any, (Offset) -> InspectorRegion?>()
     var armed by mutableStateOf(false)
     var selected by mutableStateOf<InspectorRegion?>(null)
@@ -50,20 +61,28 @@ internal class UiInspectorState {
         private set
     private var order = 0L
 
-    fun update(key: Any, label: String, detail: String, bounds: Rect) {
-        if (!bounds.left.isFinite() || !bounds.top.isFinite() || bounds.width <= 0f || bounds.height <= 0f) return
-        val previous = regions[key]
-        if (previous?.label == label && previous.detail == detail && previous.bounds == bounds) return
-        regions[key] = InspectorRegion(label, detail, bounds, previous?.order ?: ++order)
+    fun update(key: Any, label: String, detail: String, coordinates: LayoutCoordinates) {
+        layouts[key] = coordinates
+        val previous = entries[key]
+        if (previous?.label == label && previous.detail == detail) return
+        entries[key] = Entry(label, detail, previous?.order ?: ++order)
     }
 
-    fun remove(key: Any) { regions.remove(key) }
+    private fun boundsOf(key: Any): Rect? {
+        val coordinates = layouts[key]?.takeIf { it.isAttached } ?: return null
+        val bounds = coordinates.boundsInRoot()
+        return bounds.takeIf {
+            it.left.isFinite() && it.top.isFinite() && it.width > 0f && it.height > 0f
+        }
+    }
+
+    fun remove(key: Any) { entries.remove(key); layouts.remove(key) }
     fun setHitProvider(key: Any, provider: (Offset) -> InspectorRegion?) { hitProviders[key] = provider }
     fun removeHitProvider(key: Any) { hitProviders.remove(key) }
     fun arm() { selected = null; matchingRegions = emptyList(); selectedMatchIndex = 0; armed = true }
     fun cancel() { armed = false }
     fun clearSelection() { selected = null; matchingRegions = emptyList(); selectedMatchIndex = 0 }
-    fun clear() { armed = false; clearSelection(); regions.clear(); hitProviders.clear() }
+    fun clear() { armed = false; clearSelection(); entries.clear(); layouts.clear(); hitProviders.clear() }
 
     fun pick(point: Offset) {
         lastTouch = point
@@ -91,7 +110,7 @@ internal fun Modifier.inspectElement(label: String, detail: String = ""): Modifi
     val inspector = LocalUiInspector.current ?: return@composed this
     val key = remember { Any() }
     DisposableEffect(inspector, key) { onDispose { inspector.remove(key) } }
-    onGloballyPositioned { inspector.update(key, label, detail, it.boundsInRoot()) }
+    onGloballyPositioned { inspector.update(key, label, detail, it) }
 }
 
 @Composable

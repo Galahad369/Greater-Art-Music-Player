@@ -6,7 +6,7 @@ This file is the authoritative version policy for Greater Art. If any handoff no
 
 ## Machine-checkable state
 
-Current source: **1.15.4 (code 134)**
+Current source: **1.15.5 (code 135)**
 Current release state: **SOURCE_ONLY**
 Latest verified APK: **1.15.1 (code 131)**
 Allowed series transition: **1.14.15 -> 1.15.1**
@@ -124,6 +124,7 @@ The guard checks:
 - 1.15.2 (code 132) — version-guard fix: allow new-version APKs detected as copies by checking SHA-256; source only, local build pending
 - 1.15.3 (code 133) — CodeQL build-mode fix: use build-mode: auto to fix Java/Kotlin analysis; source only, local build pending
 - 1.15.4 (code 134) — CodeQL build-mode fix: use build-mode: autobuild for Java/Kotlin analysis; source only, local build pending
+- 1.15.5 (code 135) — Lag fixes: inspector bounds out of snapshot state; queue thumbnails read scroll state lazily; source only, local build pending
 
 Previous baseline: 1.13.26 (code 115).
 
