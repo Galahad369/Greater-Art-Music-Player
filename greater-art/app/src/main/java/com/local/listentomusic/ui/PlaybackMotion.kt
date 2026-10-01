@@ -23,6 +23,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
+import com.local.listentomusic.ui.theme.GaMotion
 import kotlin.math.*
 
 @Composable
@@ -56,7 +57,7 @@ internal fun AnimatedWaveformBars(peaks: FloatArray?, fraction: Float, active: C
     val reveal = remember { Animatable(1f) }
     LaunchedEffect(peaks) {
         if (peaks != null && android.animation.ValueAnimator.areAnimatorsEnabled()) {
-            reveal.snapTo(0f); reveal.animateTo(1f, tween(420))
+            reveal.snapTo(0f); reveal.animateTo(1f, tween(GaMotion.emphasizedMs))
         } else reveal.snapTo(1f)
     }
     Canvas(modifier.graphicsLayer()) {
@@ -80,7 +81,7 @@ internal fun AnimatedWaveformBars(peaks: FloatArray?, fraction: Float, active: C
 
 @Composable
 internal fun SpeedDialIcon(speed: Float, tint: Color) {
-    val angle = animateFloatAsState(150f + ((speed - .25f) / 2.75f).coerceIn(0f,1f) * 240f, tween(220), label = "speed-needle")
+    val angle = animateFloatAsState(150f + ((speed - .25f) / 2.75f).coerceIn(0f,1f) * 240f, tween(GaMotion.standardMs), label = "speed-needle")
     Canvas(Modifier.size(27.dp).semantics { contentDescription = "Playback speed" }) {
         val c = Offset(size.width/2, size.height*.55f)
         val r = size.width*.39f
@@ -94,7 +95,7 @@ internal fun SpeedDialIcon(speed: Float, tint: Color) {
 /** Cached cover, not a fabricated timestamp-specific video frame. Never decodes while scrubbing. */
 @Composable
 internal fun ScrubReadout(artwork: Bitmap?, time: String, seeking: Boolean) {
-    val lift = animateFloatAsState(if (seeking) 1f else 0f, tween(150), label="scrub-peel")
+    val lift = animateFloatAsState(if (seeking) 1f else 0f, tween(GaMotion.quickMs), label="scrub-peel")
     Row(Modifier.height(32.dp).graphicsLayer { rotationX = (1f-lift.value)*8f; translationY=(1f-lift.value)*2f }
         .clip(RoundedCornerShape(8.dp)).background(if (seeking) MaterialTheme.colorScheme.surfaceVariant else Color.Transparent)
         .padding(horizontal=6.dp), verticalAlignment=Alignment.CenterVertically) {

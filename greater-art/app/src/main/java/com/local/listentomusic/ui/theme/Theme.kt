@@ -11,7 +11,9 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.local.listentomusic.data.AppFont
 import com.local.listentomusic.data.ThemeMode
 import com.local.listentomusic.R
@@ -99,20 +101,65 @@ private fun typographyFor(font: AppFont, smallCaps: Boolean): Typography {
     val base = Typography()
     val features = if (smallCaps) "\"smcp\"" else null
     return base.copy(
-        displayLarge = base.displayLarge.copy(fontFamily = family, fontFeatureSettings = features),
-        displayMedium = base.displayMedium.copy(fontFamily = family, fontFeatureSettings = features),
-        displaySmall = base.displaySmall.copy(fontFamily = family, fontFeatureSettings = features),
-        headlineLarge = base.headlineLarge.copy(fontFamily = family, fontFeatureSettings = features),
-        headlineMedium = base.headlineMedium.copy(fontFamily = family, fontFeatureSettings = features),
-        headlineSmall = base.headlineSmall.copy(fontFamily = family, fontFeatureSettings = features),
-        titleLarge = base.titleLarge.copy(fontFamily = family, fontFeatureSettings = features),
-        titleMedium = base.titleMedium.copy(fontFamily = family, fontFeatureSettings = features),
-        titleSmall = base.titleSmall.copy(fontFamily = family, fontFeatureSettings = features),
-        bodyLarge = base.bodyLarge.copy(fontFamily = family, fontFeatureSettings = features),
-        bodyMedium = base.bodyMedium.copy(fontFamily = family, fontFeatureSettings = features),
-        bodySmall = base.bodySmall.copy(fontFamily = family, fontFeatureSettings = features),
-        labelLarge = base.labelLarge.copy(fontFamily = family, fontFeatureSettings = features),
-        labelMedium = base.labelMedium.copy(fontFamily = family, fontFeatureSettings = features),
-        labelSmall = base.labelSmall.copy(fontFamily = family, fontFeatureSettings = features),
+        displayLarge = base.displayLarge.copy(
+            fontFamily = family, fontFeatureSettings = features,
+            fontSize = 48.sp, lineHeight = 54.sp, fontWeight = FontWeight.Bold,
+        ),
+        displayMedium = base.displayMedium.copy(
+            fontFamily = family, fontFeatureSettings = features,
+            fontSize = 38.sp, lineHeight = 44.sp, fontWeight = FontWeight.Bold,
+        ),
+        displaySmall = base.displaySmall.copy(
+            fontFamily = family, fontFeatureSettings = features,
+            fontSize = 32.sp, lineHeight = 38.sp, fontWeight = FontWeight.Bold,
+        ),
+        headlineLarge = base.headlineLarge.copy(
+            fontFamily = family, fontFeatureSettings = features,
+            fontSize = 30.sp, lineHeight = 36.sp, fontWeight = FontWeight.Bold,
+        ),
+        headlineMedium = base.headlineMedium.copy(
+            fontFamily = family, fontFeatureSettings = features,
+            fontSize = 26.sp, lineHeight = 32.sp, fontWeight = FontWeight.Bold,
+        ),
+        headlineSmall = base.headlineSmall.copy(
+            fontFamily = family, fontFeatureSettings = features,
+            fontSize = 22.sp, lineHeight = 28.sp, fontWeight = FontWeight.SemiBold,
+        ),
+        titleLarge = base.titleLarge.copy(
+            fontFamily = family, fontFeatureSettings = features,
+            fontSize = 20.sp, lineHeight = 26.sp, fontWeight = FontWeight.SemiBold,
+        ),
+        titleMedium = base.titleMedium.copy(
+            fontFamily = family, fontFeatureSettings = features,
+            fontSize = 16.sp, lineHeight = 22.sp, fontWeight = FontWeight.SemiBold,
+        ),
+        titleSmall = base.titleSmall.copy(
+            fontFamily = family, fontFeatureSettings = features,
+            fontSize = 14.sp, lineHeight = 20.sp, fontWeight = FontWeight.Medium,
+        ),
+        bodyLarge = base.bodyLarge.copy(
+            fontFamily = family, fontFeatureSettings = features,
+            fontSize = 16.sp, lineHeight = 24.sp,
+        ),
+        bodyMedium = base.bodyMedium.copy(
+            fontFamily = family, fontFeatureSettings = features,
+            fontSize = 14.sp, lineHeight = 20.sp,
+        ),
+        bodySmall = base.bodySmall.copy(
+            fontFamily = family, fontFeatureSettings = features,
+            fontSize = 12.sp, lineHeight = 17.sp,
+        ),
+        labelLarge = base.labelLarge.copy(
+            fontFamily = family, fontFeatureSettings = features,
+            fontSize = 14.sp, lineHeight = 20.sp, fontWeight = FontWeight.Medium,
+        ),
+        labelMedium = base.labelMedium.copy(
+            fontFamily = family, fontFeatureSettings = features,
+            fontSize = 12.sp, lineHeight = 16.sp, fontWeight = FontWeight.Medium,
+        ),
+        labelSmall = base.labelSmall.copy(
+            fontFamily = family, fontFeatureSettings = features,
+            fontSize = 11.sp, lineHeight = 15.sp, fontWeight = FontWeight.Medium,
+        ),
     )
 }

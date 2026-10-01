@@ -162,6 +162,11 @@ import com.local.listentomusic.model.MediaKind
 import com.local.listentomusic.model.LocalLyrics
 import com.local.listentomusic.sleepTimerOptions
 import com.local.listentomusic.ui.components.LiquidMetalSurface
+import com.local.listentomusic.ui.theme.GaControl
+import com.local.listentomusic.ui.theme.GaMotion
+import com.local.listentomusic.ui.theme.GaRadius
+import com.local.listentomusic.ui.theme.GaSpacing
+import com.local.listentomusic.ui.theme.GaVideoOverlay
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
@@ -565,10 +570,11 @@ private fun VideoPlayerStage(
         ) {
             Text(
                 "2×",
-                color = Color.White,
+                color = GaVideoOverlay.foreground,
+                style = MaterialTheme.typography.labelLarge,
                 fontWeight = FontWeight.Bold,
-                modifier = Modifier.clip(CircleShape).background(Color.Black.copy(alpha = .58f))
-                    .padding(horizontal = 13.dp, vertical = 7.dp),
+                modifier = Modifier.clip(CircleShape).background(GaVideoOverlay.scrim)
+                    .padding(horizontal = GaSpacing.md, vertical = GaSpacing.sm),
             )
         }
         SeekFeedback(seekFeedback.first, seekFeedback.second, Modifier.align(if (seekFeedback.first < 0) Alignment.CenterStart else Alignment.CenterEnd))
@@ -602,23 +608,23 @@ private fun VideoPlayerStage(
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     OverlayIconButton(onClick = onPrevious, enabled = playback.hasPrevious) {
-                        Icon(Icons.Rounded.SkipPrevious, "Previous", tint = Color.White, modifier = Modifier.size(31.dp))
+                        Icon(Icons.Rounded.SkipPrevious, "Previous", tint = GaVideoOverlay.foreground, modifier = Modifier.size(GaControl.prominentIcon))
                     }
                     // Keep the center play control available whenever controls are visible.
                     Box(
-                        modifier = Modifier.size(52.dp).offset(y = (-4).dp).clip(CircleShape)
-                            .background(Color.White.copy(alpha = 0.2f)).clickable(onClick = onTogglePlay),
+                        modifier = Modifier.size(GaControl.hero).clip(CircleShape)
+                            .background(GaVideoOverlay.playSurface).clickable(onClick = onTogglePlay),
                         contentAlignment = Alignment.Center,
                     ) {
                         Icon(
                             if (playback.isPlaying) Icons.Rounded.Pause else Icons.Rounded.PlayArrow,
                             if (playback.isPlaying) "Pause" else "Play",
                             modifier = Modifier.size(30.dp),
-                            tint = Color.White.copy(alpha = 0.92f),
+                            tint = GaVideoOverlay.foreground,
                         )
                     }
                     OverlayIconButton(onClick = onNext, enabled = playback.hasNext) {
-                        Icon(Icons.Rounded.SkipNext, "Next", tint = Color.White, modifier = Modifier.size(31.dp))
+                        Icon(Icons.Rounded.SkipNext, "Next", tint = GaVideoOverlay.foreground, modifier = Modifier.size(GaControl.prominentIcon))
                     }
                 }
 
@@ -637,16 +643,16 @@ private fun VideoPlayerStage(
                         onValueChangeFinished = { onSeek(seekPosition.toLong()); seeking = false },
                         valueRange = 0f..maximum,
                         enabled = hasDuration,
-                        activeColor = Color(0xFFF3F5F0),
-                        inactiveColor = Color.White.copy(alpha = 0.38f),
+                        activeColor = GaVideoOverlay.foreground,
+                        inactiveColor = GaVideoOverlay.inactiveTrack,
                     )
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                         Text(
                             formatDuration(if (seeking) position.toLong() else playback.positionMs),
-                            color = Color.White,
+                            color = GaVideoOverlay.foreground,
                             style = MaterialTheme.typography.labelMedium,
                         )
-                        Text(formatDuration(playback.durationMs), color = Color.White, style = MaterialTheme.typography.labelMedium)
+                        Text(formatDuration(playback.durationMs), color = GaVideoOverlay.foreground, style = MaterialTheme.typography.labelMedium)
                     }
                 }
             }
@@ -1043,7 +1049,7 @@ private fun NowPlayingQueue(
                     val actionsOpen = openActionsKey == entry.stableKey
                     val revealProgress by animateFloatAsState(
                         targetValue = if (actionsOpen) 1f else 0f,
-                        animationSpec = tween(durationMillis = 200),
+                        animationSpec = tween(durationMillis = GaMotion.standardMs),
                         label = "queue-actions-reveal",
                     )
                     val density = LocalDensity.current
@@ -1123,7 +1129,7 @@ private fun NowPlayingQueue(
                             }
                             IconButton(
                                 onClick = { openActionsKey = if (actionsOpen) null else entry.stableKey },
-                                modifier = Modifier.size(40.dp).inspectElement("QUEUE_MORE_BUTTON", "Actions for ${file.name}"),
+                                modifier = Modifier.size(GaControl.touchTarget).inspectElement("QUEUE_MORE_BUTTON", "Actions for ${file.name}"),
                             ) {
                                 Icon(Icons.Rounded.MoreVert, uiText(language, "Actions", "操作"))
                             }
@@ -1457,7 +1463,7 @@ private fun PlayerBottomControls(
             Icon(Icons.Rounded.SkipPrevious, uiText(playback.appLanguage, "Previous", "上一首"), modifier = Modifier.size(36.dp))
         }
         LiquidMetalSurface(
-                    modifier = Modifier.size(52.dp).offset(y = (-4).dp)
+                    modifier = Modifier.size(GaControl.hero)
                         .inspectElement("PLAY_PAUSE_BUTTON", if (playback.isPlaying) "Pause" else "Play").clickable(
                         indication = null,
                         interactionSource = remember { MutableInteractionSource() },
@@ -1583,17 +1589,17 @@ private fun SecondaryControlRow(
     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
         if (playback.showAbRepeat) Button(
             onClick = { com.local.listentomusic.playback.PracticeLoop.mark(playback.currentPath, playback.positionMs) },
-            modifier = Modifier.weight(1f).height(40.dp), colors = controlColors,
-            shape = RoundedCornerShape(14.dp), contentPadding = PaddingValues(horizontal = 4.dp),
+            modifier = Modifier.weight(1f).height(GaControl.touchTarget), colors = controlColors,
+            shape = RoundedCornerShape(GaRadius.control), contentPadding = PaddingValues(horizontal = 4.dp),
         ) {
             Text(when { practice.end != null -> "A–B ×"; practice.start != null -> "Set B"; else -> "Set A" }, style = MaterialTheme.typography.labelMedium)
         }
         if (playback.showSleepControl) Box(Modifier.weight(1f)) {
             Button(
                 onClick = { sleepMenuOpen = true },
-                modifier = Modifier.fillMaxWidth().height(40.dp),
+                modifier = Modifier.fillMaxWidth().height(GaControl.touchTarget),
                 colors = controlColors,
-                shape = RoundedCornerShape(14.dp),
+                shape = RoundedCornerShape(GaRadius.control),
                 contentPadding = PaddingValues(horizontal = 7.dp),
             ) {
                 Icon(
@@ -1632,8 +1638,13 @@ private fun PracticeMarkers(playback: PlaybackUiState) {
     val range by com.local.listentomusic.playback.PracticeLoop.state.collectAsState()
     if (!playback.showAbRepeat || range.path != playback.currentPath || range.start == null || playback.durationMs <= 0) return
     val color = MaterialTheme.colorScheme.secondary
+    val markerTextSize = with(LocalDensity.current) { MaterialTheme.typography.labelSmall.fontSize.toPx() }
     Canvas(Modifier.fillMaxWidth().height(18.dp).padding(horizontal = 10.dp)) {
-        val paint = android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG).apply { this.color = color.toArgb(); textSize = 10.sp.toPx(); typeface = android.graphics.Typeface.DEFAULT_BOLD }
+        val paint = android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG).apply {
+            this.color = color.toArgb()
+            textSize = markerTextSize
+            typeface = android.graphics.Typeface.DEFAULT_BOLD
+        }
         listOf("A" to range.start, "B" to range.end).forEach { (label, time) ->
             if (time != null) {
                 val x = (time.toDouble() / playback.durationMs).toFloat().coerceIn(0f, 1f) * size.width
@@ -1671,12 +1682,12 @@ private fun NowPlayingTopBar(
     fullscreen: Boolean = false,
     onLocateCurrent: (() -> Unit)? = null,
 ) {
-    val foreground = if (overlay) Color.White else MaterialTheme.colorScheme.onSurface
-    val background = if (overlay) Color.Black.copy(alpha = 0.34f)
+    val foreground = if (overlay) GaVideoOverlay.foreground else MaterialTheme.colorScheme.onSurface
+    val background = if (overlay) GaVideoOverlay.scrim
         else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.28f)
     Row(
-        modifier = modifier.fillMaxWidth().height(50.dp).background(background)
-            .padding(horizontal = 4.dp),
+        modifier = modifier.fillMaxWidth().height(GaControl.hero).background(background)
+            .padding(horizontal = GaSpacing.xs),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         IconButton(onClick = onPictureInPicture, modifier = Modifier.inspectElement("FLOATING_PLAYER_BUTTON", "Opens the selected floating-player mode")) {
@@ -1723,7 +1734,8 @@ private fun OverlayIconButton(
     IconButton(
         onClick = onClick,
         enabled = enabled,
-        modifier = Modifier.clip(CircleShape).background(Color.Black.copy(alpha = 0.42f)),
+        modifier = Modifier.size(GaControl.touchTarget).clip(CircleShape)
+            .background(GaVideoOverlay.control),
         content = content,
     )
 }

@@ -12,6 +12,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.local.listentomusic.data.AppLanguage
+import com.local.listentomusic.ui.components.GaTonalIconAction
+import com.local.listentomusic.ui.theme.GaControl
+import com.local.listentomusic.ui.theme.GaSpacing
+import com.local.listentomusic.ui.theme.gaChromeColor
 import kotlin.math.abs
 
 /**
@@ -35,18 +39,18 @@ internal fun LibraryFamilyNavigationBar(
     Surface(
         modifier = Modifier.fillMaxWidth().statusBarsPadding()
             .inspectElement("LIBRARY_FAMILY_NAV", "Persistent Stack, All songs, Nodes navigation"),
-        color = MaterialTheme.colorScheme.background.copy(alpha = .50f),
+        color = gaChromeColor(),
     ) {
         Column {
             Row(
-                Modifier.fillMaxWidth().height(46.dp).padding(horizontal = 8.dp),
+                Modifier.fillMaxWidth().height(52.dp).padding(horizontal = GaSpacing.sm),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 labels.forEachIndexed { index, label ->
                     val selected = abs(position - index) < .5f
                     TextButton(
                         onClick = { onPage(index) },
-                        modifier = Modifier.weight(1f).height(42.dp)
+                        modifier = Modifier.weight(1f).height(GaControl.touchTarget)
                             .inspectElement("LIBRARY_FAMILY_NAV_$index", "Open $label"),
                     ) {
                         Text(
@@ -82,18 +86,20 @@ internal fun LibraryPageHeader(
     elementName: String,
 ) {
     Row(
-        Modifier.fillMaxWidth().height(76.dp).padding(horizontal = 14.dp)
+        Modifier.fillMaxWidth().height(80.dp).padding(horizontal = GaSpacing.lg)
             .inspectElement(elementName, "$title title and Library navigation"),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        FilledTonalIconButton(
+        GaTonalIconAction(
+            icon = Icons.Rounded.ArrowBack,
+            contentDescription = "Library",
             onClick = onLibrary,
-            modifier = Modifier.size(40.dp).inspectElement("${elementName}_LIBRARY_BUTTON", "Returns to Library"),
-        ) { Icon(Icons.Rounded.ArrowBack, "Library", Modifier.size(21.dp)) }
-        Spacer(Modifier.width(11.dp))
+            modifier = Modifier.inspectElement("${elementName}_LIBRARY_BUTTON", "Returns to Library"),
+        )
+        Spacer(Modifier.width(GaSpacing.md))
         Column(Modifier.weight(1f)) {
-            Text(title, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.ExtraBold)
-            Text(subtitle, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(title, style = MaterialTheme.typography.titleLarge)
+            Text(subtitle, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
     }
 }

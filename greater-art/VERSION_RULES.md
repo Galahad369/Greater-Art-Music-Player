@@ -1,14 +1,15 @@
 VERSION_RULES.md — Greater Art APK (HARDENED)
 
-VERSIONED CHANGE RULE (ABSOLUTE): Any change that affects executable app behavior, build behavior, release behavior, resources, manifest state, or executable tooling requires versionName += PATCH (X.Y.Z → X.Y.Z+1) and versionCode +=1 in the same commit. Documentation-only and release-finalization exceptions are limited to rule 8 below. No silent builds and no reused version numbers.
+VERSIONED CHANGE RULE (ABSOLUTE): Any change that affects executable app behavior, build behavior, release behavior, resources, manifest state, or executable tooling requires the next PATCH and versionCode +=1 in the same commit, unless this file explicitly lists a one-time series transition. Documentation-only and release-finalization exceptions are limited to rule 8 below. No silent builds and no reused version numbers.
 
 This file is the authoritative version policy for Greater Art. If any handoff note, README, old commit message, or conversation conflicts with this file, this file wins.
 
 ## Machine-checkable state
 
-Current source: **1.14.15 (code 130)**
+Current source: **1.15.1 (code 131)**
 Current release state: **SOURCE_ONLY**
 Latest verified APK: **1.14.3 (code 118)**
+Allowed series transition: **1.14.15 -> 1.15.1**
 
 ## Non-negotiable rules
 
@@ -18,7 +19,7 @@ Latest verified APK: **1.14.3 (code 118)**
    - The version bump must be in the **same commit** as the code change.
 2. **Never reuse a consumed version.** Once a code commit lands with a version, that version is spent even if the build, emulator, signing, or release step later fails.
 3. **No silent fixes under the same version.** If a build/test exposes another code bug, the fix is another code commit and therefore the next PATCH/code.
-4. **Never skip a PATCH/code inside the active series.** A series change such as `1.14.x -> 1.15.0` requires this policy to be explicitly amended first; agents must not infer a MINOR/MAJOR bump from feature size.
+4. **Never skip a PATCH/code inside the active series unless this file explicitly authorizes the exact transition.** Series changes must be user-directed and recorded as an `Allowed series transition` before they land. For this design-system release, `1.14.15 -> 1.15.1` is the sole authorized transition; `1.15.0` is intentionally unused.
 5. **Release APKs are immutable.** Never modify, overwrite, rename, or copy an older APK into a new version filename.
 6. **A new APK must be built from the exact source commit carrying that version.** Renaming an existing APK is not a build.
 7. **Source and release are two separate states.**
@@ -45,7 +46,7 @@ Markdown/docs-only changes, release hashes/metadata, and adding a newly verified
 
 1. Read `greater-art/app/build.gradle.kts`.
 2. Read this file and confirm the last tracked version.
-3. Bump PATCH exactly +1 and `versionCode` exactly +1.
+3. Bump PATCH exactly +1 and `versionCode` exactly +1, unless applying an exact `Allowed series transition` listed above. `versionCode` still increments exactly once.
 4. Set:
    - `Current source` to the new version/code.
    - `Current release state` to `SOURCE_ONLY`.
@@ -95,7 +96,7 @@ Using the exact source commit from Phase A:
 The guard checks:
 
 - Gradle matches the machine-checkable state above.
-- the tracked version ledger is sequential.
+- the tracked version ledger is sequential, except for exact one-time `Allowed series transition` entries.
 - each versioned code commit in the pushed/PR range bumps PATCH and code exactly once.
 - a code-changing commit lands as `SOURCE_ONLY`.
 - release APK paths are immutable: modification/rename/copy is rejected.
@@ -119,6 +120,7 @@ The guard checks:
 - 1.14.13 (code 128) — deep audit: duplicate-safe queue identity/exact-index playback, unified normal queue startup, expanded-player waveform warmup suppression, retired thumbnail-preload cleanup with active cache pruning, stale backup source removal, and release identity/versionCode hardening; source only, local build pending
 - 1.14.14 (code 129) — audit follow-up: propagate WAV warmup cancellation and make Locate current resolve the filtered queue's visible index; source only, local build pending
 - 1.14.15 (code 130) — version-guard PR-head fix: validate real pull-request commits instead of GitHub's synthetic merge ref; source only, local build pending
+- 1.15.1 (code 131) — user-directed visual-system release: restrained semantic design tokens, typography hierarchy, consistent chrome/spacing/motion, 48 dp interaction targets, dynamic graph labels, and four-screen UI polish; source only, local build pending
 
 Previous baseline: 1.13.26 (code 115).
 

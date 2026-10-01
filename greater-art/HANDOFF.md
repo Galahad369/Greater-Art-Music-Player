@@ -10,6 +10,19 @@ This file describes the **current repository state only**. Historical session no
 
 ## Repository state
 
+### October 1 — 1.15.1 restrained visual-system release (source only)
+
+- User-directed series transition from 1.14.15 to **1.15.1 (code 131)**. VERSION_RULES and the validator explicitly authorize only this exact transition; 1.15.0 is intentionally unused.
+- Added a small Greater Art design-system layer rather than a generic redesign: shared spacing, control-size, radius, motion, chrome-alpha and video-overlay semantics plus reusable icon-action, chrome-surface, divider and section-header components.
+- Typography now has a deliberate hierarchy while preserving every user-selectable font family and Silian Rail small-caps behavior. Title/body/label sizes, line heights and weights are consistent instead of relying on raw Material defaults.
+- Library chrome keeps Liquid Metal and the shared wallpaper identity, but uses consistent 48 dp action targets, 16 dp horizontal rhythm, semantic chrome opacity, calmer search focus treatment, and standard motion timing. Row overflow targets are also 48 dp.
+- Now Playing keeps the dedicated light-on-dark video overlay palette because arbitrary video content is not a themed surface. Those colors are centralized semantically; immersive controls use explicit 48/56 dp interaction sizing, the offset play-button hack is removed, A/B marker text follows dynamic type, row reveal motion is standardized, and queue overflow targets are 48 dp.
+- Settings keeps the transparent shared-background model. Repeated ad-hoc dividers/cards are replaced by the shared chrome primitives, section hierarchy is calmer, descriptions use body text consistently, and the top-bar back action is a guaranteed 48 dp target.
+- Nodes keeps the graph-first aesthetic. Toolbar chrome now matches the Library family, graph tools guarantee 48 dp minimum interaction height, gesture copy uses body text, and Canvas filename labels derive their pixel size from Material typography/font scale instead of a hardcoded paint size.
+- Added design-system regression tests for minimum control targets, restrained motion ordering, and real light/dark secondary-text contrast. The existing palette already exceeds 4.5:1 for onSurfaceVariant against surface, so no unnecessary contrast recolor was applied.
+- No playback decoder, media quality, queue semantics, file deletion, privacy, networking, or release-APK behavior changed in this visual release.
+- State is **SOURCE_ONLY**. Latest verified APK remains 1.14.3 until Hermes builds and device-verifies exact 1.15.1 source.
+
 ### October 1 — 1.14.15 PR version-guard correctness (source only)
 
 - PR #50 exposed a validator integration bug: GitHub Actions checks out a synthetic merge commit for pull requests, so range validation compared that merge result directly to main and incorrectly treated the valid two-step 1.14.13 → 1.14.14 history as one 1.14.12 → 1.14.14 jump.
