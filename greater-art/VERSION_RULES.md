@@ -7,7 +7,7 @@ This file is the authoritative version policy for Greater Art. If any handoff no
 ## Machine-checkable state
 
 <<<<<<< HEAD
-Current source: **1.15.11 (code 141)**
+Current source: **1.15.13 (code 143)**
 Current release state: **SOURCE_ONLY**
 Latest verified APK: **1.15.10 (code 140)**
 Allowed series transition: **1.14.15 -> 1.15.1**
@@ -132,6 +132,8 @@ The guard checks:
 - 1.15.9 (code 139) — repository integrity cleanup: remove unsafe commit-amending version helpers, permissive branch-protection recipes, and unverified 1.15.4 release artifact; local build verified
 - 1.15.10 (code 140) — version-guard hardening: root executable tooling consumes versions and current-tree release scan rejects unverified/newer or malformed APK artifacts; local build verified
 - 1.15.11 (code 141) — force-rewrite CI recovery: version workflow skips only the impossible BASE..HEAD range check when a push's old base object is no longer reachable, while current-state/ledger validation remains mandatory; source only, local build pending
+- 1.15.12 (code 142) — ColorTheme.FOREST wired into PlayerWindowExpandedContent; legacy theme handling cleaned up; source only, local build pending
+- 1.15.13 (code 143) — full-screen video theme isolation and ColorTheme wiring; source only, local build pending
 
 Previous baseline: 1.13.26 (code 115).
 

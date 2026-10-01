@@ -3,7 +3,7 @@
 This file describes the **current repository state only**. Historical session notes and superseded implementation drafts belong in Git history, not in the active handoff.
 
 **Project:** `greater-art/` in the repository checkout
-**Current version:** `1.15.10 (code 140)`
+**Current version:** `1.15.13 (code 143)`
 **Latest APK:** `releases/GreaterArt-1.15.10.apk` (`26,287,658 bytes`; SHA-256 `cf362d30747685d03d462cf0d37aa7a7508eb3e76c60da2ad1b3be612adcd0a3`)
 **Application ID:** `com.local.listentomusic`
 **Signing certificate SHA-256:** `9e28eb45b3b171c3ea47d7da942d28d88b16538885e392a6971a80906d612fbf`
@@ -12,6 +12,17 @@ This file describes the **current repository state only**. Historical session no
 **Verification boundary:** Built from exact source commit `56430b6`; `./gradlew testDebugUnitTest lintDebug :app:assembleDebug --offline` passed; `aapt dump badging` confirms package `com.local.listentomusic`, versionName `1.15.10`, versionCode `140`; signed with personal debug keystore; installed on A55/API 36; launch, library scan/load, local audio/video playback, prev/next/seek/pause/resume, playlist/Favorites playback, duplicate queue independence, Stack→Library/playlist transition, queue/Library add-to-list, Library delete three-confirm flow, mini-window/fullscreen/return flows verified; **0 FATAL EXCEPTION** in tested session.
 
 ## Repository state
+
+### October 2 — 1.15.13 full-screen video theme isolation and ColorTheme wiring (source only)
+
+- `.github/workflows/public-repo-security.yml`: CodeQL build-mode configuration for full-screen video analysis.
+- `PlayerWindowExpandedContent.kt`: Full-screen video theme isolation; ColorTheme.FOREST wired into expanded player.
+- Source version: **1.15.13 (code 143)**. State: **SOURCE_ONLY**. Latest verified APK remains 1.15.10.
+
+### October 2 — 1.15.12 ColorTheme.FOREST wired into PlayerWindowExpandedContent (source only)
+
+- `PlayerWindowExpandedContent.kt`: ColorTheme.FOREST wired into expanded player; legacy theme handling cleaned up.
+- Source version: **1.15.12 (code 142)**. State: **SOURCE_ONLY**. Latest verified APK remains 1.15.10.
 
 ### October 2 — 1.15.11 force-rewrite version-workflow recovery (source only)
 
