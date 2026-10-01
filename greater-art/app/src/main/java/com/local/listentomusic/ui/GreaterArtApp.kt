@@ -358,7 +358,6 @@ fun GreaterArtApp(
                         },
                         onToggleFavourite = viewModel::toggleFavourite,
                         onLoadThumbnail = viewModel::loadThumbnail,
-                        onPreloadAhead = viewModel::preloadThumbnailsStartingAt,
                         onOpenSettings = { screen = Screen.SETTINGS },
                         onStackTogether = { files ->
                             val started = com.local.listentomusic.playback.StackPlayback.start(files)
@@ -387,7 +386,6 @@ fun GreaterArtApp(
                     onThemeMode = viewModel::setThemeMode,
                     onShowThumbnails = viewModel::setShowThumbnails,
                     onShowFileDetails = viewModel::setShowFileDetails,
-                    onPreloadThumbnails = viewModel::setPreloadThumbnails,
                     onResumePlayback = viewModel::setResumePlayback,
                     onAutoPictureInPicture = viewModel::setAutoPictureInPicture,
                     onFloatingWindowMode = viewModel::setFloatingWindowMode,
@@ -531,7 +529,7 @@ fun GreaterArtApp(
                         appendLine("heapUsedMiB=${(Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory()) / 1_048_576} heapLimitMiB=${Runtime.getRuntime().maxMemory() / 1_048_576}")
                         appendLine("lastTapToFirstFrameMs=${com.local.listentomusic.playback.PlaybackDiagnostics.firstFrameDelayMs ?: "not reported"} (last tap; independent of current surface)")
                         appendLine("$indexStatus")
-                        appendLine("abControls=${settings.showAbRepeat} extendedSearch=${settings.extendedSearch} thumbPreload=${settings.preloadThumbnails}")
+                        appendLine("abControls=${settings.showAbRepeat} extendedSearch=${settings.extendedSearch}")
                         appendLine("displayOverrides=${settings.localOverrides.size} rulePlaylists=${settings.playlists.count { it.rule != null }}")
                         appendLine("No logs, file paths or listening history are uploaded.")
                     },

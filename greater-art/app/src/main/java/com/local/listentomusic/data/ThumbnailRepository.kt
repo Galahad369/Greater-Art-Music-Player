@@ -12,13 +12,9 @@ import androidx.core.graphics.scale
 import com.local.listentomusic.model.MediaFile
 import com.local.listentomusic.model.MediaKind
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.async
-import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.sync.Mutex
-import kotlinx.coroutines.sync.Semaphore
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.sync.withPermit
-import kotlinx.coroutines.supervisorScope
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -28,7 +24,6 @@ import java.io.File
 import java.io.FileOutputStream
 import java.security.MessageDigest
 import java.util.concurrent.ConcurrentHashMap
-import java.util.concurrent.ConcurrentLinkedQueue
 import kotlin.math.max
 
 data class ThumbnailStats(
@@ -47,10 +42,8 @@ data class ThumbnailStats(
  */
 class ThumbnailRepository(private val context: Context) {
     private val cacheDirectory = File(context.cacheDir, "media_thumbnails").apply { mkdirs() }
-    // Two workers keep warmup from competing with scrolling and playback.
-    // Visible requests still bypass this background gate.
-    private val preloadWorkers = Semaphore(2)
-    private val decodeWorkers = Semaphore(2)
+    // Bound expensive frame/artwork decoding even when several visible rows request it.
+    private val decodeWorkers = kotlinx.coroutines.sync.Semaphore(2)
     private val locks = Array(64) { Mutex() }
     private val pruned = java.util.concurrent.atomic.AtomicBoolean(false)
     private val recentFailures = ConcurrentHashMap<String, Long>()
@@ -61,6 +54,7 @@ class ThumbnailRepository(private val context: Context) {
     }
 
     suspend fun load(file: MediaFile): Bitmap? = withContext(Dispatchers.IO) {
+        if (pruned.compareAndSet(false, true)) pruneDiskCache()
         val key = cacheKey(file)
         memoryCache.get(key)?.let {
             _stats.update { value -> value.copy(memoryHits = value.memoryHits + 1) }
@@ -99,26 +93,11 @@ class ThumbnailRepository(private val context: Context) {
         }
     }
 
-    suspend fun preload(files: List<MediaFile>) = supervisorScope {
-        if (pruned.compareAndSet(false, true)) withContext(Dispatchers.IO) { pruneDiskCache() }
-        // Preserve caller priority. Sorting every video before audio starved the
-        // actually visible rows in mixed libraries.
-        val queue = ConcurrentLinkedQueue(files.distinctBy(MediaFile::path))
-        List(PRELOAD_COROUTINES) {
-            async(Dispatchers.IO) {
-                while (true) {
-                    val file = queue.poll() ?: break
-                    preloadWorkers.withPermit { load(file) }
-                }
-            }
-        }.awaitAll()
-        Unit
-    }
-
     suspend fun clear() = withContext(Dispatchers.IO) {
         memoryCache.evictAll()
         recentFailures.clear()
         cacheDirectory.listFiles()?.forEach { it.delete() }
+        pruned.set(false)
         Unit
     }
 
@@ -316,7 +295,6 @@ class ThumbnailRepository(private val context: Context) {
         const val ARTWORK_SIZE = 256
         const val MAX_DISK_FILES = 600
         const val MAX_DISK_BYTES = 256L * 1024L * 1024L
-        const val PRELOAD_COROUTINES = 2
         const val FAILURE_RETRY_MS = 30_000L
         val IMAGE_EXTENSIONS = setOf("jpg", "jpeg", "png", "webp", "bmp")
         val FOLDER_ART_NAMES = setOf("cover", "folder", "front", "album", "artwork")

@@ -52,8 +52,6 @@ import android.net.Uri
 import android.provider.OpenableColumns
 import java.io.File
 
-private const val MAX_PRELOAD_ITEMS = 300
-
 internal enum class CycleMode { OFF, ONE, ALL, RANDOM }
 
 internal fun resolveCycleMode(repeatMode: Int, random: Boolean): CycleMode = when {
@@ -92,6 +90,7 @@ data class LibraryUiState(
 data class PlaybackUiState(
     val connected: Boolean = false,
     val currentPath: String? = null,
+    val currentQueueIndex: Int = -1,
     val title: String = "Nothing playing",
     val isPlaying: Boolean = false,
     val positionMs: Long = 0L,
@@ -126,8 +125,6 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     fun useSessionPresentationOnly() {
         presentationOnly = true
         scanJob?.cancel()
-        thumbnailWarmupJob?.cancel()
-        thumbnailAheadJob?.cancel()
         waveformWarmupJob?.cancel()
         waveformAheadJob?.cancel()
     }
@@ -215,8 +212,6 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     private var controllerLease: com.local.listentomusic.playback.SharedPlaybackResource.Lease<ListenableFuture<MediaController>>? = null
     private var tickerJob: Job? = null
-        private var thumbnailWarmupJob: Job? = null
-        private var thumbnailAheadJob: Job? = null
         private var scanJob: Job? = null
         private var durationProbeJob: Job? = null
         private var waveformWarmupJob: Job? = null
@@ -294,10 +289,19 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         connectController()
         // Also runs on service reconnection, not only on a new media-item event.
         waveformWarmupJob = viewModelScope.launch {
-            combine(_queue, _library.map { it.files }.distinctUntilChanged(), _playback.map { it.currentPath }.distinctUntilChanged()) { queue, library, path ->
-                com.local.listentomusic.model.waveformWarmupPaths(queue, library, path)
+            combine(
+                _queue,
+                _library.map { it.files }.distinctUntilChanged(),
+                _playback.map { it.currentPath }.distinctUntilChanged(),
+                com.local.listentomusic.playback.PlayerWindowVisibility.expandedShowing,
+            ) { queue, library, path, expanded ->
+                // Expanded Now Playing owns the latency budget. Cancel background
+                // future-track decoding while it is visible; explicit current-track
+                // waveform requests still run in the presentation ViewModel.
+                if (expanded) emptyList() else com.local.listentomusic.model.waveformWarmupPaths(queue, library, path)
             }.distinctUntilChanged()
                 .collectLatest { upcoming ->
+                    if (upcoming.isEmpty()) return@collectLatest
                     delay(700)
                     // One producer: future-track decoding cannot jump ahead of the current track.
                     upcoming.forEach {
@@ -325,14 +329,6 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                     refreshMetadata()
                     applySortingAndFilter()
                     _library.value = _library.value.copy(status = LibraryStatus.READY)
-                    thumbnailWarmupJob?.cancel()
-                    thumbnailAheadJob?.cancel()
-                    thumbnailWarmupJob = if (userPreferences.preloadThumbnails) viewModelScope.launch {
-                        // Warm a generous initial window while decoding remains bounded.
-                        // Visible rows still bypass the preload throttle.
-                        sortingJob?.join()
-                        warmThumbnailsInStages((orderedFiles + result.files).distinctBy { it.path }.take(MAX_PRELOAD_ITEMS))
-                    } else null
                 }
                 is ScanResult.FolderMissing -> {
                     scannedFiles = emptyList()
@@ -391,8 +387,6 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun play(file: MediaFile) {
-        thumbnailWarmupJob?.cancel()
-        thumbnailAheadJob?.cancel()
         val player = _controller.value
         if (player == null) {
             // A tap can arrive while the MediaSession connection is still starting.
@@ -404,26 +398,25 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     private fun playNow(player: Player, file: MediaFile) {
-        com.local.listentomusic.playback.StackPlayback.stop()
-        expandRestoredQueue = false
-        com.local.listentomusic.playback.PlaybackDiagnostics.requestedAtMs = android.os.SystemClock.elapsedRealtime()
-        com.local.listentomusic.playback.PlaybackDiagnostics.firstFrameDelayMs = null
-        lastPlaybackError = null
         val queue = com.local.listentomusic.model.browsingQueue(file, orderedFiles, scannedFiles)
         val index = queue.indexOfFirst { it.path == file.path }.coerceAtLeast(0)
         val resumeAt = if (userPreferences.resumePlayback && file.path == userPreferences.lastPath) {
             userPreferences.lastPositionMs
         } else 0L
-        player.setMediaItems(queue.map(MediaFile::toMediaItem), index, resumeAt)
+        startNormalQueue(player, queue, index, resumeAt)
+    }
+
+    /** Every normal queue replacement exits Stack first and shares one startup path. */
+    private fun startNormalQueue(player: Player, queue: List<MediaFile>, index: Int, positionMs: Long) {
+        if (queue.isEmpty()) return
+        com.local.listentomusic.playback.StackPlayback.stop()
+        expandRestoredQueue = false
+        com.local.listentomusic.playback.PlaybackDiagnostics.requestedAtMs = android.os.SystemClock.elapsedRealtime()
+        com.local.listentomusic.playback.PlaybackDiagnostics.firstFrameDelayMs = null
+        lastPlaybackError = null
+        player.setMediaItems(queue.map(MediaFile::toMediaItem), index.coerceIn(queue.indices), positionMs.coerceAtLeast(0L))
         player.playWhenReady = true
         player.prepare()
-        // Yield decoder/IO capacity to playback startup, then resume the bounded
-        // warmup. Cancelling it permanently on every tap left most covers cold.
-        thumbnailWarmupJob?.cancel()
-        if (userPreferences.preloadThumbnails) thumbnailWarmupJob = viewModelScope.launch {
-            delay(600)
-            warmThumbnailsInStages(orderedFiles.take(MAX_PRELOAD_ITEMS))
-        }
     }
 
     suspend fun loadThumbnail(file: MediaFile): Bitmap? = thumbnailRepository.load(file)
@@ -446,17 +439,11 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-    fun playQueueItem(file: MediaFile) {
-        val player = _controller.value
-        val index = player?.let { current ->
-            (0 until current.mediaItemCount).firstOrNull { current.getMediaItemAt(it).mediaId == file.path }
-        }
-        if (player != null && index != null) {
-            player.seekToDefaultPosition(index)
-            player.play()
-        } else {
-            play(file)
-        }
+    fun playQueueItem(index: Int) {
+        val player = _controller.value ?: return
+        if (index !in 0 until player.mediaItemCount) return
+        player.seekToDefaultPosition(index)
+        player.play()
     }
 
     suspend fun loadCurrentArtwork(path: String?): Bitmap? {
@@ -717,11 +704,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             playlist.rule?.let { rule -> scannedFiles.filter { rule.matches(it, MediaScanner.targetFolder().path) } }
                 ?: playlist.paths.mapNotNull(byPath::get)
         }
-        if (queue.isEmpty()) return
-        lastPlaybackError = null
-        player.setMediaItems(queue.map(MediaFile::toMediaItem), 0, 0L)
-        player.playWhenReady = true
-        player.prepare()
+        startNormalQueue(player, queue, 0, 0L)
     }
 
     fun filesForPlaylist(id: String): List<MediaFile> {
@@ -756,30 +739,6 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         updatePreference {
             preferences.removeFromPlaylist(id, path)
             offerUndo("Song removed from playlist") { preferences.restorePlaylistItem(id, path, old.paths.indexOf(path)) }
-        }
-    }
-
-    fun setPreloadThumbnails(value: Boolean) {
-        updatePreference { preferences.setPreloadThumbnails(value) }
-        if (value) {
-            thumbnailWarmupJob?.cancel()
-            thumbnailWarmupJob = viewModelScope.launch {
-                warmThumbnailsInStages(orderedFiles.take(MAX_PRELOAD_ITEMS))
-            }
-        } else {
-            thumbnailWarmupJob?.cancel()
-            thumbnailAheadJob?.cancel()
-        }
-    }
-
-    // Pre-warm later windows without cancelling the initial 300-item warmup.
-    fun preloadThumbnailsStartingAt(startIndex: Int, count: Int) {
-        if (!userPreferences.preloadThumbnails) return
-        val window = orderedFiles.drop(startIndex).take(count)
-        if (window.isEmpty()) return
-        thumbnailAheadJob?.cancel()
-        thumbnailAheadJob = viewModelScope.launch {
-            thumbnailRepository.preload(window)
         }
     }
 
@@ -827,20 +786,12 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         player.removeMediaItem(index)
         syncPlaybackQueue()
         offerUndo("Song removed from queue") {
-            if (_controller.value === player && (0 until player.mediaItemCount).none { player.getMediaItemAt(it).mediaId == removed.mediaId }) {
-                player.addMediaItem(index.coerceIn(0, player.mediaItemCount), removed); syncPlaybackQueue()
+            if (_controller.value === player) {
+                // Duplicates are valid queue entries. Restore the exact removed
+                // occurrence even when another item has the same mediaId.
+                player.addMediaItem(index.coerceIn(0, player.mediaItemCount), removed)
+                syncPlaybackQueue()
             }
-        }
-    }
-
-    private suspend fun warmThumbnailsInStages(files: List<MediaFile>) {
-        // Let the first frame and visible rows settle before bulk disk work. Visible
-        // requests bypass this queue, so interaction stays responsive.
-        delay(300)
-        thumbnailRepository.preload(files.take(24))
-        files.drop(24).chunked(24).forEach { chunk ->
-            delay(90)
-            thumbnailRepository.preload(chunk)
         }
     }
 
@@ -964,6 +915,9 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         val next = PlaybackUiState(
             connected = true,
             currentPath = path,
+            currentQueueIndex = if (stack == null && player.currentMediaItemIndex in 0 until player.mediaItemCount) {
+                player.currentMediaItemIndex
+            } else -1,
             title = orderedFiles.firstOrNull { it.path == path }?.name ?: player.mediaMetadata.title?.toString()
                 ?: player.currentMediaItem?.mediaId?.substringAfterLast('/')
                 ?: "Nothing playing",
@@ -1169,8 +1123,6 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     override fun onCleared() {
         libraryObserver.stop()
         tickerJob?.cancel()
-        thumbnailWarmupJob?.cancel()
-        thumbnailAheadJob?.cancel()
         scanJob?.cancel()
         durationProbeJob?.cancel()
         waveformWarmupJob?.cancel()

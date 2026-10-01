@@ -89,7 +89,6 @@ fun SettingsScreen(
     onThemeMode: (ThemeMode) -> Unit,
     onShowThumbnails: (Boolean) -> Unit,
     onShowFileDetails: (Boolean) -> Unit,
-    onPreloadThumbnails: (Boolean) -> Unit,
     onResumePlayback: (Boolean) -> Unit,
     onAutoPictureInPicture: (Boolean) -> Unit,
     onFloatingWindowMode: (FloatingWindowMode) -> Unit,
@@ -370,7 +369,7 @@ fun SettingsScreen(
                             Row {
                                 IconButton(
                                     onClick = { onPlayPlaylist(playlist.id) },
-                                    enabled = playlist.paths.isNotEmpty(),
+                                    enabled = playlist.paths.isNotEmpty() || playlist.rule != null,
                                 ) { Icon(Icons.Rounded.PlayArrow, uiText(language, "Play", "播放")) }
                                 IconButton(onClick = { onSharePlaylist(playlist) }, enabled = playlist.paths.isNotEmpty() || playlist.rule != null) {
                                     Icon(Icons.Rounded.Share, uiText(language, "Share playlist", "分享播放清單"))

@@ -184,7 +184,7 @@ class WaveformRepository(context: Context) {
     }
 
     /** Direct WAV reader avoids device codec quirks and samples every time segment. */
-    private fun decodeWav(path: String): FloatArray? = runCatching {
+    private suspend fun decodeWav(path: String): FloatArray? = runCatching {
         java.io.RandomAccessFile(path, "r").use { input ->
             if (input.length() < 44L) return null
             val riff = ByteArray(4).also(input::readFully).toString(Charsets.US_ASCII)
@@ -219,6 +219,7 @@ class WaveformRepository(context: Context) {
             val frameBytes = bytesPerSample * channels
             val peaks = FloatArray(BINS)
             repeat(BINS) { bin ->
+                coroutineContext.ensureActive()
                 val segmentStart = dataStart + dataSize * bin / BINS
                 val segmentEnd = dataStart + dataSize * (bin + 1) / BINS
                 val frames = ((segmentEnd - segmentStart) / frameBytes).coerceAtLeast(1L)

@@ -31,7 +31,6 @@ data class UserPreferences(
     val themeMode: ThemeMode = ThemeMode.DARK,
     val showThumbnails: Boolean = true,
     val showFileDetails: Boolean = false,
-    val preloadThumbnails: Boolean = false,
     val resumePlayback: Boolean = true,
     val autoPictureInPicture: Boolean = true,
     val floatingWindowMode: FloatingWindowMode = FloatingWindowMode.MINI_WINDOW,
@@ -155,9 +154,6 @@ class AppPreferences(private val context: Context) {
             themeMode = enumValueOrDefault(prefs[Keys.themeMode], ThemeMode.DARK),
             showThumbnails = prefs[Keys.showThumbnails] ?: true,
             showFileDetails = prefs[Keys.showFileDetails] ?: false,
-            // Bulk thumbnail decoding competes with full-quality video playback.
-            // Keep on-demand thumbnails; old saved preload=true values are retired.
-            preloadThumbnails = false,
             resumePlayback = prefs[Keys.resumePlayback] ?: true,
             autoPictureInPicture = prefs[Keys.autoPictureInPicture] ?: true,
             floatingWindowMode = enumValueOrDefault(
@@ -214,7 +210,7 @@ class AppPreferences(private val context: Context) {
         Keys.themeMode, Keys.floatingWindowMode, Keys.appLanguage, Keys.appFont,
         Keys.playlists, Keys.activePlaylistId, Keys.excludedFolders, Keys.favouritePaths)
     private val backupBooleans = listOf(Keys.showThumbnails, Keys.showFileDetails,
-        Keys.preloadThumbnails, Keys.resumePlayback, Keys.autoPictureInPicture,
+        Keys.resumePlayback, Keys.autoPictureInPicture,
         Keys.editableQueue, Keys.showSleepControl, Keys.showAbRepeat, Keys.extendedSearch,
         Keys.replayGainEnabled, Keys.blackDiscMode)
 
@@ -250,6 +246,8 @@ class AppPreferences(private val context: Context) {
             prefs[Keys.repeatMode] = json.optLong(Keys.repeatMode.name, 1).coerceIn(0, 2)
             prefs[Keys.seekOffsetMs] = json.optLong(Keys.seekOffsetMs.name, 5_000).coerceIn(1_000, 60_000)
             prefs[Keys.floatingWindowDefaultV2] = true
+            // Bulk thumbnail preload was retired; discard legacy backup/device state.
+            prefs.remove(Keys.preloadThumbnails)
             prefs.remove(Keys.silianRail)
         }
     }
@@ -278,7 +276,6 @@ class AppPreferences(private val context: Context) {
     suspend fun setThemeMode(value: ThemeMode) = edit { it[Keys.themeMode] = value.name }
     suspend fun setShowThumbnails(value: Boolean) = edit { it[Keys.showThumbnails] = value }
     suspend fun setShowFileDetails(value: Boolean) = edit { it[Keys.showFileDetails] = value }
-    suspend fun setPreloadThumbnails(value: Boolean) = edit { it[Keys.preloadThumbnails] = value }
     suspend fun setResumePlayback(value: Boolean) = edit { it[Keys.resumePlayback] = value }
     suspend fun setAutoPictureInPicture(value: Boolean) = edit { it[Keys.autoPictureInPicture] = value }
     suspend fun setFloatingWindowMode(value: FloatingWindowMode) = edit {
