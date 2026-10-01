@@ -7,11 +7,12 @@ This file is the authoritative version policy for Greater Art. If any handoff no
 ## Machine-checkable state
 
 
-Current source: **1.15.17 (code 147)**
+Current source: **1.15.19 (code 149)**
 Current release state: **SOURCE_ONLY**
 Latest verified APK: **1.15.10 (code 140)**
 Allowed series transition: **1.14.15 -> 1.15.1**
 Allowed consumed transition: **1.15.13 (code 143) -> 1.15.17 (code 147)**
+Allowed consumed transition: **1.15.17 (code 147) -> 1.15.19 (code 149)**
 
 ## Non-negotiable rules
 
@@ -21,7 +22,7 @@ Allowed consumed transition: **1.15.13 (code 143) -> 1.15.17 (code 147)**
    - The version bump must be in the **same commit** as the code change.
 2. **Never reuse a consumed version.** Once a code commit lands with a version, that version is spent even if the build, emulator, signing, or release step later fails.
 3. **No silent fixes under the same version.** If a build/test exposes another code bug, the fix is another code commit and therefore the next PATCH/code.
-4. **Never skip a PATCH/code inside the active series unless this file explicitly authorizes the exact transition.** Series changes use `Allowed series transition`. A consumed-branch recovery may use `Allowed consumed transition` only when every skipped version/code was already committed on a side branch and remains recorded in the ledger. The exact 1.15.13/code143 -> 1.15.17/code147 transition is authorized because 1.15.14–1.15.16 were already consumed during reviewed recovery attempts.
+4. **Never skip a PATCH/code inside the active series unless this file explicitly authorizes the exact transition.** Series changes use `Allowed series transition`. A consumed-branch recovery may use `Allowed consumed transition` only when every skipped version/code was already committed on a side branch and remains recorded in the ledger. The 1.15.13/code143 -> 1.15.17/code147 transition is authorized because 1.15.14–1.15.16 were already consumed during reviewed recovery attempts; the 1.15.17/code147 -> 1.15.19/code149 transition is authorized because 1.15.18/code148 was already committed on the rejected Grok side branch.
 5. **Release APKs are immutable.** Never modify, overwrite, rename, or copy an older APK into a new version filename.
 6. **A new APK must be built from the exact source commit carrying that version.** Renaming an existing APK is not a build.
 7. **Source and release are two separate states.**
@@ -139,6 +140,8 @@ The guard checks:
 - 1.15.15 (code 145) — rebased complete ColorTheme recovery after concurrent main drift; version consumed on side branch, not merged
 - 1.15.16 (code 146) — consumed-transition validator support for the recovery branch; version consumed on side branch, not merged
 - 1.15.17 (code 147) — canonical branch convergence: complete reviewed ColorTheme/Settings implementation + exact consumed-transition guard, preserving verified 1.15.10 release metadata; source only, local build pending
+- 1.15.18 (code 148) — rejected Grok PR #62 version-only side-branch commit; no claimed UI implementation was present; version consumed, not merged
+- 1.15.19 (code 149) — canonical transport-control alignment: shared hero icon token plus 48 dp previous/next targets, extracted from the Replit branch; source only, local build pending
 
 Previous baseline: 1.13.26 (code 115).
 
