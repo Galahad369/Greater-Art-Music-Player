@@ -9,22 +9,21 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.TextOverflow
-import androidx.compose.ui.text.UNDEFINED
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.local.listentomusic.ui.design.DesignTokens
+
+@Composable
 fun GAText(
     text: String,
     style: TextStyle = MaterialTheme.typography.bodyLarge,
     color: androidx.compose.ui.graphics.Color = androidx.compose.material3.MaterialTheme.colorScheme.onSurface,
     modifier: androidx.compose.ui.Modifier = androidx.compose.ui.Modifier,
-    maxLines: Int = UNDEFINED,
-    overflow: TextOverflow = TextOverflow.Ellipsis,
-    textAlign: TextAlign = TextAlign.Start,
+    maxLines: Int = androidx.compose.ui.text.UNDEFINED,
+    overflow: androidx.compose.ui.text.overflow.TextOverflow = androidx.compose.ui.text.overflow.TextOverflow.Ellipsis,
+    textAlign: androidx.compose.ui.text.style.TextAlign = androidx.compose.ui.text.style.TextAlign.Start,
     fontWeight: FontWeight? = null,
     fontSize: androidx.compose.ui.unit.Sp? = null,
     letterSpacing: androidx.compose.ui.unit.Sp? = null,
@@ -52,9 +51,9 @@ fun GATitle(
     variant: GATitleVariant = GATitleVariant.H1,
     color: androidx.compose.ui.graphics.Color = MaterialTheme.colorScheme.onSurface,
     modifier: androidx.compose.ui.Modifier = androidx.compose.ui.Modifier,
-    maxLines: Int = UNDEFINED,
-    overflow: TextOverflow = TextOverflow.Ellipsis,
-    textAlign: TextAlign = TextAlign.Start
+    maxLines: Int = androidx.compose.ui.text.UNDEFINED,
+    overflow: androidx.compose.ui.text.overflow.TextOverflow = androidx.compose.ui.text.overflow.TextOverflow.Ellipsis,
+    textAlign: androidx.compose.ui.text.style.TextAlign = androidx.compose.ui.text.style.TextAlign.Start
 ) {
     val style = when (variant) {
         GATitleVariant.H1 -> MaterialTheme.typography.displaySmall.copy(fontWeight = FontWeight.ExtraBold, fontSize = 32.sp)
@@ -85,9 +84,9 @@ fun GABody(
     variant: GABodyVariant = GABodyVariant.MEDIUM,
     color: androidx.compose.ui.graphics.Color = MaterialTheme.colorScheme.onSurface,
     modifier: androidx.compose.ui.Modifier = androidx.compose.ui.Modifier,
-    maxLines: Int = UNDEFINED,
-    overflow: TextOverflow = TextOverflow.Ellipsis,
-    textAlign: TextAlign = TextAlign.Start
+    maxLines: Int = androidx.compose.ui.text.UNDEFINED,
+    overflow: androidx.compose.ui.text.overflow.TextOverflow = androidx.compose.ui.text.overflow.TextOverflow.Ellipsis,
+    textAlign: androidx.compose.ui.text.style.TextAlign = androidx.compose.ui.text.style.TextAlign.Start
 ) {
     val style = when (variant) {
         GABodyVariant.LARGE -> MaterialTheme.typography.bodyLarge
@@ -115,8 +114,8 @@ fun GALabel(
     variant: GALabelVariant = GALabelVariant.MEDIUM,
     color: androidx.compose.ui.graphics.Color = MaterialTheme.colorScheme.onSurfaceVariant,
     modifier: androidx.compose.ui.Modifier = androidx.compose.ui.Modifier,
-    maxLines: Int = UNDEFINED,
-    overflow: TextOverflow = TextOverflow.Ellipsis
+    maxLines: Int = androidx.compose.ui.text.UNDEFINED,
+    overflow: androidx.compose.ui.text.overflow.TextOverflow = androidx.compose.ui.text.overflow.TextOverflow.Ellipsis
 ) {
     val style = when (variant) {
         GALabelVariant.LARGE -> MaterialTheme.typography.labelLarge
@@ -142,8 +141,8 @@ fun GACaption(
     text: String,
     color: androidx.compose.ui.graphics.Color = MaterialTheme.colorScheme.onSurfaceVariant,
     modifier: androidx.compose.ui.Modifier = androidx.compose.ui.Modifier,
-    maxLines: Int = UNDEFINED,
-    overflow: TextOverflow = TextOverflow.Ellipsis
+    maxLines: Int = androidx.compose.ui.text.UNDEFINED,
+    overflow: androidx.compose.ui.text.overflow.TextOverflow = androidx.compose.ui.text.overflow.TextOverflow.Ellipsis
 ) {
     androidx.compose.material3.Text(
         text = text,
