@@ -13,6 +13,12 @@ This file describes the **current repository state only**. Historical session no
 
 ## Repository state
 
+### October 1 — 1.15.3 CodeQL build-mode fix (source only)
+
+- `scripts/validate-greater-art-version.py`: Already fixed copy detection.
+- `.github/workflows/public-repo-security.yml`: CodeQL `build-mode: auto` so Java/Kotlin analysis runs without manual Gradle build step.
+- Source version: **1.15.3 (code 133)**. State: **SOURCE_ONLY**. Latest verified APK remains 1.15.1.
+
 ### October 1 — 1.15.2 version-guard fix (source only)
 
 - `scripts/validate-greater-art-version.py`: Git's `--find-copies-harder` flagged 1.15.1.apk as a copy of 1.14.3.apk (95% similar). Fixed by checking SHA-256 hashes — only fail if byte-identical to an existing APK.
