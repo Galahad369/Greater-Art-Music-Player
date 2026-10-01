@@ -13,6 +13,12 @@ This file describes the **current repository state only**. Historical session no
 
 ## Repository state
 
+### October 2 — 1.15.10 version/release guard closure (source only)
+
+- The version guard now treats executable helpers placed at repository root (`.sh`, `.ps1`, `.py`, `.js`, `.ts`) as versioned tooling, not just files under `scripts/`. This closes the gap that allowed the removed commit-amending helpers to exist outside the guarded path set.
+- Current-state validation now scans every tracked release APK name. Malformed release filenames fail, and any APK newer than `Latest verified APK` fails unless the repository is explicitly VERIFIED at that exact current version. This would have rejected the stray unverified 1.15.4 artifact.
+- 1.15.9 remains consumed. Source version: **1.15.10 (code 140)**. State remains **SOURCE_ONLY**. Latest verified APK remains 1.15.1.
+
 ### October 2 — 1.15.9 repository integrity cleanup (source only)
 
 - PR review found two root version helper scripts that used `git commit --amend`, directly conflicting with VERSION_RULES rule 9 (never overwrite history to repair a version mistake). They are removed rather than retained as dangerous operational tooling.

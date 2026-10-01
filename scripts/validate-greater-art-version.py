@@ -166,6 +166,12 @@ def is_versioned_code_path(path: str, parent: str, commit: str) -> bool:
     if path.startswith("scripts/"):
         return Path(path).suffix.lower() in {".py", ".ps1", ".sh", ".js", ".ts"}
 
+    if "/" not in path and Path(path).suffix.lower() in {".py", ".ps1", ".sh", ".js", ".ts"}:
+        # Root-level executable helpers are still repository tooling. Keeping this
+        # explicit closes the gap that allowed commit-amending version scripts to
+        # change without consuming a source version.
+        return True
+
     if path.startswith(".github/workflows/"):
         return Path(path).suffix.lower() in {".yml", ".yaml"}
 
@@ -493,6 +499,23 @@ def validate_current_state(errors: list[str], require_release: bool) -> None:
 
     current_apk = ROOT / RELEASES_REL / f"GreaterArt-{gradle_version}.apk"
     latest_apk = ROOT / RELEASES_REL / f"GreaterArt-{latest_version}.apk"
+
+    latest_tuple = parse_version(latest_version)
+    for release_apk in sorted((ROOT / RELEASES_REL).glob("*.apk")):
+        match = APK_NAME_RE.fullmatch(release_apk.name)
+        if not match:
+            fail(errors, f"invalid release APK filename in current tree: {release_apk.relative_to(ROOT)}")
+            continue
+        artifact_version = match.group(1)
+        artifact_tuple = parse_version(artifact_version)
+        if artifact_tuple > latest_tuple and not (
+            state == "VERIFIED" and artifact_version == gradle_version
+        ):
+            fail(
+                errors,
+                f"unverified APK newer than Latest verified APK is present: "
+                f"{release_apk.relative_to(ROOT)} while latest verified is {latest_version}",
+            )
 
     if state == "SOURCE_ONLY":
         if current_apk.exists():
