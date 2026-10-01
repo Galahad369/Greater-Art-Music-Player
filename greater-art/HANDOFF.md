@@ -13,6 +13,11 @@ This file describes the **current repository state only**. Historical session no
 
 ## Repository state
 
+### October 1 — 1.15.4 CodeQL build-mode fix (source only)
+
+- `.github/workflows/public-repo-security.yml`: CodeQL `build-mode: autobuild` for Java/Kotlin analysis (correct mode; `auto` is invalid).
+- Source version: **1.15.4 (code 134)**. State: **SOURCE_ONLY**. Latest verified APK remains 1.15.1.
+
 ### October 1 — 1.15.3 CodeQL build-mode fix (source only)
 
 - `scripts/validate-greater-art-version.py`: Already fixed copy detection.
