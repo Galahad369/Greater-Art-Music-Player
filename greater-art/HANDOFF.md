@@ -10,6 +10,13 @@ This file describes the **current repository state only**. Historical session no
 
 ## Repository state
 
+### October 1 — 1.14.12 PR review cleanup (source only)
+
+- Reviewed merged PR #48 against the actual four-file diff. The square Library Delete action had removed its visible text label but left the icon content description null; it now exposes the localized Delete label to accessibility services while preserving the 48×48 dp square touch target and existing three-step permanent-delete confirmation.
+- Corrected release artifact ignore semantics. The repository still ignored every APK through the global `*.apk` rule, so merely removing `releases/*.apk` did not make future release APKs trackable. `!releases/*.apk` now explicitly permits immutable versioned artifacts under `greater-art/releases/` while ordinary build APKs remain ignored.
+- No playback, decoder, video quality, queue behavior, or delete-confirmation logic changed.
+- Source version: **1.14.12 (code 127)**. State remains **SOURCE_ONLY**. Latest verified APK remains 1.14.3.
+
 ### September 30 — 1.14.10 expanded-player video contention fix (source only)
 
 - Re-review of the fast-scroll lag found a stronger source-level contention bug than queue thumbnail loading: MainActivity always called `AppBackground(... visible = true)`, so the default `CURRENT_VIDEO` wallpaper kept an independent full-screen ExoPlayer/PlayerView alive underneath the expanded system Now Playing window.
