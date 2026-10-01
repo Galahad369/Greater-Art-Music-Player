@@ -238,6 +238,7 @@ class WaveformRepository(context: Context) {
             normalize(peaks)
         }
     }.getOrElse { error ->
+        if (error is CancellationException) throw error
         _diagnostics.value = WaveformDiagnostics(WaveformStatus.FAILED, File(path).name, "WAV: ${error.message.orEmpty()}".take(180))
         null
     }

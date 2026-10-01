@@ -10,6 +10,12 @@ This file describes the **current repository state only**. Historical session no
 
 ## Repository state
 
+### October 1 — 1.14.14 cancellation + filtered queue locate follow-up (source only)
+
+- The 1.14.13 WAV cancellation checkpoint could still be swallowed by `runCatching`. WAV decode now rethrows `CancellationException`, so expanded-player visibility can actually cancel underlying future-track waveform work for WAV sources instead of merely marking the decode failed.
+- `Locate current` no longer scrolls with the raw MediaSession index when queue search is filtering rows. The queue composable maps the exact session index to the visible filtered index and owns the locate animation, preventing wrong/out-of-range scroll targets.
+- 1.14.13 remains consumed. Source version: **1.14.14 (code 129)**. State remains **SOURCE_ONLY**. Latest verified APK remains 1.14.3.
+
 ### October 1 — 1.14.13 deep audit and queue/performance correctness (source only)
 
 - Queue presentation now uses exact MediaSession indices plus duplicate-safe per-occurrence row keys. Repeated copies of the same path no longer share a Compose key/action-open state or cause a tap on a later duplicate to seek to the first copy.

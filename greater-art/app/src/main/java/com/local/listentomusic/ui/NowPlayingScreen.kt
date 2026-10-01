@@ -245,19 +245,10 @@ fun NowPlayingScreen(
         val queueListState = rememberLazyListState()
         var locateTrigger by remember { mutableStateOf(0) }
 
-        // MediaSession queue position is authoritative. Path lookup is ambiguous
-        // when the same track appears more than once.
+        // The queue composable owns filtering, so it also owns the mapping from
+        // MediaSession index to visible list index. This callback only requests locate.
         val onLocateCurrent = {
-            val currentIndex = playback.currentQueueIndex
-            if (currentIndex in queue.indices && !queueListState.isScrollInProgress) {
-                locateTrigger++
-            }
-        }
-        LaunchedEffect(locateTrigger, playback.currentQueueIndex) {
-            val currentIndex = playback.currentQueueIndex
-            if (currentIndex in queue.indices) {
-                queueListState.animateScrollToItem(currentIndex)
-            }
+            if (!queueListState.isScrollInProgress) locateTrigger++
         }
 
         val backdrop = com.local.listentomusic.ui.components.artworkBackdrop(
@@ -352,6 +343,7 @@ fun NowPlayingScreen(
                                         onShareCurrentMedia = onShareCurrentMedia,
                                         modifier = Modifier.fillMaxWidth().weight(1f),
                                         queueListState = queueListState,
+                                        locateTrigger = locateTrigger,
                                         onLocateCurrent = onLocateCurrent,
                                     )
                                 }
@@ -387,6 +379,7 @@ fun NowPlayingScreen(
                             onToggleFavourite = { playback.currentPath?.let(onToggleFavourite) },
                             onShareCurrentMedia = onShareCurrentMedia,
                             queueListState = queueListState,
+                            locateTrigger = locateTrigger,
                             onLocateCurrent = onLocateCurrent,
                         )
         }
@@ -692,6 +685,7 @@ private fun AudioPlayer(
     onToggleFavourite: () -> Unit,
     onShareCurrentMedia: () -> Unit,
     queueListState: androidx.compose.foundation.lazy.LazyListState,
+    locateTrigger: Int,
     onLocateCurrent: () -> Unit,
 ) {
     var waveformLoading by remember(playback.currentPath) { mutableStateOf(true) }
@@ -789,7 +783,7 @@ private fun AudioPlayer(
                                 onAddQueueItemToList = onAddQueueItemToList,
                                 modifier = Modifier.fillMaxWidth().weight(1f),
                                 queueListState = queueListState,
-                                onLocateCurrent = onLocateCurrent,
+                                locateTrigger = locateTrigger,
                             )
             WaveformTimeline(playback, waveform, onSeek, language, waveformLoading, artwork)
             PlayerBottomControls(playback, onRepeat, onPrevious, onTogglePlay, onNext, onSpeed)
@@ -880,6 +874,7 @@ private fun SecondaryControls(
     onShareCurrentMedia: () -> Unit,
     modifier: Modifier,
     queueListState: androidx.compose.foundation.lazy.LazyListState,
+    locateTrigger: Int,
     onLocateCurrent: () -> Unit,
 ) {
     var searchOpen by rememberSaveable { mutableStateOf(false) }
@@ -929,7 +924,7 @@ private fun SecondaryControls(
                     onAddQueueItemToList = onAddQueueItemToList,
                     modifier = Modifier.fillMaxWidth().weight(1f),
                     queueListState = queueListState,
-                    onLocateCurrent = onLocateCurrent,
+                    locateTrigger = locateTrigger,
                 )
                 Column(Modifier.fillMaxWidth()
             .shadow(9.dp, RoundedCornerShape(topStart = 6.dp, topEnd = 6.dp))
@@ -960,7 +955,7 @@ private fun NowPlayingQueue(
     onAddQueueItemToList: (MediaFile) -> Unit,
     modifier: Modifier = Modifier,
     queueListState: androidx.compose.foundation.lazy.LazyListState,
-    onLocateCurrent: () -> Unit,
+    locateTrigger: Int,
 ) {
     var query by rememberSaveable { mutableStateOf("") }
     val searchFocus = remember { FocusRequester() }
@@ -991,6 +986,11 @@ private fun NowPlayingQueue(
     val visibleIndex = visibleQueue.indexOfFirst { it.index == currentQueueIndex }
     LaunchedEffect(currentQueueIndex, visibleIndex) {
         if (visibleIndex >= 0 && !listState.isScrollInProgress) listState.scrollToItem(visibleIndex)
+    }
+    LaunchedEffect(locateTrigger) {
+        if (locateTrigger > 0 && visibleIndex >= 0 && !listState.isScrollInProgress) {
+            listState.animateScrollToItem(visibleIndex)
+        }
     }
     LaunchedEffect(listState) {
         snapshotFlow { listState.isScrollInProgress }.collect { scrolling ->

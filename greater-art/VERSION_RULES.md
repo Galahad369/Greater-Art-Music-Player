@@ -6,7 +6,7 @@ This file is the authoritative version policy for Greater Art. If any handoff no
 
 ## Machine-checkable state
 
-Current source: **1.14.13 (code 128)**
+Current source: **1.14.14 (code 129)**
 Current release state: **SOURCE_ONLY**
 Latest verified APK: **1.14.3 (code 118)**
 
@@ -117,6 +117,7 @@ The guard checks:
 - 1.14.11 (code 126) — library delete button square (48dp), second video wallpaper suspended, logs consolidated; source only, local build pending
 - 1.14.12 (code 127) — PR review cleanup: restore Delete accessibility label and allow versioned release APK tracking; source only, local build pending
 - 1.14.13 (code 128) — deep audit: duplicate-safe queue identity/exact-index playback, unified normal queue startup, expanded-player waveform warmup suppression, retired thumbnail-preload cleanup with active cache pruning, stale backup source removal, and release identity/versionCode hardening; source only, local build pending
+- 1.14.14 (code 129) — audit follow-up: propagate WAV warmup cancellation and make Locate current resolve the filtered queue's visible index; source only, local build pending
 
 Previous baseline: 1.13.26 (code 115).
 
