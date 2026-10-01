@@ -259,41 +259,69 @@ def validate_commit_range(errors: list[str], base: str, head: str = "HEAD") -> N
         )
 
         for line in status.splitlines():
-            parts = line.split("\t")
-            if not parts:
-                continue
-            kind = parts[0][0]
-            apk_paths = [path for path in parts[1:] if path.endswith(".apk")]
-            if not apk_paths:
-                continue
+                    parts = line.split("\t")
+                    if not parts:
+                        continue
+                    kind = parts[0][0]
+                    apk_paths = [path for path in parts[1:] if path.endswith(".apk")]
+                    if not apk_paths:
+                        continue
 
-            if kind in {"M", "R", "C"}:
-                fail(
-                    errors,
-                    f"{commit[:12]}: release APKs are immutable; "
-                    f"modification/rename/copy detected: {line}",
-                )
+                    if kind in {"M", "R"}:
+                        fail(
+                            errors,
+                            f"{commit[:12]}: release APKs are immutable; "
+                            f"modification/rename detected: {line}",
+                        )
 
-            if kind == "A":
-                apk_path = apk_paths[-1]
-                match = APK_NAME_RE.fullmatch(Path(apk_path).name)
-                if not match:
-                    fail(errors, f"{commit[:12]}: invalid release APK filename: {apk_path}")
-                    continue
-                try:
-                    current_version, _ = version_from_ref(commit)
-                except Exception as exc:
-                    fail(
-                        errors,
-                        f"{commit[:12]}: cannot validate APK filename against Gradle: {exc}",
-                    )
-                    continue
-                if match.group(1) != current_version:
-                    fail(
-                        errors,
-                        f"{commit[:12]}: new APK {Path(apk_path).name} does not match "
-                        f"Gradle version {current_version}",
-                    )
+                    if kind == "C":
+                        # Copy detection can trigger on similar APK artifacts (e.g. new version
+                        # from same source). Only fail if the actual content is identical.
+                        apk_path = apk_paths[-1]
+                        full_path = ROOT / apk_path
+                        if full_path.is_file():
+                            digest = hashlib.sha256()
+                            with full_path.open("rb") as handle:
+                                for chunk in iter(lambda: handle.read(1024 * 1024), b""):
+                                    digest.update(chunk)
+                            new_hash = digest.hexdigest()
+                            # Check if any existing APK in the tree has the same hash
+                            for existing_apk in (ROOT / RELEASES_REL).glob("*.apk"):
+                                if existing_apk == full_path:
+                                    continue
+                                existing_digest = hashlib.sha256()
+                                with existing_apk.open("rb") as handle:
+                                    for chunk in iter(lambda: handle.read(1024 * 1024), b""):
+                                        existing_digest.update(chunk)
+                                if existing_digest.hexdigest() == new_hash:
+                                    fail(
+                                        errors,
+                                        f"{commit[:12]}: release APK is byte-identical to "
+                                        f"existing {existing_apk.relative_to(ROOT)}; "
+                                        f"immutable APKs must not be copied/renamed",
+                                    )
+                                    break
+
+                    if kind == "A":
+                        apk_path = apk_paths[-1]
+                        match = APK_NAME_RE.fullmatch(Path(apk_path).name)
+                        if not match:
+                            fail(errors, f"{commit[:12]}: invalid release APK filename: {apk_path}")
+                            continue
+                        try:
+                            current_version, _ = version_from_ref(commit)
+                        except Exception as exc:
+                            fail(
+                                errors,
+                                f"{commit[:12]}: cannot validate APK filename against Gradle: {exc}",
+                            )
+                            continue
+                        if match.group(1) != current_version:
+                            fail(
+                                errors,
+                                f"{commit[:12]}: new APK {Path(apk_path).name} does not match "
+                                f"Gradle version {current_version}",
+                            )
 
 
 def find_aapt() -> str | None:
