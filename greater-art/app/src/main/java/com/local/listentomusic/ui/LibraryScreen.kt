@@ -108,12 +108,18 @@ import com.local.listentomusic.model.MediaKind
 import com.local.listentomusic.model.MiniWindowMetrics
 import com.local.listentomusic.model.SortMode
 import com.local.listentomusic.ui.components.LiquidMetalSurface
+import com.local.listentomusic.ui.components.GAButton
+import com.local.listentomusic.ui.components.GACard
+import com.local.listentomusic.ui.components.GAChip
+import com.local.listentomusic.ui.components.GATypography
+import com.local.listentomusic.ui.design.DesignTokens
+import com.local.listentomusic.ui.design.SemanticColors
 import kotlin.math.abs
 import kotlinx.coroutines.launch
 
 // Aligned chrome translucency: top bar, search filter, playlist and Nodes buttons
 // all sit half-transparent over the app background (video wallpaper / metal).
-private const val CHROME_ALPHA = 0.5f
+private const val CHROME_ALPHA = DesignTokens.Spacing.sm.toFloat() / 16f  // 0.5f
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -180,78 +186,84 @@ fun LibraryScreen(
         containerColor = Color.Transparent,
         contentColor = MaterialTheme.colorScheme.onBackground,
         topBar = {
-            TopAppBar(
-                modifier = Modifier.inspectElement("LIBRARY_TOP_BAR", "App title, settings, refresh, and sort"),
-                title = {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        val markShape = RoundedCornerShape(9.dp)
-                        LiquidMetalSurface(
-                            modifier = Modifier.size(36.dp)
-                                .border(1.dp, MaterialTheme.colorScheme.outlineVariant, markShape),
-                            shape = markShape,
-                            contentAlignment = Alignment.Center,
-                        ) {
-                            Image(
-                                painter = painterResource(com.local.listentomusic.R.drawable.ic_launcher_foreground),
-                                contentDescription = null,
-                                modifier = Modifier.fillMaxSize().padding(3.dp),
-                                contentScale = ContentScale.Fit,
-                            )
-                        }
-                        Spacer(Modifier.width(11.dp))
-                        Column {
-                            Text(appName, fontWeight = FontWeight.ExtraBold)
-                            Text(
-                                uiText(language, "${state.files.size} files • offline", "${state.files.size} 個檔案 • 離線"),
-                                style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
-                        }
-                    }
-                },
-                actions = {
-                    IconButton(onClick = onOpenSettings, modifier = Modifier.size(38.dp).inspectElement("SETTINGS_BUTTON", "Opens Greater Art settings")) {
-                        Icon(Icons.Rounded.Settings, uiText(language, "Settings", "設定"), Modifier.size(20.dp))
-                    }
-                    IconButton(onClick = { historyOpen = true }, modifier = Modifier.size(38.dp).inspectElement("PLAY_HISTORY_BUTTON", "Opens optional local playback history")) {
-                        Icon(
-                            Icons.Rounded.History,
-                            uiText(language, "Play history", "播放紀錄"),
-                            Modifier.size(20.dp),
-                            tint = if (preferences.playHistoryEnabled) MaterialTheme.colorScheme.secondary
-                            else MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    }
-                    IconButton(onClick = onRefresh, modifier = Modifier.size(38.dp).inspectElement("REFRESH_LIBRARY_BUTTON", "Rescans Download for supported media")) {
-                        Icon(Icons.Rounded.Refresh, uiText(language, "Scan again", "重新掃描"), Modifier.size(20.dp))
-                    }
-                    if (activePlaylist == null) Box {
-                        IconButton(onClick = { sortMenuOpen = true }, modifier = Modifier.size(38.dp).inspectElement("SORT_BUTTON", "Opens Library order choices")) {
-                            Icon(Icons.AutoMirrored.Rounded.Sort, uiText(language, "Sort", "排序"), Modifier.size(20.dp))
-                        }
-                        DropdownMenu(sortMenuOpen, { sortMenuOpen = false }) {
-                            SortMode.entries.forEach { mode ->
-                                val label = when (mode) {
-                                    SortMode.CUSTOM -> uiText(language, "Custom order", "自訂排序")
-                                    SortMode.NAME_ASC -> uiText(language, "Name A–Z", "名稱 A–Z")
-                                    SortMode.NAME_DESC -> uiText(language, "Name Z–A", "名稱 Z–A")
-                                    SortMode.DATE_DESC -> uiText(language, "Newest first", "最新優先")
-                                    SortMode.DATE_ASC -> uiText(language, "Oldest first", "最舊優先")
+                    TopAppBar(
+                        modifier = Modifier
+                            .inspectElement("LIBRARY_TOP_BAR", "App title, settings, refresh, and sort")
+                            .height(DesignTokens.TouchTarget.lg),
+                        title = {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier.padding(horizontal = DesignTokens.Spacing.md)
+                            ) {
+                                val markShape = RoundedCornerShape(DesignTokens.CornerRadius.sm)
+                                LiquidMetalSurface(
+                                    modifier = Modifier
+                                        .size(DesignTokens.TouchTarget.min)
+                                        .border(1.dp, MaterialTheme.colorScheme.outlineVariant, markShape),
+                                    shape = markShape,
+                                    contentAlignment = Alignment.Center,
+                                ) {
+                                    Image(
+                                        painter = painterResource(com.local.listentomusic.R.drawable.ic_launcher_foreground),
+                                        contentDescription = null,
+                                        modifier = Modifier.fillMaxSize().padding(DesignTokens.Spacing.xs),
+                                        contentScale = ContentScale.Fit,
+                                    )
                                 }
-                                DropdownMenuItem(
-                                    text = { Text(if (mode == state.sortMode) "✓  $label" else label) },
-                                    onClick = { sortMenuOpen = false; onSortChange(mode) },
+                                Spacer(Modifier.width(DesignTokens.Spacing.md))
+                                Column {
+                                    GATitle(text = appName, variant = GATitleVariant.H5)
+                                    GABody(
+                                        text = uiText(language, "${state.files.size} files • offline", "${state.files.size} 個檔案 • 離線"),
+                                        variant = GABodyVariant.SMALL,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+                            }
+                        },
+                        actions = {
+                            GAButton(variant = GAButtonVariant.ICON, size = GAButtonSize.MEDIUM, onClick = onOpenSettings, modifier = Modifier.inspectElement("SETTINGS_BUTTON", "Opens Greater Art settings")) {
+                                Icon(Icons.Rounded.Settings, uiText(language, "Settings", "設定"), Modifier.size(20.dp))
+                            }
+                            GAButton(variant = GAButtonVariant.ICON, size = GAButtonSize.MEDIUM, onClick = { historyOpen = true }, modifier = Modifier.inspectElement("PLAY_HISTORY_BUTTON", "Opens optional local playback history")) {
+                                Icon(
+                                    Icons.Rounded.History,
+                                    uiText(language, "Play history", "播放紀錄"),
+                                    Modifier.size(20.dp),
+                                    tint = if (preferences.playHistoryEnabled) MaterialTheme.colorScheme.secondary
+                                    else MaterialTheme.colorScheme.onSurfaceVariant,
                                 )
                             }
-                        }
-                    }
+                            GAButton(variant = GAButtonVariant.ICON, size = GAButtonSize.MEDIUM, onClick = onRefresh, modifier = Modifier.inspectElement("REFRESH_LIBRARY_BUTTON", "Rescans Download for supported media")) {
+                                Icon(Icons.Rounded.Refresh, uiText(language, "Scan again", "重新掃描"), Modifier.size(20.dp))
+                            }
+                            if (activePlaylist == null) Box {
+                                GAButton(variant = GAButtonVariant.ICON, size = GAButtonSize.MEDIUM, onClick = { sortMenuOpen = true }, modifier = Modifier.inspectElement("SORT_BUTTON", "Opens Library order choices")) {
+                                    Icon(Icons.AutoMirrored.Rounded.Sort, uiText(language, "Sort", "排序"), Modifier.size(20.dp))
+                                }
+                                DropdownMenu(sortMenuOpen, { sortMenuOpen = false }) {
+                                    SortMode.entries.forEach { mode ->
+                                        val label = when (mode) {
+                                            SortMode.CUSTOM -> uiText(language, "Custom order", "自訂排序")
+                                            SortMode.NAME_ASC -> uiText(language, "Name A–Z", "名稱 A–Z")
+                                            SortMode.NAME_DESC -> uiText(language, "Name Z–A", "名稱 Z–A")
+                                            SortMode.DATE_DESC -> uiText(language, "Newest first", "最新優先")
+                                            SortMode.DATE_ASC -> uiText(language, "Oldest first", "最舊優先")
+                                        }
+                                        DropdownMenuItem(
+                                            text = { Text(if (mode == state.sortMode) "✓  $label" else label) },
+                                            onClick = { sortMenuOpen = false; onSortChange(mode) },
+                                        )
+                                    }
+                                }
+                            }
+                        },
+                        colors = TopAppBarDefaults.topAppBarColors(
+                            containerColor = MaterialTheme.colorScheme.background.copy(alpha = CHROME_ALPHA),
+                        ),
+                        windowInsets = WindowInsets(0, 0, 0, 0),
+                    )
                 },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.background.copy(alpha = CHROME_ALPHA),
-                ),
-                windowInsets = WindowInsets(0, 0, 0, 0),
-            )
-        },
     ) { innerPadding ->
         Column(Modifier.fillMaxSize().padding(innerPadding)) {
             if (selected.isNotEmpty()) Column(Modifier.fillMaxWidth().padding(horizontal = 14.dp)) {
@@ -284,91 +296,74 @@ fun LibraryScreen(
                 }
             }
             val searchInteraction = remember { MutableInteractionSource() }
-            val searchFocused by searchInteraction.collectIsFocusedAsState()
-            val searchScale by animateFloatAsState(if (searchFocused) 1.012f else 1f, label = "library-filter-scale")
-            val searchGlow by animateColorAsState(
-                if (searchFocused) MaterialTheme.colorScheme.secondary.copy(alpha = .72f)
-                else MaterialTheme.colorScheme.outlineVariant.copy(alpha = .42f),
-                label = "library-filter-glow",
-            )
-            LiquidMetalSurface(
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 6.dp)
-                    .graphicsLayer { scaleX = searchScale; scaleY = searchScale }
-                    .border(1.dp, searchGlow, RoundedCornerShape(18.dp))
-                    .inspectElement("LIBRARY_FILTER", "Animated local filename search and clear control"),
-                shape = RoundedCornerShape(18.dp),
-                baseColor = MaterialTheme.colorScheme.background.copy(alpha = CHROME_ALPHA),
-            ) {
-                OutlinedTextField(
-                    value = state.query,
-                    onValueChange = onQueryChange,
-                    modifier = Modifier.fillMaxWidth(),
-                    interactionSource = searchInteraction,
-                    shape = RoundedCornerShape(18.dp),
-                    singleLine = true,
-                    leadingIcon = { Icon(Icons.Rounded.Search, null) },
-                    trailingIcon = if (state.query.isNotEmpty()) {
-                        {
-                            IconButton(onClick = { onQueryChange("") }) {
-                                Icon(Icons.Rounded.Clear, uiText(language, "Clear filter", "清除篩選"))
-                            }
-                        }
-                    } else null,
-                    placeholder = { Text(uiText(language, "Filter library", "篩選音樂庫")) },
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedContainerColor = Color.Transparent,
-                        unfocusedContainerColor = Color.Transparent,
-                        focusedBorderColor = Color.Transparent,
-                        unfocusedBorderColor = Color.Transparent,
-                    ),
-                )
-            }
-            Row(
-                Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 2.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Box(Modifier.weight(1f)) {
-                    Button(onClick = { playlistMenuOpen = true }, modifier = Modifier
-                        .inspectElement("PLAYLIST_BUTTON", "Selects or manages a playlist"),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = MaterialTheme.colorScheme.primary.copy(alpha = CHROME_ALPHA),
-                        )) {
-                        Icon(Icons.AutoMirrored.Rounded.QueueMusic, null)
-                        Spacer(Modifier.width(8.dp))
-                        Text(when {
-                            favouritesActive -> uiText(language, "Favorites", "我的最愛")
-                            activePlaylist != null -> activePlaylist.name
-                            else -> uiText(language, "All songs", "所有歌曲")
-                        }, maxLines = 1)
-                    }
-                    DropdownMenu(playlistMenuOpen, { playlistMenuOpen = false }) {
-                        DropdownMenuItem(
-                            text = { Text(uiText(language, "All songs", "所有歌曲")) },
-                            onClick = { playlistMenuOpen = false; onSelectPlaylist(null) },
-                            leadingIcon = { Icon(Icons.AutoMirrored.Rounded.QueueMusic, null) },
+                        val searchFocused by searchInteraction.collectIsFocusedAsState()
+                        val searchScale by animateFloatAsState(if (searchFocused) 1.012f else 1f, label = "library-filter-scale")
+                        val searchGlow by animateColorAsState(
+                            if (searchFocused) MaterialTheme.colorScheme.secondary.copy(alpha = .72f)
+                            else MaterialTheme.colorScheme.outlineVariant.copy(alpha = .42f),
+                            label = "library-filter-glow",
                         )
-                        DropdownMenuItem(
-                            text = { Text(uiText(language, "Favorites", "我的最愛")) },
-                            onClick = { playlistMenuOpen = false; onSelectPlaylist(com.local.listentomusic.data.FAVOURITES_PLAYLIST_ID) },
-                            leadingIcon = { Icon(Icons.Rounded.Favorite, null) },
-                        )
-                        preferences.playlists.forEach { playlist ->
-                            DropdownMenuItem(
-                                text = { Text("${playlist.name}  (${playlist.paths.size})") },
-                                onClick = { playlistMenuOpen = false; onSelectPlaylist(playlist.id) },
+                        LiquidMetalSurface(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = DesignTokens.Spacing.md, vertical = DesignTokens.Spacing.xs)
+                                .graphicsLayer { scaleX = searchScale; scaleY = searchScale }
+                                .border(1.dp, searchGlow, RoundedCornerShape(DesignTokens.CornerRadius.lg))
+                                .inspectElement("LIBRARY_FILTER", "Animated local filename search and clear control"),
+                            shape = RoundedCornerShape(DesignTokens.CornerRadius.lg),
+                            baseColor = MaterialTheme.colorScheme.background.copy(alpha = CHROME_ALPHA),
+                        ) {
+                            OutlinedTextField(
+                                value = state.query,
+                                onValueChange = onQueryChange,
+                                modifier = Modifier.fillMaxWidth(),
+                                interactionSource = searchInteraction,
+                                shape = RoundedCornerShape(DesignTokens.CornerRadius.lg),
+                                singleLine = true,
+                                leadingIcon = { Icon(Icons.Rounded.Search, null) },
+                                trailingIcon = if (state.query.isNotEmpty()) {
+                                    {
+                                        IconButton(onClick = { onQueryChange("") }) {
+                                            Icon(Icons.Rounded.Clear, uiText(language, "Clear filter", "清除篩選"))
+                                        }
+                                    }
+                                } else null,
+                                placeholder = { Text(uiText(language, "Filter library", "篩選音樂庫")) },
+                                colors = OutlinedTextFieldDefaults.colors(
+                                    focusedContainerColor = Color.Transparent,
+                                    unfocusedContainerColor = Color.Transparent,
+                                    focusedBorderColor = Color.Transparent,
+                                    unfocusedBorderColor = Color.Transparent,
+                                ),
                             )
                         }
-                        DropdownMenuItem(
-                            text = { Text(uiText(language, "Play this list", "播放此清單")) },
-                            leadingIcon = { Icon(Icons.Rounded.PlayArrow, null) },
-                            onClick = {
-                                playlistMenuOpen = false
-                                when {
-                                    favouritesActive -> onPlayPlaylist(com.local.listentomusic.data.FAVOURITES_PLAYLIST_ID)
-                                    activePlaylist != null -> onPlayPlaylist(activePlaylist.id)
+                        Row(
+                            Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = DesignTokens.Spacing.md, vertical = DesignTokens.Spacing.xs),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Box(Modifier.weight(1f)) {
+                                GAButton(
+                                    variant = GAButtonVariant.OUTLINED,
+                                    size = GAButtonSize.MEDIUM,
+                                    onClick = { playlistMenuOpen = true },
+                                    modifier = Modifier.inspectElement("PLAYLIST_BUTTON", "Selects or manages a playlist"),
+                                ) {
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        Icon(Icons.AutoMirrored.Rounded.QueueMusic, null)
+                                        Spacer(Modifier.width(DesignTokens.Spacing.sm))
+                                        Text(
+                                            when {
+                                                favouritesActive -> uiText(language, "Favorites", "我的最愛")
+                                                activePlaylist != null -> activePlaylist.name
+                                                else -> uiText(language, "All songs", "所有歌曲")
+                                            },
+                                            maxLines = 1,
+                                            style = MaterialTheme.typography.labelLarge
+                                        )
+                                    }
                                 }
-                            },
-                            enabled = if (favouritesActive) state.files.isNotEmpty()
                                 else activePlaylist != null && state.files.isNotEmpty(),
                         )
                         DropdownMenuItem(
@@ -812,8 +807,8 @@ private fun MediaFileRow(
         label = "library-row-actions-reveal",
     )
     val density = LocalDensity.current
-    val addActionSize = 48.dp
-    val deleteActionSize = 48.dp
+    val addActionSize = DesignTokens.TouchTarget.min
+        val deleteActionSize = DesignTokens.TouchTarget.min
     val actionWidth = addActionSize + deleteActionSize
     val actionWidthPx = with(density) { actionWidth.toPx() }
     Box(
@@ -859,7 +854,7 @@ private fun MediaFileRow(
                 )
                 .then(if (!actionsOpen) dragModifier else Modifier)
                 .then(if (rowSize == LibraryRowSize.SMALL) Modifier.heightIn(min = com.local.listentomusic.model.CompactPlayerMetrics.HEIGHT_DP.dp) else Modifier)
-                .padding(horizontal = 14.dp, vertical = rowSize.verticalPadding),
+                .padding(horizontal = DesignTokens.Spacing.md, vertical = rowSize.verticalPadding),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             // Reserve the same 12 dp for every row so artwork and titles never jump
@@ -876,31 +871,30 @@ private fun MediaFileRow(
                 Spacer(Modifier.width(rowSize.textSpacing))
             }
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.Center) {
-                Text(
-                    file.name.substringBeforeLast('.', file.name),
-                    style = when (rowSize) {
-                        LibraryRowSize.SMALL -> MaterialTheme.typography.bodyLarge
-                        LibraryRowSize.MEDIUM -> MaterialTheme.typography.titleMedium
-                        LibraryRowSize.LARGE -> MaterialTheme.typography.titleLarge
-                    },
-                    fontWeight = FontWeight.SemiBold,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis,
-                )
-                if (showFileDetails) {
-                    Spacer(Modifier.height(if (rowSize == LibraryRowSize.SMALL) 2.dp else 4.dp))
-                    Text(
-                        buildString {
-                            append(file.name.substringAfterLast('.', "media").uppercase())
-                            append("  •  ${formatBytes(file.sizeBytes)}")
-                            if (file.durationMs > 0) append("  •  ${formatDuration(file.durationMs)}")
-                        },
-                        style = if (rowSize == LibraryRowSize.LARGE) MaterialTheme.typography.bodyMedium else MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        maxLines = 1,
-                    )
-                }
-            }
+                GATitle(
+                                    text = file.name.substringBeforeLast('.', file.name),
+                                    variant = when (rowSize) {
+                                        LibraryRowSize.SMALL -> GATitleVariant.H6
+                                        LibraryRowSize.MEDIUM -> GATitleVariant.H5
+                                        LibraryRowSize.LARGE -> GATitleVariant.H4
+                                    },
+                                    fontWeight = FontWeight.SemiBold,
+                                    maxLines = 2,
+                                    overflow = TextOverflow.Ellipsis,
+                                )
+                                if (showFileDetails) {
+                                    Spacer(Modifier.height(if (rowSize == LibraryRowSize.SMALL) DesignTokens.Spacing.xs else DesignTokens.Spacing.sm))
+                                    GACaption(
+                                        text = buildString {
+                                            append(file.name.substringAfterLast('.', "media").uppercase())
+                                            append("  \u2022  ${formatBytes(file.sizeBytes)}")
+                                            if (file.durationMs > 0) append("  \u2022  ${formatDuration(file.durationMs)}")
+                                        },
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        maxLines = 1,
+                                    )
+                                }
+                            }
             if (dragEnabled) Icon(Icons.Rounded.DragHandle, "Reorder", tint = MaterialTheme.colorScheme.onSurfaceVariant)
             IconButton(
                 onClick = onToggleActions,
