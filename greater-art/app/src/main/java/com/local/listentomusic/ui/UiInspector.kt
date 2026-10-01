@@ -45,6 +45,9 @@ internal class UiInspectorState {
     // never recomposes the diagnostics readers at the app root.
     private val entries = mutableStateMapOf<Any, Entry>()
     private val layouts = HashMap<Any, LayoutCoordinates>()
+    // Unit tests and non-layout callers can inject fixed bounds without putting
+    // per-frame production geometry back into snapshot state.
+    private val fixedBounds = HashMap<Any, Rect>()
     internal val regions: Map<Any, InspectorRegion>
         get() = entries.mapNotNull { (key, entry) ->
             boundsOf(key)?.let { key to InspectorRegion(entry.label, entry.detail, it, entry.order) }
@@ -63,26 +66,36 @@ internal class UiInspectorState {
 
     fun update(key: Any, label: String, detail: String, coordinates: LayoutCoordinates) {
         layouts[key] = coordinates
+        fixedBounds.remove(key)
+        updateEntry(key, label, detail)
+    }
+
+    internal fun update(key: Any, label: String, detail: String, bounds: Rect) {
+        layouts.remove(key)
+        fixedBounds[key] = bounds
+        updateEntry(key, label, detail)
+    }
+
+    private fun updateEntry(key: Any, label: String, detail: String) {
         val previous = entries[key]
         if (previous?.label == label && previous.detail == detail) return
         entries[key] = Entry(label, detail, previous?.order ?: ++order)
     }
 
     private fun boundsOf(key: Any): Rect? {
-        val coordinates = layouts[key]?.takeIf { it.isAttached } ?: return null
-        val bounds = coordinates.boundsInRoot()
+        val bounds = layouts[key]?.takeIf { it.isAttached }?.boundsInRoot() ?: fixedBounds[key] ?: return null
         return bounds.takeIf {
             it.left.isFinite() && it.top.isFinite() && it.width > 0f && it.height > 0f
         }
     }
 
-    fun remove(key: Any) { entries.remove(key); layouts.remove(key) }
+    fun remove(key: Any) { entries.remove(key); layouts.remove(key); fixedBounds.remove(key) }
     fun setHitProvider(key: Any, provider: (Offset) -> InspectorRegion?) { hitProviders[key] = provider }
     fun removeHitProvider(key: Any) { hitProviders.remove(key) }
     fun arm() { selected = null; matchingRegions = emptyList(); selectedMatchIndex = 0; armed = true }
     fun cancel() { armed = false }
     fun clearSelection() { selected = null; matchingRegions = emptyList(); selectedMatchIndex = 0 }
-    fun clear() { armed = false; clearSelection(); entries.clear(); layouts.clear(); hitProviders.clear() }
+    fun clear() { armed = false; clearSelection(); entries.clear(); layouts.clear(); fixedBounds.clear(); hitProviders.clear() }
 
     fun pick(point: Offset) {
         lastTouch = point

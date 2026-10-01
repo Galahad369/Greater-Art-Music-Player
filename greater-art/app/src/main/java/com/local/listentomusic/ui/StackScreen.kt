@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.Close
@@ -62,56 +63,22 @@ fun StackScreen(
                 Text(uiText(language, "Add track", "加入歌曲"))
             }
         }
+        val trackListState = rememberLazyListState()
         LazyColumn(Modifier.fillMaxWidth().weight(1f).inspectElement("STACK_TRACK_LIST", "Up to eight simultaneous tracks"),
-            contentPadding = PaddingValues(bottom = 12.dp)) {
+            state = trackListState, contentPadding = PaddingValues(bottom = 12.dp)) {
             items(displayed, key = { it.file.path }) { slot ->
-                val isPrimary = session.active && slot.file.path == session.primaryPath || !session.active && slot.file.path == staged.firstOrNull()?.path
-                Column(Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.surface.copy(alpha = .48f))) {
-                    Row(Modifier.fillMaxWidth().heightIn(min = 72.dp).clickable { expandedPath = if (expandedPath == slot.file.path) null else slot.file.path }
-                        .inspectElement("STACK_TRACK_ROW", slot.file.name).padding(horizontal = 14.dp, vertical = 8.dp),
-                        verticalAlignment = Alignment.CenterVertically) {
-                        QueueThumbnail(slot.file, onLoadThumbnail)
-                        Spacer(Modifier.width(12.dp))
-                        Column(Modifier.weight(1f)) {
-                            Text(slot.file.name.substringBeforeLast('.'), maxLines = 2, overflow = TextOverflow.Ellipsis,
-                                style = MaterialTheme.typography.bodyLarge, fontWeight = if (isPrimary) FontWeight.SemiBold else FontWeight.Normal)
-                            Text(if (slot.error != null) uiText(language, "Playback unavailable", "無法播放") else if (isPrimary) uiText(language, "Primary visual", "主要畫面")
-                                else if (session.active && slot.resolvedDurationMs > 0 && session.positionMs >= slot.resolvedDurationMs)
-                                    uiText(language, "Ended", "已播完") else slot.file.artist,
-                                style = MaterialTheme.typography.labelSmall,
-                                color = if (slot.error != null) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant)
-                        }
-                        if (isPrimary) Icon(Icons.Rounded.Star, uiText(language, "Primary visual", "主要畫面"), tint = MaterialTheme.colorScheme.secondary)
-                        IconButton(onClick = {
-                            if (session.active) StackPlayback.remove(slot.file.path)
-                            else stagedPaths = stagedPaths - slot.file.path
-                        }, modifier = Modifier.inspectElement("STACK_REMOVE_BUTTON", slot.file.name)) {
-                            Icon(Icons.Rounded.Close, uiText(language, "Remove track", "移除歌曲"))
-                        }
-                    }
-                    if (expandedPath == slot.file.path) {
-                        Row(Modifier.fillMaxWidth().padding(horizontal = 14.dp), verticalAlignment = Alignment.CenterVertically) {
-                            if (session.active) {
-                                TextButton(onClick = { StackPlayback.setPrimary(slot.file.path) },
-                                    enabled = !isPrimary && (slot.resolvedDurationMs <= 0L || session.positionMs < slot.resolvedDurationMs)) {
-                                    Text(uiText(language, "Make primary", "設為主要"))
-                                }
-                                TextButton(onClick = { StackPlayback.toggleMute(slot.file.path) }) {
-                                    Text(uiText(language, if (slot.muted) "Unmute" else "Mute", if (slot.muted) "取消靜音" else "靜音"))
-                                }
-                                TextButton(onClick = { StackPlayback.toggleSolo(slot.file.path) }) {
-                                    Text(uiText(language, if (slot.solo) "Unsolo" else "Solo", if (slot.solo) "取消獨奏" else "獨奏"))
-                                }
-                            }
-                        }
-                        if (session.active) Row(Modifier.fillMaxWidth().padding(horizontal = 18.dp), verticalAlignment = Alignment.CenterVertically) {
-                            Text("${(slot.volume * 100).toInt()}%", style = MaterialTheme.typography.labelMedium)
-                            Slider(slot.volume, { StackPlayback.setVolume(slot.file.path, it) },
-                                modifier = Modifier.weight(1f).padding(start = 12.dp).inspectElement("STACK_TRACK_VOLUME", slot.file.name))
-                        }
-                    }
-                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = .35f))
-                }
+                val path = slot.file.path
+                val isPrimary = session.active && path == session.primaryPath || !session.active && path == staged.firstOrNull()?.path
+                val reached = session.active && slot.resolvedDurationMs > 0L && session.positionMs >= slot.resolvedDurationMs
+                // Only booleans derived from the 2 Hz clock reach the row, so rows skip
+                // recomposition until something visible actually changes.
+                StackTrackRow(
+                    slot = slot, language = language, sessionActive = session.active,
+                    isPrimary = isPrimary, ended = reached, expanded = expandedPath == path,
+                    onLoadThumbnail = onLoadThumbnail, isScrolling = { trackListState.isScrollInProgress },
+                    onToggleExpanded = { expandedPath = if (expandedPath == path) null else path },
+                    onRemove = { if (session.active) StackPlayback.remove(path) else stagedPaths = stagedPaths - path },
+                )
             }
             if (displayed.size < 2) item {
                 repeat(2 - displayed.size) { index ->
@@ -189,6 +156,56 @@ fun StackScreen(
 }
 
 @Composable
+private fun StackTrackRow(
+    slot: StackSlot, language: AppLanguage, sessionActive: Boolean, isPrimary: Boolean, ended: Boolean, expanded: Boolean,
+    onLoadThumbnail: suspend (MediaFile) -> Bitmap?, isScrolling: () -> Boolean,
+    onToggleExpanded: () -> Unit, onRemove: () -> Unit,
+) {
+    val path = slot.file.path
+    Column(Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.surface.copy(alpha = .48f))) {
+        Row(Modifier.fillMaxWidth().heightIn(min = 72.dp).clickable(onClick = onToggleExpanded)
+            .inspectElement("STACK_TRACK_ROW", slot.file.name).padding(horizontal = 14.dp, vertical = 8.dp),
+            verticalAlignment = Alignment.CenterVertically) {
+            QueueThumbnail(slot.file, onLoadThumbnail, isScrolling)
+            Spacer(Modifier.width(12.dp))
+            Column(Modifier.weight(1f)) {
+                Text(slot.file.name.substringBeforeLast('.'), maxLines = 2, overflow = TextOverflow.Ellipsis,
+                    style = MaterialTheme.typography.bodyLarge, fontWeight = if (isPrimary) FontWeight.SemiBold else FontWeight.Normal)
+                Text(if (slot.error != null) uiText(language, "Playback unavailable", "無法播放") else if (isPrimary) uiText(language, "Primary visual", "主要畫面")
+                    else if (ended) uiText(language, "Ended", "已播完") else slot.file.artist,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = if (slot.error != null) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+            if (isPrimary) Icon(Icons.Rounded.Star, uiText(language, "Primary visual", "主要畫面"), tint = MaterialTheme.colorScheme.secondary)
+            IconButton(onClick = onRemove, modifier = Modifier.inspectElement("STACK_REMOVE_BUTTON", slot.file.name)) {
+                Icon(Icons.Rounded.Close, uiText(language, "Remove track", "移除歌曲"))
+            }
+        }
+        if (expanded) {
+            Row(Modifier.fillMaxWidth().padding(horizontal = 14.dp), verticalAlignment = Alignment.CenterVertically) {
+                if (sessionActive) {
+                    TextButton(onClick = { StackPlayback.setPrimary(path) }, enabled = !isPrimary && !ended) {
+                        Text(uiText(language, "Make primary", "設為主要"))
+                    }
+                    TextButton(onClick = { StackPlayback.toggleMute(path) }) {
+                        Text(uiText(language, if (slot.muted) "Unmute" else "Mute", if (slot.muted) "取消靜音" else "靜音"))
+                    }
+                    TextButton(onClick = { StackPlayback.toggleSolo(path) }) {
+                        Text(uiText(language, if (slot.solo) "Unsolo" else "Solo", if (slot.solo) "取消獨奏" else "獨奏"))
+                    }
+                }
+            }
+            if (sessionActive) Row(Modifier.fillMaxWidth().padding(horizontal = 18.dp), verticalAlignment = Alignment.CenterVertically) {
+                Text("${(slot.volume * 100).toInt()}%", style = MaterialTheme.typography.labelMedium)
+                Slider(slot.volume, { StackPlayback.setVolume(path, it) },
+                    modifier = Modifier.weight(1f).padding(start = 12.dp).inspectElement("STACK_TRACK_VOLUME", slot.file.name))
+            }
+        }
+        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = .35f))
+    }
+}
+
+@Composable
 private fun StackLibraryPicker(
     files: List<MediaFile>, excludedPaths: Set<String>, language: AppLanguage,
     onLoadThumbnail: suspend (MediaFile) -> Bitmap?, onDismiss: () -> Unit, onPick: (MediaFile) -> Unit,
@@ -222,7 +239,8 @@ private fun StackLibraryPicker(
                     )
                 }
                 Spacer(Modifier.height(8.dp))
-                LazyColumn(Modifier.heightIn(min = 260.dp, max = 470.dp)) {
+                val pickerListState = rememberLazyListState()
+                LazyColumn(Modifier.heightIn(min = 260.dp, max = 470.dp), state = pickerListState) {
                     items(choices, key = { it.path }) { file ->
                         ListItem(
                             headlineContent = { Text(file.name.substringBeforeLast('.'), maxLines = 2, overflow = TextOverflow.Ellipsis) },
@@ -230,7 +248,7 @@ private fun StackLibraryPicker(
                                 Text(listOf(file.artist.takeIf(String::isNotBlank), stackTime(file.durationMs)).filterNotNull().joinToString(" • "),
                                     maxLines = 1, color = MaterialTheme.colorScheme.onSurfaceVariant)
                             },
-                            leadingContent = { QueueThumbnail(file, onLoadThumbnail) },
+                            leadingContent = { QueueThumbnail(file, onLoadThumbnail, { pickerListState.isScrollInProgress }) },
                             modifier = Modifier.fillMaxWidth().clickable { onPick(file) }
                                 .inspectElement("STACK_PICKER_ROW", file.name),
                             colors = ListItemDefaults.colors(containerColor = Color.Transparent),

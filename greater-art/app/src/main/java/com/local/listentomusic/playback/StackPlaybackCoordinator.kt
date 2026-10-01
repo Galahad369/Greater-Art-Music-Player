@@ -369,7 +369,15 @@ internal class StackPlaybackCoordinator(
     fun release() { stop(clearMain = false) }
 
     private fun publish() {
-        StackPlayback.publish(StackSession(slots.map { it.copy(resolvedDurationMs = knownDuration(it.file)) }, primaryPath, position(), sessionDuration(), playing))
+        // Keep unchanged StackSlot instances stable across the 2 Hz session ticker.
+        // This lets keyed Stack rows skip recomposition when only master position moves.
+        for (index in slots.indices) {
+            val resolved = knownDuration(slots[index].file)
+            if (slots[index].resolvedDurationMs != resolved) {
+                slots[index] = slots[index].copy(resolvedDurationMs = resolved)
+            }
+        }
+        StackPlayback.publish(StackSession(slots.toList(), primaryPath, position(), sessionDuration(), playing))
     }
 
     private fun startTicker() {

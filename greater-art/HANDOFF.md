@@ -13,6 +13,15 @@ This file describes the **current repository state only**. Historical session no
 
 ## Repository state
 
+### October 2 — 1.15.8 Stack row isolation + inspector test fix (source only)
+
+- Opus's second Stack review identified an additional UI cost: the 2 Hz Stack session ticker recreated every `StackSlot`, so every visible track row received a new object twice per second. Stack publishing now preserves unchanged slot instances and only copies a slot when its resolved duration changes.
+- Stack rows are isolated in `StackTrackRow`. The 2 Hz position clock is reduced to the simple visible state that can actually change (`ended` / primary status), allowing unchanged keyed rows to skip work.
+- Stack track-list and picker thumbnails use the same lazy scroll-state observation as the 1.15.5 queue fix: fling state no longer invalidates each row or cancels in-flight loads; new loads wait for settle.
+- Android CI exposed a 1.15.5 test-compile regression after UiInspector moved from Rect storage to LayoutCoordinates. A non-production fixed-bounds seam now preserves unit-test hit-testing without returning per-frame production geometry to Compose snapshot state.
+- The Opus wall-clock re-anchor implementation was not carried forward because 1.15.6/1.15.7 already make the primary player the authoritative clock and mirror real buffering events.
+- 1.15.5, 1.15.6 and 1.15.7 remain consumed. Source version: **1.15.8 (code 138)**. State remains **SOURCE_ONLY**. Latest verified APK remains 1.15.1.
+
 ### October 2 — 1.15.7 Stack primary-swap synchronization follow-up (source only)
 
 - Second-pass review found an event-order edge case in 1.15.6: the primary player's `isPlaying=false` buffering event can arrive while an internal primary swap/seek flag is set. Ignoring that event could let companion voices keep advancing while the new primary buffers.
