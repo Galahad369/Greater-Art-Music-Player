@@ -16,6 +16,9 @@ RULES_REL = "greater-art/VERSION_RULES.md"
 HANDOFF_REL = "greater-art/HANDOFF.md"
 RELEASES_REL = "greater-art/releases"
 PACKAGE_ID = "com.local.listentomusic"
+ROOT_README_REL = "README.md"
+APP_README_REL = "greater-art/README.md"
+LANDING_REL = "index.html"
 
 SEMVER_RE = re.compile(r"^(\d+)\.(\d+)\.(\d+)$")
 APK_NAME_RE = re.compile(r"^GreaterArt-(\d+\.\d+\.\d+)\.apk$")
@@ -357,6 +360,61 @@ def validate_release_artifact(
         fail(errors, f"APK versionCode must be {code}, found {apk_code}")
 
 
+def validate_public_release_surfaces(
+    errors: list[str],
+    source_version: str,
+    source_code: int,
+    state: str,
+    latest_version: str,
+    latest_code: int,
+) -> None:
+    expected_apk_rel = f"{RELEASES_REL}/GreaterArt-{latest_version}.apk"
+    expected_root_apk_rel = f"greater-art/releases/GreaterArt-{latest_version}.apk"
+    if not (ROOT / expected_apk_rel).is_file():
+        fail(errors, f"latest verified public APK does not exist: {expected_apk_rel}")
+
+    root_readme = read(ROOT_README_REL)
+    app_readme = read(APP_README_REL)
+    landing = read(LANDING_REL)
+
+    root_source = f"Current source: **{source_version} (code {source_code}, {state})**"
+    root_verified = f"Latest verified APK: **{latest_version} (code {latest_code})**"
+    root_download = f"[download]({expected_root_apk_rel})"
+    if root_source not in root_readme:
+        fail(errors, f"root README must advertise source {source_version}/code {source_code} state={state}")
+    if root_verified not in root_readme:
+        fail(errors, f"root README must advertise latest verified APK {latest_version}/code {latest_code}")
+    if root_download not in root_readme:
+        fail(errors, f"root README download must point to {expected_root_apk_rel}")
+
+    app_source = f"- Current source: **{source_version}** (code **{source_code}**, \x60{state}\x60)"
+    app_verified = f"- Latest verified APK: **{latest_version}** (code **{latest_code}**)"
+    app_apk = f"- APK: \x60releases/GreaterArt-{latest_version}.apk\x60"
+    if app_source not in app_readme:
+        fail(errors, f"app README must distinguish source {source_version}/code {source_code} state={state}")
+    if app_verified not in app_readme:
+        fail(errors, f"app README must advertise latest verified APK {latest_version}/code {latest_code}")
+    if app_apk not in app_readme:
+        fail(errors, f"app README current APK must be releases/GreaterArt-{latest_version}.apk")
+
+    if f"GREATER ART · VERIFIED {latest_version}" not in landing:
+        fail(errors, f"landing page must identify verified download {latest_version}")
+    if f"SOURCE {source_version} · {state}" not in landing:
+        fail(errors, f"landing page must identify current source {source_version} state={state}")
+    if f'href="{expected_root_apk_rel}"' not in landing:
+        fail(errors, f"landing-page download must point to {expected_root_apk_rel}")
+
+    for label, text in ((ROOT_README_REL, root_readme), (LANDING_REL, landing)):
+        referenced = re.findall(
+            r"greater-art/releases/(GreaterArt-\d+\.\d+\.\d+\.apk)",
+            text,
+        )
+        for filename in referenced:
+            if not (ROOT / RELEASES_REL / filename).is_file():
+                fail(errors, f"{label} references missing public APK: {filename}")
+
+
+
 def validate_current_state(errors: list[str], require_release: bool) -> None:
     try:
         gradle_version, gradle_code = parse_gradle(read(GRADLE_REL), "Gradle")
@@ -465,6 +523,15 @@ def validate_current_state(errors: list[str], require_release: bool) -> None:
                 "VERIFIED state requires Latest verified APK to equal Current source",
             )
         validate_release_artifact(errors, gradle_version, gradle_code, handoff)
+
+    validate_public_release_surfaces(
+        errors,
+        gradle_version,
+        gradle_code,
+        state,
+        latest_version,
+        latest_code,
+    )
 
 
 def main() -> int:

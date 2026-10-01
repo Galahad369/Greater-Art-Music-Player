@@ -10,7 +10,7 @@ Do not open a public issue containing a live credential, private key, personal i
 
 Use GitHub's private vulnerability reporting page:
 
-<https://github.com/Galahad369/APPs-by-L/security/advisories/new>
+<https://github.com/Galahad369/Greater-Art-Music-Player/security/advisories/new>
 
 If private reporting is unavailable and a real credential is exposed, revoke or rotate it immediately before discussing it anywhere. A committed secret must be treated as compromised even if the file is later deleted, because Git history and forks may retain it.
 

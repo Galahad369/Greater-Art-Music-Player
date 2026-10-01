@@ -221,7 +221,7 @@ one new immutable APK, and version metadata that passes the consistency script.
 ## Prompt to give Hermes
 
 ```text
-Continue in the existing APPs-by-L checkout. Read
+Continue in the existing Greater-Art-Music-Player checkout. Read
 greater-art/docs/CHATGPT_TO_HERMES_BUILD_PLAYBOOK.md completely and follow it as an
 executable recovery procedure. Inspect the fetched graph and dirty state first. Use
 plain Git if gh is unavailable. Preserve all user work and the pinned signing identity.

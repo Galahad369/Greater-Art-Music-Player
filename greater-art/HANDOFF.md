@@ -10,6 +10,13 @@ This file describes the **current repository state only**. Historical session no
 
 ## Repository state
 
+### October 1 — 1.14.16 privacy + public-release integrity hardening (source only)
+
+- Public-repository auditing now scans workstation-home paths across every reachable commit, not only the current working tree. This intentionally exposes unresolved historical privacy debt instead of allowing file deletion alone to turn CI green.
+- The version guard now checks the root README, app README, and landing page as separate public distribution surfaces. SOURCE_ONLY source metadata is kept distinct from the latest verified APK, public download links must resolve to a tracked artifact, and stale/dead APK links fail validation.
+- Canonical repository links now use `Galahad369/Greater-Art-Music-Player`.
+- Source version: **1.14.16 (code 131)**. State remains **SOURCE_ONLY**. Latest verified APK remains 1.14.3. The historical workstation-path rewrite must be completed before the strengthened privacy audit can pass.
+
 ### October 1 — 1.14.15 PR version-guard correctness (source only)
 
 - PR #50 exposed a validator integration bug: GitHub Actions checks out a synthetic merge commit for pull requests, so range validation compared that merge result directly to main and incorrectly treated the valid two-step 1.14.13 → 1.14.14 history as one 1.14.12 → 1.14.14 jump.
