@@ -1,33 +1,5 @@
 package com.local.listentomusic.ui
 
-/** Left / right third of the stage; middle is inert (YouTube-style). */
-internal enum class SeekSide { LEFT, RIGHT }
-
-internal fun seekSideForX(x: Float, width: Float): SeekSide? = when {
-    width <= 0f -> null
-    x < width * .35f -> SeekSide.LEFT
-    x > width * .65f -> SeekSide.RIGHT
-    else -> null
-}
-
-/** Side seek zones only. The middle 30% is deliberately inert on double tap. */
-internal fun doubleTapSeekDelta(x: Float, width: Float, seekOffsetMs: Long): Long? =
-    when (seekSideForX(x, width)) {
-        SeekSide.LEFT -> -seekOffsetMs
-        SeekSide.RIGHT -> seekOffsetMs
-        null -> null
-    }
-
-/** Same-side double-tap only — left then right must not seek. */
-internal const val SIDE_DOUBLE_TAP_MS = 400L
-
-internal fun sideDoubleTapSeeks(
-    side: SeekSide?,
-    nowMs: Long,
-    lastSide: SeekSide?,
-    lastTapMs: Long,
-): Boolean = side != null && side == lastSide && (nowMs - lastTapMs) in 1 until SIDE_DOUBLE_TAP_MS
-
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.LinearEasing
@@ -64,6 +36,34 @@ import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.delay
 import kotlin.math.abs
 import kotlin.math.min
+
+/** Left / right third of the stage; middle is inert (YouTube-style). */
+internal enum class SeekSide { LEFT, RIGHT }
+
+internal fun seekSideForX(x: Float, width: Float): SeekSide? = when {
+    width <= 0f -> null
+    x < width * .35f -> SeekSide.LEFT
+    x > width * .65f -> SeekSide.RIGHT
+    else -> null
+}
+
+/** Side seek zones only. The middle 30% is deliberately inert on double tap. */
+internal fun doubleTapSeekDelta(x: Float, width: Float, seekOffsetMs: Long): Long? =
+    when (seekSideForX(x, width)) {
+        SeekSide.LEFT -> -seekOffsetMs
+        SeekSide.RIGHT -> seekOffsetMs
+        null -> null
+    }
+
+/** Same-side double-tap only — left then right must not seek. */
+internal const val SIDE_DOUBLE_TAP_MS = 400L
+
+internal fun sideDoubleTapSeeks(
+    side: SeekSide?,
+    nowMs: Long,
+    lastSide: SeekSide?,
+    lastTapMs: Long,
+): Boolean = side != null && side == lastSide && (nowMs - lastTapMs) in 1 until SIDE_DOUBLE_TAP_MS
 
 /**
  * YouTube-mobile-style side seek flash: dim circle, pulsing chevrons, seconds label.
