@@ -621,7 +621,7 @@ private fun VideoPlayerStage(
                         Icon(
                             if (playback.isPlaying) Icons.Rounded.Pause else Icons.Rounded.PlayArrow,
                             if (playback.isPlaying) "Pause" else "Play",
-                            modifier = Modifier.size(30.dp),
+                            modifier = Modifier.size(GaControl.heroIcon),
                             tint = GaVideoOverlay.foreground,
                         )
                     }
@@ -1466,8 +1466,8 @@ private fun PlayerBottomControls(
             }
         }
         IconButton(onClick = onPrevious, enabled = playback.hasPrevious || playback.positionMs > 4_000L,
-            modifier = Modifier.inspectElement("PREVIOUS_BUTTON", "Previous media or restart current")) {
-            Icon(Icons.Rounded.SkipPrevious, uiText(playback.appLanguage, "Previous", "上一首"), modifier = Modifier.size(36.dp))
+            modifier = Modifier.size(GaControl.touchTarget).inspectElement("PREVIOUS_BUTTON", "Previous media or restart current")) {
+            Icon(Icons.Rounded.SkipPrevious, uiText(playback.appLanguage, "Previous", "上一首"), modifier = Modifier.size(GaControl.prominentIcon))
         }
         LiquidMetalSurface(
                     modifier = Modifier.size(GaControl.hero)
@@ -1482,12 +1482,12 @@ private fun PlayerBottomControls(
             Icon(
                 if (playback.isPlaying) Icons.Rounded.Pause else Icons.Rounded.PlayArrow,
                 if (playback.isPlaying) uiText(playback.appLanguage, "Pause", "暫停") else uiText(playback.appLanguage, "Play", "播放"),
-                modifier = Modifier.size(40.dp),
+                modifier = Modifier.size(GaControl.heroIcon),
                 tint = MaterialTheme.colorScheme.onSurface,
             )
         }
-        IconButton(onClick = onNext, enabled = playback.hasNext, modifier = Modifier.inspectElement("NEXT_BUTTON", "Next media")) {
-            Icon(Icons.Rounded.SkipNext, uiText(playback.appLanguage, "Next", "下一首"), modifier = Modifier.size(36.dp))
+        IconButton(onClick = onNext, enabled = playback.hasNext, modifier = Modifier.size(GaControl.touchTarget).inspectElement("NEXT_BUTTON", "Next media")) {
+            Icon(Icons.Rounded.SkipNext, uiText(playback.appLanguage, "Next", "下一首"), modifier = Modifier.size(GaControl.prominentIcon))
         }
         Box {
                     IconButton(onClick = { speedMenuOpen = true }, modifier = Modifier.size(48.dp).inspectElement("SPEED_BUTTON", speedLabel(playback.speed))) {

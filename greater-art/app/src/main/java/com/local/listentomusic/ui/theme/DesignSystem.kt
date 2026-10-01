@@ -27,6 +27,7 @@ internal object GaControl {
     val icon = 22.dp
     val prominentIcon = 28.dp
     val hero = 56.dp
+    val heroIcon = 32.dp
 }
 
 internal object GaRadius {
