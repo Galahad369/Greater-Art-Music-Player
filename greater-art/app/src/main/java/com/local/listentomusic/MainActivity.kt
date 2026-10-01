@@ -429,7 +429,7 @@ private fun PermissionAwareApp(
         },
     )
     if (!overlayGranted && showOverlayPrompt) {
-        GreaterArtTheme(preferences.themeMode, preferences.appFont, preferences.silianRail) {
+        GreaterArtTheme(preferences.themeMode, preferences.colorTheme, preferences.appFont, preferences.silianRail) {
         androidx.compose.material3.AlertDialog(
             onDismissRequest = { showOverlayPrompt = false },
             title = { androidx.compose.material3.Text(uiText(language, "Allow floating player", "允許浮動播放器")) },

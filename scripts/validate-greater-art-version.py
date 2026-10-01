@@ -24,6 +24,11 @@ SERIES_TRANSITION_RE = re.compile(
     r"^Allowed series transition:\s*\*\*(\d+\.\d+\.\d+) -> (\d+\.\d+\.\d+)\*\*$",
     re.MULTILINE,
 )
+CONSUMED_TRANSITION_RE = re.compile(
+    r"^Allowed consumed transition:\s*\*\*(\d+\.\d+\.\d+) \(code (\d+)\) -> "
+    r"(\d+\.\d+\.\d+) \(code (\d+)\)\*\*$",
+    re.MULTILINE,
+)
 
 
 def fail(errors: list[str], message: str) -> None:
@@ -123,6 +128,37 @@ def is_allowed_version_step(previous: str, current: str, rules_text: str) -> boo
     ) in allowed_series_transitions(rules_text)
 
 
+def allowed_consumed_transitions(
+    rules_text: str,
+) -> set[tuple[str, int, str, int]]:
+    return {
+        (previous, int(previous_code), current, int(current_code))
+        for previous, previous_code, current, current_code
+        in CONSUMED_TRANSITION_RE.findall(rules_text)
+    }
+
+
+def is_allowed_version_code_step(
+    previous_version: str,
+    previous_code: int,
+    current_version: str,
+    current_code: int,
+    commit_rules_text: str,
+    head_rules_text: str,
+) -> bool:
+    normal_step = (
+        is_allowed_version_step(previous_version, current_version, commit_rules_text)
+        and current_code == previous_code + 1
+    )
+    consumed_step = (
+        previous_version,
+        previous_code,
+        current_version,
+        current_code,
+    ) in allowed_consumed_transitions(head_rules_text)
+    return normal_step or consumed_step
+
+
 def gradle_has_substantive_change(parent: str, commit: str) -> bool:
     diff = run_git("diff", "--unified=0", parent, commit, "--", GRADLE_REL)
     for line in diff.splitlines():
@@ -183,6 +219,12 @@ def rules_from_ref(ref: str) -> tuple[str, int, str, str, int, list[tuple[str, i
 
 
 def validate_commit_range(errors: list[str], base: str, head: str = "HEAD") -> None:
+    try:
+        head_rules_text = run_git("show", f"{head}:{RULES_REL}")
+    except Exception as exc:
+        fail(errors, f"cannot read head VERSION_RULES for range validation: {exc}")
+        head_rules_text = ""
+
     commits = [
         commit
         for commit in run_git("rev-list", "--reverse", f"{base}..{head}").splitlines()
@@ -211,19 +253,21 @@ def validate_commit_range(errors: list[str], base: str, head: str = "HEAD") -> N
                 fail(errors, f"{commit[:12]}: cannot read VERSION_RULES for version step: {exc}")
                 commit_rules_text = ""
 
-            if not is_allowed_version_step(previous_version, current_version, commit_rules_text):
+            if not is_allowed_version_code_step(
+                previous_version,
+                previous_code,
+                current_version,
+                current_code,
+                commit_rules_text,
+                head_rules_text,
+            ):
                 fail(
                     errors,
-                    f"{commit[:12]}: versioned code changed but versionName must be "
-                    f"the next PATCH or an explicitly allowed series transition from "
-                    f"{previous_version}; found {current_version}",
-                )
-
-            if current_code != previous_code + 1:
-                fail(
-                    errors,
-                    f"{commit[:12]}: versioned code changed but versionCode must be "
-                    f"{previous_code} -> {previous_code + 1}; found {current_code}",
+                    f"{commit[:12]}: versioned code changed but version/code must be "
+                    f"the next PATCH/+1 code, an allowed series transition, or an "
+                    f"exact consumed-branch transition declared at the range head; "
+                    f"found {previous_version}/code {previous_code} -> "
+                    f"{current_version}/code {current_code}",
                 )
 
             try:

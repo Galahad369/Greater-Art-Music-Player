@@ -524,6 +524,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     fun setLibraryRowSize(value: LibraryRowSize) = updatePreference { preferences.setLibraryRowSize(value) }
     fun setThemeMode(value: ThemeMode) = updatePreference { preferences.setThemeMode(value) }
+    fun setColorTheme(value: com.local.listentomusic.data.ColorTheme) = updatePreference { preferences.setColorTheme(value) }
     fun setShowThumbnails(value: Boolean) = updatePreference { preferences.setShowThumbnails(value) }
     fun setShowFileDetails(value: Boolean) = updatePreference { preferences.setShowFileDetails(value) }
     fun setResumePlayback(value: Boolean) = updatePreference { preferences.setResumePlayback(value) }
