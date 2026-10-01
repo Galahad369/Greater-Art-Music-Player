@@ -7,7 +7,7 @@ This file is the authoritative version policy for Greater Art. If any handoff no
 ## Machine-checkable state
 
 
-Current source: **1.15.19 (code 149)**
+Current source: **1.15.20 (code 150)**
 Current release state: **SOURCE_ONLY**
 Latest verified APK: **1.15.10 (code 140)**
 Allowed series transition: **1.14.15 -> 1.15.1**
@@ -142,6 +142,7 @@ The guard checks:
 - 1.15.17 (code 147) — canonical branch convergence: complete reviewed ColorTheme/Settings implementation + exact consumed-transition guard, preserving verified 1.15.10 release metadata; source only, local build pending
 - 1.15.18 (code 148) — rejected Grok PR #62 version-only side-branch commit; no claimed UI implementation was present; version consumed, not merged
 - 1.15.19 (code 149) — canonical transport-control alignment: shared hero icon token plus 48 dp previous/next targets, extracted from the Replit branch; source only, local build pending
+- 1.15.20 (code 150) — same-side double-tap seek for video/audio with 400 ms pairing, cross-side rejection, and hold-to-2x isolation; source only, local build pending
 
 Previous baseline: 1.13.26 (code 115).
 

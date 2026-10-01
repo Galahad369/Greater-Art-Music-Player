@@ -70,4 +70,17 @@ class FormattingTest {
         assertNull(com.local.listentomusic.ui.doubleTapSeekDelta(50f, 100f, 5_000L))
         assertEquals(5_000L, com.local.listentomusic.ui.doubleTapSeekDelta(90f, 100f, 5_000L))
     }
+
+    @Test fun sideDoubleTapRequiresSameSideTwice() {
+        val left = com.local.listentomusic.ui.SeekSide.LEFT
+        val right = com.local.listentomusic.ui.SeekSide.RIGHT
+        val window = com.local.listentomusic.ui.SIDE_DOUBLE_TAP_MS
+        assertFalse(com.local.listentomusic.ui.sideDoubleTapSeeks(left, 1_000L, null, 0L))
+        assertFalse(com.local.listentomusic.ui.sideDoubleTapSeeks(right, 1_200L, left, 1_000L))
+        assertTrue(com.local.listentomusic.ui.sideDoubleTapSeeks(left, 1_200L, left, 1_000L))
+        assertTrue(com.local.listentomusic.ui.sideDoubleTapSeeks(left, 1_000L + window, left, 1_000L))
+        assertFalse(com.local.listentomusic.ui.sideDoubleTapSeeks(left, 1_001L + window, left, 1_000L))
+        assertFalse(com.local.listentomusic.ui.sideDoubleTapSeeks(null, 1_200L, left, 1_000L))
+        assertFalse(com.local.listentomusic.ui.sideDoubleTapSeeks(left, 1_000L, left, 1_000L))
+    }
 }

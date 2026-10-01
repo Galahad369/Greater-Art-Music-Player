@@ -4,7 +4,7 @@ This file describes the **current repository state only**. Historical session no
 
 **Project:** `greater-art/` in the repository checkout
 **Current version:** `1.15.10 (code 140)`
-**Current source:** `1.15.19 (code 149)`
+**Current source:** `1.15.20 (code 150)`
 **Release state:** `SOURCE_ONLY`
 **Latest APK:** `releases/GreaterArt-1.15.10.apk` (`26,287,658 bytes`; SHA-256 `cf362d30747685d03d462cf0d37aa7a7508eb3e76c60da2ad1b3be612adcd0a3`)
 **Application ID:** `com.local.listentomusic`
@@ -14,6 +14,17 @@ This file describes the **current repository state only**. Historical session no
 **Verification boundary:** Built from exact source commit `56430b6`; `./gradlew testDebugUnitTest lintDebug :app:assembleDebug --offline` passed; `aapt dump badging` confirms package `com.local.listentomusic`, versionName `1.15.10`, versionCode `140`; signed with personal debug keystore; installed on A55/API 36; launch, library scan/load, local audio/video playback, prev/next/seek/pause/resume, playlist/Favorites playback, duplicate queue independence, Stack→Library/playlist transition, queue/Library add-to-list, Library delete three-confirm flow, mini-window/fullscreen/return flows verified; **0 FATAL EXCEPTION** in tested session.
 
 ## Repository state
+
+### October 2 — 1.15.20 same-side double-tap seek recovery (source only)
+
+- Reviewed and rejected PR #65 as submitted: it downgraded source to consumed 1.15.18/code148, duplicated `doubleTapSeekDelta`, failed Android/CodeQL compilation, and did not wire the new detector into Now Playing.
+- PR #64 was a zero-diff draft on top of that broken branch and was closed without merge.
+- Recreated the useful behavior on current main: video and audio seek only after two taps on the same side within 400 ms; crossing sides or tapping the inert center breaks the pair.
+- Video long-press 2× playback is isolated from seek pairing, so a hold/release is not registered as one half of a double-tap seek.
+- Gesture pairing is local to the pointer detector and resets when the current media changes, avoiding Compose snapshot churn.
+- Existing low-overhead seek-feedback rendering is retained instead of the heavier Canvas/infinite-animation rewrite.
+- No playback-engine, media-quality, network-permission, signing, dependency, theme, or release-artifact changes.
+- State: **SOURCE_ONLY**. Latest verified APK remains **1.15.10/code140**.
 
 ### October 2 — 1.15.19 transport-control alignment and final branch convergence (source only)
 
