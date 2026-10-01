@@ -13,6 +13,14 @@ This file describes the **current repository state only**. Historical session no
 
 ## Repository state
 
+### October 2 — 1.15.9 repository integrity cleanup (source only)
+
+- PR review found two root version helper scripts that used `git commit --amend`, directly conflicting with VERSION_RULES rule 9 (never overwrite history to repair a version mistake). They are removed rather than retained as dangerous operational tooling.
+- Removed the permissive branch-protection JSON recipes that disabled checks and/or allowed force pushes. The strict `branch_protection.json` reference remains.
+- Removed `releases/GreaterArt-1.15.4.apk`. Version 1.15.4 was recorded as SOURCE_ONLY and never finalized/verified; leaving an APK in the immutable release directory contradicted the declared release state.
+- The temporary privacy-history rewrite only replaced the two Vercel-authored lag commits with identical trees/messages under the repository GitHub noreply identity so the public-author audit can pass. `main` history was not rewritten.
+- 1.15.5 through 1.15.8 remain consumed. Source version: **1.15.9 (code 139)**. State remains **SOURCE_ONLY**. Latest verified APK remains 1.15.1.
+
 ### October 2 — 1.15.8 Stack row isolation + inspector test fix (source only)
 
 - Opus's second Stack review identified an additional UI cost: the 2 Hz Stack session ticker recreated every `StackSlot`, so every visible track row received a new object twice per second. Stack publishing now preserves unchanged slot instances and only copies a slot when its resolved duration changes.

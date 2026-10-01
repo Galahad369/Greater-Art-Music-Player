@@ -6,7 +6,7 @@ This file is the authoritative version policy for Greater Art. If any handoff no
 
 ## Machine-checkable state
 
-Current source: **1.15.8 (code 138)**
+Current source: **1.15.9 (code 139)**
 Current release state: **SOURCE_ONLY**
 Latest verified APK: **1.15.1 (code 131)**
 Allowed series transition: **1.14.15 -> 1.15.1**
@@ -128,6 +128,7 @@ The guard checks:
 - 1.15.6 (code 136) — Stack playback lag fix: primary-player clock, buffer-aware companion gating, reduced hard-seek churn, Stack waveform suppression, and decorative video-background suspension; source only, local build pending
 - 1.15.7 (code 137) — Stack synchronization follow-up: freeze companions before primary swaps and always mirror actual primary buffering/resume events; source only, local build pending
 - 1.15.8 (code 138) — Stack/UI lag follow-up: isolate Stack rows from 2 Hz position ticks, stabilize StackSlot instances, defer Stack thumbnails during fling, and restore UiInspector unit-test bounds seam; source only, local build pending
+- 1.15.9 (code 139) — repository integrity cleanup: remove unsafe commit-amending version helpers, permissive branch-protection recipes, and unverified 1.15.4 release artifact; source only, local build pending
 
 Previous baseline: 1.13.26 (code 115).
 
