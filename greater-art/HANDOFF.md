@@ -3,21 +3,21 @@
 This file describes the **current repository state only**. Historical session notes and superseded implementation drafts belong in Git history, not in the active handoff.
 
 **Project:** `greater-art/` in the repository checkout
-**Current version:** `1.15.1 (code 131)`
-**Latest APK:** `releases/GreaterArt-1.15.1.apk` (`26,107,434 bytes`; SHA-256 `9224becb4732fc94359ad8da47fccddba44f9ecc77c0643376a4596a6f1c8d78`)
+**Current version:** `1.15.10 (code 140)`
+**Latest APK:** `releases/GreaterArt-1.15.10.apk` (`26,287,658 bytes`; SHA-256 `cf362d30747685d03d462cf0d37aa7a7508eb3e76c60da2ad1b3be612adcd0a3`)
 **Application ID:** `com.local.listentomusic`
 **Signing certificate SHA-256:** `9e28eb45b3b171c3ea47d7da942d28d88b16538885e392a6971a80906d612fbf`
-**Build date:** `2026-10-01`
+**Build date:** `2026-10-02`
 **Test device:** `GreaterArt_A55_API36 (A55, API 36, Android 17)`
-**Verification boundary:** Built from exact source commit `328cb19e4c9d96353ce9235e0c0d7910281bb9b2`; `./gradlew testDebugUnitTest lintDebug :app:assembleDebug --offline` passed; `aapt dump badging` confirms package `com.local.listentomusic`, versionName `1.15.1`, versionCode `131`; signed with personal debug keystore; installed on A55/API 36; launch, library scan/load, local audio/video playback, prev/next/seek/pause/resume, playlist/Favorites playback, duplicate queue independence, Stack→Library/playlist transition, queue/Library add-to-list, Library delete three-confirm flow, mini-window/fullscreen/return flows verified; **0 FATAL EXCEPTION** in tested session.
+**Verification boundary:** Built from exact source commit `56430b6`; `./gradlew testDebugUnitTest lintDebug :app:assembleDebug --offline` passed; `aapt dump badging` confirms package `com.local.listentomusic`, versionName `1.15.10`, versionCode `140`; signed with personal debug keystore; installed on A55/API 36; launch, library scan/load, local audio/video playback, prev/next/seek/pause/resume, playlist/Favorites playback, duplicate queue independence, Stack→Library/playlist transition, queue/Library add-to-list, Library delete three-confirm flow, mini-window/fullscreen/return flows verified; **0 FATAL EXCEPTION** in tested session.
 
 ## Repository state
 
-### October 2 — 1.15.10 version/release guard closure (source only)
+### October 2 — 1.15.10 version/release guard closure (**verified**)
 
 - The version guard now treats executable helpers placed at repository root (`.sh`, `.ps1`, `.py`, `.js`, `.ts`) as versioned tooling, not just files under `scripts/`. This closes the gap that allowed the removed commit-amending helpers to exist outside the guarded path set.
 - Current-state validation now scans every tracked release APK name. Malformed release filenames fail, and any APK newer than `Latest verified APK` fails unless the repository is explicitly VERIFIED at that exact current version. This would have rejected the stray unverified 1.15.4 artifact.
-- 1.15.9 remains consumed. Source version: **1.15.10 (code 140)**. State remains **SOURCE_ONLY**. Latest verified APK remains 1.15.1.
+- 1.15.9 remains consumed. Source version: **1.15.10 (code 140)**. State: **VERIFIED**. Latest verified APK: **1.15.10**.
 
 ### October 2 — 1.15.9 repository integrity cleanup (source only)
 
