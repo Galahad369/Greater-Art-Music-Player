@@ -10,6 +10,18 @@ This file describes the **current repository state only**. Historical session no
 
 ## Repository state
 
+### October 1 — 1.14.13 deep audit and queue/performance correctness (source only)
+
+- Queue presentation now uses exact MediaSession indices plus duplicate-safe per-occurrence row keys. Repeated copies of the same path no longer share a Compose key/action-open state or cause a tap on a later duplicate to seek to the first copy.
+- Normal playback queue replacement is centralized. Library-row playback and playlist/Favorites playback both leave Stack first, reset startup diagnostics, and then replace/prepare the Media3 queue through the same path.
+- Queue removal Undo now restores the exact removed occurrence even when another duplicate with the same media ID remains. Settings also allows rule-based playlists to start through their existing dynamic resolver instead of disabling Play because their stored path list is empty.
+- Background future-track waveform warmup is cancelled/suppressed while expanded Now Playing is visible. This targets the underlying MainActivity ViewModel that can otherwise keep decoding beneath the system player; explicit current-track waveform loading in the presentation remains available. WAV decoding now has cancellation checkpoints as well.
+- Retired bulk thumbnail-preload plumbing was removed from preferences, ViewModel, Library scrolling, Settings, and the repository. Thumbnail loading remains on-demand with the existing two-decode bound; disk-cache pruning now runs on the real load path so the documented 600-file / 256 MiB bound is actually enforced.
+- Removed the tracked `NodesScreen.kt.bak` duplicate source artifact.
+- GitHub release verification now checks application ID, versionName, and versionCode from the built APK, and release assets follow `GreaterArt-X.Y.Z.apk` naming without an extra `v`.
+- Corrected the VERSION_RULES headline so it matches the machine validator and rule 8: versioned executable/build/release changes consume a PATCH; docs-only/release-finalization changes remain the explicit exception.
+- Source version: **1.14.13 (code 128)**. State remains **SOURCE_ONLY**. Latest verified APK remains 1.14.3. CI/device verification must still be completed before any 1.14.13 artifact is treated as verified.
+
 ### October 1 — 1.14.12 PR review cleanup (source only)
 
 - Reviewed merged PR #48 against the actual four-file diff. The square Library Delete action had removed its visible text label but left the icon content description null; it now exposes the localized Delete label to accessibility services while preserving the 48×48 dp square touch target and existing three-step permanent-delete confirmation.

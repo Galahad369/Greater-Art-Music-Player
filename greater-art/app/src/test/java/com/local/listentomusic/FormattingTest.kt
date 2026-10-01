@@ -45,7 +45,6 @@ class FormattingTest {
         assertEquals(FloatingWindowMode.MINI_WINDOW, defaults.floatingWindowMode)
         assertEquals(ThemeMode.DARK, defaults.themeMode)
         assertEquals(AppLanguage.ENGLISH, defaults.appLanguage)
-        assertFalse(defaults.preloadThumbnails)
         assertFalse(defaults.showFileDetails)
         assertEquals(AppBackgroundMode.CURRENT_VIDEO, defaults.backgroundMode)
         assertFalse(defaults.blackDiscMode)

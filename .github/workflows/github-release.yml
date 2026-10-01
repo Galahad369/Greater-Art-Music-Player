@@ -86,7 +86,7 @@ jobs:
           chmod +x gradlew
           ./gradlew testDebugUnitTest lintDebug assembleRelease --no-daemon
 
-      - name: Verify APK signature and packaged version
+      - name: Verify APK identity, signature, and packaged version
         shell: bash
         run: |
           set -euo pipefail
@@ -94,11 +94,28 @@ jobs:
           test -f "$apk"
           build_tools="$ANDROID_HOME/build-tools/$(ls "$ANDROID_HOME/build-tools" | sort -V | tail -n1)"
           "$build_tools/apksigner" verify --verbose --print-certs "$apk"
+
           expected_version="${RELEASE_TAG#v}"
-          packaged_version="$("$build_tools/aapt" dump badging "$apk" | sed -n "s/^package:.*versionName='\([^']*\)'.*/\1/p")"
+          expected_code="$(sed -nE 's/^[[:space:]]*versionCode[[:space:]]*=[[:space:]]*([0-9]+).*/\1/p' greater-art/app/build.gradle.kts)"
+          badging="$("$build_tools/aapt" dump badging "$apk")"
+          packaged_name="$(printf '%s\n' "$badging" | sed -n "s/^package: name='\([^']*\)'.*/\1/p")"
+          packaged_code="$(printf '%s\n' "$badging" | sed -n "s/^package:.*versionCode='\([^']*\)'.*/\1/p")"
+          packaged_version="$(printf '%s\n' "$badging" | sed -n "s/^package:.*versionName='\([^']*\)'.*/\1/p")"
+
+          test -n "$expected_code"
+          test -n "$packaged_name"
+          test -n "$packaged_code"
           test -n "$packaged_version"
+          if [ "$packaged_name" != "com.local.listentomusic" ]; then
+            echo "Unexpected APK package: $packaged_name"
+            exit 1
+          fi
           if [ "$packaged_version" != "$expected_version" ]; then
             echo "Tag/APK version mismatch: tag=$expected_version APK=$packaged_version"
+            exit 1
+          fi
+          if [ "$packaged_code" != "$expected_code" ]; then
+            echo "Gradle/APK versionCode mismatch: Gradle=$expected_code APK=$packaged_code"
             exit 1
           fi
 
@@ -108,7 +125,8 @@ jobs:
         run: |
           set -euo pipefail
           src="greater-art/app/build/outputs/apk/release/app-release.apk"
-          apk="GreaterArt-${RELEASE_TAG}.apk"
+          version="${RELEASE_TAG#v}"
+          apk="GreaterArt-${version}.apk"
           checksum="${apk}.sha256"
           test -f "$src"
           cp "$src" "$apk"

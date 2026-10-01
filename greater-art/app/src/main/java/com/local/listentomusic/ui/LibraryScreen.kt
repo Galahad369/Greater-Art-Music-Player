@@ -144,7 +144,6 @@ fun LibraryScreen(
     onShareSelectedFiles: (List<MediaFile>) -> Unit,
     onToggleFavourite: (String) -> Unit,
     onLoadThumbnail: suspend (MediaFile) -> Bitmap?,
-    onPreloadAhead: (Int, Int) -> Unit,
     onOpenSettings: () -> Unit,
     onStackTogether: (List<MediaFile>) -> Boolean,
     onPlay: (MediaFile) -> Unit,
@@ -458,20 +457,6 @@ fun LibraryScreen(
                     )
                 } else {
                     val listState = rememberLazyListState()
-                    // Keep a priority window around the viewport. The repository also
-                    // warms 300 items in the background, but visible-nearby work must
-                    // never wait behind the whole batch.
-                    LaunchedEffect(listState) {
-                        var lastRequestedStart = -1
-                        snapshotFlow { listState.firstVisibleItemIndex }
-                            .collect { index ->
-                                val start = ((index - 8).coerceAtLeast(0) / 48) * 48
-                                if (start != lastRequestedStart) {
-                                    lastRequestedStart = start
-                                    onPreloadAhead(start, 72)
-                                }
-                            }
-                    }
                     LaunchedEffect(listState) {
                         snapshotFlow { listState.isScrollInProgress }.collect { scrolling ->
                             if (scrolling) openRowActionsPath = null

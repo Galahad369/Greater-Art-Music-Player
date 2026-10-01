@@ -209,7 +209,7 @@ fun NowPlayingScreen(
     sleepTimer: SleepTimerState,
     seekOffsetMs: Long = 5_000L,
     onSeekBy: (Long) -> Unit,
-    onPlayQueueItem: (MediaFile) -> Unit,
+    onPlayQueueItem: (Int) -> Unit,
     onLoadThumbnail: suspend (MediaFile) -> Bitmap?,
     onLoadWaveform: suspend (String) -> FloatArray?,
     onMoveQueueItem: (Int, Int) -> Unit,
@@ -245,16 +245,17 @@ fun NowPlayingScreen(
         val queueListState = rememberLazyListState()
         var locateTrigger by remember { mutableStateOf(0) }
 
-        // Callback to scroll queue to currently playing item
+        // MediaSession queue position is authoritative. Path lookup is ambiguous
+        // when the same track appears more than once.
         val onLocateCurrent = {
-            val currentIndex = queue.indexOfFirst { it.path == playback.currentPath }
-            if (currentIndex >= 0 && !queueListState.isScrollInProgress) {
+            val currentIndex = playback.currentQueueIndex
+            if (currentIndex in queue.indices && !queueListState.isScrollInProgress) {
                 locateTrigger++
             }
         }
-        LaunchedEffect(locateTrigger) {
-            val currentIndex = queue.indexOfFirst { it.path == playback.currentPath }
-            if (currentIndex >= 0) {
+        LaunchedEffect(locateTrigger, playback.currentQueueIndex) {
+            val currentIndex = playback.currentQueueIndex
+            if (currentIndex in queue.indices) {
                 queueListState.animateScrollToItem(currentIndex)
             }
         }
@@ -680,7 +681,7 @@ private fun AudioPlayer(
     sleepTimer: SleepTimerState,
     seekOffsetMs: Long = 5_000L,
     onSeekBy: (Long) -> Unit,
-    onPlayQueueItem: (MediaFile) -> Unit,
+    onPlayQueueItem: (Int) -> Unit,
     onLoadThumbnail: suspend (MediaFile) -> Bitmap?,
     onLoadWaveform: suspend (String) -> FloatArray?,
     onMoveQueueItem: (Int, Int) -> Unit,
@@ -778,7 +779,7 @@ private fun AudioPlayer(
                 showFileDetails = showFileDetails,
                 editableQueue = editableQueue,
                 positionMs = if (lyrics == null) 0L else playback.positionMs,
-                currentPath = playback.currentPath,
+                currentQueueIndex = playback.currentQueueIndex,
                                 language = language,
                                 onPlay = onPlayQueueItem,
                                 onSeek = onSeek,
@@ -867,7 +868,7 @@ private fun SecondaryControls(
     onNext: () -> Unit,
     onSleepTimer: (Long) -> Unit,
     sleepTimer: SleepTimerState,
-    onPlayQueueItem: (MediaFile) -> Unit,
+    onPlayQueueItem: (Int) -> Unit,
     onLoadThumbnail: suspend (MediaFile) -> Bitmap?,
     onSeek: (Long) -> Unit,
     onMoveQueueItem: (Int, Int) -> Unit,
@@ -918,7 +919,7 @@ private fun SecondaryControls(
                     showFileDetails = showFileDetails,
                     editableQueue = editableQueue,
                     positionMs = if (lyrics == null) 0L else playback.positionMs,
-                    currentPath = playback.currentPath,
+                    currentQueueIndex = playback.currentQueueIndex,
                     language = language,
                     onPlay = onPlayQueueItem,
                     onSeek = onSeek,
@@ -945,13 +946,13 @@ private fun NowPlayingQueue(
     searchOpen: Boolean,
     onCloseSearch: () -> Unit,
     queue: List<MediaFile>,
-    currentPath: String?,
+    currentQueueIndex: Int,
     language: AppLanguage,
     lyrics: LocalLyrics?,
     showFileDetails: Boolean,
     editableQueue: Boolean,
     positionMs: Long,
-    onPlay: (MediaFile) -> Unit,
+    onPlay: (Int) -> Unit,
     onSeek: (Long) -> Unit,
     onLoadThumbnail: suspend (MediaFile) -> Bitmap?,
     onMoveQueueItem: (Int, Int) -> Unit,
@@ -974,24 +975,26 @@ private fun NowPlayingQueue(
         }
     }
     BackHandler(enabled = searchOpen) { onCloseSearch() }
-    val currentIndex = queue.indexOfFirst { it.path == currentPath }
-    val visibleQueue = remember(queue, query) {
+    val queueEntries = remember(queue) { com.local.listentomusic.model.queueEntries(queue) }
+    val visibleQueue = remember(queueEntries, query) {
         val normalized = query.trim()
-        queue.withIndex().filter { (_, file) -> normalized.isBlank() ||
-            file.name.contains(normalized, ignoreCase = true) ||
-            file.artist.contains(normalized, ignoreCase = true) ||
-            file.album.contains(normalized, ignoreCase = true)
+        queueEntries.filter { entry ->
+            val file = entry.file
+            normalized.isBlank() ||
+                file.name.contains(normalized, ignoreCase = true) ||
+                file.artist.contains(normalized, ignoreCase = true) ||
+                file.album.contains(normalized, ignoreCase = true)
         }
     }
     val listState = queueListState
-    var openActionsPath by rememberSaveable { mutableStateOf<String?>(null) }
-    val visibleIndex = visibleQueue.indexOfFirst { it.value.path == currentPath }
-    LaunchedEffect(currentPath, visibleIndex) {
+    var openActionsKey by rememberSaveable { mutableStateOf<String?>(null) }
+    val visibleIndex = visibleQueue.indexOfFirst { it.index == currentQueueIndex }
+    LaunchedEffect(currentQueueIndex, visibleIndex) {
         if (visibleIndex >= 0 && !listState.isScrollInProgress) listState.scrollToItem(visibleIndex)
     }
     LaunchedEffect(listState) {
         snapshotFlow { listState.isScrollInProgress }.collect { scrolling ->
-            if (scrolling) openActionsPath = null
+            if (scrolling) openActionsKey = null
         }
     }
     Column(modifier.inspectElement("NOW_PLAYING_QUEUE", "Ordered playback queue and optional synchronized lyrics")) {
@@ -1033,11 +1036,11 @@ private fun NowPlayingQueue(
                 state = listState,
                 contentPadding = PaddingValues(vertical = 4.dp),
             ) {
-                items(visibleQueue, key = { indexed -> indexed.value.id }, contentType = { "queue-song" }) { indexed ->
-                    val index = indexed.index
-                    val file = indexed.value
-                    val selected = file.path == currentPath
-                    val actionsOpen = openActionsPath == file.path
+                items(visibleQueue, key = { entry -> entry.stableKey }, contentType = { "queue-song" }) { entry ->
+                    val index = entry.index
+                    val file = entry.file
+                    val selected = index == currentQueueIndex
+                    val actionsOpen = openActionsKey == entry.stableKey
                     val revealProgress by animateFloatAsState(
                         targetValue = if (actionsOpen) 1f else 0f,
                         animationSpec = tween(durationMillis = 200),
@@ -1053,7 +1056,7 @@ private fun NowPlayingQueue(
                     ) {
                         IconButton(
                             onClick = {
-                                openActionsPath = null
+                                openActionsKey = null
                                 onAddQueueItemToList(file)
                             },
                             modifier = Modifier.align(Alignment.CenterEnd).size(actionSize)
@@ -1081,7 +1084,7 @@ private fun NowPlayingQueue(
                                     else MaterialTheme.colorScheme.surface,
                                 )
                                 .clickable {
-                                    if (actionsOpen) openActionsPath = null else onPlay(file)
+                                    if (actionsOpen) openActionsKey = null else onPlay(index)
                                 }
                                 .padding(horizontal = 7.dp, vertical = 4.dp),
                             verticalAlignment = Alignment.CenterVertically,
@@ -1119,7 +1122,7 @@ private fun NowPlayingQueue(
                                 )
                             }
                             IconButton(
-                                onClick = { openActionsPath = if (actionsOpen) null else file.path },
+                                onClick = { openActionsKey = if (actionsOpen) null else entry.stableKey },
                                 modifier = Modifier.size(40.dp).inspectElement("QUEUE_MORE_BUTTON", "Actions for ${file.name}"),
                             ) {
                                 Icon(Icons.Rounded.MoreVert, uiText(language, "Actions", "操作"))

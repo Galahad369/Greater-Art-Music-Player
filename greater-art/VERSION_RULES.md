@@ -1,12 +1,12 @@
 VERSION_RULES.md — Greater Art APK (HARDENED)
 
-PATCH RULE (ABSOLUTE, ZERO EXCEPTIONS): ANY change to ANY file — code, constant, comment, spacing, pixel position (e.g. 11→9), resource, manifest, version file — requires versionName += PATCH increment (X.Y.Z → X.Y.Z+1) and versionCode +=1. Even a single byte or a 1px offset change. No silent builds. No reused version numbers. No exceptions.
+VERSIONED CHANGE RULE (ABSOLUTE): Any change that affects executable app behavior, build behavior, release behavior, resources, manifest state, or executable tooling requires versionName += PATCH (X.Y.Z → X.Y.Z+1) and versionCode +=1 in the same commit. Documentation-only and release-finalization exceptions are limited to rule 8 below. No silent builds and no reused version numbers.
 
 This file is the authoritative version policy for Greater Art. If any handoff note, README, old commit message, or conversation conflicts with this file, this file wins.
 
 ## Machine-checkable state
 
-Current source: **1.14.12 (code 127)**
+Current source: **1.14.13 (code 128)**
 Current release state: **SOURCE_ONLY**
 Latest verified APK: **1.14.3 (code 118)**
 
@@ -116,6 +116,7 @@ The guard checks:
 - 1.14.10 (code 125) — suspend independent video wallpaper while expanded Now Playing covers MainActivity; source only, local build pending
 - 1.14.11 (code 126) — library delete button square (48dp), second video wallpaper suspended, logs consolidated; source only, local build pending
 - 1.14.12 (code 127) — PR review cleanup: restore Delete accessibility label and allow versioned release APK tracking; source only, local build pending
+- 1.14.13 (code 128) — deep audit: duplicate-safe queue identity/exact-index playback, unified normal queue startup, expanded-player waveform warmup suppression, retired thumbnail-preload cleanup with active cache pruning, stale backup source removal, and release identity/versionCode hardening; source only, local build pending
 
 Previous baseline: 1.13.26 (code 115).
 
