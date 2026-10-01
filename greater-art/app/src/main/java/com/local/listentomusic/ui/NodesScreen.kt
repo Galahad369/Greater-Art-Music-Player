@@ -41,6 +41,9 @@ import androidx.compose.ui.unit.dp
 import com.local.listentomusic.graph.LibraryGraph
 import com.local.listentomusic.graph.GraphOptions
 import com.local.listentomusic.graph.presentGraph
+import com.local.listentomusic.ui.components.GaChromeSurface
+import com.local.listentomusic.ui.theme.GaControl
+import com.local.listentomusic.ui.theme.GaSpacing
 import kotlin.math.*
 
 /** Nodes is the right-hand page of the persistent Stack | All songs | Nodes navigator. */
@@ -78,16 +81,20 @@ private fun GraphCanvas(graph: LibraryGraph, currentPath: String?, onPlay: (Stri
     val color = MaterialTheme.colorScheme.primary
     val onAccent = MaterialTheme.colorScheme.onPrimary
     val ink = MaterialTheme.colorScheme.onSurface
-    val labelPaint = remember(ink) { android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG).apply {
-        this.color = ink.toArgb(); textSize = 28f
-    } }
+    val inspectorDensity = LocalDensity.current
+    val labelTextSize = with(inspectorDensity) { MaterialTheme.typography.labelMedium.fontSize.toPx() }
+    val labelPaint = remember(ink, labelTextSize) {
+        android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG).apply {
+            this.color = ink.toArgb()
+            textSize = labelTextSize
+        }
+    }
     val labelBacking = MaterialTheme.colorScheme.surface.copy(alpha = .88f)
     val backingPaint = remember(labelBacking) { android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG).apply {
         this.color = labelBacking.toArgb()
     } }
     val onPlayCurrent by rememberUpdatedState(onPlay)
     val inspector = LocalUiInspector.current
-    val inspectorDensity = LocalDensity.current
     val hitProviderKey = remember { Any() }
     var canvasBounds by remember { mutableStateOf(Rect.Zero) }
     DisposableEffect(inspector, hitProviderKey) {
@@ -126,14 +133,14 @@ private fun GraphCanvas(graph: LibraryGraph, currentPath: String?, onPlay: (Stri
     }
     LaunchedEffect(graph, viewport) { if (viewport.width > 0 && viewport.height > 0) fit() }
     Column(modifier.inspectElement("NODES_CONTENT", "Graph toolbar, interactive canvas, and gesture hint")) {
-        Surface(
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 5.dp)
+        GaChromeSurface(
+            modifier = Modifier.fillMaxWidth().padding(horizontal = GaSpacing.lg, vertical = GaSpacing.sm)
                 .inspectElement("NODES_TOOLBAR", "Fit, find, locate playing, and graph controls"),
-            shape = RoundedCornerShape(16.dp),
-            color = MaterialTheme.colorScheme.surface.copy(alpha = .68f),
-            tonalElevation = 2.dp,
         ) {
-            Row(Modifier.fillMaxWidth().padding(horizontal = 4.dp, vertical = 5.dp), horizontalArrangement = Arrangement.SpaceEvenly) {
+            Row(
+                Modifier.fillMaxWidth().padding(horizontal = GaSpacing.xs, vertical = GaSpacing.xs),
+                horizontalArrangement = Arrangement.SpaceEvenly,
+            ) {
                 GraphTool(Icons.Rounded.CenterFocusStrong, "Fit", "NODES_FIT_BUTTON") { fit() }
                 GraphTool(Icons.Rounded.Search, "Find", "NODES_FIND_BUTTON") { picker = true }
                 GraphTool(Icons.Rounded.MyLocation, "Playing", "NODES_PLAYING_BUTTON", enabled = current >= 0) {
@@ -240,7 +247,7 @@ private fun GraphCanvas(graph: LibraryGraph, currentPath: String?, onPlay: (Stri
                 val importance = presentation.importance[i]
                 val radius = ((3.5f + importance * 5.5f) * options.nodeSize).dp.toPx()
                 val raw = graph.nodes[i].filename.substringBeforeLast('.').take(28)
-                labelPaint.textSize = 11.dp.toPx()
+                labelPaint.textSize = labelTextSize
                 labelPaint.isFakeBoldText = i == current || i == selected
                 val text = if (raw.length == 28) "$raw…" else raw
                 val textWidth = labelPaint.measureText(text)
@@ -258,8 +265,11 @@ private fun GraphCanvas(graph: LibraryGraph, currentPath: String?, onPlay: (Stri
                 }
             }
         }
-        Text("Pinch to zoom  •  Drag nodes  •  Swipe empty space to navigate", style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+        Text(
+            "Pinch to zoom  •  Drag nodes  •  Swipe empty space to navigate",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(horizontal = GaSpacing.lg, vertical = GaSpacing.sm)
                 .inspectElement("NODES_GESTURE_HINT", "Graph gesture instructions"))
     }
     if (controls) GraphControls(options, { onOptions(it); controls = false }, { controls = false })
@@ -279,8 +289,9 @@ private fun GraphTool(icon: androidx.compose.ui.graphics.vector.ImageVector, lab
     enabled: Boolean = true, onClick: () -> Unit) {
     TextButton(
         onClick = onClick, enabled = enabled,
-        modifier = Modifier.widthIn(min = 68.dp).inspectElement(element, label),
-        contentPadding = PaddingValues(horizontal = 4.dp, vertical = 4.dp),
+        modifier = Modifier.widthIn(min = 68.dp).heightIn(min = GaControl.touchTarget)
+            .inspectElement(element, label),
+        contentPadding = PaddingValues(horizontal = GaSpacing.xs, vertical = GaSpacing.xs),
     ) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
             Icon(icon, null, Modifier.size(21.dp))

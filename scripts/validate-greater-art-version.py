@@ -20,6 +20,10 @@ PACKAGE_ID = "com.local.listentomusic"
 SEMVER_RE = re.compile(r"^(\d+)\.(\d+)\.(\d+)$")
 APK_NAME_RE = re.compile(r"^GreaterArt-(\d+\.\d+\.\d+)\.apk$")
 VERSION_LINE_RE = re.compile(r"^\s*version(?:Code|Name)\s*=")
+SERIES_TRANSITION_RE = re.compile(
+    r"^Allowed series transition:\s*\*\*(\d+\.\d+\.\d+) -> (\d+\.\d+\.\d+)\*\*$",
+    re.MULTILINE,
+)
 
 
 def fail(errors: list[str], message: str) -> None:
@@ -108,6 +112,17 @@ def is_next_patch(previous: str, current: str) -> bool:
     return (c_major, c_minor, c_patch) == (p_major, p_minor, p_patch + 1)
 
 
+def allowed_series_transitions(rules_text: str) -> set[tuple[str, str]]:
+    return set(SERIES_TRANSITION_RE.findall(rules_text))
+
+
+def is_allowed_version_step(previous: str, current: str, rules_text: str) -> bool:
+    return is_next_patch(previous, current) or (
+        previous,
+        current,
+    ) in allowed_series_transitions(rules_text)
+
+
 def gradle_has_substantive_change(parent: str, commit: str) -> bool:
     diff = run_git("diff", "--unified=0", parent, commit, "--", GRADLE_REL)
     for line in diff.splitlines():
@@ -184,11 +199,18 @@ def validate_commit_range(errors: list[str], base: str, head: str = "HEAD") -> N
                 fail(errors, f"{commit[:12]}: cannot read version metadata: {exc}")
                 continue
 
-            if not is_next_patch(previous_version, current_version):
+            try:
+                commit_rules_text = run_git("show", f"{commit}:{RULES_REL}")
+            except Exception as exc:
+                fail(errors, f"{commit[:12]}: cannot read VERSION_RULES for version step: {exc}")
+                commit_rules_text = ""
+
+            if not is_allowed_version_step(previous_version, current_version, commit_rules_text):
                 fail(
                     errors,
                     f"{commit[:12]}: versioned code changed but versionName must be "
-                    f"exactly {previous_version} -> next PATCH; found {current_version}",
+                    f"the next PATCH or an explicitly allowed series transition from "
+                    f"{previous_version}; found {current_version}",
                 )
 
             if current_code != previous_code + 1:
@@ -360,6 +382,7 @@ def validate_release_artifact(
 def validate_current_state(errors: list[str], require_release: bool) -> None:
     try:
         gradle_version, gradle_code = parse_gradle(read(GRADLE_REL), "Gradle")
+        rules_text = read(RULES_REL)
         (
             rules_version,
             rules_code,
@@ -367,7 +390,7 @@ def validate_current_state(errors: list[str], require_release: bool) -> None:
             latest_version,
             latest_code,
             tracked,
-        ) = parse_rules(read(RULES_REL))
+        ) = parse_rules(rules_text)
     except Exception as exc:
         fail(errors, str(exc))
         return
@@ -390,10 +413,13 @@ def validate_current_state(errors: list[str], require_release: bool) -> None:
         tracked,
         tracked[1:],
     ):
-        if not is_next_patch(previous_version, current_version) or current_code != previous_code + 1:
+        if (
+            not is_allowed_version_step(previous_version, current_version, rules_text)
+            or current_code != previous_code + 1
+        ):
             fail(
                 errors,
-                f"VERSION_RULES ledger is not sequential: "
+                f"VERSION_RULES ledger is not sequential or explicitly allowed: "
                 f"{previous_version}/code {previous_code} -> "
                 f"{current_version}/code {current_code}",
             )

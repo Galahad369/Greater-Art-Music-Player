@@ -27,11 +27,8 @@ import androidx.compose.material.icons.rounded.RestartAlt
 import androidx.compose.material.icons.rounded.Share
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.ListItem
@@ -67,6 +64,12 @@ import com.local.listentomusic.data.LibraryRowSize
 import com.local.listentomusic.data.LocalPlaylist
 import com.local.listentomusic.data.ThemeMode
 import com.local.listentomusic.data.UserPreferences
+import com.local.listentomusic.ui.components.GaChromeSurface
+import com.local.listentomusic.ui.components.GaDivider
+import com.local.listentomusic.ui.components.GaIconAction
+import com.local.listentomusic.ui.components.GaSectionHeader
+import com.local.listentomusic.ui.theme.GaSpacing
+import com.local.listentomusic.ui.theme.gaChromeColor
 
 private val speeds = listOf(0.5f, 0.75f, 1f, 1.25f, 1.5f, 2f, 2.5f, 3f)
 private val seekOffsets = listOf(1000L, 2000L, 3000L, 5000L, 10000L, 20000L, 30000L, 60000L)
@@ -154,20 +157,26 @@ fun SettingsScreen(
                 modifier = Modifier.inspectElement("SETTINGS_TOP_BAR", "Back button and local app version"),
                 title = {
                     Column {
-                        Text(uiText(language, "Settings", "設定"), fontWeight = FontWeight.ExtraBold)
-                        Text("$appName ${BuildConfig.VERSION_NAME}", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text(uiText(language, "Settings", "設定"), style = MaterialTheme.typography.titleLarge)
+                        Text(
+                            "$appName ${BuildConfig.VERSION_NAME}",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
                     }
                 },
                 navigationIcon = {
-                    IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Rounded.ArrowBack, uiText(language, "Back", "返回")) }
+                    GaIconAction(
+                        icon = Icons.AutoMirrored.Rounded.ArrowBack,
+                        contentDescription = uiText(language, "Back", "返回"),
+                        onClick = onBack,
+                    )
                 },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.background.copy(alpha = 0.88f),
-                ),
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = gaChromeColor()),
             )
         },
     ) { padding ->
-        LazyColumn(Modifier.padding(padding).inspectElement("SETTINGS_LIST", "Scrollable preference controls"), contentPadding = PaddingValues(bottom = 32.dp)) {
+        LazyColumn(Modifier.padding(padding).inspectElement("SETTINGS_LIST", "Scrollable preference controls"), contentPadding = PaddingValues(bottom = GaSpacing.xxl)) {
             item(key = "section_lang_appearance") {
                 SectionTitle(uiText(language, "Language & appearance", "語言與外觀"))
                 ChoiceSetting(
@@ -259,7 +268,7 @@ fun SettingsScreen(
                     )
                     AppBackgroundMode.CURRENT_VIDEO -> Text(
                         uiText(language, "When the current track is a video, a muted synchronized copy appears behind the interface. Audio tracks fall back to liquid metal.", "目前曲目為影片時，介面後方會顯示同步的靜音副本；播放純音訊時則回復液態金屬背景。"),
-                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+                        modifier = Modifier.padding(horizontal = GaSpacing.lg, vertical = GaSpacing.sm),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -381,13 +390,13 @@ fun SettingsScreen(
                         colors = ListItemDefaults.colors(containerColor = Color.Transparent),
                     )
                 }
-                OutlinedButton(onClick = { playlistName = ""; createOpen = true }, modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp)) {
+                OutlinedButton(onClick = { playlistName = ""; createOpen = true }, modifier = Modifier.fillMaxWidth().padding(horizontal = GaSpacing.lg, vertical = GaSpacing.sm)) {
                     Icon(Icons.Rounded.Add, null)
                     Text("  ${uiText(language, "Create playlist", "建立播放清單")}")
                 }
                 Row(
                     Modifier.fillMaxWidth().padding(horizontal = 16.dp),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(GaSpacing.sm),
                 ) {
                     OutlinedButton(onClick = onImportM3u, modifier = Modifier.weight(1f)) {
                         Text(uiText(language, "Import M3U", "匯入 M3U"))
@@ -400,7 +409,7 @@ fun SettingsScreen(
             item(key = "section_library") {
                 SectionTitle(uiText(language, "Library & cache", "音樂庫與快取"))
                 TextButton(onClick = onDuplicates, modifier = Modifier.padding(horizontal = 16.dp)) { Text(uiText(language, "Find duplicate files", "尋找重複檔案")) }
-                Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp), horizontalArrangement = Arrangement.spacedBy(GaSpacing.sm)) {
                     OutlinedButton(onClick = onBackup, modifier = Modifier.weight(1f)) { Text(uiText(language, "Back up settings", "備份設定")) }
                     OutlinedButton(onClick = onRestore, modifier = Modifier.weight(1f)) { Text(uiText(language, "Restore backup", "還原備份")) }
                 }
@@ -426,17 +435,23 @@ fun SettingsScreen(
             }
             item(key = "section_privacy") {
                 SectionTitle(uiText(language, "Privacy", "私隱"))
-                Card(
-                    Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 6.dp),
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.82f)),
-                    border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.secondary.copy(alpha = 0.42f)),
+                GaChromeSurface(
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = GaSpacing.lg, vertical = GaSpacing.sm),
+                    contentPadding = PaddingValues(GaSpacing.lg),
                 ) {
-                    Row(Modifier.padding(16.dp), horizontalArrangement = Arrangement.spacedBy(14.dp)) {
-                        Icon(Icons.Rounded.PrivacyTip, null)
+                    Row(horizontalArrangement = Arrangement.spacedBy(GaSpacing.md)) {
+                        Icon(Icons.Rounded.PrivacyTip, null, tint = MaterialTheme.colorScheme.secondary)
                         Column {
-                            Text(uiText(language, "Offline by design", "離線設計"), fontWeight = FontWeight.Bold)
-                            Spacer(Modifier.height(4.dp))
-                            Text(uiText(language, "No Internet permission, ads, analytics, account, telemetry, or cloud library. Everything stays on this device.", "沒有網絡權限、廣告、分析、帳戶、遙測或雲端音樂庫。所有資料都留在本機。"))
+                            Text(
+                                uiText(language, "Offline by design", "離線設計"),
+                                style = MaterialTheme.typography.titleMedium,
+                            )
+                            Spacer(Modifier.height(GaSpacing.xs))
+                            Text(
+                                uiText(language, "No Internet permission, ads, analytics, account, telemetry, or cloud library. Everything stays on this device.", "沒有網絡權限、廣告、分析、帳戶、遙測或雲端音樂庫。所有資料都留在本機。"),
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
                         }
                     }
                 }
@@ -462,7 +477,7 @@ fun SettingsScreen(
                     Icon(Icons.Rounded.RestartAlt, null)
                     Text("  ${uiText(language, "Reset app settings", "重設應用程式設定")}")
                 }
-                Text(uiText(language, "Your playlists, library order, and media files are not changed.", "播放清單、音樂庫排序與媒體檔案不會被更改。"), modifier = Modifier.fillMaxWidth().padding(top = 8.dp), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(uiText(language, "Your playlists, library order, and media files are not changed.", "播放清單、音樂庫排序與媒體檔案不會被更改。"), modifier = Modifier.fillMaxWidth().padding(top = GaSpacing.sm), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
                         }
     }
@@ -508,18 +523,24 @@ private fun NameDialog(language: AppLanguage, playlist: LocalPlaylist?, name: St
     )
 }
 
-@Composable private fun SectionTitle(text: String) = Text(text.uppercase(), Modifier.padding(start = 16.dp, end = 16.dp, top = 24.dp, bottom = 8.dp), style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.ExtraBold, color = MaterialTheme.colorScheme.secondary)
+@Composable private fun SectionTitle(text: String) = GaSectionHeader(text)
 
 @Composable
 private fun SwitchSetting(title: String, description: String, checked: Boolean, onChecked: (Boolean) -> Unit, enabled: Boolean = true) {
     ListItem(
         modifier = Modifier.inspectElement("SETTING_SWITCH", title),
         headlineContent = { Text(title, fontWeight = FontWeight.SemiBold) },
-        supportingContent = { Text(description) },
+        supportingContent = {
+            Text(
+                description,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        },
         trailingContent = { Switch(checked, onChecked, enabled = enabled) },
         colors = ListItemDefaults.colors(containerColor = Color.Transparent),
     )
-    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.45f))
+    GaDivider()
 }
 
 @Composable
@@ -532,7 +553,7 @@ private fun BackgroundFileSetting(
     onClear: () -> Unit,
     language: AppLanguage,
 ) {
-    Column(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp)) {
+    Column(Modifier.fillMaxWidth().padding(horizontal = GaSpacing.lg, vertical = GaSpacing.sm)) {
         Text(title, fontWeight = FontWeight.SemiBold)
         Text(
             if (selected) uiText(language, "File selected — access is saved locally.", "已選擇檔案，存取權限只儲存在本機。")
@@ -540,32 +561,32 @@ private fun BackgroundFileSetting(
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
-        Row(Modifier.padding(top = 8.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        Row(Modifier.padding(top = GaSpacing.sm), horizontalArrangement = Arrangement.spacedBy(GaSpacing.sm)) {
             OutlinedButton(onClick = onChoose) { Text(chooseLabel) }
             if (selected) TextButton(onClick = onClear) { Text(clearLabel) }
         }
     }
-    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.45f))
+    GaDivider()
 }
 
 @Composable
 private fun <T> ChoiceSetting(title: String, description: String, values: List<T>, selected: T, label: (T) -> String, onSelect: (T) -> Unit) {
-    Column(Modifier.fillMaxWidth().inspectElement("SETTING_CHOICE", title).padding(horizontal = 16.dp, vertical = 10.dp)) {
+    Column(Modifier.fillMaxWidth().inspectElement("SETTING_CHOICE", title).padding(horizontal = GaSpacing.lg, vertical = GaSpacing.md)) {
         Text(title, fontWeight = FontWeight.SemiBold)
         Text(description, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(top = 8.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(top = GaSpacing.sm), horizontalArrangement = Arrangement.spacedBy(GaSpacing.sm)) {
             values.forEach { value -> FilterChip(value == selected, { onSelect(value) }, { Text(label(value)) },
                 modifier = Modifier.inspectElement("SETTING_OPTION", "$title: ${label(value)}")) }
         }
     }
-    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.45f))
+    GaDivider()
 }
 
 @Composable
 private fun DimSliderSetting(title: String, description: String, value: Float, onValue: (Float) -> Unit) {
     var inputOpen by remember { mutableStateOf(false) }
     var inputText by remember { mutableStateOf("") }
-    Column(Modifier.fillMaxWidth().inspectElement("SETTING_SLIDER", title).padding(horizontal = 16.dp, vertical = 10.dp)) {
+    Column(Modifier.fillMaxWidth().inspectElement("SETTING_SLIDER", title).padding(horizontal = GaSpacing.lg, vertical = GaSpacing.md)) {
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
             Column(Modifier.weight(1f)) {
                 Text(title, fontWeight = FontWeight.SemiBold)
@@ -573,7 +594,7 @@ private fun DimSliderSetting(title: String, description: String, value: Float, o
             }
             Text(
                 "${(value * 100).toInt()}%",
-                modifier = Modifier.padding(start = 12.dp, top = 2.dp).clickable { inputText = "${(value * 100).toInt()}"; inputOpen = true },
+                modifier = Modifier.padding(start = GaSpacing.md, top = GaSpacing.micro).clickable { inputText = "${(value * 100).toInt()}"; inputOpen = true },
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.SemiBold,
                 color = MaterialTheme.colorScheme.secondary,
@@ -583,7 +604,7 @@ private fun DimSliderSetting(title: String, description: String, value: Float, o
             value = value,
             onValueChange = onValue,
             valueRange = 0.25f..0.85f,
-            modifier = Modifier.fillMaxWidth().padding(top = 4.dp),
+            modifier = Modifier.fillMaxWidth().padding(top = GaSpacing.xs),
         )
     }
     if (inputOpen) AlertDialog(
@@ -603,18 +624,22 @@ private fun DimSliderSetting(title: String, description: String, value: Float, o
             inputOpen = false
         }) { Text("Set") } },
     )
-    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.45f))
+    GaDivider()
 }
 
 @Composable
 private fun ActionCard(icon: androidx.compose.ui.graphics.vector.ImageVector, title: String, body: String, button: String, onClick: () -> Unit) {
-    Card(Modifier.fillMaxWidth().inspectElement("SETTING_ACTION", title).padding(horizontal = 16.dp, vertical = 6.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
-        Row(Modifier.padding(14.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+    GaChromeSurface(
+        modifier = Modifier.fillMaxWidth().inspectElement("SETTING_ACTION", title)
+            .padding(horizontal = GaSpacing.lg, vertical = GaSpacing.sm),
+        contentPadding = PaddingValues(GaSpacing.lg),
+    ) {
+        Row(horizontalArrangement = Arrangement.spacedBy(GaSpacing.md)) {
             Icon(icon, null, tint = MaterialTheme.colorScheme.secondary)
             Column(Modifier.weight(1f)) {
-                Text(title, fontWeight = FontWeight.Bold)
+                Text(title, style = MaterialTheme.typography.titleMedium)
                 Text(body, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                Button(onClick, Modifier.padding(top = 10.dp)) { Text(button) }
+                Button(onClick, Modifier.padding(top = GaSpacing.sm)) { Text(button) }
             }
         }
     }

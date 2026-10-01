@@ -107,13 +107,16 @@ import com.local.listentomusic.model.MediaFile
 import com.local.listentomusic.model.MediaKind
 import com.local.listentomusic.model.MiniWindowMetrics
 import com.local.listentomusic.model.SortMode
+import com.local.listentomusic.ui.components.GaIconAction
 import com.local.listentomusic.ui.components.LiquidMetalSurface
+import com.local.listentomusic.ui.theme.GaAlpha
+import com.local.listentomusic.ui.theme.GaControl
+import com.local.listentomusic.ui.theme.GaMotion
+import com.local.listentomusic.ui.theme.GaRadius
+import com.local.listentomusic.ui.theme.GaSpacing
+import com.local.listentomusic.ui.theme.gaChromeColor
 import kotlin.math.abs
 import kotlinx.coroutines.launch
-
-// Aligned chrome translucency: top bar, search filter, playlist and Nodes buttons
-// all sit half-transparent over the app background (video wallpaper / metal).
-private const val CHROME_ALPHA = 0.5f
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -184,9 +187,9 @@ fun LibraryScreen(
                 modifier = Modifier.inspectElement("LIBRARY_TOP_BAR", "App title, settings, refresh, and sort"),
                 title = {
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        val markShape = RoundedCornerShape(9.dp)
+                        val markShape = RoundedCornerShape(GaRadius.compact)
                         LiquidMetalSurface(
-                            modifier = Modifier.size(36.dp)
+                            modifier = Modifier.size(40.dp)
                                 .border(1.dp, MaterialTheme.colorScheme.outlineVariant, markShape),
                             shape = markShape,
                             contentAlignment = Alignment.Center,
@@ -198,9 +201,9 @@ fun LibraryScreen(
                                 contentScale = ContentScale.Fit,
                             )
                         }
-                        Spacer(Modifier.width(11.dp))
+                        Spacer(Modifier.width(GaSpacing.md))
                         Column {
-                            Text(appName, fontWeight = FontWeight.ExtraBold)
+                            Text(appName, style = MaterialTheme.typography.titleMedium)
                             Text(
                                 uiText(language, "${state.files.size} files • offline", "${state.files.size} 個檔案 • 離線"),
                                 style = MaterialTheme.typography.labelSmall,
@@ -210,25 +213,33 @@ fun LibraryScreen(
                     }
                 },
                 actions = {
-                    IconButton(onClick = onOpenSettings, modifier = Modifier.size(38.dp).inspectElement("SETTINGS_BUTTON", "Opens Greater Art settings")) {
-                        Icon(Icons.Rounded.Settings, uiText(language, "Settings", "設定"), Modifier.size(20.dp))
-                    }
-                    IconButton(onClick = { historyOpen = true }, modifier = Modifier.size(38.dp).inspectElement("PLAY_HISTORY_BUTTON", "Opens optional local playback history")) {
-                        Icon(
-                            Icons.Rounded.History,
-                            uiText(language, "Play history", "播放紀錄"),
-                            Modifier.size(20.dp),
-                            tint = if (preferences.playHistoryEnabled) MaterialTheme.colorScheme.secondary
-                            else MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    }
-                    IconButton(onClick = onRefresh, modifier = Modifier.size(38.dp).inspectElement("REFRESH_LIBRARY_BUTTON", "Rescans Download for supported media")) {
-                        Icon(Icons.Rounded.Refresh, uiText(language, "Scan again", "重新掃描"), Modifier.size(20.dp))
-                    }
+                    GaIconAction(
+                        icon = Icons.Rounded.Settings,
+                        contentDescription = uiText(language, "Settings", "設定"),
+                        onClick = onOpenSettings,
+                        modifier = Modifier.inspectElement("SETTINGS_BUTTON", "Opens Greater Art settings"),
+                    )
+                    GaIconAction(
+                        icon = Icons.Rounded.History,
+                        contentDescription = uiText(language, "Play history", "播放紀錄"),
+                        onClick = { historyOpen = true },
+                        tint = if (preferences.playHistoryEnabled) MaterialTheme.colorScheme.secondary
+                        else MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.inspectElement("PLAY_HISTORY_BUTTON", "Opens optional local playback history"),
+                    )
+                    GaIconAction(
+                        icon = Icons.Rounded.Refresh,
+                        contentDescription = uiText(language, "Scan again", "重新掃描"),
+                        onClick = onRefresh,
+                        modifier = Modifier.inspectElement("REFRESH_LIBRARY_BUTTON", "Rescans Download for supported media"),
+                    )
                     if (activePlaylist == null) Box {
-                        IconButton(onClick = { sortMenuOpen = true }, modifier = Modifier.size(38.dp).inspectElement("SORT_BUTTON", "Opens Library order choices")) {
-                            Icon(Icons.AutoMirrored.Rounded.Sort, uiText(language, "Sort", "排序"), Modifier.size(20.dp))
-                        }
+                        GaIconAction(
+                            icon = Icons.AutoMirrored.Rounded.Sort,
+                            contentDescription = uiText(language, "Sort", "排序"),
+                            onClick = { sortMenuOpen = true },
+                            modifier = Modifier.inspectElement("SORT_BUTTON", "Opens Library order choices"),
+                        )
                         DropdownMenu(sortMenuOpen, { sortMenuOpen = false }) {
                             SortMode.entries.forEach { mode ->
                                 val label = when (mode) {
@@ -247,14 +258,14 @@ fun LibraryScreen(
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.background.copy(alpha = CHROME_ALPHA),
+                    containerColor = gaChromeColor(),
                 ),
                 windowInsets = WindowInsets(0, 0, 0, 0),
             )
         },
     ) { innerPadding ->
         Column(Modifier.fillMaxSize().padding(innerPadding)) {
-            if (selected.isNotEmpty()) Column(Modifier.fillMaxWidth().padding(horizontal = 14.dp)) {
+            if (selected.isNotEmpty()) Column(Modifier.fillMaxWidth().padding(horizontal = GaSpacing.lg)) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text("${selected.size}", style = MaterialTheme.typography.labelLarge)
                     TextButton(onClick = { selected = (selected + state.files.map { it.path }).distinct() }) { Text(uiText(language, "Select matches", "選取搜尋結果")) }
@@ -285,26 +296,25 @@ fun LibraryScreen(
             }
             val searchInteraction = remember { MutableInteractionSource() }
             val searchFocused by searchInteraction.collectIsFocusedAsState()
-            val searchScale by animateFloatAsState(if (searchFocused) 1.012f else 1f, label = "library-filter-scale")
             val searchGlow by animateColorAsState(
-                if (searchFocused) MaterialTheme.colorScheme.secondary.copy(alpha = .72f)
-                else MaterialTheme.colorScheme.outlineVariant.copy(alpha = .42f),
+                if (searchFocused) MaterialTheme.colorScheme.secondary.copy(alpha = GaAlpha.secondary)
+                else MaterialTheme.colorScheme.outlineVariant.copy(alpha = GaAlpha.divider),
+                animationSpec = androidx.compose.animation.core.tween(GaMotion.standardMs),
                 label = "library-filter-glow",
             )
             LiquidMetalSurface(
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 6.dp)
-                    .graphicsLayer { scaleX = searchScale; scaleY = searchScale }
-                    .border(1.dp, searchGlow, RoundedCornerShape(18.dp))
+                modifier = Modifier.fillMaxWidth().padding(horizontal = GaSpacing.lg, vertical = GaSpacing.sm)
+                    .border(1.dp, searchGlow, RoundedCornerShape(GaRadius.chrome))
                     .inspectElement("LIBRARY_FILTER", "Animated local filename search and clear control"),
-                shape = RoundedCornerShape(18.dp),
-                baseColor = MaterialTheme.colorScheme.background.copy(alpha = CHROME_ALPHA),
+                shape = RoundedCornerShape(GaRadius.chrome),
+                baseColor = gaChromeColor(),
             ) {
                 OutlinedTextField(
                     value = state.query,
                     onValueChange = onQueryChange,
                     modifier = Modifier.fillMaxWidth(),
                     interactionSource = searchInteraction,
-                    shape = RoundedCornerShape(18.dp),
+                    shape = RoundedCornerShape(GaRadius.chrome),
                     singleLine = true,
                     leadingIcon = { Icon(Icons.Rounded.Search, null) },
                     trailingIcon = if (state.query.isNotEmpty()) {
@@ -324,14 +334,14 @@ fun LibraryScreen(
                 )
             }
             Row(
-                Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 2.dp),
+                Modifier.fillMaxWidth().padding(horizontal = GaSpacing.lg, vertical = GaSpacing.xs),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Box(Modifier.weight(1f)) {
                     Button(onClick = { playlistMenuOpen = true }, modifier = Modifier
                         .inspectElement("PLAYLIST_BUTTON", "Selects or manages a playlist"),
                         colors = ButtonDefaults.buttonColors(
-                            containerColor = MaterialTheme.colorScheme.primary.copy(alpha = CHROME_ALPHA),
+                            containerColor = MaterialTheme.colorScheme.primary.copy(alpha = GaAlpha.chrome),
                         )) {
                         Icon(Icons.AutoMirrored.Rounded.QueueMusic, null)
                         Spacer(Modifier.width(8.dp))
@@ -808,7 +818,7 @@ private fun MediaFileRow(
     } else Modifier
     val revealProgress by animateFloatAsState(
         targetValue = if (actionsOpen) 1f else 0f,
-        animationSpec = androidx.compose.animation.core.tween(durationMillis = 200),
+        animationSpec = androidx.compose.animation.core.tween(durationMillis = GaMotion.standardMs),
         label = "library-row-actions-reveal",
     )
     val density = LocalDensity.current
@@ -904,7 +914,7 @@ private fun MediaFileRow(
             if (dragEnabled) Icon(Icons.Rounded.DragHandle, "Reorder", tint = MaterialTheme.colorScheme.onSurfaceVariant)
             IconButton(
                 onClick = onToggleActions,
-                modifier = Modifier.size(40.dp).inspectElement("MEDIA_MORE_BUTTON", "Actions for ${file.name}"),
+                modifier = Modifier.size(GaControl.touchTarget).inspectElement("MEDIA_MORE_BUTTON", "Actions for ${file.name}"),
             ) {
                 Icon(Icons.Rounded.MoreVert, moreDescription)
             }
