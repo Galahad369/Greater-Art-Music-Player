@@ -31,13 +31,16 @@ jobs:
           EVENT_NAME: ${{ github.event_name }}
           PUSH_BASE: ${{ github.event.before }}
           PR_BASE: ${{ github.event.pull_request.base.sha }}
+          PR_HEAD: ${{ github.event.pull_request.head.sha }}
         shell: bash
         run: |
           set -euo pipefail
           if [ "$EVENT_NAME" = "pull_request" ]; then
             BASE="$PR_BASE"
+            HEAD_REF="$PR_HEAD"
           else
             BASE="$PUSH_BASE"
+            HEAD_REF="HEAD"
           fi
 
           if [ -z "$BASE" ] || [ "$BASE" = "0000000000000000000000000000000000000000" ]; then
@@ -46,4 +49,4 @@ jobs:
           fi
 
           git cat-file -e "$BASE^{commit}"
-          python3 scripts/validate-greater-art-version.py --base "$BASE"
+          python3 scripts/validate-greater-art-version.py --base "$BASE" --head "$HEAD_REF"
