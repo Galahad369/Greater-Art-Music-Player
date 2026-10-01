@@ -896,12 +896,14 @@ private fun MediaFileRow(
                                 }
                             }
             if (dragEnabled) Icon(Icons.Rounded.DragHandle, "Reorder", tint = MaterialTheme.colorScheme.onSurfaceVariant)
-            IconButton(
-                onClick = onToggleActions,
-                modifier = Modifier.size(40.dp).inspectElement("MEDIA_MORE_BUTTON", "Actions for ${file.name}"),
-            ) {
-                Icon(Icons.Rounded.MoreVert, moreDescription)
-            }
+                        GAButton(
+                            variant = GAButtonVariant.ICON,
+                            size = GAButtonSize.MEDIUM,
+                            onClick = onToggleActions,
+                            modifier = Modifier.size(DesignTokens.TouchTarget.min).inspectElement("MEDIA_MORE_BUTTON", "Actions for ${file.name}"),
+                        ) {
+                            Icon(Icons.Rounded.MoreVert, moreDescription)
+                        }
         }
     }
 }
@@ -916,22 +918,13 @@ private fun MediaThumbnail(file: MediaFile, bitmap: Bitmap?, rowSize: LibraryRow
     val density = LocalDensity.current
     val width = if (rowSize == LibraryRowSize.SMALL) with(density) { MiniWindowMetrics.widthPx(this.density).toDp() } else rowSize.thumbnailWidth
     val height = if (rowSize == LibraryRowSize.SMALL) with(density) { MiniWindowMetrics.heightPx(this.density).toDp() } else rowSize.thumbnailHeight
-    Box(
-        Modifier.size(width, height).clip(shape).background(thumbnailBrush),
-        contentAlignment = Alignment.Center,
-    ) {
-        if (bitmap != null) {
-            Image(bitmap.asImageBitmap(), null, Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
-            // The row itself is tappable to play; do not paint a play button on the thumbnail.
-        } else {
-            Icon(
-                if (file.kind == MediaKind.VIDEO) Icons.Rounded.SmartDisplay else Icons.Rounded.MusicNote,
-                null,
-                Modifier.size(rowSize.placeholderIconSize),
-                MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        }
-    }
+    GAMediaRowThumbnail(
+        file = file,
+        thumbnail = bitmap,
+        modifier = Modifier,
+        size = if (rowSize == LibraryRowSize.SMALL) with(density) { MiniWindowMetrics.widthPx(this.density).toDp() } else rowSize.thumbnailWidth,
+        cornerRadius = DesignTokens.CornerRadius.md,
+    )
 }
 
 @Composable
