@@ -13,6 +13,13 @@ This file describes the **current repository state only**. Historical session no
 
 ## Repository state
 
+### October 2 — 1.15.7 Stack primary-swap synchronization follow-up (source only)
+
+- Second-pass review found an event-order edge case in 1.15.6: the primary player's `isPlaying=false` buffering event can arrive while an internal primary swap/seek flag is set. Ignoring that event could let companion voices keep advancing while the new primary buffers.
+- Primary swaps now pause every companion before replacing/preparing the MediaSession item.
+- Actual `onIsPlayingChanged` events are no longer suppressed by the internal-command guard. User pause still stays authoritative because Stack's own `playing` flag is cleared first; internal buffering/resume now always pauses/realigns companions.
+- 1.15.6 remains consumed. Source version: **1.15.7 (code 137)**. State remains **SOURCE_ONLY**. Latest verified APK remains 1.15.1.
+
 ### October 2 — 1.15.6 Stack playback synchronization/resource-budget fix (source only)
 
 - Stack review found concrete runtime contention independent of debug-build overhead. Stack can own one primary MediaSession player plus seven companion ExoPlayers. Its previous master timeline advanced from wall clock even while the primary was buffering, companions could run before the primary was actually rendering/audio-playing, and every 2 seconds companions more than 350 ms away were hard-seeked. On a loaded device that can become a decoder flush/rebuffer feedback loop.

@@ -192,9 +192,12 @@ internal class StackPlaybackCoordinator(
         anchorTimeMs = SystemClock.elapsedRealtime()
         val targetDuration = knownDuration(target.file)
         if (targetDuration > 0L && now >= targetDuration) return false
+        // Freeze all companions before replacing the visual/master player. The
+        // primary's buffering callback may occur during this internal operation;
+        // companions must never continue advancing through that gap.
+        voices.forEach { it.player.pause() }
         internalMainChange = true
         try {
-            replacement.player.pause()
             replacement.player.setMediaItem(old.toMediaItem(), boundedSeek(now, knownDuration(old)))
             replacement.player.prepare()
             replacement.file = old
@@ -284,7 +287,9 @@ internal class StackPlaybackCoordinator(
     }
 
     fun onMainIsPlayingChanged(isPlaying: Boolean) {
-        if (!active || !playing || internalMainChange) return
+        // Unlike playWhenReady callbacks, this is actual renderer readiness. Even
+        // internal seeks/primary swaps must mirror buffering to companion voices.
+        if (!active || !playing) return
         val now = position()
         if (!isPlaying) {
             voices.forEach { it.player.pause() }
