@@ -13,6 +13,14 @@ This file describes the **current repository state only**. Historical session no
 
 ## Repository state
 
+### October 2 — 1.15.16 consumed-branch transition guard (source only)
+
+- The 1.15.15 recovery was correct current state but PR range validation saw main 1.15.13/code143 -> 1.15.15/code145 and correctly rejected the apparent skip.
+- 1.15.14/code144 was genuinely consumed on the superseded recovery branch and cannot be reused under a new commit SHA.
+- The validator now accepts only exact `Allowed consumed transition` tuples declared at the range head. Ordinary commits remain strict next-PATCH/+1-code; existing series-transition logic is unchanged.
+- The only declared consumed transition is **1.15.13/code143 -> 1.15.15/code145**.
+- Source version: **1.15.16 (code 146)**. State remains **SOURCE_ONLY**. Latest verified APK remains 1.15.1.
+
 ### October 2 — 1.15.15 reviewed UI recovery rebased onto final main (source only)
 
 - The complete 1.15.14 recovery branch passed Version Consistency, Android unit tests/lint/assemble, privacy audit, dependency review and CodeQL, but main received one additional 1.15.13 repair commit after that branch's base.
