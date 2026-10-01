@@ -2,10 +2,11 @@ package com.local.listentomusic.ui
 
 import kotlin.math.ceil
 
-import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -13,7 +14,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.rounded.Add
@@ -59,6 +59,7 @@ import com.local.listentomusic.data.AppLanguage
 import com.local.listentomusic.data.AppFont
 import com.local.listentomusic.data.AppBackgroundMode
 import com.local.listentomusic.data.BackgroundScaleMode
+import com.local.listentomusic.data.ColorTheme
 import com.local.listentomusic.data.FloatingWindowMode
 import com.local.listentomusic.data.LibraryRowSize
 import com.local.listentomusic.data.LocalPlaylist
@@ -90,6 +91,7 @@ fun SettingsScreen(
     onBack: () -> Unit,
     onRowSize: (LibraryRowSize) -> Unit,
     onThemeMode: (ThemeMode) -> Unit,
+    onColorTheme: (ColorTheme) -> Unit,
     onShowThumbnails: (Boolean) -> Unit,
     onShowFileDetails: (Boolean) -> Unit,
     onResumePlayback: (Boolean) -> Unit,
@@ -202,6 +204,23 @@ fun SettingsScreen(
                     onThemeMode,
                 )
                 ChoiceSetting(
+                    uiText(language, "Color theme", "色彩主題"),
+                    uiText(language, "Choose an accent palette while keeping your light/dark mode preference.", "在保留淺色／深色模式偏好的同時，選擇你喜歡的色彩調性。"),
+                    ColorTheme.entries,
+                    preferences.colorTheme,
+                    {
+                        when (it) {
+                            ColorTheme.FOREST -> uiText(language, "Forest", "森林")
+                            ColorTheme.SLATE -> uiText(language, "Slate", "石板")
+                            ColorTheme.AMBER -> uiText(language, "Amber", "琥珀")
+                            ColorTheme.INDIGO -> uiText(language, "Indigo", "靛藍")
+                            ColorTheme.ROSE -> uiText(language, "Rose", "玫瑰")
+                            ColorTheme.MONOCHROME -> uiText(language, "Monochrome", "單色")
+                        }
+                    },
+                    onColorTheme,
+                )
+                ChoiceSetting(
                     uiText(language, "Text style", "文字字型"),
                     uiText(language, "Silian Rail is the final reversible font choice.", "Silian Rail 是最後一個可隨時切換的字型選項。"),
                     AppFont.entries.filterNot { it == AppFont.SILIAN_RAIL } + AppFont.SILIAN_RAIL,
@@ -216,6 +235,25 @@ fun SettingsScreen(
                     }) },
                     onAppFont,
                 )
+                ChoiceSetting(
+                    uiText(language, "Library row size", "音樂庫列大小"),
+                    uiText(language, "Changes the full row and thumbnail. Small is the default.", "調整完整列與縮圖大小。預設為小。"),
+                    LibraryRowSize.entries,
+                    preferences.libraryRowSize,
+                    {
+                        when (it) {
+                            LibraryRowSize.SMALL -> uiText(language, "Small", "小")
+                            LibraryRowSize.MEDIUM -> uiText(language, "Medium", "中")
+                            LibraryRowSize.LARGE -> uiText(language, "Large", "大")
+                        }
+                    },
+                    onRowSize,
+                )
+                SwitchSetting(uiText(language, "Show thumbnails", "顯示縮圖"), uiText(language, "Turn off previews for the densest list.", "關閉預覽以顯示最緊密的清單。"), preferences.showThumbnails, onShowThumbnails)
+                SwitchSetting(uiText(language, "Show file details", "顯示檔案詳情"), uiText(language, "Display format and file size below the title.", "在標題下顯示格式與檔案大小。"), preferences.showFileDetails, onShowFileDetails)
+            }
+            item(key = "section_background") {
+                SectionTitle(uiText(language, "Background", "背景"))
                 ChoiceSetting(
                     uiText(language, "App background", "應用程式背景"),
                     uiText(language, "Video wallpaper follows the current track across pages. Audio uses liquid metal. Wallpaper is always muted.", "影片背景會跟隨目前曲目並跨頁播放，純音訊使用液態金屬，背景永遠靜音。"),
@@ -282,22 +320,6 @@ fun SettingsScreen(
                         onBackgroundDim,
                     )
                 }
-                ChoiceSetting(
-                    uiText(language, "Library row size", "音樂庫列大小"),
-                    uiText(language, "Changes the full row and thumbnail. Small is the default.", "調整完整列與縮圖大小。預設為小。"),
-                    LibraryRowSize.entries,
-                    preferences.libraryRowSize,
-                    {
-                        when (it) {
-                            LibraryRowSize.SMALL -> uiText(language, "Small", "小")
-                            LibraryRowSize.MEDIUM -> uiText(language, "Medium", "中")
-                            LibraryRowSize.LARGE -> uiText(language, "Large", "大")
-                        }
-                    },
-                    onRowSize,
-                )
-                SwitchSetting(uiText(language, "Show thumbnails", "顯示縮圖"), uiText(language, "Turn off previews for the densest list.", "關閉預覽以顯示最緊密的清單。"), preferences.showThumbnails, onShowThumbnails)
-                SwitchSetting(uiText(language, "Show file details", "顯示檔案詳情"), uiText(language, "Display format and file size below the title.", "在標題下顯示格式與檔案大小。"), preferences.showFileDetails, onShowFileDetails)
             }
             item(key = "section_playback") {
                 SectionTitle(uiText(language, "Playback", "播放"))
@@ -356,8 +378,8 @@ fun SettingsScreen(
                     onFloatingWindowMode,
                 )
             }
-            item(key = "section_playlists") {
-                SectionTitle(uiText(language, "Song lists", "歌曲清單"))
+            item(key = "section_library_lists") {
+                SectionTitle(uiText(language, "Library & lists", "音樂庫與清單"))
                 SwitchSetting(
                     uiText(language, "Editable play queue", "可編輯播放佇列"),
                     uiText(language, "Show queue editing controls on the player. Off by default to keep playback clean.", "在播放器顯示佇列編輯控制。預設關閉，保持介面簡潔。"),
@@ -366,7 +388,7 @@ fun SettingsScreen(
                 )
                 Text(
                     uiText(language, "Create local playlists, then add songs with the ⋮ button in the library.", "建立本機播放清單，然後使用音樂庫中的 ⋮ 按鈕加入歌曲。"),
-                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
+                    modifier = Modifier.padding(horizontal = GaSpacing.lg, vertical = GaSpacing.xs),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -395,7 +417,7 @@ fun SettingsScreen(
                     Text("  ${uiText(language, "Create playlist", "建立播放清單")}")
                 }
                 Row(
-                    Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+                    Modifier.fillMaxWidth().padding(horizontal = GaSpacing.lg),
                     horizontalArrangement = Arrangement.spacedBy(GaSpacing.sm),
                 ) {
                     OutlinedButton(onClick = onImportM3u, modifier = Modifier.weight(1f)) {
@@ -405,36 +427,21 @@ fun SettingsScreen(
                         Text(uiText(language, "Export list", "匯出清單"))
                     }
                 }
-            }
-            item(key = "section_library") {
-                SectionTitle(uiText(language, "Library & cache", "音樂庫與快取"))
-                TextButton(onClick = onDuplicates, modifier = Modifier.padding(horizontal = 16.dp)) { Text(uiText(language, "Find duplicate files", "尋找重複檔案")) }
-                Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp), horizontalArrangement = Arrangement.spacedBy(GaSpacing.sm)) {
-                    OutlinedButton(onClick = onBackup, modifier = Modifier.weight(1f)) { Text(uiText(language, "Back up settings", "備份設定")) }
-                    OutlinedButton(onClick = onRestore, modifier = Modifier.weight(1f)) { Text(uiText(language, "Restore backup", "還原備份")) }
-                }
-                Text(uiText(language, "Excluded Download folders", "排除的 Download 資料夾"), Modifier.padding(horizontal = 16.dp), fontWeight = FontWeight.Bold)
-                OutlinedTextField(folderDraft, { folderDraft = it }, label = { Text(uiText(language, "Folder / subfolder", "資料夾 / 子資料夾")) }, singleLine = true, modifier = Modifier.fillMaxWidth().padding(16.dp))
+                TextButton(onClick = onDuplicates, modifier = Modifier.padding(horizontal = GaSpacing.lg)) { Text(uiText(language, "Find duplicate files", "尋找重複檔案")) }
+                Text(uiText(language, "Excluded Download folders", "排除的 Download 資料夾"), Modifier.padding(horizontal = GaSpacing.lg, vertical = GaSpacing.xs), fontWeight = FontWeight.Bold)
+                OutlinedTextField(folderDraft, { folderDraft = it }, label = { Text(uiText(language, "Folder / subfolder", "資料夾 / 子資料夾")) }, singleLine = true, modifier = Modifier.fillMaxWidth().padding(horizontal = GaSpacing.lg, vertical = GaSpacing.sm))
                 TextButton(onClick = {
                     val path = folderDraft.trim().replace('\\', '/').trim('/')
                     if (path.isNotBlank() && path.split('/').none { it == ".." || it == "." } && ':' !in path) {
                         onFolderExcluded(path, true); folderDraft = ""
                     }
-                }, enabled = folderDraft.isNotBlank(), modifier = Modifier.padding(horizontal = 16.dp)) { Text(uiText(language, "Exclude folder", "排除此資料夾")) }
+                }, enabled = folderDraft.isNotBlank(), modifier = Modifier.padding(horizontal = GaSpacing.lg)) { Text(uiText(language, "Exclude folder", "排除此資料夾")) }
                 preferences.excludedFolders.forEach { folder ->
                     SwitchSetting(folder, uiText(language, "Turn off to include again. Files remain untouched.", "關閉後重新加入，不會更改檔案。"), true, { onFolderExcluded(folder, false) })
                 }
-                ActionCard(Icons.Rounded.Cached, uiText(language, "Scan Download again", "重新掃描 Download"), uiText(language, "Refresh the recursive local media index.", "重新整理遞迴本機媒體索引。"), uiText(language, "Rescan", "重新掃描")) { onRescan(); onBack() }
-                ActionCard(
-                    Icons.Rounded.DeleteSweep,
-                    uiText(language, "Thumbnail cache", "縮圖快取"),
-                    if (cacheCleared) uiText(language, "Cache cleared. Previews will be recreated when needed.", "快取已清除，預覽會在需要時重新建立。") else uiText(language, "Remove generated previews without touching media files.", "移除產生的預覽，不會動到媒體檔案。"),
-                    uiText(language, "Clear cache", "清除快取"),
-                ) { onClearThumbnailCache(); cacheCleared = true }
-
             }
-            item(key = "section_privacy") {
-                SectionTitle(uiText(language, "Privacy", "私隱"))
+            item(key = "section_privacy_data") {
+                SectionTitle(uiText(language, "Privacy & data", "私隱與資料"))
                 GaChromeSurface(
                     modifier = Modifier.fillMaxWidth().padding(horizontal = GaSpacing.lg, vertical = GaSpacing.sm),
                     contentPadding = PaddingValues(GaSpacing.lg),
@@ -455,29 +462,43 @@ fun SettingsScreen(
                         }
                     }
                 }
-                SwitchSetting(
-                    uiText(language, "Developer diagnostics", "開發者診斷"),
-                    uiText(language, "Adds a local DEV panel with live screen, player, queue and permission details. Nothing is transmitted.", "加入本機 DEV 面板，顯示畫面、播放器、佇列及權限資料；不會傳送任何內容。"),
-                    preferences.developerMode,
-                    onDeveloperMode,
-                )
-                Spacer(Modifier.height(12.dp))
-                SwitchSetting(
-                                    uiText(language, "Toggle Ads On", "開啟廣告"),
-                                    uiText(language, "Optional parody: loud colours, wobbling buttons and a five-second skip. Buttons open a Rickroll in your browser.", "可選惡搞：高飽和配色、晃動按鈕與五秒跳過。按鈕會在瀏覽器開啟 Rickroll。"),
-                                    preferences.jokeAdsEnabled,
-                                    onJokeAdsEnabled,
-                                )
+                Row(Modifier.fillMaxWidth().padding(horizontal = GaSpacing.lg), horizontalArrangement = Arrangement.spacedBy(GaSpacing.sm)) {
+                    OutlinedButton(onClick = onBackup, modifier = Modifier.weight(1f)) { Text(uiText(language, "Back up settings", "備份設定")) }
+                    OutlinedButton(onClick = onRestore, modifier = Modifier.weight(1f)) { Text(uiText(language, "Restore backup", "還原備份")) }
+                }
+                ActionCard(Icons.Rounded.Cached, uiText(language, "Scan Download again", "重新掃描 Download"), uiText(language, "Refresh the recursive local media index.", "重新整理遞迴本機媒體索引。"), uiText(language, "Rescan", "重新掃描")) { onRescan(); onBack() }
+                ActionCard(
+                    Icons.Rounded.DeleteSweep,
+                    uiText(language, "Thumbnail cache", "縮圖快取"),
+                    if (cacheCleared) uiText(language, "Cache cleared. Previews will be recreated when needed.", "快取已清除，預覽會在需要時重新建立。") else uiText(language, "Remove generated previews without touching media files.", "移除產生的預覽，不會動到媒體檔案。"),
+                    uiText(language, "Clear cache", "清除快取"),
+                ) { onClearThumbnailCache(); cacheCleared = true }
                 OutlinedButton(
                     onClick = { resetConfirmOpen = true },
-                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = GaSpacing.lg),
                     colors = androidx.compose.material3.ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.error),
                     border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.error),
                 ) {
                     Icon(Icons.Rounded.RestartAlt, null)
                     Text("  ${uiText(language, "Reset app settings", "重設應用程式設定")}")
                 }
-                Text(uiText(language, "Your playlists, library order, and media files are not changed.", "播放清單、音樂庫排序與媒體檔案不會被更改。"), modifier = Modifier.fillMaxWidth().padding(top = GaSpacing.sm), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(uiText(language, "Your playlists, library order, and media files are not changed.", "播放清單、音樂庫排序與媒體檔案不會被更改。"), modifier = Modifier.fillMaxWidth().padding(top = GaSpacing.sm, start = GaSpacing.lg, end = GaSpacing.lg), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+            item(key = "section_developer") {
+                SectionTitle(uiText(language, "Developer", "開發者"))
+                SwitchSetting(
+                    uiText(language, "Developer diagnostics", "開發者診斷"),
+                    uiText(language, "Adds a local DEV panel with live screen, player, queue and permission details. Nothing is transmitted.", "加入本機 DEV 面板，顯示畫面、播放器、佇列及權限資料；不會傳送任何內容。"),
+                    preferences.developerMode,
+                    onDeveloperMode,
+                )
+                Spacer(Modifier.height(GaSpacing.sm))
+                SwitchSetting(
+                                    uiText(language, "Toggle Ads On", "開啟廣告"),
+                                    uiText(language, "Optional parody: loud colours, wobbling buttons and a five-second skip. Buttons open a Rickroll in your browser.", "可選惡搞：高飽和配色、晃動按鈕與五秒跳過。按鈕會在瀏覽器開啟 Rickroll。"),
+                                    preferences.jokeAdsEnabled,
+                                    onJokeAdsEnabled,
+                                )
             }
                         }
     }
@@ -570,11 +591,16 @@ private fun BackgroundFileSetting(
 }
 
 @Composable
+@OptIn(ExperimentalLayoutApi::class)
 private fun <T> ChoiceSetting(title: String, description: String, values: List<T>, selected: T, label: (T) -> String, onSelect: (T) -> Unit) {
     Column(Modifier.fillMaxWidth().inspectElement("SETTING_CHOICE", title).padding(horizontal = GaSpacing.lg, vertical = GaSpacing.md)) {
         Text(title, fontWeight = FontWeight.SemiBold)
         Text(description, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(top = GaSpacing.sm), horizontalArrangement = Arrangement.spacedBy(GaSpacing.sm)) {
+        FlowRow(
+            modifier = Modifier.fillMaxWidth().padding(top = GaSpacing.sm),
+            horizontalArrangement = Arrangement.spacedBy(GaSpacing.sm),
+            verticalArrangement = Arrangement.spacedBy(GaSpacing.sm),
+        ) {
             values.forEach { value -> FilterChip(value == selected, { onSelect(value) }, { Text(label(value)) },
                 modifier = Modifier.inspectElement("SETTING_OPTION", "$title: ${label(value)}")) }
         }

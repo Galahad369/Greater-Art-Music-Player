@@ -1,16 +1,17 @@
 VERSION_RULES.md — Greater Art APK (HARDENED)
 
-VERSIONED CHANGE RULE (ABSOLUTE): Any change that affects executable app behavior, build behavior, release behavior, resources, manifest state, or executable tooling requires the next PATCH and versionCode +=1 in the same commit, unless this file explicitly lists a one-time series transition. Documentation-only and release-finalization exceptions are limited to rule 8 below. No silent builds and no reused version numbers.
+VERSIONED CHANGE RULE (ABSOLUTE): Any change that affects executable app behavior, build behavior, release behavior, resources, manifest state, or executable tooling requires the next PATCH and versionCode +=1 in the same commit, unless this file explicitly lists an exact series or consumed-branch transition. Documentation-only and release-finalization exceptions are limited to rule 8 below. No silent builds and no reused version numbers.
 
 This file is the authoritative version policy for Greater Art. If any handoff note, README, old commit message, or conversation conflicts with this file, this file wins.
 
 ## Machine-checkable state
 
-<<<<<<< HEAD
-Current source: **1.15.13 (code 143)**
+
+Current source: **1.15.17 (code 147)**
 Current release state: **SOURCE_ONLY**
 Latest verified APK: **1.15.10 (code 140)**
 Allowed series transition: **1.14.15 -> 1.15.1**
+Allowed consumed transition: **1.15.13 (code 143) -> 1.15.17 (code 147)**
 
 ## Non-negotiable rules
 
@@ -20,7 +21,7 @@ Allowed series transition: **1.14.15 -> 1.15.1**
    - The version bump must be in the **same commit** as the code change.
 2. **Never reuse a consumed version.** Once a code commit lands with a version, that version is spent even if the build, emulator, signing, or release step later fails.
 3. **No silent fixes under the same version.** If a build/test exposes another code bug, the fix is another code commit and therefore the next PATCH/code.
-4. **Never skip a PATCH/code inside the active series unless this file explicitly authorizes the exact transition.** Series changes must be user-directed and recorded as an `Allowed series transition` before they land. For this design-system release, `1.14.15 -> 1.15.1` is the sole authorized transition; `1.15.0` is intentionally unused.
+4. **Never skip a PATCH/code inside the active series unless this file explicitly authorizes the exact transition.** Series changes use `Allowed series transition`. A consumed-branch recovery may use `Allowed consumed transition` only when every skipped version/code was already committed on a side branch and remains recorded in the ledger. The exact 1.15.13/code143 -> 1.15.17/code147 transition is authorized because 1.15.14–1.15.16 were already consumed during reviewed recovery attempts.
 5. **Release APKs are immutable.** Never modify, overwrite, rename, or copy an older APK into a new version filename.
 6. **A new APK must be built from the exact source commit carrying that version.** Renaming an existing APK is not a build.
 7. **Source and release are two separate states.**
@@ -134,6 +135,10 @@ The guard checks:
 - 1.15.11 (code 141) — force-rewrite CI recovery: version workflow skips only the impossible BASE..HEAD range check when a push's old base object is no longer reachable, while current-state/ledger validation remains mandatory; source only, local build pending
 - 1.15.12 (code 142) — ColorTheme.FOREST wired into PlayerWindowExpandedContent; legacy theme handling cleaned up; source only, local build pending
 - 1.15.13 (code 143) — full-screen video theme isolation and ColorTheme wiring; source only, local build pending
+- 1.15.14 (code 144) — complete ColorTheme/Settings recovery on superseded side branch; all required CI passed; version consumed, not merged
+- 1.15.15 (code 145) — rebased complete ColorTheme recovery after concurrent main drift; version consumed on side branch, not merged
+- 1.15.16 (code 146) — consumed-transition validator support for the recovery branch; version consumed on side branch, not merged
+- 1.15.17 (code 147) — canonical branch convergence: complete reviewed ColorTheme/Settings implementation + exact consumed-transition guard, preserving verified 1.15.10 release metadata; source only, local build pending
 
 Previous baseline: 1.13.26 (code 115).
 

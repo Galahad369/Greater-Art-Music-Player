@@ -13,6 +13,16 @@ This file describes the **current repository state only**. Historical session no
 
 ## Repository state
 
+### October 2 — 1.15.17 canonical branch convergence (source only)
+
+- Reviewed every surviving branch/PR against current main rather than merging blindly.
+- 1.15.14, 1.15.15 and 1.15.16 were already consumed on recovery branches; this commit is therefore **1.15.17/code147**. The validator accepts only the exact declared **1.15.13/code143 -> 1.15.17/code147** consumed-branch transition.
+- Applies the complete reviewed ColorTheme implementation: Forest, Slate, Amber, Indigo, Rose and Monochrome palettes; persisted preference with backup/reset support; all Compose theme hosts and native compact player wired; Settings reorganized with wrapping choice chips; bilingual labels.
+- Removes the duplicate standalone ColorTheme declaration and restores the complete AppPreferences, FullscreenVideoActivity and PlayerWindowExpandedContent sources that were damaged by placeholder/incremental direct commits.
+- Preserves the verified **1.15.10/code140** APK and release metadata. No APK is created for 1.15.17.
+- No playback-engine, Stack synchronization, media-quality, network-permission or signing changes.
+- State: **SOURCE_ONLY**. Latest verified APK remains **1.15.10/code140**.
+
 ### October 2 — 1.15.13 full-screen video theme isolation and ColorTheme wiring (source only)
 
 - `.github/workflows/public-repo-security.yml`: CodeQL build-mode configuration for full-screen video analysis.

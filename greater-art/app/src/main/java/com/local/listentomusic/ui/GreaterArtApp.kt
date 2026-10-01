@@ -208,6 +208,7 @@ fun GreaterArtApp(
     val appName = if (settings.silianRail) "PIERCE&PIERCE" else "Greater Art"
     GreaterArtTheme(
         themeMode = settings.themeMode,
+        colorTheme = settings.colorTheme,
         appFont = settings.appFont,
         silianRail = settings.silianRail,
     ) {
@@ -393,6 +394,7 @@ fun GreaterArtApp(
                     onBack = { screen = Screen.LIBRARY },
                     onRowSize = viewModel::setLibraryRowSize,
                     onThemeMode = viewModel::setThemeMode,
+                    onColorTheme = viewModel::setColorTheme,
                     onShowThumbnails = viewModel::setShowThumbnails,
                     onShowFileDetails = viewModel::setShowFileDetails,
                     onResumePlayback = viewModel::setResumePlayback,
@@ -522,7 +524,7 @@ fun GreaterArtApp(
                         appendLine("backgroundDim=${settings.backgroundDim} sharedDimLayer=AppBackground")
                         appendLine("repeat=${playback.repeatMode} random=${playback.shuffleEnabled}")
                         appendLine("floating=${settings.floatingWindowMode} auto=${settings.autoPictureInPicture}")
-                        appendLine("background=${settings.backgroundMode} theme=${settings.themeMode}")
+                        appendLine("background=${settings.backgroundMode} theme=${settings.themeMode}/${settings.colorTheme}")
                         appendLine("thumbs=memory:${thumbnailStats.memoryHits} disk:${thumbnailStats.diskHits} made:${thumbnailStats.generated} failed:${thumbnailStats.failed} noCoverOrUnsupported:${thumbnailStats.missingArtwork} active:${thumbnailStats.inFlight}")
                         appendLine("waveform=${waveformDiagnostics.status}")
                         appendLine("waveformError=${waveformDiagnostics.error ?: "none"}")
