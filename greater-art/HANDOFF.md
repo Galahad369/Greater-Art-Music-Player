@@ -10,6 +10,12 @@ This file describes the **current repository state only**. Historical session no
 
 ## Repository state
 
+### October 1 — 1.14.15 PR version-guard correctness (source only)
+
+- PR #50 exposed a validator integration bug: GitHub Actions checks out a synthetic merge commit for pull requests, so range validation compared that merge result directly to main and incorrectly treated the valid two-step 1.14.13 → 1.14.14 history as one 1.14.12 → 1.14.14 jump.
+- The version workflow now passes the real pull-request head SHA to the validator. The validator accepts an explicit `--head` ref and validates `base..head`, preserving per-commit PATCH enforcement without weakening checks for normal push history.
+- 1.14.14 remains consumed. Source version: **1.14.15 (code 130)**. State remains **SOURCE_ONLY**. Latest verified APK remains 1.14.3.
+
 ### October 1 — 1.14.14 cancellation + filtered queue locate follow-up (source only)
 
 - The 1.14.13 WAV cancellation checkpoint could still be swallowed by `runCatching`. WAV decode now rethrows `CancellationException`, so expanded-player visibility can actually cancel underlying future-track waveform work for WAV sources instead of merely marking the decode failed.

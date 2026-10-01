@@ -476,6 +476,11 @@ def main() -> int:
         help="Validate every commit in BASE..HEAD for exact version bumps and APK immutability",
     )
     parser.add_argument(
+        "--head",
+        default="HEAD",
+        help="Commit/ref to use as the end of --base range validation (default: HEAD)",
+    )
+    parser.add_argument(
         "--release",
         action="store_true",
         help="Require current source to have a locally verified current-version APK",
@@ -488,7 +493,8 @@ def main() -> int:
     if args.base:
         try:
             run_git("rev-parse", "--verify", args.base)
-            validate_commit_range(errors, args.base)
+            run_git("rev-parse", "--verify", args.head)
+            validate_commit_range(errors, args.base, args.head)
         except Exception as exc:
             fail(errors, f"commit-range validation failed: {exc}")
 
