@@ -25,6 +25,7 @@ import com.local.listentomusic.data.AppFont
 import com.local.listentomusic.data.ThemeMode
 import com.local.listentomusic.data.UserPreferences
 import com.local.listentomusic.ui.uiText
+import com.local.listentomusic.ui.theme.appColorScheme
 
 /** One compact UI, used unchanged by the Compose and WindowManager hosts. */
 class CompactPlayerView(context: Context) : FrameLayout(context) {
@@ -116,11 +117,11 @@ class CompactPlayerView(context: Context) : FrameLayout(context) {
     fun appearance(settings: UserPreferences) {
         val night = resources.configuration.uiMode and android.content.res.Configuration.UI_MODE_NIGHT_MASK == android.content.res.Configuration.UI_MODE_NIGHT_YES
         val font = if (settings.silianRail) AppFont.SILIAN_RAIL else settings.appFont
-        val key = listOf(settings.themeMode, font, settings.appLanguage, night)
+        val key = listOf(settings.themeMode, settings.colorTheme, font, settings.appLanguage, night)
         if (appearanceKey == key) return
         appearanceKey = key
         val dark = settings.themeMode == ThemeMode.DARK || (settings.themeMode == ThemeMode.SYSTEM && night)
-        val palette = if (dark) com.local.listentomusic.ui.theme.DarkColors else com.local.listentomusic.ui.theme.LightColors
+        val palette = appColorScheme(settings.colorTheme, dark)
         colors(palette.surface.toArgb(), palette.onSurface.toArgb(), palette.secondary.toArgb())
         val lang = settings.appLanguage
         labels(uiText(lang, "Previous", "上一首"), uiText(lang, "Play", "播放"), uiText(lang, "Pause", "暫停"), uiText(lang, "Next", "下一首"))

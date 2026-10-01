@@ -32,7 +32,7 @@ class FullscreenVideoActivity : ComponentActivity() {
             val controller by viewModel.controller.collectAsState()
             val settings by viewModel.settings.collectAsState()
             val sleepTimer by viewModel.sleepTimer.collectAsState()
-            GreaterArtTheme(settings.themeMode, com.local.listentomusic.data.ColorTheme.FOREST, settings.appFont, settings.silianRail) {
+            GreaterArtTheme(settings.themeMode, settings.colorTheme, settings.appFont, settings.silianRail) {
                 NowPlayingScreen(
                     playback = playback,
                     artwork = null,
@@ -49,16 +49,17 @@ class FullscreenVideoActivity : ComponentActivity() {
                     onPictureInPicture = { finishTo("DETACHED") },
                     onHome = {
                         returnDestination = "DOCKED"
-                        startActivity(Intent(this@FullscreenVideoActivity, MainActivity::class.java).apply {
-                            flags = Intent.FLAG_ACTIVITY_REORDER_TO_FRONT or Intent.FLAG_ACTIVITY_SINGLE_TOP
+                        startActivity(Intent(this, MainActivity::class.java).apply {
+                            addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP or
+                                Intent.FLAG_ACTIVITY_NO_ANIMATION)
                         })
                         finishTo("DOCKED")
                     },
-                    onClose = { finishTo("EXPANDED") },
-                    onPlayPause = viewModel::togglePlayPause,
-                    onSeek = viewModel::seekTo,
+                    onClose = { finishTo("DETACHED") },
+                    onTogglePlay = viewModel::togglePlayPause,
                     onPrevious = viewModel::previous,
                     onNext = viewModel::next,
+                    onSeek = viewModel::seekTo,
                     onSpeed = viewModel::setSpeed,
                     onRepeat = viewModel::cycleRepeatMode,
                     onSleepTimer = viewModel::setSleepTimer,
@@ -105,6 +106,7 @@ class FullscreenVideoActivity : ComponentActivity() {
         super.onDestroy()
     }
 
+    /** Clear the service's fullscreen suppression before Android tears this Activity down. */
     private fun finishTo(destination: String) {
         returnDestination = destination
         dispatchReturn()

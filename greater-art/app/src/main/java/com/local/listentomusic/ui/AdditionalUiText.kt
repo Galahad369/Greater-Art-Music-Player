@@ -72,6 +72,18 @@ Apply|套用|適用|Anwenden|Appliquer
 Cancel|取消|キャンセル|Abbrechen|Annuler
 Background fit|背景適配|背景の表示方法|Hintergrundanpassung|Ajustement du fond
 Choose how custom images and videos fill the screen. Cut to screen size is the default.|選擇背景圖片與影片如何填滿螢幕。預設為裁切填滿。|背景の表示方法を選択。標準は画面に合わせて切り抜きます。|Darstellung von Bildern und Videos wählen. Standard ist bildschirmfüllender Zuschnitt.|Choisir l’affichage des images et vidéos. Le recadrage est utilisé par défaut.
+Background|背景|背景|Hintergrund|Arrière-plan
+Color theme|色彩主題|カラーテーマ|Farbthema|Thème de couleur
+Choose an accent palette while keeping your light/dark mode preference.|在保留淺色／深色模式偏好的同時，選擇你喜歡的色彩調性。|ライト/ダーク設定を保ったまま、アクセント配色を選びます。|Akzentpalette wählen, ohne Hell/Dunkel-Einstellung zu ändern.|Choisissez une palette d’accent sans changer le mode clair/sombre.
+Forest|森林|フォレスト|Wald|Forêt
+Slate|石板|スレート|Schiefer|Ardoise
+Amber|琥珀|アンバー|Bernstein|Ambre
+Indigo|靛藍|インディゴ|Indigo|Indigo
+Rose|玫瑰|ローズ|Rosenholz|Rose
+Monochrome|單色|モノクロ|Monochrom|Monochrome
+Library & lists|音樂庫與清單|ライブラリとリスト|Bibliothek und Listen|Bibliothèque et listes
+Privacy & data|私隱與資料|プライバシーとデータ|Datenschutz und Daten|Confidentialité et données
+Developer|開發者|開発者|Entwickler|Développeur
 Stretch|拉伸|引き伸ばす|Strecken|Étirer
 Cut to screen size|裁切填滿|画面に合わせて切り抜く|Bildschirmfüllend zuschneiden|Recadrer pour remplir
 Clear filter|清除篩選|検索をクリア|Filter löschen|Effacer le filtre

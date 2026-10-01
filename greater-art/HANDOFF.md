@@ -13,6 +13,21 @@ This file describes the **current repository state only**. Historical session no
 
 ## Repository state
 
+### October 2 — 1.15.15 reviewed UI recovery rebased onto final main (source only)
+
+- The complete 1.15.14 recovery branch passed Version Consistency, Android unit tests/lint/assemble, privacy audit, dependency review and CodeQL, but main received one additional 1.15.13 repair commit after that branch's base.
+- VERSION_RULES forbids reusing a consumed version under a new commit SHA. Therefore 1.15.14 remains consumed on the superseded recovery branch and the same reviewed implementation is rebased onto the final 1.15.13 main state as **1.15.15/code145**.
+- This is the authoritative complete ColorTheme/Settings recovery. No playback, media-quality, network-permission, release-artifact or signing changes are introduced.
+- State remains **SOURCE_ONLY**. Latest verified APK remains 1.15.1.
+
+### October 2 — 1.15.14 complete UI appearance recovery (source only)
+
+- 1.15.12 is consumed by the broken direct commit that replaced `Theme.kt` with `PLACEHOLDER` without synchronizing Gradle/VERSION_RULES.
+- 1.15.13 is consumed by the partial repair that restored `Theme.kt` and advanced Gradle but left `ColorTheme` preferences, Settings/call-site wiring and version metadata incomplete.
+- 1.15.14 applies the reviewed complete implementation coherently: Forest, Slate, Amber, Indigo, Rose and Monochrome palettes; persisted `ColorTheme` with backup/reset handling; Compose and native compact-player theme hosts wired; Settings regrouped with wrapping choice chips; bilingual labels added.
+- No playback-engine, media-quality, network-permission or signing changes.
+- Source version: **1.15.14 (code 144)**. State remains **SOURCE_ONLY**. Latest verified APK remains 1.15.1.
+
 ### October 2 — 1.15.11 force-rewrite version-workflow recovery (source only)
 
 - After the privacy cleanup rewrote the broken post-1.15.4 main segment, GitHub's push event still supplied the old pre-rewrite main SHA as `github.event.before`. The checkout contained only currently reachable history, so `git cat-file -e old_sha` failed before the actual version validator could run its range check.

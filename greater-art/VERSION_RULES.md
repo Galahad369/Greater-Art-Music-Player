@@ -6,7 +6,7 @@ This file is the authoritative version policy for Greater Art. If any handoff no
 
 ## Machine-checkable state
 
-Current source: **1.15.11 (code 141)**
+Current source: **1.15.15 (code 145)**
 Current release state: **SOURCE_ONLY**
 Latest verified APK: **1.15.1 (code 131)**
 Allowed series transition: **1.14.15 -> 1.15.1**
@@ -131,6 +131,10 @@ The guard checks:
 - 1.15.9 (code 139) — repository integrity cleanup: remove unsafe commit-amending version helpers, permissive branch-protection recipes, and unverified 1.15.4 release artifact; source only, local build pending
 - 1.15.10 (code 140) — version-guard hardening: root executable tooling consumes versions and current-tree release scan rejects unverified/newer or malformed APK artifacts; source only, local build pending
 - 1.15.11 (code 141) — force-rewrite CI recovery: version workflow skips only the impossible BASE..HEAD range check when a push's old base object is no longer reachable, while current-state/ledger validation remains mandatory; source only, local build pending
+- 1.15.12 (code 142) — broken direct UI-theme commit: Theme.kt replaced by PLACEHOLDER without matching Gradle/ledger metadata; source broken, version consumed
+- 1.15.13 (code 143) — partial UI-theme recovery: Theme.kt restored and Gradle advanced, but preference model/call-site wiring/version ledger remained incomplete; source broken, version consumed
+- 1.15.14 (code 144) — complete UI appearance recovery: six curated ColorTheme palettes, persisted preference with backup/reset support, all theme hosts and compact player wired, Settings reorganized, bilingual labels added, and metadata synchronized; source only, local build pending
+- 1.15.15 (code 145) — rebase recovery after concurrent 1.15.13 base drift: reapply the reviewed complete ColorTheme/Settings implementation on the final 1.15.13 main head; 1.15.14 remains consumed on the superseded branch; source only, local build pending
 
 Previous baseline: 1.13.26 (code 115).
 
