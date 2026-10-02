@@ -4,7 +4,7 @@ This file describes the **current repository state only**. Historical session no
 
 **Project:** `greater-art/` in the repository checkout
 **Current version:** `1.15.26 (code 156)`
-**Current source:** `1.15.34 (code 164)`
+**Current source:** `1.15.36 (code 166)`
 **Release state:** `SOURCE_ONLY`
 **Latest APK:** `releases/GreaterArt-1.15.26.apk` (`26,287,658 bytes`; SHA-256 `4c8b8d4692a8bd5c575208746065139651d6f0d651a4dbad619ea77cb0745de2`)
 **Application ID:** `com.local.listentomusic`
@@ -14,6 +14,13 @@ This file describes the **current repository state only**. Historical session no
 **Verification boundary:** Authoritative VERSION_RULES and repository contents establish 1.15.34/code164 as SOURCE_ONLY. No `releases/GreaterArt-1.15.34.apk` exists on main; the latest repository-backed verified APK remains 1.15.26/code156.
 
 ## Repository state
+
+### October 2 — 1.15.36 version-guard consumed-transition consistency (source only)
+
+- Fixes a repository-policy bug exposed while validating the 1.15.34 Stack fix: commit-range validation honored exact `Allowed consumed transition` entries, but current-state ledger validation ignored them and therefore rejected legitimate consumed-version jumps.
+- Current-state ledger validation now calls the same version/code-step helper used by commit-range validation. Sequential PATCH/+1 rules remain unchanged; only exact consumed transitions already declared in `VERSION_RULES.md` are accepted.
+- This does not weaken APK immutability, per-commit version bump enforcement, series-transition checks, or SOURCE_ONLY/VERIFIED release rules.
+- Source advances to **1.15.36/code166** because 1.15.35/code165 is already consumed. State: **SOURCE_ONLY**; latest verified APK remains **1.15.26/code156**.
 
 ### October 2 — 1.15.34 Stack mini-window + loop fix (source only)
 
