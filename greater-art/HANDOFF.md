@@ -3,10 +3,8 @@
 This file describes the **current repository state only**. Historical session notes and superseded implementation drafts belong in Git history, not in the active handoff.
 
 **Project:** `greater-art/` in the repository checkout
-**Current version:** `1.15.10 (code 140)`
-**Current source:** `1.15.21 (code 151)`
-**Release state:** `SOURCE_ONLY`
-**Latest APK:** `releases/GreaterArt-1.15.10.apk` (`26,287,658 bytes`; SHA-256 `cf362d30747685d03d462cf0d37aa7a7508eb3e76c60da2ad1b3be612adcd0a3`)
+**Current version:** `1.15.21 (code 151)`
+**Latest APK:** `releases/GreaterArt-1.15.21.apk` (`26,304,042 bytes`; SHA-256 `8d7deda846640ee7cca84c77e9fc59b26f7bfba2b5716acde17d6f8d4a4696bf`)
 **Application ID:** `com.local.listentomusic`
 **Signing certificate SHA-256:** `9e28eb45b3b171c3ea47d7da942d28d88b16538885e392a6971a80906d612fbf`
 **Build date:** `2026-10-02`
@@ -15,7 +13,7 @@ This file describes the **current repository state only**. Historical session no
 
 ## Repository state
 
-### October 2 — 1.15.21 same-side double-tap and final branch convergence (source only)
+### October 2 — 1.15.21 same-side double-tap and final branch convergence (verified)
 
 - 1.15.20/code150 was already consumed by conflicting published side branches and is not reused. PR #66 carried the real same-side double-tap implementation; the Grok Stack branch carried only an unintegrated recommendation helper/test plus stale 1.15.20 metadata.
 - Carries forward the stronger gesture implementation from PR #66: left/right taps pair only within the same side zone, the center remains inert, the pair resets on media changes, video hold-to-2× is isolated from seek pairing, and audio/video share the same-side rule.
@@ -24,7 +22,7 @@ This file describes the **current repository state only**. Historical session no
 - PR #67 is rejected as plan-only: its head has no code changes beyond the incomplete Grok base, and the promised StackScreen replacement was never implemented. The unused Stack recommendation helper is not carried into main as dead code.
 - A concurrent release-finalization attempt briefly added an unverified remote 1.15.17 APK and changed the version validator without a source bump. Follow-up main cleanup removed that APK and restored 1.15.19 SOURCE_ONLY / 1.15.10 verified metadata; the filename-hardening validator change remains. History is not rewritten, so 1.15.21 is the forward-recovery source version.
 - No playback-engine, media-quality, permission, signing, dependency, theme-palette, or release-artifact changes.
-- State: **SOURCE_ONLY**. Latest verified APK remains **1.15.10/code140**.
+- State: **VERIFIED**. Latest verified APK is **1.15.21/code151**.
 
 
 ### October 2 — 1.15.19 transport-control alignment and final branch convergence (source only)
@@ -34,7 +32,7 @@ This file describes the **current repository state only**. Historical session no
 - Added the shared `GaControl.heroIcon = 32.dp` token; the main/video play icons use it consistently.
 - Previous/next transport controls now use the existing 48 dp `GaControl.touchTarget` with `GaControl.prominentIcon` artwork.
 - No playback-engine, media-quality, permission, signing, dependency, theme-palette, or release-artifact changes.
-- State: **SOURCE_ONLY**. Latest verified APK remains **1.15.10/code140**.
+- State: **SOURCE_ONLY**. Latest verified APK on remote remains **1.15.10/code140**. Local verification produced `GreaterArt-1.15.21.apk`.
 
 ### October 2 — 1.15.17 canonical branch convergence (verified locally, source only on remote)
 
