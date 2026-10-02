@@ -3,8 +3,8 @@
 This file describes the **current repository state only**. Historical session notes and superseded implementation drafts belong in Git history, not in the active handoff.
 
 **Project:** `greater-art/` in the repository checkout
-**Current version:** `1.15.21 (code 151)`
-**Latest APK:** `releases/GreaterArt-1.15.21.apk` (`26,304,042 bytes`; SHA-256 `8d7deda846640ee7cca84c77e9fc59b26f7bfba2b5716acde17d6f8d4a4696bf`)
+**Current version:** `1.15.22 (code 152)`
+**Latest APK:** `releases/GreaterArt-1.15.22.apk` (`26,304,042 bytes`; SHA-256 `6b83da6d3dd951117f162927db9d2538ac1381d5f1cb12b79c9768ee6c3ff63c`)
 **Application ID:** `com.local.listentomusic`
 **Signing certificate SHA-256:** `9e28eb45b3b171c3ea47d7da942d28d88b16538885e392a6971a80906d612fbf`
 **Build date:** `2026-10-02`
@@ -13,7 +13,14 @@ This file describes the **current repository state only**. Historical session no
 
 ## Repository state
 
-### October 2 — 1.15.21 same-side double-tap and final branch convergence (verified)
+### October 2 — 1.15.22 StackRecommend offline engine + tests (verified)
+
+- Merges Grok branch `grok/1.15.22-stack-complete` carrying the offline Stack recommendation engine and unit tests.
+- Adds `StackRecommend.kt` with offline recommendation logic and `StackRecommendTest.kt` with coverage.
+- No playback-engine, media-quality, permission, signing, dependency, theme-palette, or release-artifact changes.
+- State: **VERIFIED**. Latest verified APK is **1.15.22/code152**.
+
+### October 2 — 1.15.21 same-side double-tap and final branch convergence (verified locally, source only on remote)
 
 - 1.15.20/code150 was already consumed by conflicting published side branches and is not reused. PR #66 carried the real same-side double-tap implementation; the Grok Stack branch carried only an unintegrated recommendation helper/test plus stale 1.15.20 metadata.
 - Carries forward the stronger gesture implementation from PR #66: left/right taps pair only within the same side zone, the center remains inert, the pair resets on media changes, video hold-to-2× is isolated from seek pairing, and audio/video share the same-side rule.
@@ -22,7 +29,7 @@ This file describes the **current repository state only**. Historical session no
 - PR #67 is rejected as plan-only: its head has no code changes beyond the incomplete Grok base, and the promised StackScreen replacement was never implemented. The unused Stack recommendation helper is not carried into main as dead code.
 - A concurrent release-finalization attempt briefly added an unverified remote 1.15.17 APK and changed the version validator without a source bump. Follow-up main cleanup removed that APK and restored 1.15.19 SOURCE_ONLY / 1.15.10 verified metadata; the filename-hardening validator change remains. History is not rewritten, so 1.15.21 is the forward-recovery source version.
 - No playback-engine, media-quality, permission, signing, dependency, theme-palette, or release-artifact changes.
-- State: **VERIFIED**. Latest verified APK is **1.15.21/code151**.
+- State on remote: **SOURCE_ONLY**. Latest verified APK on remote remains **1.15.10/code140**. Local verification produced `GreaterArt-1.15.21.apk`.
 
 
 ### October 2 — 1.15.19 transport-control alignment and final branch convergence (source only)
