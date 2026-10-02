@@ -1,6 +1,12 @@
 package com.local.listentomusic.ui.components
 
-internal fun expectedSurfaceOwner(foreground: Boolean, nowPlaying: Boolean, pip: Boolean): String = when {
+internal fun expectedSurfaceOwner(
+    foreground: Boolean,
+    nowPlaying: Boolean,
+    pip: Boolean,
+    fullscreenActivity: Boolean = false,
+): String = when {
+    fullscreenActivity -> "NOW_PLAYING"
     pip -> "NOW_PLAYING"
     !foreground -> "MINI_WINDOW"
     nowPlaying -> "NOW_PLAYING"

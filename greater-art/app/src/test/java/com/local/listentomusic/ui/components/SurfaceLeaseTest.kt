@@ -48,6 +48,18 @@ class SurfaceLeaseTest {
         assertEquals("MINI_WINDOW", expectedSurfaceOwner(false, true, false))
         assertEquals("NOW_PLAYING", expectedSurfaceOwner(false, true, true))
     }
+
+    @Test fun fullscreenActivityKeepsNowPlayingOwnerAcrossTransientPause() {
+        assertEquals(
+            "NOW_PLAYING",
+            expectedSurfaceOwner(
+                foreground = false,
+                nowPlaying = true,
+                pip = false,
+                fullscreenActivity = true,
+            ),
+        )
+    }
     @Test fun staleFrameFromPreviousMediaDoesNotSetMediaFlag() {
         val state = SurfaceLease().attach("NOW_PLAYING", 1, 100).mediaChanged(200)
         assertFalse(state.frame(150, true).mediaFirstFrame)
