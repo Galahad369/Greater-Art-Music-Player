@@ -64,6 +64,13 @@ internal fun shouldMirrorPrimaryPlayback(
     primaryIsPlaying: Boolean,
 ): Boolean = lifecycleActive && primaryIsPlaying
 
+/**
+ * CURRENT_VIDEO duplicates the primary file in a decorative secondary decoder.
+ * Budget only that duplicate; CUSTOM_VIDEO keeps its source resolution.
+ */
+internal fun currentVideoWallpaperMaxSize(mirrorsPrimary: Boolean): Pair<Int, Int>? =
+    if (mirrorsPrimary) WALLPAPER_CURRENT_MAX_W to WALLPAPER_CURRENT_MAX_H else null
+
 @Composable
 fun AppBackground(
     preferences: UserPreferences,
@@ -271,20 +278,33 @@ private fun BackgroundVideo(
     var lifecycleActive by remember(lifecycleOwner) {
         mutableStateOf(lifecycleOwner.lifecycle.currentState.isAtLeast(Lifecycle.State.STARTED))
     }
-    val backgroundPlayer = remember(source) {
+    val mirrorsPrimary = syncController != null
+    val backgroundPlayer = remember(source, mirrorsPrimary) {
         val renderersFactory = DefaultRenderersFactory(context.applicationContext)
             .setEnableDecoderFallback(true)
 
         ExoPlayer.Builder(context.applicationContext, renderersFactory)
-            .setLoadControl(androidx.media3.exoplayer.DefaultLoadControl.Builder()
-                .setBufferDurationsMs(3_000, 10_000, 100, 250).setTargetBufferBytes(16 * 1024 * 1024)
-                .setPrioritizeTimeOverSizeThresholds(false).build()).build().apply {
-            installVideoDiagnostics(if (syncController != null) "CURRENT_VIDEO_BACKGROUND" else "CUSTOM_VIDEO_BACKGROUND")
+            .setLoadControl(
+                androidx.media3.exoplayer.DefaultLoadControl.Builder()
+                    .setBufferDurationsMs(
+                        WALLPAPER_MIN_BUFFER_MS,
+                        WALLPAPER_MAX_BUFFER_MS,
+                        WALLPAPER_PLAYBACK_BUFFER_MS,
+                        WALLPAPER_REBUFFER_MS,
+                    )
+                    .setTargetBufferBytes(WALLPAPER_TARGET_BUFFER_BYTES)
+                    .setPrioritizeTimeOverSizeThresholds(true)
+                    .build(),
+            ).build().apply {
+            installVideoDiagnostics(if (mirrorsPrimary) "CURRENT_VIDEO_BACKGROUND" else "CUSTOM_VIDEO_BACKGROUND")
             volume = 0f
             repeatMode = Player.REPEAT_MODE_ONE
-            trackSelectionParameters = trackSelectionParameters.buildUpon()
+            val selection = trackSelectionParameters.buildUpon()
                 .setTrackTypeDisabled(C.TRACK_TYPE_AUDIO, true)
-                .build()
+            currentVideoWallpaperMaxSize(mirrorsPrimary)?.let { (width, height) ->
+                selection.setMaxVideoSize(width, height)
+            }
+            trackSelectionParameters = selection.build()
             setMediaItem(MediaItem.fromUri(source))
             prepare()
         }
@@ -431,6 +451,14 @@ private fun decodeSampledBitmap(
     resolver.openInputStream(source)?.use { BitmapFactory.decodeStream(it, null, options) }
 }.getOrNull()
 
+// Decorative duplicate-video budget: primary playback remains native resolution/FPS/bitrate.
+private const val WALLPAPER_CURRENT_MAX_W = 640
+private const val WALLPAPER_CURRENT_MAX_H = 360
+private const val WALLPAPER_MIN_BUFFER_MS = 500
+private const val WALLPAPER_MAX_BUFFER_MS = 2_000
+private const val WALLPAPER_PLAYBACK_BUFFER_MS = 100
+private const val WALLPAPER_REBUFFER_MS = 200
+private const val WALLPAPER_TARGET_BUFFER_BYTES = 2 * 1024 * 1024
 private const val PRIMARY_VIDEO_HEAD_START_MS = 300L
 /** After fling ends, wait a frame or two before re-attaching the wallpaper surface. */
 private const val VIDEO_SURFACE_SETTLE_MS = 80L

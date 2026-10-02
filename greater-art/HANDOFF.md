@@ -4,14 +4,25 @@ This file describes the **current repository state only**. Historical session no
 
 **Project:** `greater-art/` in the repository checkout
 **Current version:** `1.15.39 (code 169)`
+**Current source:** `1.15.42 (code 172)`
+**Release state:** `SOURCE_ONLY`
 **Latest APK:** `releases/GreaterArt-1.15.39.apk` (`26,353,198 bytes`; SHA-256 `25db3b022eb5da45e867b54ff326ee8027608fc9ec7892293f5ac4b80b7036c8`)
 **Application ID:** `com.local.listentomusic`
 **Signing certificate SHA-256:** `9e28eb45b3b171c3ea47d7da942d28d88b16538885e392a6971a80906d612fbf`
 **Build date:** `2026-10-02`
 **Test device:** `GreaterArt_A55_API36 (A55, API 36, Android 17)`
-**Verification boundary:** Authoritative VERSION_RULES and the release tree establish current source `1.15.39/code169` as **SOURCE_ONLY**. No `releases/GreaterArt-1.15.39.apk` exists on main; the latest repository-backed verified APK remains `1.15.38/code168`.
+**Verification boundary:** Current source is `1.15.42/code172` and is **SOURCE_ONLY**. The latest immutable verified artifact remains `releases/GreaterArt-1.15.39.apk` (SHA-256 `25db3b022eb5da45e867b54ff326ee8027608fc9ec7892293f5ac4b80b7036c8`). No 1.15.42 release APK may exist until the exact source is built and device-verified under VERSION_RULES.
 
 ## Repository state
+
+### October 2 — 1.15.42 wallpaper-decoder-budget convergence (source only)
+
+- Live main commit `7278576e` changed Now Playing repeat/random text fitting without a version bump, so Version Consistency correctly rejected the 1.15.39 → 1.15.39 executable transition. History is preserved; this forward recovery moves canonical source to **1.15.42/code172**.
+- Reviewed `grok/1.15.41-wallpaper-decoder-budget` and rejected its history as submitted: executable code, version metadata, and VERSION_RULES were split across separate commits, and its final ledger rewrite deleted most canonical version history. Published **1.15.41/code171** is consumed and must not be reused.
+- Selectively recreated the useful performance work: duplicate **CURRENT_VIDEO** wallpaper decode is capped to 640×360 and decorative-video buffering is reduced to a 2 MiB target. **CUSTOM_VIDEO remains uncapped in resolution**, and the primary player retains native source resolution, bitrate, FPS, decoder selection, and existing surface ownership.
+- Preserves 1.15.39's 80 ms list-fling surface detach and adds JVM coverage proving only the mirrored CURRENT_VIDEO path receives the resolution budget.
+- State: **SOURCE_ONLY** at **1.15.42/code172**. Latest verified APK remains **1.15.39/code169**.
+
 
 ### October 2 — post-1.15.39 branch convergence audit (documentation only)
 
@@ -1016,4 +1027,5 @@ read handoff.md --> read user instructions (usually debug, fix, or patch, change
 | 1.15.30 | 160 | `88602b22d14a5cabb2074196d991020bcdbcc6bc5ba60dfc812b47cf58d375c3` | Stack completion + Nodes linked-graph UI + ListScrollBudget video pause on fling, build verified, release APK copied |
 | 1.15.34 | 164 | `9659ec57e2a4fb78bc75a75df05017f5c9bd0a58d540f7dfe38ab3ee83124142` | Stack mini-window churn fix + group loop, build verified, release APK copied |
 | 1.15.38 | 168 | `da07870b4f06defffbae6a0edd564ed34aa9ddfa21aa3924d89c65c4a5079fa7` | Stack crash-hardening convergence (verified) |
-| 1.15.39 | 169 | — | YouTube-style list-fling video budget — detach wallpaper surface, 80ms settle; source only, no verified release APK |
+| 1.15.39 | 169 | `25db3b022eb5da45e867b54ff326ee8027608fc9ec7892293f5ac4b80b7036c8` | YouTube-style list-fling video budget — detach wallpaper surface, 80ms settle; verified release |
+| 1.15.42 | 172 | — | Canonical wallpaper decoder budget + version recovery; source only |
