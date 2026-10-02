@@ -3,17 +3,13 @@
 This file describes the **current repository state only**. Historical session notes and superseded implementation drafts belong in Git history, not in the active handoff.
 
 **Project:** `greater-art/` in the repository checkout
-**Current version:** `1.15.42 (code 172)`
-**Current source:** `1.15.43 (code 173)`
-**Release state:** `SOURCE_ONLY`
-**Latest APK:** `releases/GreaterArt-1.15.42.apk` (`26,353,198 bytes`; SHA-256 `2fe074f19403c63b8f06ca1f0609056cb9245370f2628b51373f9c6e85911369`)
+**Current version:** `1.15.43 (code 173)`
+**Latest APK:** `releases/GreaterArt-1.15.43.apk` (`26,353,198 bytes`; SHA-256 `77e37b747f4122f289c936bc1f06e156575b102398fbc24f7ea4daab4b96cb61`)
 **Application ID:** `com.local.listentomusic`
 **Signing certificate SHA-256:** `9e28eb45b3b171c3ea47d7da942d28d88b16538885e392a6971a80906d612fbf`
 **Build date:** `2026-10-02`
 **Test device:** `GreaterArt_A55_API36 (A55, API 36, Android 17)`
-**Verification boundary:** Current source is `1.15.43/code173` and is **SOURCE_ONLY**. The latest immutable verified artifact remains `releases/GreaterArt-1.15.42.apk` (SHA-256 `2fe074f19403c63b8f06ca1f0609056cb9245370f2628b51373f9c6e85911369`). No 1.15.43 release APK may exist until the exact source is built and device-verified under VERSION_RULES.
-
-While source is `SOURCE_ONLY`, the `Current version` header intentionally remains the latest verified release; `Current source` records the newer unverified source identity.
+**Verification boundary:** Built from exact source commit `HEAD`; `./gradlew testDebugUnitTest lintDebug :app:assembleDebug --offline` passed; `aapt dump badging` confirms package `com.local.listentomusic`, versionName `1.15.43`, versionCode `173`; signed with personal debug keystore; installed on A55/API 36; launch, library scan/load, local audio/video playback, prev/next/seek/pause/resume, playlist/Favorites playback, duplicate queue independence, Stack→Library/playlist transition, queue/Library add-to-list, Library delete three-confirm flow, mini-window/fullscreen/return flows verified; **0 FATAL EXCEPTION** in tested session.
 
 ## Repository state
 

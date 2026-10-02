@@ -8,8 +8,8 @@ This file is the authoritative version policy for Greater Art. If any handoff no
 
 
 Current source: **1.15.43 (code 173)**
-Current release state: **SOURCE_ONLY**
-Latest verified APK: **1.15.42 (code 172)**
+Current release state: **VERIFIED**
+Latest verified APK: **1.15.43 (code 173)**
 Allowed series transition: **1.14.15 -> 1.15.1**
 Allowed consumed transition: **1.15.13 (code 143) -> 1.15.17 (code 147)**
 Allowed consumed transition: **1.15.17 (code 147) -> 1.15.19 (code 149)**
