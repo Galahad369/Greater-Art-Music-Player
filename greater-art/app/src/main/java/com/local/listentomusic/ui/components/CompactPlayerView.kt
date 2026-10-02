@@ -27,6 +27,9 @@ import com.local.listentomusic.data.UserPreferences
 import com.local.listentomusic.ui.uiText
 import com.local.listentomusic.ui.theme.appColorScheme
 
+internal fun shouldRefreshCompactBinding(samePlayer: Boolean, samePresentation: Boolean): Boolean =
+    !samePlayer || !samePresentation
+
 /** One compact UI, used unchanged by the Compose and WindowManager hosts. */
 class CompactPlayerView(context: Context) : FrameLayout(context) {
     val preview = FrameLayout(context)
@@ -191,9 +194,12 @@ class CompactPlayerView(context: Context) : FrameLayout(context) {
         preview.addView(video, LayoutParams(-1, -1))
     }
     fun bind(value: Player?, presentation: String) {
+        val samePlayer = player === value
+        val samePresentation = owner == presentation
+        if (!shouldRefreshCompactBinding(samePlayer, samePresentation)) return
         owner = presentation
         video.tag = presentation
-        if (player !== value) {
+        if (!samePlayer) {
             player?.removeListener(listener)
             player = value
             value?.addListener(listener)

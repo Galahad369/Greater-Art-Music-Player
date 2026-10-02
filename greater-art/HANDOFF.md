@@ -4,7 +4,7 @@ This file describes the **current repository state only**. Historical session no
 
 **Project:** `greater-art/` in the repository checkout
 **Current version:** `1.15.26 (code 156)`
-**Current source:** `1.15.31 (code 161)`
+**Current source:** `1.15.34 (code 164)`
 **Release state:** `SOURCE_ONLY`
 **Latest APK:** `releases/GreaterArt-1.15.26.apk` (`26,287,658 bytes`; SHA-256 `4c8b8d4692a8bd5c575208746065139651d6f0d651a4dbad619ea77cb0745de2`)
 **Application ID:** `com.local.listentomusic`
@@ -14,6 +14,15 @@ This file describes the **current repository state only**. Historical session no
 **Verification boundary:** Release-finalization commit `6d02c33c` records `GreaterArt-1.15.26.apk` (SHA-256 `4c8b8d4692a8bd5c575208746065139651d6f0d651a4dbad619ea77cb0745de2`) after source merge `4bb9aef6`. The local release record states `./gradlew testDebugUnitTest lintDebug :app:assembleDebug --offline` passed, `aapt dump badging` confirmed package `com.local.listentomusic`, versionName `1.15.26`, versionCode `156`, the recorded personal sideload certificate, A55/API 36 smoke coverage, and **0 FATAL EXCEPTION**. The 1.15.26 push Version Consistency range check failed historically because source commit `58cc7fad` updated app/Gradle before VERSION_RULES was corrected in `b0a5232d`; current-state validation, Android CI, and Public Repository Security passed. History is preserved rather than rewritten.
 
 ## Repository state
+
+### October 2 — 1.15.34 Stack mini-window + loop fix (source only)
+
+- **Mini-window Stack lag:** the overlay and `CompactPlayerView` were both refreshing the same compact UI for each Media3 event. Stack produces more renderer/play-state events than normal playback, so duplicate refresh/surface work was amplified. Rebinding the same controller + same presentation is now a no-op, and overlay artwork/layout work only runs for media/metadata/video-size events that can actually change it.
+- **Stack loop:** Stack previously forced the primary player to repeat-off and disabled the repeat button. The primary remains repeat-off internally so it cannot loop independently, but Stack now owns a separate two-state whole-session loop. Repeat toggles **Off ↔ Loop**, and reaching the longest Stack duration restarts the synchronized Stack at 0 when Loop is enabled.
+- Normal playback keeps its existing Off → One → All → Random cycle. Leaving Stack restores the pre-Stack normal repeat/shuffle state exactly as before.
+- Adds JVM coverage for Stack end-loop decisions and duplicate compact-binding suppression.
+- Rejected Grok/Copilot crash-hardening branches that replace the 421-line Stack coordinator with `PLACEHOLDER`. Their explicitly published **1.15.33/code163** identity is consumed and not reused.
+- Source advances to **1.15.34/code164**. State: **SOURCE_ONLY**; latest verified APK remains **1.15.26/code156**.
 
 ### October 2 — post-1.15.31 final PR/branch audit (documentation only)
 

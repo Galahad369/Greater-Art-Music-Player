@@ -36,6 +36,7 @@ internal class StackPlaybackCoordinator(
     private var sourceGain = 1f
     private var previousRepeat = Player.REPEAT_MODE_OFF
     private var previousShuffle = false
+    private var loopEnabled = false
     private var ticker: Job? = null
     private var lastCorrectionMs = 0L
     private var internalMainChange = false
@@ -112,6 +113,7 @@ internal class StackPlaybackCoordinator(
         }
         previousRepeat = main.repeatMode
         previousShuffle = main.shuffleModeEnabled
+        loopEnabled = false
         slots += unique.map(::StackSlot)
         voices += prepared
         primaryPath = unique.first().path
@@ -213,6 +215,12 @@ internal class StackPlaybackCoordinator(
         onLevelsChanged()
         publish()
         return true
+    }
+
+    fun setLoop(enabled: Boolean) {
+        if (!active || loopEnabled == enabled) return
+        loopEnabled = enabled
+        publish()
     }
 
     fun setVolume(path: String, level: Float) = edit(path) { it.copy(volume = if (level.isFinite()) level.coerceIn(0f, 1f) else 0f) }
@@ -357,6 +365,7 @@ internal class StackPlaybackCoordinator(
         voices.clear()
         slots.clear()
         playing = false
+        loopEnabled = false
         primaryPath = null
         anchorMs = 0L
         if (clearMain) main.stop()
@@ -377,7 +386,7 @@ internal class StackPlaybackCoordinator(
                 slots[index] = slots[index].copy(resolvedDurationMs = resolved)
             }
         }
-        StackPlayback.publish(StackSession(slots.toList(), primaryPath, position(), sessionDuration(), playing))
+        StackPlayback.publish(StackSession(slots.toList(), primaryPath, position(), sessionDuration(), playing, loopEnabled))
     }
 
     private fun startTicker() {
@@ -386,10 +395,15 @@ internal class StackPlaybackCoordinator(
             while (isActive && active) {
                 delay(500L)
                 val now = position()
-                if (playing && sessionDuration() > 0L && now >= sessionDuration()) {
-                    pause()
-                    anchorMs = sessionDuration()
-                    publish()
+                val duration = sessionDuration()
+                if (playing && duration > 0L && now >= duration) {
+                    if (shouldRestartStack(loopEnabled, playing, now, duration)) {
+                        seek(0L)
+                    } else {
+                        pause()
+                        anchorMs = duration
+                        publish()
+                    }
                     continue
                 }
                 val currentPrimary = slots.firstOrNull { it.file.path == primaryPath }?.file

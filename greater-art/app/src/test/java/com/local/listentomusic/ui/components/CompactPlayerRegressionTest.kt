@@ -17,6 +17,12 @@ class CompactPlayerRegressionTest {
         assertFalse(rendered.mediaChanged(20).firstFrame)
         assertFalse(rendered.mediaChanged(20).mediaFirstFrame)
     }
+    @Test fun repeatedMiniBindingSkipsDuplicateRefreshWork() {
+        assertFalse(shouldRefreshCompactBinding(samePlayer = true, samePresentation = true))
+        assertTrue(shouldRefreshCompactBinding(samePlayer = false, samePresentation = true))
+        assertTrue(shouldRefreshCompactBinding(samePlayer = true, samePresentation = false))
+    }
+
     @Test fun libraryAndMiniRetainSourceWhileDestinationRegisters() {
         assertTrue(shouldRetainPrimarySurfaceDuringHandoff("LIBRARY_MINI", "MINI_WINDOW", false))
         assertTrue(shouldRetainPrimarySurfaceDuringHandoff("MINI_WINDOW", "LIBRARY_MINI", false))

@@ -784,6 +784,12 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun cycleRepeatMode() {
+        val stack = com.local.listentomusic.playback.StackPlayback.state.value
+        if (stack.active) {
+            com.local.listentomusic.playback.StackPlayback.setLoop(!stack.loopEnabled)
+            _controller.value?.let(::publishPlayback)
+            return
+        }
         _controller.value?.let { player ->
             val current = resolveCycleMode(player.repeatMode, player.shuffleModeEnabled)
             val next = nextCycleMode(current)
@@ -947,8 +953,9 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             positionMs = quantizedPosition.coerceAtLeast(0L),
             durationMs = stack?.durationMs ?: duration,
             speed = player.playbackParameters.speed,
-            repeatMode = player.repeatMode,
-            shuffleEnabled = player.shuffleModeEnabled,
+            repeatMode = if (stack == null) player.repeatMode
+                else if (stack.loopEnabled) Player.REPEAT_MODE_ALL else Player.REPEAT_MODE_OFF,
+            shuffleEnabled = if (stack == null) player.shuffleModeEnabled else false,
             hasNext = player.hasNextMediaItem(),
             hasPrevious = player.hasPreviousMediaItem() || player.currentPosition > 0,
             videoAspectRatio = videoAspectRatio,

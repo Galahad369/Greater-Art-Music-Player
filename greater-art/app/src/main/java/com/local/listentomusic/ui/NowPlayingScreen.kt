@@ -1508,6 +1508,9 @@ private fun PlayerBottomControls(
     var speedMenuOpen by remember { mutableStateOf(false) }
     val accent = MaterialTheme.colorScheme.secondary
     val cycleLabel = when {
+        playback.stackCount > 0 && playback.repeatMode == Player.REPEAT_MODE_ALL ->
+            uiText(playback.appLanguage, "Loop", "循環")
+        playback.stackCount > 0 -> uiText(playback.appLanguage, "Off", "關閉")
         playback.shuffleEnabled -> uiText(playback.appLanguage, "Random", "隨機")
         playback.repeatMode == Player.REPEAT_MODE_ONE -> uiText(playback.appLanguage, "One", "單曲")
         playback.repeatMode == Player.REPEAT_MODE_ALL -> uiText(playback.appLanguage, "All", "全部")
@@ -1519,8 +1522,13 @@ private fun PlayerBottomControls(
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        IconButton(onClick = onRepeat, enabled = playback.stackCount == 0,
-            modifier = Modifier.size(48.dp).inspectElement("REPEAT_BUTTON", if (playback.stackCount > 0) "Stack controls repeat" else cycleLabel)) {
+        IconButton(
+            onClick = onRepeat,
+            modifier = Modifier.size(48.dp).inspectElement(
+                "REPEAT_BUTTON",
+                if (playback.stackCount > 0) "Loop whole Stack: $cycleLabel" else cycleLabel,
+            ),
+        ) {
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                 Icon(when {
                     playback.shuffleEnabled -> Icons.Rounded.Shuffle

@@ -20,6 +20,7 @@ data class StackSession(
     val positionMs: Long = 0L,
     val durationMs: Long = 0L,
     val playing: Boolean = false,
+    val loopEnabled: Boolean = false,
 ) {
     val active: Boolean get() = slots.isNotEmpty()
 }
@@ -37,6 +38,9 @@ internal fun stackMasterPosition(primaryPositionMs: Long, fallbackPositionMs: Lo
 
 internal fun shouldCorrectStackVoice(voicePositionMs: Long, masterPositionMs: Long): Boolean =
     kotlin.math.abs(voicePositionMs - masterPositionMs) > STACK_DRIFT_CORRECTION_MS
+
+internal fun shouldRestartStack(loopEnabled: Boolean, playing: Boolean, positionMs: Long, durationMs: Long): Boolean =
+    loopEnabled && playing && durationMs > 0L && positionMs >= durationMs
 
 internal const val STACK_START_ALIGNMENT_MS = 120L
 internal const val STACK_DRIFT_CORRECTION_MS = 600L
@@ -57,6 +61,7 @@ object StackPlayback {
     internal var playCommand: (() -> Unit)? = null
     internal var pauseCommand: (() -> Unit)? = null
     internal var seekCommand: ((Long) -> Unit)? = null
+    internal var loopCommand: ((Boolean) -> Unit)? = null
     internal var stopCommand: (() -> Unit)? = null
 
     fun start(files: List<MediaFile>): Boolean = startCommand?.invoke(files) ?: false
@@ -69,12 +74,13 @@ object StackPlayback {
     fun play() { playCommand?.invoke() }
     fun pause() { pauseCommand?.invoke() }
     fun seek(positionMs: Long) { seekCommand?.invoke(positionMs) }
+    fun setLoop(enabled: Boolean) { loopCommand?.invoke(enabled) }
     fun stop() { stopCommand?.invoke() }
     internal fun publish(session: StackSession) { mutable.value = session }
     internal fun detach() {
         startCommand = null; addCommand = null; removeCommand = null; primaryCommand = null
         volumeCommand = null; muteCommand = null; soloCommand = null
-        playCommand = null; pauseCommand = null; seekCommand = null; stopCommand = null
+        playCommand = null; pauseCommand = null; seekCommand = null; loopCommand = null; stopCommand = null
         mutable.value = StackSession()
     }
 }
