@@ -25,7 +25,7 @@ internal data class SurfaceLease(
     val player: Int = 0,
     val sinceMs: Long = 0, val firstFrame: Boolean = false,
     val mediaFirstFrame: Boolean = false, val lastFrameOwner: String = "NONE",
-    val lastFrameGeneration: Long = -1, val staleDetaches: Int = 0,
+    val lastFrameGeneration: Long = -1, val lastFrameAtMs: Long = -1, val staleDetaches: Int = 0,
     val framesByOwner: Map<String, Boolean> = emptyMap(),
     val mediaSinceMs: Long = 0,
     val transitionReason: String = "initial", val noOpAttaches: Int = 0,
@@ -44,14 +44,33 @@ internal data class SurfaceLease(
     else copy(owner = "NONE", view = 0, player = 0,
             generation = generation + 1, sinceMs = now, firstFrame = false,
             transitionReason = "detach")
-    fun mediaChanged(now: Long, repeated: Boolean = false) = if (repeated) this else copy(generation = generation + 1, sinceMs = now,
-        firstFrame = false, mediaFirstFrame = false, framesByOwner = emptyMap(), mediaSinceMs = now,
-        transitionReason = "media-changed", codecError = null, droppedFrames = 0)
+    fun mediaChanged(now: Long, repeated: Boolean = false): SurfaceLease {
+        if (repeated) return this
+        val nextGeneration = generation + 1
+        val frameAlreadyRendered = owner != "NONE" &&
+            firstFrame &&
+            lastFrameOwner == owner &&
+            lastFrameGeneration == generation &&
+            lastFrameAtMs >= now
+        return copy(
+            generation = nextGeneration,
+            sinceMs = now,
+            firstFrame = frameAlreadyRendered,
+            mediaFirstFrame = frameAlreadyRendered,
+            lastFrameGeneration = if (frameAlreadyRendered) nextGeneration else lastFrameGeneration,
+            framesByOwner = if (frameAlreadyRendered) mapOf(owner to true) else emptyMap(),
+            mediaSinceMs = now,
+            transitionReason = if (frameAlreadyRendered) "media-changed:frame-already-rendered" else "media-changed",
+            codecError = null,
+            droppedFrames = 0,
+        )
+    }
     fun frame(eventMs: Long, outputMatches: Boolean): SurfaceLease {
         if (eventMs < mediaSinceMs) return this
         if (owner == "NONE" || eventMs < sinceMs || !outputMatches) return copy(mediaFirstFrame = true)
         return copy(firstFrame = true, mediaFirstFrame = true, lastFrameOwner = owner,
-            lastFrameGeneration = generation, framesByOwner = framesByOwner + (owner to true))
+            lastFrameGeneration = generation, lastFrameAtMs = eventMs,
+            framesByOwner = framesByOwner + (owner to true))
     }
     fun warnings(expected: String, readyVideo: Boolean, now: Long, controllerMediaFirstFrame: Boolean = false): List<String> {
         if (!readyVideo || now - sinceMs < 2_500L) return emptyList()

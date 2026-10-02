@@ -4,6 +4,8 @@ This file describes the **current repository state only**. Historical session no
 
 **Project:** `greater-art/` in the repository checkout
 **Current version:** `1.15.23 (code 153)`
+**Current source:** `1.15.25 (code 155)`
+**Release state:** `SOURCE_ONLY`
 **Latest APK:** `releases/GreaterArt-1.15.23.apk` (`26,304,042 bytes`; SHA-256 `66dc67b01a4c014ec45183bb9e2c7bc07061b11eb9f75aed834c367b529910ea`)
 **Application ID:** `com.local.listentomusic`
 **Signing certificate SHA-256:** `9e28eb45b3b171c3ea47d7da942d28d88b16538885e392a6971a80906d612fbf`
@@ -12,6 +14,16 @@ This file describes the **current repository state only**. Historical session no
 **Verification boundary:** Built from exact source commit `a7befc36`; `./gradlew testDebugUnitTest lintDebug :app:assembleDebug --offline` passed; `aapt dump badging` confirms package `com.local.listentomusic`, versionName `1.15.23`, versionCode `153`; signed with the recorded personal sideload certificate; installed on A55/API 36; launch and the documented playback/library/queue/Stack/mini-window/fullscreen smoke flows passed with **0 FATAL EXCEPTION** in the tested session.
 
 ## Repository state
+
+### October 2 — 1.15.25 surface first-frame attribution and reconcile-churn fix (source only)
+
+- The supplied 1.15.17 diagnostic showed READY video playback on MINI_WINDOW with no codec error, but active generation 25 had no accepted first frame while the last renderer frame was attributed to generation 24. It also showed 7,758 no-op reconciliations.
+- Root cause for the false frame timeout: primary media changes were reset from a Player.Listener callback using callback-receipt time, while the lower-level renderer callback carries its actual render timestamp. If the renderer callback arrives first and the media-transition callback is dispatched later, the transition reset can erase valid new-stream frame evidence and advance the generation after the frame.
+- Primary media-transition attribution now uses AnalyticsListener event time. SurfaceLease keeps the renderer timestamp and, only when the same active lease already rendered at or after that transition time, carries that evidence into the new media generation. Frames before the transition remain stale and are cleared normally.
+- Unchanged activity/presentation updates now return before reconciliation, and repeated registration of the already-active same view/player/owner is ignored. This removes recomposition/player-event no-op reconcile churn without weakening real owner handoffs.
+- 1.15.24/code154 remains consumed by the stale side-branch attempt recorded below; canonical source therefore advances from verified 1.15.23/code153 to 1.15.25/code155.
+- No decoder choice, media quality, permissions, network access, signing, Stack behavior, or release APK is changed.
+- State: **SOURCE_ONLY** at **1.15.25/code155**. Latest verified APK remains **1.15.23/code153**.
 
 ### October 2 — post-1.15.23 branch-convergence audit (documentation only)
 

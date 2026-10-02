@@ -30,13 +30,17 @@ object VideoSurfaceOwner {
         com.local.listentomusic.playback.PlayerWindowVisibility.expanded(expandedOverlayActive)
     }
     fun setActivityForeground(value: Boolean) {
-        if (foreground != value) { foreground = value; log("foreground=$value expected=$expectedOwner", active.get()) }
+        if (foreground == value) return
+        foreground = value
+        log("foreground=$value expected=$expectedOwner", active.get())
         reconcile()
     }
     fun setPresentation(nowPlayingVisible: Boolean, pictureInPicture: Boolean) {
         val changed = nowPlaying != nowPlayingVisible || pip != pictureInPicture
-        nowPlaying = nowPlayingVisible; pip = pictureInPicture
-        if (changed) log("presentationRequested=$expectedOwner", active.get())
+        if (!changed) return
+        nowPlaying = nowPlayingVisible
+        pip = pictureInPicture
+        log("presentationRequested=$expectedOwner", active.get())
         reconcile()
     }
     fun setSystemOverlayVisible(token: String, owner: String, visible: Boolean) {
@@ -67,7 +71,15 @@ object VideoSurfaceOwner {
     fun attach(player: Player?, target: PlayerView, overlay: Boolean = false) {
         if (player == null) { detach(target); return }
         val owner = if (overlay) "MINI_WINDOW" else if (target.tag == "NOW_PLAYING") "NOW_PLAYING" else "LIBRARY_MINI"
-        if (candidates[owner]?.view?.get() !== target) log("register requestedOwner=$owner expected=$expectedOwner", target)
+        val registered = candidates[owner]
+        if (registered?.view?.get() === target &&
+            registered.player.get() === player &&
+            expectedOwner == owner &&
+            state.value.owner == owner &&
+            active.get() === target &&
+            target.player === player
+        ) return
+        if (registered?.view?.get() !== target) log("register requestedOwner=$owner expected=$expectedOwner", target)
         candidates[owner] = Candidate(WeakReference(target), WeakReference(player), owner)
         reconcile()
     }
@@ -123,7 +135,7 @@ object VideoSurfaceOwner {
         active.clear()
         reconcile()
     }
-    fun mediaChanged(repeated: Boolean = false) { state.value = state.value.mediaChanged(SystemClock.elapsedRealtime(), repeated) }
+    fun mediaChanged(eventMs: Long, repeated: Boolean = false) { state.value = state.value.mediaChanged(eventMs, repeated) }
     fun serviceEvent(event: String) { log("MINI_WINDOW service=$event", active.get()) }
     fun decoder(name: String) { state.value = state.value.copy(decoder = name, codecError = null) }
     fun codecError(name: String) { state.value = state.value.copy(codecError = name) }
@@ -138,7 +150,7 @@ object VideoSurfaceOwner {
     }
     fun describe(): String = state.value.let {
         "owner=${it.owner} expected=$expectedOwner generation=${it.generation} view=${it.view} player=${it.player} activeFirstFrame=${it.firstFrame} mediaFirstFrame=${it.mediaFirstFrame}\n" +
-            "transition=${it.transitionReason} noOpReconciles=$noOpReconciles ownerFrames=${it.framesByOwner} lastFrameOwner=${it.lastFrameOwner} lastFrameGeneration=${it.lastFrameGeneration} staleDetachesIgnored=${it.staleDetaches}\n" +
+            "transition=${it.transitionReason} noOpReconciles=$noOpReconciles ownerFrames=${it.framesByOwner} lastFrameOwner=${it.lastFrameOwner} lastFrameGeneration=${it.lastFrameGeneration} lastFrameAtMs=${it.lastFrameAtMs} staleDetachesIgnored=${it.staleDetaches}\n" +
             "decoder=${it.decoder} codecError=${it.codecError ?: "none"} droppedFrames=${it.droppedFrames}"
     }
     private fun log(event: String, view: PlayerView?) {
