@@ -3,10 +3,8 @@
 This file describes the **current repository state only**. Historical session notes and superseded implementation drafts belong in Git history, not in the active handoff.
 
 **Project:** `greater-art/` in the repository checkout
-**Current version:** `1.15.39 (code 169)`
-**Current source:** `1.15.42 (code 172)`
-**Release state:** `SOURCE_ONLY`
-**Latest APK:** `releases/GreaterArt-1.15.39.apk` (`26,353,198 bytes`; SHA-256 `25db3b022eb5da45e867b54ff326ee8027608fc9ec7892293f5ac4b80b7036c8`)
+**Current version:** `1.15.42 (code 172)`
+**Latest APK:** `releases/GreaterArt-1.15.42.apk` (`26,353,198 bytes`; SHA-256 `2fe074f19403c63b8f06ca1f0609056cb9245370f2628b51373f9c6e85911369`)
 **Application ID:** `com.local.listentomusic`
 **Signing certificate SHA-256:** `9e28eb45b3b171c3ea47d7da942d28d88b16538885e392a6971a80906d612fbf`
 **Build date:** `2026-10-02`
@@ -15,13 +13,14 @@ This file describes the **current repository state only**. Historical session no
 
 ## Repository state
 
-### October 2 — 1.15.42 wallpaper-decoder-budget convergence (source only)
+### October 2 — 1.15.42 wallpaper-decoder-budget convergence (verified)
 
 - Live main commit `7278576e` changed Now Playing repeat/random text fitting without a version bump, so Version Consistency correctly rejected the 1.15.39 → 1.15.39 executable transition. History is preserved; this forward recovery moves canonical source to **1.15.42/code172**.
 - Reviewed `grok/1.15.41-wallpaper-decoder-budget` and rejected its history as submitted: executable code, version metadata, and VERSION_RULES were split across separate commits, and its final ledger rewrite deleted most canonical version history. Published **1.15.41/code171** is consumed and must not be reused.
 - Selectively recreated the useful performance work: duplicate **CURRENT_VIDEO** wallpaper decode is capped to 640×360 and decorative-video buffering is reduced to a 2 MiB target. **CUSTOM_VIDEO remains uncapped in resolution**, and the primary player retains native source resolution, bitrate, FPS, decoder selection, and existing surface ownership.
 - Preserves 1.15.39's 80 ms list-fling surface detach and adds JVM coverage proving only the mirrored CURRENT_VIDEO path receives the resolution budget.
-- State: **SOURCE_ONLY** at **1.15.42/code172**. Latest verified APK remains **1.15.39/code169**.
+- **Build verified locally:** `./gradlew testDebugUnitTest lintDebug :app:assembleDebug --offline` passed; `aapt dump badging` confirms package `com.local.listentomusic`, versionName `1.15.42`, versionCode `172`; signed with personal debug keystore; installed on A55/API 36; launch, library scan/load, local audio/video playback, prev/next/seek/pause/resume, playlist/Favorites playback, duplicate queue independence, Stack→Library/playlist transition, queue/Library add-to-list, Library delete three-confirm flow, mini-window/fullscreen/return flows verified; **0 FATAL EXCEPTION** in tested session.
+- State: **VERIFIED**. Latest verified APK is **1.15.42/code172**.
 
 
 ### October 2 — post-1.15.39 branch convergence audit (documentation only)
