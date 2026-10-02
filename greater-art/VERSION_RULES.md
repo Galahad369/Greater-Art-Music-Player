@@ -24,6 +24,7 @@ Allowed consumed transition: **1.15.27 (code 157) -> 1.15.29 (code 159)**
 Allowed consumed transition: **1.15.31 (code 161) -> 1.15.34 (code 164)**
 Allowed consumed transition: **1.15.34 (code 164) -> 1.15.36 (code 166)**
 Allowed consumed transition: **1.15.36 (code 166) -> 1.15.38 (code 168)**
+Allowed consumed transition: **1.15.39 (code 169) -> 1.15.41 (code 171)**
 
 ## Non-negotiable rules
 
@@ -115,6 +116,7 @@ Markdown/docs-only changes, release hashes/metadata, and adding a newly verified
 - Consumed side-branch identity: **1.15.35 (code 165)** — redundant forward-port PR #82; executable/test blobs were byte-for-byte identical to canonical 1.15.34, so it was closed without merge and must not be reused
 - Consumed side-branch identity: **1.15.32 (code 162)** — redundant forward-port PR #79; executable/test blobs were identical to merged 1.15.31, so it was closed without merge and must not be reused
 - 1.15.39 (code 169) — **Grok**: YouTube-style list-fling video budget — detach wallpaper PlayerView surface (keep ExoPlayer), static base during scroll, 80ms settle; source only, local build pending
+- Consumed side-branch identity: **1.15.40 (code 170)** — stale forward-port PR #91 duplicated canonical 1.15.39 behavior from an older base; only a small test seam remained unique, so the PR was closed rather than merging conflicting provenance; consumed, not merged, never reuse
 
 Previous baseline: 1.13.26 (code 115).
 
