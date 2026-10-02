@@ -7,11 +7,12 @@ This file is the authoritative version policy for Greater Art. If any handoff no
 ## Machine-checkable state
 
 
-Current source: **1.15.17 (code 147)**
-Current release state: **VERIFIED**
-Latest verified APK: **1.15.17 (code 147)**
+Current source: **1.15.19 (code 149)**
+Current release state: **SOURCE_ONLY**
+Latest verified APK: **1.15.10 (code 140)**
 Allowed series transition: **1.14.15 -> 1.15.1**
 Allowed consumed transition: **1.15.13 (code 143) -> 1.15.17 (code 147)**
+Allowed consumed transition: **1.15.17 (code 147) -> 1.15.19 (code 149)**
 
 ## Non-negotiable rules
 
@@ -140,6 +141,8 @@ The guard checks:
 - 1.15.15 (code 145) — rebased complete ColorTheme recovery after concurrent main drift; version consumed on side branch, not merged
 - 1.15.16 (code 146) — consumed-transition validator support for the recovery branch; version consumed on side branch, not merged
 - 1.15.17 (code 147) — canonical branch convergence: complete reviewed ColorTheme/Settings implementation + exact consumed-transition guard, preserving verified 1.15.10 release metadata; local build verified
+- 1.15.18 (code 148) — Grok branch reviewed and rejected; claimed color-theme implementation was only Gradle bump + comment removal; version consumed
+- 1.15.19 (code 149) — transport-control alignment and final branch convergence: `GaControl.heroIcon = 32.dp` token; main/video play icons consistent; prev/next use 48 dp `GaControl.touchTarget` with `GaControl.prominentIcon`; source only, local build pending
 
 Previous baseline: 1.13.26 (code 115).
 
