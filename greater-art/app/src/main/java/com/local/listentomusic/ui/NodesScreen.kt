@@ -18,6 +18,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.CenterFocusStrong
 import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.MyLocation
+import androidx.compose.material.icons.rounded.PlayArrow
 import androidx.compose.material.icons.rounded.Search
 import androidx.compose.material.icons.rounded.Tune
 import androidx.compose.runtime.*
@@ -76,6 +77,16 @@ private fun GraphCanvas(graph: LibraryGraph, currentPath: String?, onPlay: (Stri
     var pan by remember(graph) { mutableStateOf(Offset.Zero) }
     val moved = remember(graph) { mutableStateMapOf<Int, Offset>() }
     var selected by remember(graph) { mutableIntStateOf(-1) }
+    val focusIndex = selected.takeIf { it >= 0 } ?: current.takeIf { it >= 0 } ?: -1
+    val focusNeighbors = remember(presentation.edges, focusIndex) {
+        if (focusIndex < 0) emptySet() else presentation.edges.asSequence().mapNotNull { edge ->
+            when (focusIndex) {
+                edge.a -> edge.b
+                edge.b -> edge.a
+                else -> null
+            }
+        }.toSet()
+    }
     var picker by remember { mutableStateOf(false) }
     var query by remember { mutableStateOf("") }
     val color = MaterialTheme.colorScheme.primary
@@ -149,6 +160,30 @@ private fun GraphCanvas(graph: LibraryGraph, currentPath: String?, onPlay: (Stri
                 GraphTool(Icons.Rounded.Tune, "Controls", "NODES_CONTROLS_BUTTON") { controls = true }
             }
         }
+        Row(
+            Modifier.fillMaxWidth().padding(horizontal = GaSpacing.lg, vertical = 2.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Surface(shape = RoundedCornerShape(50), color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = .55f)) {
+                Text(
+                    "${graph.nodes.size} nodes · ${presentation.edges.size} links",
+                    Modifier.padding(horizontal = 10.dp, vertical = 5.dp),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+            current.takeIf { it >= 0 }?.let { index ->
+                Spacer(Modifier.width(8.dp))
+                Text(
+                    "Playing · ${graph.nodes[index].filename.substringBeforeLast('.').take(34)}",
+                    modifier = Modifier.weight(1f),
+                    maxLines = 1,
+                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.primary,
+                )
+            }
+        }
         Canvas(Modifier.fillMaxWidth().weight(1f).inspectElement("NODES_GRAPH_CANVAS", "Pinch to zoom, drag nodes, tap to play; empty-space swipes navigate pages")
             .onGloballyPositioned { canvasBounds = it.boundsInRoot() }.onSizeChanged { viewport = it }
             .semantics { contentDescription = "Filename similarity graph. Pinch to zoom, drag individual nodes, tap a node to play, or swipe empty space to change page. Use Find / play a node for a text list." }
@@ -213,11 +248,24 @@ private fun GraphCanvas(graph: LibraryGraph, currentPath: String?, onPlay: (Stri
             val center = Offset(size.width / 2, size.height / 2)
             val positions = graph.points.mapIndexed { i, p -> (moved[i] ?: Offset(p.x, p.y)) * scale + pan + center }
             fun visible(p: Offset) = p.x in -40f..size.width + 40 && p.y in -40f..size.height + 40
+
+            val gridStep = 32.dp.toPx()
+            var gx = (pan.x % gridStep + gridStep) % gridStep
+            while (gx < size.width) {
+                var gy = (pan.y % gridStep + gridStep) % gridStep
+                while (gy < size.height) {
+                    drawCircle(ink.copy(alpha = .055f), 0.9.dp.toPx(), Offset(gx, gy))
+                    gy += gridStep
+                }
+                gx += gridStep
+            }
+
             presentation.edges.forEach { edge ->
                 val a = positions[edge.a]; val b = positions[edge.b]
                 val connected = edge.a == current || edge.b == current || edge.a == selected || edge.b == selected
+                val focusFactor = if (focusIndex >= 0 && !connected) .30f else 1f
                 if (visible(a) || visible(b)) drawLine((if (connected) color else ink).copy(alpha =
-                    (options.edgeOpacity * (if (connected) 1.4f else .65f) * (.35f + edge.strength)).coerceIn(.02f, 1f)), a, b,
+                    (options.edgeOpacity * focusFactor * (if (connected) 1.4f else .65f) * (.35f + edge.strength)).coerceIn(.015f, 1f)), a, b,
                     (0.45f + edge.strength * (if (connected) 1.5f else .75f)) * density)
             }
             graph.nodes.forEachIndexed { i, node ->
@@ -225,10 +273,11 @@ private fun GraphCanvas(graph: LibraryGraph, currentPath: String?, onPlay: (Stri
                 if (visible(p) && (i in presentation.visibleNodes || i == current)) {
                     val playing = i == current
                     val active = playing || i == selected
+                    val related = focusIndex < 0 || i == focusIndex || i in focusNeighbors || active
                     val importance = if (options.sizeByConnections) presentation.importance[i] else 0f
                     val radius = ((3.5f + importance * 5.5f) * options.nodeSize).dp.toPx()
                     if (active) drawCircle(color.copy(alpha = .14f), radius + 8.dp.toPx(), p)
-                    drawCircle(if (active) color else ink.copy(alpha = .48f + importance * .4f), radius, p)
+                    drawCircle(if (active) color else ink.copy(alpha = if (related) .48f + importance * .4f else .18f), radius, p)
                     if (playing) {
                         drawCircle(color, radius + 4.dp.toPx(), p, style = Stroke(1.5.dp.toPx()))
                         drawPath(Path().apply { moveTo(p.x-2.dp.toPx(), p.y-3.dp.toPx()); lineTo(p.x+3.dp.toPx(),p.y); lineTo(p.x-2.dp.toPx(),p.y+3.dp.toPx()); close() }, onAccent)
@@ -265,8 +314,51 @@ private fun GraphCanvas(graph: LibraryGraph, currentPath: String?, onPlay: (Stri
                 }
             }
         }
+        selected.takeIf { it in graph.nodes.indices }?.let { index ->
+            val linked = presentation.edges.filter { it.a == index || it.b == index }
+            val strongest = linked.sortedByDescending { it.strength }.take(2).map { edge ->
+                graph.nodes[if (edge.a == index) edge.b else edge.a].filename.substringBeforeLast('.')
+            }
+            GaChromeSurface(
+                modifier = Modifier.fillMaxWidth().padding(horizontal = GaSpacing.lg, vertical = 2.dp)
+                    .inspectElement("NODES_SELECTED_CARD", graph.nodes[index].filename),
+            ) {
+                Row(
+                    Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 9.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Column(Modifier.weight(1f)) {
+                        Text(
+                            graph.nodes[index].filename.substringBeforeLast('.'),
+                            maxLines = 1,
+                            overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                            style = MaterialTheme.typography.titleSmall,
+                        )
+                        Text(
+                            buildString {
+                                append("${linked.size} links")
+                                if (strongest.isNotEmpty()) append(" · ").append(strongest.joinToString(" · "))
+                            },
+                            maxLines = 1,
+                            overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                    if (index == current) {
+                        Text("PLAYING", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary)
+                    } else {
+                        TextButton(onClick = { onPlayCurrent(graph.nodes[index].id) }) {
+                            Icon(Icons.Rounded.PlayArrow, null, Modifier.size(18.dp))
+                            Spacer(Modifier.width(4.dp))
+                            Text("Play")
+                        }
+                    }
+                }
+            }
+        }
         Text(
-            "Pinch to zoom  •  Drag nodes  •  Swipe empty space to navigate",
+            "Tap node to play  •  Drag node  •  Pinch to zoom  •  Swipe empty space to navigate",
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.padding(horizontal = GaSpacing.lg, vertical = GaSpacing.sm)
