@@ -710,7 +710,16 @@ private fun SaveStackDialog(
                     value = name,
                     onValueChange = { name = it.take(60) },
                     singleLine = true,
-                    label = { Text(uiText(language, "Stack name (optional with keyword)", "疊播名稱（有關鍵字時可留空）")) },
+                    label = { Text(uiText(language, "Stack name (optional)", "疊播名稱（選填）")) },
+                    supportingText = {
+                        Text(
+                            uiText(
+                                language,
+                                "Leave blank to use the keyword or a local Stack track-count name.",
+                                "留空時會使用關鍵字，或以本機疊播歌曲數自動命名。",
+                            ),
+                        )
+                    },
                 )
                 Spacer(Modifier.height(10.dp))
                 OutlinedTextField(
@@ -733,8 +742,9 @@ private fun SaveStackDialog(
         },
         confirmButton = {
             Button(
-                enabled = count > 0 && (name.isNotBlank() || keyword.isNotBlank()),
+                enabled = count > 0,
                 onClick = { onSave(name.trim(), keyword.trim()) },
+                modifier = Modifier.inspectElement("STACK_SAVE_CONFIRM_BUTTON", "Creates a local playlist from the displayed Stack"),
             ) {
                 Text(uiText(language, "Save", "儲存"))
             }

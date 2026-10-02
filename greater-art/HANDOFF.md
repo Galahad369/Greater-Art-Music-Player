@@ -4,14 +4,27 @@ This file describes the **current repository state only**. Historical session no
 
 **Project:** `greater-art/` in the repository checkout
 **Current version:** `1.15.42 (code 172)`
+**Current source:** `1.15.43 (code 173)`
+**Release state:** `SOURCE_ONLY`
 **Latest APK:** `releases/GreaterArt-1.15.42.apk` (`26,353,198 bytes`; SHA-256 `2fe074f19403c63b8f06ca1f0609056cb9245370f2628b51373f9c6e85911369`)
 **Application ID:** `com.local.listentomusic`
 **Signing certificate SHA-256:** `9e28eb45b3b171c3ea47d7da942d28d88b16538885e392a6971a80906d612fbf`
 **Build date:** `2026-10-02`
 **Test device:** `GreaterArt_A55_API36 (A55, API 36, Android 17)`
-**Verification boundary:** Current source is `1.15.42/code172` and is **SOURCE_ONLY**. The latest immutable verified artifact remains `releases/GreaterArt-1.15.39.apk` (SHA-256 `25db3b022eb5da45e867b54ff326ee8027608fc9ec7892293f5ac4b80b7036c8`). No 1.15.42 release APK may exist until the exact source is built and device-verified under VERSION_RULES.
+**Verification boundary:** Current source is `1.15.43/code173` and is **SOURCE_ONLY**. The latest immutable verified artifact remains `releases/GreaterArt-1.15.42.apk` (SHA-256 `2fe074f19403c63b8f06ca1f0609056cb9245370f2628b51373f9c6e85911369`). No 1.15.43 release APK may exist until the exact source is built and device-verified under VERSION_RULES.
+
+While source is `SOURCE_ONLY`, the `Current version` header intentionally remains the latest verified release; `Current source` records the newer unverified source identity.
 
 ## Repository state
+
+### October 2 — 1.15.43 Stack save + delete-list reliability (source only)
+
+- `STACK_SAVE_BUTTON` still opens the save dialog, but saving no longer appears to do nothing when both fields are blank: the local playlist receives a deterministic fallback name (`Stack · <count> tracks`), while an entered name or keyword still wins.
+- Stack save preserves the existing privacy/UX contract: it writes only to the local playlist store and does **not** silently switch the active Library list. Successful saves now surface through the existing reversible snackbar; Undo removes only the just-created playlist.
+- Library `Delete list` no longer deletes immediately from a menu tap. It opens an explicit confirmation matching Settings and states that media files remain untouched.
+- Playlist deletion reads the latest persisted preference snapshot. Undo restores the deleted playlist and, when it had been active, restores that active selection as well.
+- State: **SOURCE_ONLY** at **1.15.43/code173**. Latest verified APK remains **1.15.42/code172**.
+
 
 ### October 2 — 1.15.42 wallpaper-decoder-budget convergence (verified)
 
