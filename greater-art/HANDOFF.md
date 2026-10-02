@@ -9,9 +9,18 @@ This file describes the **current repository state only**. Historical session no
 **Signing certificate SHA-256:** `9e28eb45b3b171c3ea47d7da942d28d88b16538885e392a6971a80906d612fbf`
 **Build date:** `2026-10-02`
 **Test device:** `GreaterArt_A55_API36 (A55, API 36, Android 17)`
-**Verification boundary:** Built from exact source commit `ec9e0e7`; `./gradlew testDebugUnitTest lintDebug :app:assembleDebug --offline` passed; `aapt dump badging` confirms package `com.local.listentomusic`, versionName `1.15.20`, versionCode `150`; signed with personal debug keystore; installed on A55/API 36; launch, library scan/load, local audio/video playback, prev/next/seek/pause/resume, playlist/Favorites playback, duplicate queue independence, Stack→Library/playlist transition, queue/Library add-to-list, Library delete three-confirm flow, mini-window/fullscreen/return flows verified; **0 FATAL EXCEPTION** in tested session.
+**Verification boundary:** Built from exact source commit `a7befc36`; `./gradlew testDebugUnitTest lintDebug :app:assembleDebug --offline` passed; `aapt dump badging` confirms package `com.local.listentomusic`, versionName `1.15.23`, versionCode `153`; signed with the recorded personal sideload certificate; installed on A55/API 36; launch and the documented playback/library/queue/Stack/mini-window/fullscreen smoke flows passed with **0 FATAL EXCEPTION** in the tested session.
 
 ## Repository state
+
+### October 2 — post-1.15.23 branch-convergence audit (documentation only)
+
+- Re-reviewed every surviving branch against canonical 1.15.23 main. All useful color-theme, transport-alignment, same-side seek, Stack performance/synchronization, workflow, privacy, and security work is already represented on main.
+- PR #70 / `fix/1.15.24-final-convergence` is stale: it was prepared from pre-1.15.22 history and removed StackRecommend after that helper had already been integrated on main. It was closed without merge; 1.15.24/code154 remains consumed and must not be reused.
+- The only other divergent branch content is an empty Copilot plan commit or Replit's weaker/superseded gesture implementation; neither changes canonical behavior.
+- Corrected the top-level 1.15.23 verification boundary, which had accidentally retained the older 1.15.20 source/version text. No APK, executable source, build logic, permissions, dependencies, signing material, or release artifact changed in this documentation-only audit.
+- Current source/release remains **1.15.23/code153 VERIFIED**.
+
 
 ### October 2 — 1.15.23 final branch convergence / forward recovery (verified)
 
