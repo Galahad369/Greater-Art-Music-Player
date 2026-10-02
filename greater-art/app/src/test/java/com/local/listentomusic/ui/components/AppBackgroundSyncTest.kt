@@ -49,6 +49,12 @@ class AppBackgroundSyncTest {
         assertFalse(shouldMirrorPrimaryPlayback(lifecycleActive = false, primaryIsPlaying = true))
     }
 
+    @Test
+    fun onlyDuplicateCurrentVideoWallpaperGetsResolutionBudget() {
+        assertEquals(640 to 360, currentVideoWallpaperMaxSize(mirrorsPrimary = true))
+        assertEquals(null, currentVideoWallpaperMaxSize(mirrorsPrimary = false))
+    }
+
 
     @Test
     fun normalPlaybackDriftDoesNotContinuouslyFlushVideoDecoder() {
