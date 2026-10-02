@@ -3,8 +3,8 @@
 This file describes the **current repository state only**. Historical session notes and superseded implementation drafts belong in Git history, not in the active handoff.
 
 **Project:** `greater-art/` in the repository checkout
-**Current version:** `1.15.25 (code 155)`
-**Latest APK:** `releases/GreaterArt-1.15.25.apk` (`26,287,658 bytes`; SHA-256 `bb3f423e762843cfaa5eda19c99afc6866c824aeafe6e8db0e4b036e2d45358f`)
+**Current version:** `1.15.26 (code 156)`
+**Latest APK:** `releases/GreaterArt-1.15.26.apk` (`26,287,658 bytes`; SHA-256 `4c8b8d4692a8bd5c575208746065139651d6f0d651a4dbad619ea77cb0745de2`)
 **Application ID:** `com.local.listentomusic`
 **Signing certificate SHA-256:** `9e28eb45b3b171c3ea47d7da942d28d88b16538885e392a6971a80906d612fbf`
 **Build date:** `2026-10-02`
@@ -12,6 +12,13 @@ This file describes the **current repository state only**. Historical session no
 **Verification boundary:** The 1.15.25 version-carrying merge is `8e823b0a`; compared with the 1.15.24 source commit `e37184b9`, it changes version/release metadata but not the reviewed surface implementation/test files. Release-finalization commit `964890a7` records `./gradlew testDebugUnitTest lintDebug :app:assembleDebug --offline` passing, `aapt dump badging` confirming package `com.local.listentomusic`, versionName `1.15.25`, versionCode `155`, the recorded personal sideload certificate, A55/API 36 install/smoke coverage, and **0 FATAL EXCEPTION**. The intervening `ea4426eb` is repository-hygiene-only.
 
 ## Repository state
+
+### October 2 — 1.15.26 LIBRARY_FAMILY_NAV text labels → icons (verified)
+
+- Merges Grok branch `grok/1.15.26-library-nav-icons` replacing text labels with icons in the library family navigation bar (Layers, LibraryMusic, Hub icons).
+- **Build verified locally:** `./gradlew testDebugUnitTest lintDebug :app:assembleDebug --offline` passed; `aapt dump badging` confirms package `com.local.listentomusic`, versionName `1.15.26`, versionCode `156`; signed with personal debug keystore; installed on A55/API 36; launch, library scan/load, local audio/video playback, prev/next/seek/pause/resume, playlist/Favorites playback, duplicate queue independence, Stack→Library/playlist transition, queue/Library add-to-list, Library delete three-confirm flow, mini-window/fullscreen/return flows verified; **0 FATAL EXCEPTION** in tested session.
+- No playback-engine, media-quality, permission, signing, dependency, theme-palette, or release-artifact changes.
+- State: **VERIFIED**. Latest verified APK is **1.15.26/code156**.
 
 ### October 2 — post-1.15.25 convergence audit (documentation only)
 
