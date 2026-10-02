@@ -9,11 +9,11 @@ This file describes the **current repository state only**. Historical session no
 **Signing certificate SHA-256:** `9e28eb45b3b171c3ea47d7da942d28d88b16538885e392a6971a80906d612fbf`
 **Build date:** `2026-10-02`
 **Test device:** `GreaterArt_A55_API36 (A55, API 36, Android 17)`
-**Verification boundary:** Built from exact source commit `HEAD`; `./gradlew testDebugUnitTest lintDebug :app:assembleDebug --offline` passed; `aapt dump badging` confirms package `com.local.listentomusic`, versionName `1.15.43`, versionCode `173`; signed with personal debug keystore; installed on A55/API 36; launch, library scan/load, local audio/video playback, prev/next/seek/pause/resume, playlist/Favorites playback, duplicate queue independence, Stack→Library/playlist transition, queue/Library add-to-list, Library delete three-confirm flow, mini-window/fullscreen/return flows verified; **0 FATAL EXCEPTION** in tested session.
+**Verification boundary:** Release-finalization commit `3bf3e138` added the immutable `GreaterArt-1.15.43.apk` after `./gradlew testDebugUnitTest lintDebug :app:assembleDebug --offline` passed; `aapt dump badging` confirmed package `com.local.listentomusic`, versionName `1.15.43`, versionCode `173`; the personal debug signature matched; A55/API 36 smoke covered launch, library scan/load, local audio/video playback, prev/next/seek/pause/resume, playlist/Favorites playback, duplicate queue independence, Stack→Library/playlist transition, queue/Library add-to-list, Library delete three-confirm flow, mini-window/fullscreen/return flows; **0 FATAL EXCEPTION** was observed.
 
 ## Repository state
 
-### October 2 — 1.15.43 Stack save + delete-list reliability (source only)
+### October 2 — 1.15.43 Stack save + delete-list reliability (verified)
 
 - Final release-storage audit confirmed the historical 1.15.21 and 1.15.22 APKs are valid immutable verified artifacts: their release-finalization commits are ancestors of current main and explicitly added the matching APKs while marking those versions VERIFIED. VERSION_RULES provenance was corrected accordingly; no artifact was removed or rewritten.
 
@@ -21,7 +21,7 @@ This file describes the **current repository state only**. Historical session no
 - Stack save preserves the existing privacy/UX contract: it writes only to the local playlist store and does **not** silently switch the active Library list. Successful saves now surface through the existing reversible snackbar; Undo removes only the just-created playlist.
 - Library `Delete list` no longer deletes immediately from a menu tap. It opens an explicit confirmation matching Settings and states that media files remain untouched.
 - Playlist deletion reads the latest persisted preference snapshot. Undo restores the deleted playlist and, when it had been active, restores that active selection as well.
-- State: **SOURCE_ONLY** at **1.15.43/code173**. Latest verified APK remains **1.15.42/code172**.
+- State: **VERIFIED** at **1.15.43/code173**. Latest verified APK is **1.15.43/code173**.
 
 
 ### October 2 — 1.15.42 wallpaper-decoder-budget convergence (verified)
