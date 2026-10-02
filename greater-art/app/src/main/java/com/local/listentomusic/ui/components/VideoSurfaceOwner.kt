@@ -29,6 +29,7 @@ object VideoSurfaceOwner {
             systemOverlayOwner = systemOverlayOwners.values.lastOrNull(),
         )
     val systemOverlayActive: Boolean get() = systemOverlayOwners.isNotEmpty()
+    val fullscreenActivityActive: Boolean get() = fullscreenActivity
     val expandedOverlayActive: Boolean
         get() = unifiedExpanded || fullscreenActivity || systemOverlayOwners.containsValue("NOW_PLAYING")
     fun setUnifiedExpanded(value: Boolean) {

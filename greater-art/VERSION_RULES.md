@@ -7,7 +7,7 @@ This file is the authoritative version policy for Greater Art. If any handoff no
 ## Machine-checkable state
 
 
-Current source: **1.15.45 (code 175)**
+Current source: **1.15.46 (code 176)**
 Current release state: **SOURCE_ONLY**
 Latest verified APK: **1.15.43 (code 173)**
 Allowed series transition: **1.14.15 -> 1.15.1**
@@ -123,6 +123,8 @@ Markdown/docs-only changes, release hashes/metadata, and adding a newly verified
 - 1.15.43 (code 173) — Stack-save and playlist-delete reliability: Stack save accepts blank metadata via deterministic local fallback naming, surfaces success through reversible snackbar feedback, Library delete requires confirmation, and delete Undo restores prior active-playlist selection; local build verified; current verified APK
 - 1.15.44 (code 174) — initial fullscreen lifecycle/surface handoff hardening; consumed intermediate source. Review found the new fullscreen flag was still evaluated after the registered hidden Mini Window overlay, so finishing the launch handoff could hand ownership back to the hidden overlay.
 - 1.15.45 (code 175) — corrected fullscreen owner precedence: explicit fullscreen Activity ownership outranks the hidden registered Mini Window while ordinary overlay precedence remains unchanged; retains first-frame handoff completion and terminal-destruction recovery from 1.15.44; required GitHub CI/security gates passed; source only, device verification pending
+
+- 1.15.46 (code 176) — fullscreen single-source recovery: overlay visibility, launch suppression, and return recovery now use VideoSurfaceOwner as the sole fullscreen-active state; removes the service shadow flag and adds JVM coverage; source only, CI pending
 
 Previous baseline: 1.13.26 (code 115).
 

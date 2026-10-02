@@ -29,6 +29,19 @@ internal fun shouldRetainPrimarySurfaceDuringHandoff(
         (currentOwner == "MINI_WINDOW" && expectedOwner == "LIBRARY_MINI")
 }
 
+internal fun shouldShowPlayerWindow(
+    ready: Boolean,
+    fullscreenActivity: Boolean,
+    expanded: Boolean,
+    docked: Boolean,
+    dockedVisible: Boolean,
+    detachedVisible: Boolean,
+): Boolean = ready && !fullscreenActivity && when {
+    expanded -> true
+    docked -> dockedVisible
+    else -> detachedVisible
+}
+
 /** Platform-independent ownership state. Calls are serialized on main. */
 internal data class SurfaceLease(
     val owner: String = "NONE", val view: Int = 0, val generation: Long = 0,
