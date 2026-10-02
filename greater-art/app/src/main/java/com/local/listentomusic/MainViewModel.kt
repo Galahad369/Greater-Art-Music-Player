@@ -734,6 +734,11 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     fun createSelectionPlaylist(name: String, paths: List<String>) = updatePreference {
         if (name.isNotBlank()) preferences.setActivePlaylist(preferences.createPlaylistWithPaths(name.take(60), paths))
     }
+    fun saveStackAsPlaylist(name: String, paths: List<String>) {
+        val clean = paths.distinct()
+        if (name.isBlank() || clean.isEmpty()) return
+        viewModelScope.launch { preferences.createPlaylistWithPaths(name.trim().take(60), clean) }
+    }
     fun addToPlaylist(id: String, path: String) = updatePreference { preferences.addToPlaylist(id, path) }
     fun removeFromActivePlaylist(path: String) {
         val id = userPreferences.activePlaylistId ?: return

@@ -4,7 +4,7 @@ This file describes the **current repository state only**. Historical session no
 
 **Project:** `greater-art/` in the repository checkout
 **Current version:** `1.15.26 (code 156)`
-**Current source:** `1.15.27 (code 157)`
+**Current source:** `1.15.28 (code 158)`
 **Release state:** `SOURCE_ONLY`
 **Latest APK:** `releases/GreaterArt-1.15.26.apk` (`26,287,658 bytes`; SHA-256 `4c8b8d4692a8bd5c575208746065139651d6f0d651a4dbad619ea77cb0745de2`)
 **Application ID:** `com.local.listentomusic`
@@ -14,6 +14,16 @@ This file describes the **current repository state only**. Historical session no
 **Verification boundary:** Release-finalization commit `6d02c33c` records `GreaterArt-1.15.26.apk` (SHA-256 `4c8b8d4692a8bd5c575208746065139651d6f0d651a4dbad619ea77cb0745de2`) after source merge `4bb9aef6`. The local release record states `./gradlew testDebugUnitTest lintDebug :app:assembleDebug --offline` passed, `aapt dump badging` confirmed package `com.local.listentomusic`, versionName `1.15.26`, versionCode `156`, the recorded personal sideload certificate, A55/API 36 smoke coverage, and **0 FATAL EXCEPTION**. The 1.15.26 push Version Consistency range check failed historically because source commit `58cc7fad` updated app/Gradle before VERSION_RULES was corrected in `b0a5232d`; current-state validation, Android CI, and Public Repository Security passed. History is preserved rather than rewritten.
 
 ## Repository state
+
+### October 2 — 1.15.28 Stack completion + Nodes linked-graph UI (source only)
+
+- **Stack NOW_PLAYING:** active normal playback is represented on Stack. Existing Stack voices are highlighted; otherwise a context row appears with an explicit Add action, so merely visiting Stack never changes the mix.
+- **Stack multi-select/search:** typed song/artist/album filtering, checkboxes, Select visible, capacity-aware bulk selection, and batch add up to the existing eight-track ceiling.
+- **Stack offline recommendations:** the local filename/folder/artist/duration heuristic is wired into Stack, extended with album and adjacent on-device play-history signals, and shows explainable reasons. No network or telemetry path is added.
+- **Stack save list:** the current staged/active Stack order can be saved into the existing local-playlist store under a user-provided name without silently switching the active Library playlist.
+- **Nodes UI:** compact node/link/playing status chrome, subtle dot-workspace field, selected/current-neighbor focus, unrelated-edge/node de-emphasis, and a selected-node inspector with link count, strongest neighbors and Play action.
+- JVM coverage added for recommendation ranking, play-history adjacency, seed exclusion, and result limits.
+- Source advances atomically to **1.15.28/code158**. State: **SOURCE_ONLY**; latest verified APK remains **1.15.26/code156**.
 
 ### October 2 — 1.15.27 final branch convergence / top-bar alignment (source only)
 

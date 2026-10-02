@@ -304,7 +304,10 @@ fun GreaterArtApp(
                                                                                     files = stackFiles,
                                                                                     language = settings.appLanguage,
                                                                                     contentPadding = PaddingValues(bottom = if (playback.hasMedia) (com.local.listentomusic.model.MiniWindowMetrics.HEIGHT_DP + 24).dp else 0.dp),
+                                                                                    nowPlayingPath = playback.currentPath,
+                                                                                    playHistory = playHistory,
                                                                                     onLoadThumbnail = viewModel::loadThumbnail,
+                                                                                    onSaveList = viewModel::saveStackAsPlaylist,
                                                                                 )
                                                                             } else if (page == 2) {
                                                                                 NodesScreen(
