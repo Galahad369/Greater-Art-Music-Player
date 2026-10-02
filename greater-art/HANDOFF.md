@@ -4,7 +4,7 @@ This file describes the **current repository state only**. Historical session no
 
 **Project:** `greater-art/` in the repository checkout
 **Current version:** `1.15.26 (code 156)`
-**Current source:** `1.15.29 (code 159)`
+**Current source:** `1.15.30 (code 160)`
 **Release state:** `SOURCE_ONLY`
 **Latest APK:** `releases/GreaterArt-1.15.26.apk` (`26,287,658 bytes`; SHA-256 `4c8b8d4692a8bd5c575208746065139651d6f0d651a4dbad619ea77cb0745de2`)
 **Application ID:** `com.local.listentomusic`
@@ -14,6 +14,18 @@ This file describes the **current repository state only**. Historical session no
 **Verification boundary:** Release-finalization commit `6d02c33c` records `GreaterArt-1.15.26.apk` (SHA-256 `4c8b8d4692a8bd5c575208746065139651d6f0d651a4dbad619ea77cb0745de2`) after source merge `4bb9aef6`. The local release record states `./gradlew testDebugUnitTest lintDebug :app:assembleDebug --offline` passed, `aapt dump badging` confirmed package `com.local.listentomusic`, versionName `1.15.26`, versionCode `156`, the recorded personal sideload certificate, A55/API 36 smoke coverage, and **0 FATAL EXCEPTION**. The 1.15.26 push Version Consistency range check failed historically because source commit `58cc7fad` updated app/Gradle before VERSION_RULES was corrected in `b0a5232d`; current-state validation, Android CI, and Public Repository Security passed. History is preserved rather than rewritten.
 
 ## Repository state
+
+### October 2 — 1.15.30 Stack completion + Nodes linked-graph UI (source only)
+
+- Supersedes unmerged PR #76 / side-branch commit `00b87934`. That branch independently used 1.15.28/code158 after another published Grok branch had already consumed the same identity; it is preserved as history and is not merged or reused.
+- **Stack NOW_PLAYING:** active normal playback is represented on Stack. Existing Stack voices are highlighted; otherwise a context row appears with an explicit Add action, so visiting Stack does not silently alter the mix.
+- **Stack multi-select/search:** typed song/artist/album filtering, checkboxes, Select visible, capacity-aware bulk selection, and batch add up to the existing eight-track ceiling.
+- **Stack offline recommendations:** filename similarity, same folder, artist, album, similar duration, and adjacent on-device play-history signals are combined deterministically with visible reason labels. No network or telemetry path is added.
+- **Stack save list:** current staged/active Stack order saves through the existing local-playlist store under a user name without silently changing the active Library playlist.
+- **Nodes UI:** node/link/playing status chrome, subtle dot-workspace field, focused-neighbor emphasis, unrelated graph dimming, and a selected-node inspector with link count, strongest neighbors and Play action.
+- Preserves 1.15.29's `ListScrollBudget` ownership in the rewritten Stack track list and multi-select picker so decorative video remains paused during their flings.
+- JVM recommendation coverage is carried forward for metadata ranking, play-history adjacency, seed exclusion and result limits.
+- Source advances atomically to **1.15.30/code160**. State: **SOURCE_ONLY**; latest verified APK remains **1.15.26/code156**.
 
 ### October 2 — 1.15.29 pause decorative video during list flings (source only)
 
