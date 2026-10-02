@@ -4,6 +4,8 @@ This file describes the **current repository state only**. Historical session no
 
 **Project:** `greater-art/` in the repository checkout
 **Current version:** `1.15.20 (code 150)`
+**Current source:** `1.15.23 (code 153)`
+**Release state:** `SOURCE_ONLY`
 **Latest APK:** `releases/GreaterArt-1.15.20.apk` (`26,304,042 bytes`; SHA-256 `ba9a5e3a87c37013e1c5a9a01adde563f568de0583728206fd87e2afcf3e0600`)
 **Application ID:** `com.local.listentomusic`
 **Signing certificate SHA-256:** `9e28eb45b3b171c3ea47d7da942d28d88b16538885e392a6971a80906d612fbf`
@@ -12,6 +14,17 @@ This file describes the **current repository state only**. Historical session no
 **Verification boundary:** Built from exact source commit `ec9e0e7`; `./gradlew testDebugUnitTest lintDebug :app:assembleDebug --offline` passed; `aapt dump badging` confirms package `com.local.listentomusic`, versionName `1.15.20`, versionCode `150`; signed with personal debug keystore; installed on A55/API 36; launch, library scan/load, local audio/video playback, prev/next/seek/pause/resume, playlist/Favorites playback, duplicate queue independence, Stack→Library/playlist transition, queue/Library add-to-list, Library delete three-confirm flow, mini-window/fullscreen/return flows verified; **0 FATAL EXCEPTION** in tested session.
 
 ## Repository state
+
+### October 2 — 1.15.23 final branch convergence / forward recovery (source only)
+
+- The concurrent 1.15.20 merge sequence brought both the offline Stack recommendation helper branch and the reviewed same-side double-tap branch onto main, but the push-range version guard correctly failed because several side-branch commits carried stale policy metadata and the second executable merge reused 1.15.20.
+- History is preserved rather than rewritten. The verified 1.15.20 APK remains immutable and recorded as the latest verified release because it was finalized from exact source commit `ec9e0e7`.
+- 1.15.21/code151 was consumed by superseded PR #68 after main independently acquired the same-side implementation and workflow documentation.
+- 1.15.22/code152 was consumed by `grok/1.15.22-stack-complete`, which did not implement the claimed Stack UI; it only republished the existing offline recommendation helper/test with stale 1.15.19 policy metadata.
+- The unintegrated `StackRecommend.kt` helper and its isolated test are removed from canonical source. No StackScreen/ViewModel/app call site used the helper, so retaining it would preserve dead code from an incomplete feature branch.
+- The reviewed same-side double-tap behavior, contribution workflow, local-agent workflow, GitHub-agent workflow, transport-control alignment, ColorTheme recovery, Stack synchronization/performance fixes, security/privacy hardening, and immutable verified 1.15.20 APK remain intact.
+- State: **SOURCE_ONLY** at **1.15.23/code153**. Latest verified APK remains **1.15.20/code150**.
+
 
 ### October 2 — 1.15.20 same-side double-tap seek recovery (source only)
 
