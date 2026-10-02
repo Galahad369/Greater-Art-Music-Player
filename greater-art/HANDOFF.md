@@ -3,7 +3,7 @@
 This file describes the **current repository state only**. Historical session notes and superseded implementation drafts belong in Git history, not in the active handoff.
 
 **Project:** `greater-art/` in the repository checkout
-**Current version:** `1.15.40 (code 170)`
+**Current version:** `1.15.38 (code 168)`
 **Current source:** `1.15.40 (code 170)`
 **Release state:** `SOURCE_ONLY`
 **Latest APK:** `releases/GreaterArt-1.15.38.apk` (`26,353,198 bytes`; SHA-256 `da07870b4f06defffbae6a0edd564ed34aa9ddfa21aa3924d89c65c4a5079fa7`)
