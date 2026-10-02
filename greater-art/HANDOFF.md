@@ -3,7 +3,7 @@
 This file describes the **current repository state only**. Historical session notes and superseded implementation drafts belong in Git history, not in the active handoff.
 
 **Project:** `greater-art/` in the repository checkout
-**Current version:** `1.15.42 (code 172)`
+**Current version:** `1.15.43 (code 173)`
 **Current source:** `1.15.43 (code 173)`
 **Release state:** `SOURCE_ONLY`
 **Latest APK:** `releases/GreaterArt-1.15.42.apk` (`26,353,198 bytes`; SHA-256 `2fe074f19403c63b8f06ca1f0609056cb9245370f2628b51373f9c6e85911369`)
@@ -11,7 +11,7 @@ This file describes the **current repository state only**. Historical session no
 **Signing certificate SHA-256:** `9e28eb45b3b171c3ea47d7da942d28d88b16538885e392a6971a80906d612fbf`
 **Build date:** `2026-10-02`
 **Test device:** `GreaterArt_A55_API36 (A55, API 36, Android 17)`
-**Verification boundary:** Current source is `1.15.42/code172` and is **SOURCE_ONLY**. The latest immutable verified artifact remains `releases/GreaterArt-1.15.39.apk` (SHA-256 `25db3b022eb5da45e867b54ff326ee8027608fc9ec7892293f5ac4b80b7036c8`). No 1.15.42 release APK may exist until the exact source is built and device-verified under VERSION_RULES.
+**Verification boundary:** Current source is `1.15.43/code173` and is **SOURCE_ONLY**. The latest immutable verified artifact remains `releases/GreaterArt-1.15.42.apk` (SHA-256 `2fe074f19403c63b8f06ca1f0609056cb9245370f2628b51373f9c6e85911369`). No 1.15.43 release APK may exist until the exact source is built and device-verified under VERSION_RULES.
 
 ## Repository state
 
