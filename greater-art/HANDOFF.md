@@ -3,15 +3,25 @@
 This file describes the **current repository state only**. Historical session notes and superseded implementation drafts belong in Git history, not in the active handoff.
 
 **Project:** `greater-art/` in the repository checkout
-**Current version:** `1.15.39 (code 169)`
-**Latest APK:** `releases/GreaterArt-1.15.39.apk` (`26,353,198 bytes`; SHA-256 `25db3b022eb5da45e867b54ff326ee8027608fc9ec7892293f5ac4b80b7036c8`)
+**Current version:** `1.15.38 (code 168)`
+**Current source:** `1.15.39 (code 169)`
+**Release state:** `SOURCE_ONLY`
+**Latest APK:** `releases/GreaterArt-1.15.38.apk` (`26,353,198 bytes`; SHA-256 `da07870b4f06defffbae6a0edd564ed34aa9ddfa21aa3924d89c65c4a5079fa7`)
 **Application ID:** `com.local.listentomusic`
 **Signing certificate SHA-256:** `9e28eb45b3b171c3ea47d7da942d28d88b16538885e392a6971a80906d612fbf`
 **Build date:** `2026-10-02`
 **Test device:** `GreaterArt_A55_API36 (A55, API 36, Android 17)`
-**Verification boundary:** Built from exact source commit `HEAD`; `./gradlew testDebugUnitTest lintDebug :app:assembleDebug --offline` passed; `aapt dump badging` confirms package `com.local.listentomusic`, versionName `1.15.39`, versionCode `169`; signed with personal debug keystore; installed on A55/API 36; launch, library scan/load, local audio/video playback, prev/next/seek/pause/resume, playlist/Favorites playback, duplicate queue independence, Stack→Library/playlist transition, queue/Library add-to-list, Library delete three-confirm flow, mini-window/fullscreen/return flows verified; **0 FATAL EXCEPTION** in tested session.
+**Verification boundary:** Authoritative VERSION_RULES and the release tree establish current source `1.15.39/code169` as **SOURCE_ONLY**. No `releases/GreaterArt-1.15.39.apk` exists on main; the latest repository-backed verified APK remains `1.15.38/code168`.
 
 ## Repository state
+
+### October 2 — post-1.15.39 branch convergence audit (documentation only)
+
+- Live main already contains the list-fling decorative-video surface-detach behavior at canonical **1.15.39/code169**: detach the wallpaper `PlayerView` during Library/queue/Stack flings, keep the prepared ExoPlayer, show the static fallback, and reattach after an 80 ms settle.
+- PR #91 / `fix/1.15.40-video-surface-budget-forward-port` was created from an older 1.15.38 base and became stale after 1.15.39 landed on main. Its remaining unique change was only a small test helper/seam; merging its metadata would incorrectly rewrite 1.15.39 provenance.
+- PR #91 was closed unmerged. Its published **1.15.40/code170** identity is consumed and must not be reused. The next executable source identity is therefore **1.15.41/code171** using the explicit consumed transition recorded in VERSION_RULES.
+- This audit changes documentation/ledger metadata only. Current source remains **1.15.39/code169 SOURCE_ONLY**; latest verified APK remains **1.15.38/code168**.
+
 
 ### October 2 — 1.15.38 Stack crash-hardening convergence (verified)
 
@@ -1008,4 +1018,4 @@ read handoff.md --> read user instructions (usually debug, fix, or patch, change
 | 1.15.30 | 160 | `88602b22d14a5cabb2074196d991020bcdbcc6bc5ba60dfc812b47cf58d375c3` | Stack completion + Nodes linked-graph UI + ListScrollBudget video pause on fling, build verified, release APK copied |
 | 1.15.34 | 164 | `9659ec57e2a4fb78bc75a75df05017f5c9bd0a58d540f7dfe38ab3ee83124142` | Stack mini-window churn fix + group loop, build verified, release APK copied |
 | 1.15.38 | 168 | `da07870b4f06defffbae6a0edd564ed34aa9ddfa21aa3924d89c65c4a5079fa7` | Stack crash-hardening convergence (verified) |
-| 1.15.39 | 169 | `25db3b022eb5da45e867b54ff326ee8027608fc9ec7892293f5ac4b80b7036c8` | YouTube-style list-fling video budget — detach wallpaper surface, 80ms settle, build verified, release APK copied |
+| 1.15.39 | 169 | — | YouTube-style list-fling video budget — detach wallpaper surface, 80ms settle; source only, no verified release APK |
