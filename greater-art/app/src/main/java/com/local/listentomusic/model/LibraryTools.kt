@@ -19,6 +19,28 @@ data class PlaylistRule(val folder: String = "", val extension: String = "", val
 fun searchText(value: String): String = Normalizer.normalize(value, Normalizer.Form.NFD)
     .replace(Regex("\\p{M}+"), "").lowercase(Locale.ROOT)
 
+/** Matches a user-owned Stack keyword against local title or source path only. */
+fun matchesStackKeyword(file: MediaFile, keyword: String): Boolean {
+    val wanted = searchText(keyword.trim())
+    if (wanted.isEmpty()) return false
+    return searchText(file.name).contains(wanted) || searchText(file.sourcePath).contains(wanted)
+}
+
+/**
+ * Pinned Stack tracks keep their saved order; current local keyword matches are appended
+ * in library order. Missing pinned files are skipped and duplicates collapse by media path.
+ */
+fun expandStackKeyword(
+    explicitPaths: List<String>,
+    library: List<MediaFile>,
+    keyword: String,
+): List<MediaFile> {
+    val byPath = library.associateBy(MediaFile::path)
+    val pinned = explicitPaths.mapNotNull(byPath::get)
+    val matches = if (keyword.isBlank()) emptyList() else library.filter { matchesStackKeyword(it, keyword) }
+    return (pinned + matches).distinctBy(MediaFile::path)
+}
+
 fun mediaTitle(title: String, path: String?): String {
     val extension = path?.let(::sourceMediaPath)?.substringAfterLast('.', "").orEmpty()
     return if (extension.isNotBlank() && title.endsWith(".$extension", true)) title.dropLast(extension.length + 1) else title

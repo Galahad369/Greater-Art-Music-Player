@@ -47,7 +47,7 @@ fun StackScreen(
     nowPlayingPath: String?,
     playHistory: List<PlayHistoryEntry>,
     onLoadThumbnail: suspend (MediaFile) -> Bitmap?,
-    onSaveList: (String, List<String>) -> Unit,
+    onSaveList: (String, String, List<String>) -> Unit,
 ) {
     val session by StackPlayback.state.collectAsState()
     var stagedPaths by rememberSaveable { mutableStateOf(emptyList<String>()) }
@@ -328,8 +328,8 @@ fun StackScreen(
             language = language,
             count = displayed.size,
             onDismiss = { saveOpen = false },
-            onSave = { name ->
-                onSaveList(name, displayed.map { it.file.path })
+            onSave = { name, keyword ->
+                onSaveList(name, keyword, displayed.map { it.file.path })
                 saveOpen = false
             },
         )
@@ -688,16 +688,21 @@ private fun SaveStackDialog(
     language: AppLanguage,
     count: Int,
     onDismiss: () -> Unit,
-    onSave: (String) -> Unit,
+    onSave: (String, String) -> Unit,
 ) {
     var name by rememberSaveable { mutableStateOf("") }
+    var keyword by rememberSaveable { mutableStateOf("") }
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text(uiText(language, "Save Stack", "儲存疊播")) },
         text = {
             Column {
                 Text(
-                    uiText(language, "Save these $count tracks as a local playlist.", "將這 $count 首歌曲儲存為本機播放清單。"),
+                    uiText(
+                        language,
+                        "Save these $count tracks. An optional keyword stays attached and automatically includes matching local songs when this list is opened later.",
+                        "儲存這 $count 首歌曲。可選關鍵字會保留，日後開啟此清單時會自動加入符合的本機歌曲。",
+                    ),
                     style = MaterialTheme.typography.bodyMedium,
                 )
                 Spacer(Modifier.height(12.dp))
@@ -705,12 +710,32 @@ private fun SaveStackDialog(
                     value = name,
                     onValueChange = { name = it.take(60) },
                     singleLine = true,
-                    label = { Text(uiText(language, "List name", "清單名稱")) },
+                    label = { Text(uiText(language, "Stack name (optional with keyword)", "疊播名稱（有關鍵字時可留空）")) },
+                )
+                Spacer(Modifier.height(10.dp))
+                OutlinedTextField(
+                    value = keyword,
+                    onValueChange = { keyword = it.take(80) },
+                    singleLine = true,
+                    label = { Text(uiText(language, "My Stack keyword (optional)", "我的疊播關鍵字（選填）")) },
+                    placeholder = { Text(uiText(language, "e.g. live, piano, Ado", "例如：live、piano、Ado")) },
+                    supportingText = {
+                        Text(
+                            uiText(
+                                language,
+                                "Matches local song names and file paths. The keyword is saved, not sent anywhere.",
+                                "比對本機歌曲名稱及檔案路徑。關鍵字只會儲存在本機，不會傳送出去。",
+                            ),
+                        )
+                    },
                 )
             }
         },
         confirmButton = {
-            Button(enabled = name.isNotBlank() && count > 0, onClick = { onSave(name.trim()) }) {
+            Button(
+                enabled = count > 0 && (name.isNotBlank() || keyword.isNotBlank()),
+                onClick = { onSave(name.trim(), keyword.trim()) },
+            ) {
                 Text(uiText(language, "Save", "儲存"))
             }
         },

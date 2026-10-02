@@ -4,7 +4,7 @@ This file describes the **current repository state only**. Historical session no
 
 **Project:** `greater-art/` in the repository checkout
 **Current version:** `1.15.26 (code 156)`
-**Current source:** `1.15.30 (code 160)`
+**Current source:** `1.15.31 (code 161)`
 **Release state:** `SOURCE_ONLY`
 **Latest APK:** `releases/GreaterArt-1.15.26.apk` (`26,287,658 bytes`; SHA-256 `4c8b8d4692a8bd5c575208746065139651d6f0d651a4dbad619ea77cb0745de2`)
 **Application ID:** `com.local.listentomusic`
@@ -14,6 +14,16 @@ This file describes the **current repository state only**. Historical session no
 **Verification boundary:** Release-finalization commit `6d02c33c` records `GreaterArt-1.15.26.apk` (SHA-256 `4c8b8d4692a8bd5c575208746065139651d6f0d651a4dbad619ea77cb0745de2`) after source merge `4bb9aef6`. The local release record states `./gradlew testDebugUnitTest lintDebug :app:assembleDebug --offline` passed, `aapt dump badging` confirmed package `com.local.listentomusic`, versionName `1.15.26`, versionCode `156`, the recorded personal sideload certificate, A55/API 36 smoke coverage, and **0 FATAL EXCEPTION**. The 1.15.26 push Version Consistency range check failed historically because source commit `58cc7fad` updated app/Gradle before VERSION_RULES was corrected in `b0a5232d`; current-state validation, Android CI, and Public Repository Security passed. History is preserved rather than rewritten.
 
 ## Repository state
+
+### October 2 — 1.15.31 persistent Stack keyword (source only)
+
+- The Save Stack dialog now accepts an optional user-owned **Stack keyword** in addition to the pinned Stack tracks.
+- If the user leaves the Stack name blank but supplies a keyword, the saved list receives a local default name such as `Stack · live`.
+- The keyword is persisted in the existing local playlist record. Opening or playing that saved list keeps its pinned tracks first, then appends current local files whose song name or source path matches the saved keyword. Newly downloaded matching files therefore join automatically without rewriting the saved Stack.
+- Existing four-field playlist records decode unchanged; the optional Stack keyword is a backward-compatible fifth field and remains part of the existing local settings backup.
+- Settings shows the saved keyword beside the pinned-song count. Keyword matching stays fully local and adds no network, account, analytics, permission, or telemetry behavior.
+- Adds JVM coverage for case-insensitive keyword matching, pinned ordering, dynamic inclusion, and non-match exclusion.
+- Source advances atomically to **1.15.31/code161**. State: **SOURCE_ONLY**; latest verified APK remains **1.15.26/code156**.
 
 ### October 2 — 1.15.30 Stack completion + Nodes linked-graph UI (source only)
 

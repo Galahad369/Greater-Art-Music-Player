@@ -20,6 +20,19 @@ class LibraryToolsTest {
         assertFalse(PlaylistRule("Concert", "", "").matches(file, "/Download"))
         assertFalse(PlaylistRule("Concerts", "mp3", "").matches(file, "/Download"))
     }
+    @Test fun stackKeywordKeepsPinnedOrderAndAddsCurrentMatches() {
+        val pinned = MediaFile("/Download/keep.mp3", "Keep", 0, 1, 1, MediaKind.AUDIO)
+        val match = MediaFile("/Download/live/Ado.mp3", "Ado LIVE", 0, 1, 1, MediaKind.AUDIO)
+        val noMatch = MediaFile("/Download/studio/Other.mp3", "Other", 0, 1, 1, MediaKind.AUDIO)
+        val result = expandStackKeyword(
+            explicitPaths = listOf(pinned.path),
+            library = listOf(match, noMatch, pinned),
+            keyword = "live",
+        )
+        assertEquals(listOf(pinned.path, match.path), result.map(MediaFile::path))
+        assertTrue(matchesStackKeyword(match, "LiVe"))
+        assertFalse(matchesStackKeyword(noMatch, "live"))
+    }
     @Test fun optionalControlsStayOffAndOverridesAreEmpty() {
         val defaults = UserPreferences()
         assertFalse(defaults.showAbRepeat)
