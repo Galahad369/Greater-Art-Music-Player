@@ -17,6 +17,7 @@ This file describes the **current repository state only**. Historical session no
 
 ### October 2 — 1.15.34 Stack mini-window + loop fix (source only)
 
+- A redundant **1.15.35/code165** forward-port was published on `fix/1.15.35-stack-mini-loop`. Direct blob comparison confirms its executable/test files are identical to canonical 1.15.34, so 1.15.35 is consumed but unmerged and must not be reused.
 - **Mini-window Stack lag:** the overlay and `CompactPlayerView` were both refreshing the same compact UI for each Media3 event. Stack produces more renderer/play-state events than normal playback, so duplicate refresh/surface work was amplified. Rebinding the same controller + same presentation is now a no-op, and overlay artwork/layout work only runs for media/metadata/video-size events that can actually change it.
 - **Stack loop:** Stack previously forced the primary player to repeat-off and disabled the repeat button. The primary remains repeat-off internally so it cannot loop independently, but Stack now owns a separate two-state whole-session loop. Repeat toggles **Off ↔ Loop**, and reaching the longest Stack duration restarts the synchronized Stack at 0 when Loop is enabled.
 - Normal playback keeps its existing Off → One → All → Random cycle. Leaving Stack restores the pre-Stack normal repeat/shuffle state exactly as before.
