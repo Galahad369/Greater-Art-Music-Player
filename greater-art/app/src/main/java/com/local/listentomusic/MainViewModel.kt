@@ -68,6 +68,14 @@ internal fun nextCycleMode(current: CycleMode): CycleMode = when (current) {
     CycleMode.RANDOM -> CycleMode.OFF
 }
 
+internal fun stackPlaylistName(name: String, keyword: String, trackCount: Int): String {
+    val explicit = name.trim().take(60)
+    if (explicit.isNotBlank()) return explicit
+    val cleanKeyword = keyword.trim().take(80)
+    if (cleanKeyword.isNotBlank()) return "Stack · ${cleanKeyword.take(42)}"
+    return "Stack · ${trackCount.coerceAtLeast(1)} tracks"
+}
+
 // Sleep timer: minute targets. -1L = "stop at the end of the current track".
 val sleepTimerOptions = listOf(5L, 10L, 15L, 30L, 60L, -1L)
 
@@ -734,23 +742,33 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         if (name.isBlank()) return
         updatePreference { preferences.renamePlaylist(id, name) }
     }
-    fun deletePlaylist(id: String) = updatePreference {
-        val old = userPreferences.playlists.firstOrNull { it.id == id } ?: return@updatePreference
-        preferences.deletePlaylist(id)
-        offerUndo("Playlist removed") { preferences.restorePlaylist(old) }
+    fun deletePlaylist(id: String) {
+        viewModelScope.launch {
+            // Read DataStore at action time rather than trusting the asynchronously mirrored
+            // userPreferences field. This keeps delete/undo correct after rapid playlist edits.
+            val snapshot = preferences.current()
+            val old = snapshot.playlists.firstOrNull { it.id == id } ?: return@launch
+            val wasActive = snapshot.activePlaylistId == id
+            preferences.deletePlaylist(id)
+            offerUndo("Playlist removed") {
+                preferences.restorePlaylist(old)
+                if (wasActive) preferences.setActivePlaylist(old.id)
+            }
+        }
     }
     fun createSelectionPlaylist(name: String, paths: List<String>) = updatePreference {
         if (name.isNotBlank()) preferences.setActivePlaylist(preferences.createPlaylistWithPaths(name.take(60), paths))
     }
     fun saveStackAsPlaylist(name: String, keyword: String, paths: List<String>) {
         val clean = paths.distinct()
+        if (clean.isEmpty()) return
         val cleanKeyword = keyword.trim().take(80)
-        val resolvedName = name.trim().take(60).ifBlank {
-            cleanKeyword.takeIf(String::isNotBlank)?.let { "Stack · ${it.take(42)}" }.orEmpty()
-        }
-        if (resolvedName.isBlank() || clean.isEmpty()) return
+        val resolvedName = stackPlaylistName(name, cleanKeyword, clean.size)
         viewModelScope.launch {
-            preferences.createPlaylistWithPaths(resolvedName, clean, stackKeyword = cleanKeyword)
+            val id = preferences.createPlaylistWithPaths(resolvedName, clean, stackKeyword = cleanKeyword)
+            // Saving Stack intentionally does not switch the active Library playlist. Surface
+            // success through the existing global Undo snackbar so the action is observable.
+            offerUndo("Saved \"$resolvedName\"") { preferences.deletePlaylist(id) }
         }
     }
     fun addToPlaylist(id: String, path: String) = updatePreference { preferences.addToPlaylist(id, path) }

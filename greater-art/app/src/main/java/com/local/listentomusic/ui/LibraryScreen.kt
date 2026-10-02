@@ -168,6 +168,7 @@ fun LibraryScreen(
     var openRowActionsPath by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf<String?>(null) }
     var deleteCandidate by remember { mutableStateOf<MediaFile?>(null) }
     var deleteStep by remember { mutableStateOf(0) }
+    var deletePlaylistCandidate by remember { mutableStateOf<com.local.listentomusic.data.LocalPlaylist?>(null) }
     var deleteError by remember { mutableStateOf<String?>(null) }
     var deleting by remember { mutableStateOf(false) }
     val actionScope = rememberCoroutineScope()
@@ -399,8 +400,9 @@ fun LibraryScreen(
                         activePlaylist?.let { pl ->
                             DropdownMenuItem(
                                 text = { Text(uiText(language, "Delete list", "刪除清單")) },
-                                onClick = { playlistMenuOpen = false; onDeletePlaylist(pl.id) },
+                                onClick = { playlistMenuOpen = false; deletePlaylistCandidate = pl },
                                 leadingIcon = { Icon(Icons.Rounded.Delete, null) },
+                                modifier = Modifier.inspectElement("DELETE_LIST_BUTTON", "Opens playlist deletion confirmation"),
                             )
                         }
                     }
@@ -526,6 +528,36 @@ fun LibraryScreen(
                 }
             }
         }
+    }
+
+    deletePlaylistCandidate?.let { playlist ->
+        AlertDialog(
+            onDismissRequest = { deletePlaylistCandidate = null },
+            title = { Text(uiText(language, "Delete playlist?", "刪除播放清單？")) },
+            text = {
+                Text(
+                    uiText(
+                        language,
+                        "${playlist.name} will be removed. Media files stay untouched.",
+                        "將移除「${playlist.name}」，媒體檔案不會被刪除。",
+                    ),
+                )
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        onDeletePlaylist(playlist.id)
+                        deletePlaylistCandidate = null
+                    },
+                    modifier = Modifier.inspectElement("DELETE_LIST_CONFIRM_BUTTON", "Confirms local playlist deletion without deleting media"),
+                ) { Text(uiText(language, "Delete", "刪除")) }
+            },
+            dismissButton = {
+                TextButton(onClick = { deletePlaylistCandidate = null }) {
+                    Text(uiText(language, "Cancel", "取消"))
+                }
+            },
+        )
     }
 
     if (historyOpen) {

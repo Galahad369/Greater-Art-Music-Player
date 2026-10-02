@@ -7,8 +7,8 @@ This file is the authoritative version policy for Greater Art. If any handoff no
 ## Machine-checkable state
 
 
-Current source: **1.15.42 (code 172)**
-Current release state: **VERIFIED**
+Current source: **1.15.43 (code 173)**
+Current release state: **SOURCE_ONLY**
 Latest verified APK: **1.15.42 (code 172)**
 Allowed series transition: **1.14.15 -> 1.15.1**
 Allowed consumed transition: **1.15.13 (code 143) -> 1.15.17 (code 147)**
@@ -119,7 +119,8 @@ Markdown/docs-only changes, release hashes/metadata, and adding a newly verified
 - 1.15.39 (code 169) — **Grok**: YouTube-style list-fling video budget — detach wallpaper PlayerView surface (keep ExoPlayer), static base during scroll, 80ms settle; local build verified; current verified APK
 - Consumed side-branch identity: **1.15.40 (code 170)** — stale forward-port PR #91 duplicated canonical 1.15.39 behavior from an older base; only a small test seam remained unique, so the PR was closed rather than merging conflicting provenance; consumed, not merged, never reuse
 - Consumed side-branch identity: **1.15.41 (code 171)** — Grok wallpaper-decoder-budget branch split executable code, version bump, and VERSION_RULES across separate commits and truncated the canonical ledger; reviewed implementation was selectively recreated at 1.15.42; consumed, not merged, never reuse
-- 1.15.42 (code 172) — canonical forward recovery: retain the current Now Playing repeat/random text-fit fix, selectively forward-port the wallpaper decoder budget, cap only duplicate CURRENT_VIDEO wallpaper to 640×360, reduce decorative-video buffers, keep CUSTOM_VIDEO resolution uncapped, and preserve native primary resolution/bitrate/FPS; source only, CI pending
+- 1.15.42 (code 172) — canonical forward recovery: retain the current Now Playing repeat/random text-fit fix, selectively forward-port the wallpaper decoder budget, cap only duplicate CURRENT_VIDEO wallpaper to 640×360, reduce decorative-video buffers, keep CUSTOM_VIDEO resolution uncapped, and preserve native primary resolution/bitrate/FPS; local build verified; current verified APK
+- 1.15.43 (code 173) — Stack-save and playlist-delete reliability: Stack save accepts blank metadata via deterministic local fallback naming, surfaces success through reversible snackbar feedback, Library delete requires confirmation, and delete Undo restores prior active-playlist selection; source only, CI pending
 
 Previous baseline: 1.13.26 (code 115).
 
