@@ -7,15 +7,15 @@ This file is the authoritative version policy for Greater Art. If any handoff no
 ## Machine-checkable state
 
 
-Current source: **1.15.23 (code 153)**
-Current release state: **VERIFIED**
-Latest verified APK: **1.15.23 (code 153)**
+Current source: **1.15.24 (code 154)**
+Current release state: **SOURCE_ONLY**
+Latest verified APK: **1.15.22 (code 152)**
 Allowed series transition: **1.14.15 -> 1.15.1**
 Allowed consumed transition: **1.15.13 (code 143) -> 1.15.17 (code 147)**
 Allowed consumed transition: **1.15.17 (code 147) -> 1.15.19 (code 149)**
 Allowed consumed transition: **1.15.19 (code 149) -> 1.15.21 (code 151)**
 Allowed consumed transition: **1.15.21 (code 151) -> 1.15.22 (code 152)**
-Allowed consumed transition: **1.15.22 (code 152) -> 1.15.23 (code 153)**
+Allowed consumed transition: **1.15.22 (code 152) -> 1.15.24 (code 154)**
 
 ## Non-negotiable rules
 
@@ -146,11 +146,11 @@ The guard checks:
 - 1.15.17 (code 147) — canonical branch convergence: complete reviewed ColorTheme/Settings implementation + exact consumed-transition guard, preserving verified 1.15.10 release metadata; local build verified
 - 1.15.18 (code 148) — Grok branch reviewed and rejected; claimed color-theme implementation was only Gradle bump + comment removal; version consumed
 - 1.15.19 (code 149) — transport-control alignment and final branch convergence: `GaControl.heroIcon = 32.dp` token; main/video play icons consistent; prev/next use 48 dp `GaControl.touchTarget` with `GaControl.prominentIcon`; source only, local build pending
-- 1.15.20 (code 150) — same-side double-tap seek for video/audio with 400 ms pairing, cross-side rejection, and hold-to-2x isolation; local build verified
-- 1.15.21 (code 151) — superseded final-convergence PR published after concurrent main drift; version consumed on side branch, not merged
-- 1.15.22 (code 152) — Grok Stack branch republished only the already-present offline recommendation helper/test with stale 1.15.19 policy metadata; version consumed, rejected
-- 1.15.23 (code 153) — canonical forward recovery: remove the unintegrated Stack recommendation helper/test, preserve the reviewed 1.15.20 same-side seek + workflow docs, and restore one coherent main timeline; local build verified
-- 1.15.24 (code 154) — stale final-convergence side branch / PR #70 prepared from pre-1.15.22 main; removed StackRecommend after that helper had already been integrated on main; version consumed, not merged
+- 1.15.20 (code 150) — conflicting published side-branch attempts: the same-side double-tap source branch and an incomplete Stack recommendation branch both consumed this identity; neither became canonical main source
+- 1.15.21 (code 151) — final convergence and forward recovery after concurrent unversioned validator/release-metadata churn: same-side double-tap seek for audio/video plus contributor and agent workflow documentation; local build verified
+- 1.15.22 (code 152) — StackRecommend offline engine with unit tests; Grok branch integrated; local build verified
+- 1.15.23 (code 153) — superseded final-convergence side branch removed StackRecommend after live main had already integrated and verified it; version consumed, not merged
+- 1.15.24 (code 154) — video-surface first-frame attribution recovery using analytics event time plus unchanged-presentation/candidate reconcile deduplication; source only, CI pending
 
 Previous baseline: 1.13.26 (code 115).
 

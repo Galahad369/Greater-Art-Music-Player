@@ -106,6 +106,25 @@ class SurfaceLeaseTest {
         val state = SurfaceLease().attach("NOW_PLAYING", 1, 100)
         assertTrue(state.warnings("NOW_PLAYING", true, 4000, controllerMediaFirstFrame = true).isEmpty())
     }
+    @Test fun lateMediaTransitionKeepsFrameRenderedAfterTransitionTime() {
+        val rendered = SurfaceLease().attach("MINI_WINDOW", 1, 100, 9).frame(250, true)
+        val transitioned = rendered.mediaChanged(200)
+        assertEquals(rendered.generation + 1, transitioned.generation)
+        assertTrue(transitioned.firstFrame)
+        assertTrue(transitioned.mediaFirstFrame)
+        assertEquals(transitioned.generation, transitioned.lastFrameGeneration)
+        assertEquals(250L, transitioned.lastFrameAtMs)
+        assertEquals(true, transitioned.framesByOwner["MINI_WINDOW"])
+        assertTrue(transitioned.warnings("MINI_WINDOW", true, 3000).isEmpty())
+    }
+    @Test fun frameBeforeMediaTransitionIsNotCarriedForward() {
+        val rendered = SurfaceLease().attach("MINI_WINDOW", 1, 100, 9).frame(150, true)
+        val transitioned = rendered.mediaChanged(200)
+        assertFalse(transitioned.firstFrame)
+        assertFalse(transitioned.mediaFirstFrame)
+        assertEquals(rendered.lastFrameGeneration, transitioned.lastFrameGeneration)
+        assertEquals(150L, transitioned.lastFrameAtMs)
+    }
     @Test fun ambientIgnoresBlackVideoBorders() {
         val bordered = IntArray(100) { if (it < 90) 0xFF000000.toInt() else 0xFFFF0000.toInt() }
         assertEquals(artworkGradientColors(intArrayOf(0xFFFF0000.toInt()), false), artworkGradientColors(bordered, false))

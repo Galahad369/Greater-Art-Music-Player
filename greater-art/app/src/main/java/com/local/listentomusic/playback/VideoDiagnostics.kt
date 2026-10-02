@@ -22,7 +22,6 @@ internal fun ExoPlayer.installVideoDiagnostics(role: String) {
         override fun onVideoSizeChanged(videoSize: VideoSize) { report("size=${videoSize.width}x${videoSize.height}") }
         override fun onRenderedFirstFrame() { report("firstFrame") }
         override fun onMediaItemTransition(mediaItem: androidx.media3.common.MediaItem?, reason: Int) {
-            if (primary) com.local.listentomusic.ui.components.VideoSurfaceOwner.mediaChanged(reason == Player.MEDIA_ITEM_TRANSITION_REASON_REPEAT)
             report("mediaTransition reason=$reason")
         }
         override fun onPlayerError(error: PlaybackException) { report("error=${error.errorCodeName}") }
@@ -31,6 +30,17 @@ internal fun ExoPlayer.installVideoDiagnostics(role: String) {
         }
     })
     addAnalyticsListener(object : AnalyticsListener {
+        override fun onMediaItemTransition(
+            eventTime: AnalyticsListener.EventTime,
+            mediaItem: androidx.media3.common.MediaItem?,
+            reason: Int,
+        ) {
+            if (primary) com.local.listentomusic.ui.components.VideoSurfaceOwner.mediaChanged(
+                eventTime.realtimeMs,
+                reason == Player.MEDIA_ITEM_TRANSITION_REASON_REPEAT,
+            )
+            report("analyticsMediaTransition reason=$reason realtimeMs=${eventTime.realtimeMs}")
+        }
         override fun onVideoEnabled(eventTime: AnalyticsListener.EventTime, decoderCounters: androidx.media3.exoplayer.DecoderCounters) { report("videoEnabled") }
         override fun onVideoDisabled(eventTime: AnalyticsListener.EventTime, decoderCounters: androidx.media3.exoplayer.DecoderCounters) { report("videoDisabled") }
         override fun onRenderedFirstFrame(eventTime: AnalyticsListener.EventTime, output: Any, renderTimeMs: Long) {
