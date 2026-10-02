@@ -152,7 +152,7 @@ The guard checks:
 - 1.15.22 (code 152) — StackRecommend offline engine with unit tests; Grok branch integrated; local build verified
 - 1.15.23 (code 153) — superseded final-convergence side branch removed StackRecommend after live main had already integrated and verified it; version consumed, not merged
 - 1.15.24 (code 154) — video-surface first-frame attribution recovery using analytics event time plus unchanged-presentation/candidate reconcile deduplication; local build verified
-- 1.15.25 (code 155) — redundant surface-fix PR #71 published after identical 1.15.24 source had already landed and been verified on main; version consumed, not merged
+- Consumed side-branch identity: **1.15.25 (code 155)** — redundant surface-fix PR #71 published after identical 1.15.24 source had already landed and been verified on main; consumed, not merged, and not reusable
 
 Previous baseline: 1.13.26 (code 115).
 
