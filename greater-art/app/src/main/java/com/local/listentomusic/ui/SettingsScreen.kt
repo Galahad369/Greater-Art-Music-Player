@@ -395,14 +395,28 @@ fun SettingsScreen(
                 preferences.playlists.forEach { playlist ->
                     ListItem(
                         headlineContent = { Text(playlist.name, fontWeight = FontWeight.SemiBold) },
-                        supportingContent = { Text(uiText(language, "${playlist.paths.size} songs", "${playlist.paths.size} 首歌曲")) },
+                        supportingContent = {
+                            val keyword = playlist.stackKeyword.takeIf(String::isNotBlank)
+                            Text(
+                                if (keyword == null) {
+                                    uiText(language, "${playlist.paths.size} songs", "${playlist.paths.size} 首歌曲")
+                                } else {
+                                    uiText(
+                                        language,
+                                        "${playlist.paths.size} pinned · Stack keyword: $keyword",
+                                        "${playlist.paths.size} 首固定 · 疊播關鍵字：$keyword",
+                                    )
+                                },
+                                maxLines = 2,
+                            )
+                        },
                         trailingContent = {
                             Row {
                                 IconButton(
                                     onClick = { onPlayPlaylist(playlist.id) },
-                                    enabled = playlist.paths.isNotEmpty() || playlist.rule != null,
+                                    enabled = playlist.paths.isNotEmpty() || playlist.rule != null || playlist.stackKeyword.isNotBlank(),
                                 ) { Icon(Icons.Rounded.PlayArrow, uiText(language, "Play", "播放")) }
-                                IconButton(onClick = { onSharePlaylist(playlist) }, enabled = playlist.paths.isNotEmpty() || playlist.rule != null) {
+                                IconButton(onClick = { onSharePlaylist(playlist) }, enabled = playlist.paths.isNotEmpty() || playlist.rule != null || playlist.stackKeyword.isNotBlank()) {
                                     Icon(Icons.Rounded.Share, uiText(language, "Share playlist", "分享播放清單"))
                                 }
                                 IconButton(onClick = { playlistName = playlist.name; editPlaylist = playlist }) { Icon(Icons.Rounded.Edit, uiText(language, "Rename", "重新命名")) }
