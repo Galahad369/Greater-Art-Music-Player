@@ -7,8 +7,8 @@ This file is the authoritative version policy for Greater Art. If any handoff no
 ## Machine-checkable state
 
 
-Current source: **1.15.38 (code 168)**
-Current release state: **VERIFIED**
+Current source: **1.15.39 (code 169)**
+Current release state: **SOURCE_ONLY**
 Latest verified APK: **1.15.38 (code 168)**
 Allowed series transition: **1.14.15 -> 1.15.1**
 Allowed consumed transition: **1.15.13 (code 143) -> 1.15.17 (code 147)**
@@ -33,9 +33,9 @@ Allowed consumed transition: **1.15.36 (code 166) -> 1.15.38 (code 168)**
    - The version bump must be in the **same commit** as the code change.
 2. **Never reuse a consumed version.** Once a code commit lands with a version, that version is spent even if the build, emulator, signing, or release step later fails.
 3. **No silent fixes under the same version.** If a build/test exposes another code bug, the fix is another code commit and therefore the next PATCH/code.
-4. **Never skip a PATCH/code inside the active series unless this file explicitly authorizes the exact transition.** Series changes use `Allowed series transition`. A consumed-branch recovery may use `Allowed consumed transition` only when every skipped version/code was already committed on a side branch and remains recorded in the ledger. The exact 1.15.13/code143 -> 1.15.17/code147 transition is authorized because 1.15.14–1.15.16 were already consumed during reviewed recovery attempts.
+4. **Never skip a PATCH/code inside the active series unless this file explicitly authorizes the exact transition.** Series changes use `Allowed series transition`. A consumed-branch recovery may use `Allowed consumed transition` only when every skipped version/code was already committed on a side branch and remains recorded in the ledger.
 5. **Release APKs are immutable.** Never modify, overwrite, rename, or copy an older APK into a new version filename.
-5b. **Release APK filename MUST match the exact versionName and versionCode.** The artifact in `greater-art/releases/` must be named `GreaterArt-<versionName>.apk` (e.g., `GreaterArt-1.15.17.apk`). Sending or storing an APK with any other filename (e.g., `app-debug.apk`) is a release violation.
+5b. **Release APK filename MUST match the exact versionName and versionCode.** The artifact in `greater-art/releases/` must be named `GreaterArt-<versionName>.apk`.
 6. **A new APK must be built from the exact source commit carrying that version.** Renaming an existing APK is not a build.
 7. **Source and release are two separate states.**
    - `SOURCE_ONLY`: code/version has landed, but no verified APK for that version may exist in `greater-art/releases/`.
@@ -55,68 +55,9 @@ A commit requires a PATCH/code bump when it changes executable/build/release beh
 
 Markdown/docs-only changes, release hashes/metadata, and adding a newly verified immutable APK do not themselves require another bump.
 
-## Required two-phase pipeline
-
-### Phase A — source commit
-
-1. Read `greater-art/app/build.gradle.kts`.
-2. Read this file and confirm the last tracked version.
-3. Bump PATCH exactly +1 and `versionCode` exactly +1, unless applying an exact `Allowed series transition` listed above. `versionCode` still increments exactly once.
-4. Set:
-   - `Current source` to the new version/code.
-   - `Current release state` to `SOURCE_ONLY`.
-   - keep `Latest verified APK` pointing at the previous verified release.
-5. Apply the code change in the same commit.
-6. Do **not** add/rename/copy a current-version APK yet.
-
-### Phase B — local verification/release finalization
-
-Using the exact source commit from Phase A:
-
-1. Build with Java 21:
-   `./gradlew testDebugUnitTest lintDebug :app:assembleDebug --offline`
-2. Verify APK manifest:
-   `aapt dump badging <apk>`
-   - package must be `com.local.listentomusic`
-   - `versionName` and `versionCode` must match Gradle exactly.
-3. Install on the A55/API 36 test target when available.
-4. Smoke:
-   - `dumpsys package` reports expected version
-   - monkey/manual launch succeeds
-   - `pidof` shows the app alive
-   - logcat contains **0 FATAL EXCEPTION** for the tested flow.
-5. Verify the expected signing certificate for the personal sideload build.
-6. Compute SHA-256.
-7. Create a **new** `greater-art/releases/GreaterArt-<version>.apk`. Never overwrite an existing versioned APK.
-8. Update this file:
-   - `Current release state: VERIFIED`
-   - `Latest verified APK` = current source version/code.
-9. Update `HANDOFF.md` release header with exact version/code, APK filename, size/hash, build date, and verification boundary.
-10. Run:
-    `python3 scripts/validate-greater-art-version.py --release`
-11. Only then commit the APK/release metadata. That finalization commit must not contain app/tooling code changes.
-
-## Failure/recovery rules
-
-- Build failed after a source commit: keep that version consumed. Fixing code requires the next PATCH/code.
-- Network/agent interruption before the commit landed: re-read `main`; do not assume a version was consumed.
-- Network/agent interruption after the commit landed: continue from that exact commit; do not recreate or reuse its version.
-- Current-version APK already exists before verification: stop. Do not overwrite it. Investigate whether it is a valid immutable artifact.
-- Existing APK is byte-identical to an older version or was produced by rename/copy: reject it and consume a new PATCH for any corrective code change.
-
 ## Automated guard
 
 `.github/workflows/version-consistency.yml` runs `scripts/validate-greater-art-version.py`.
-
-The guard checks:
-
-- Gradle matches the machine-checkable state above.
-- the tracked version ledger is sequential, except for exact one-time `Allowed series transition` entries.
-- each versioned code commit in the pushed/PR range bumps PATCH and code exactly once.
-- a code-changing commit lands as `SOURCE_ONLY`.
-- release APK paths are immutable: modification/rename/copy is rejected.
-- a newly added APK filename matches that commit's Gradle version.
-- `--release` additionally requires the current APK, exact HANDOFF release metadata, SHA-256, and `aapt dump badging` match.
 
 ## Versions tracked
 
