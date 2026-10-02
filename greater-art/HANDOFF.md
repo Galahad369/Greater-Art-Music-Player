@@ -9,9 +9,17 @@ This file describes the **current repository state only**. Historical session no
 **Signing certificate SHA-256:** `9e28eb45b3b171c3ea47d7da942d28d88b16538885e392a6971a80906d612fbf`
 **Build date:** `2026-10-02`
 **Test device:** `GreaterArt_A55_API36 (A55, API 36, Android 17)`
-**Verification boundary:** Built from exact source commit `a7befc36`; `./gradlew testDebugUnitTest lintDebug :app:assembleDebug --offline` passed; `aapt dump badging` confirms package `com.local.listentomusic`, versionName `1.15.23`, versionCode `153`; signed with the recorded personal sideload certificate; installed on A55/API 36; launch and the documented playback/library/queue/Stack/mini-window/fullscreen smoke flows passed with **0 FATAL EXCEPTION** in the tested session.
+**Verification boundary:** The 1.15.25 version-carrying merge is `8e823b0a`; compared with the 1.15.24 source commit `e37184b9`, it changes version/release metadata but not the reviewed surface implementation/test files. Release-finalization commit `964890a7` records `./gradlew testDebugUnitTest lintDebug :app:assembleDebug --offline` passing, `aapt dump badging` confirming package `com.local.listentomusic`, versionName `1.15.25`, versionCode `155`, the recorded personal sideload certificate, A55/API 36 install/smoke coverage, and **0 FATAL EXCEPTION**. The intervening `ea4426eb` is repository-hygiene-only.
 
 ## Repository state
+
+### October 2 — post-1.15.25 convergence audit (documentation only)
+
+- Reconciled the final 1.15.24 -> 1.15.25 history after concurrent branch activity. The surface implementation/test files are unchanged between source commit `e37184b9` and the 1.15.25 convergence merge `8e823b0a`; 1.15.25 advances version/release metadata and is the canonical verified release.
+- PR #71 and PR #72 were closed as superseded by live main. Their useful executable behavior/provenance is represented on main; neither requires a separate merge.
+- Corrected stale handoff verification text and ledger descriptions only. No executable source, APK, build logic, permissions, dependencies, or signing material changed in this audit.
+- Current source/release remains **1.15.25/code155 VERIFIED**.
+
 
 ### October 2 — 1.15.25 surface first-frame attribution and reconcile-churn fix (verified)
 
@@ -19,7 +27,7 @@ This file describes the **current repository state only**. Historical session no
 - Root cause for the false frame timeout: primary media changes were reset from a Player.Listener callback using callback-receipt time, while the lower-level renderer callback carries its actual render timestamp. If the renderer callback arrives first and the media-transition callback is dispatched later, the transition reset can erase valid new-stream frame evidence and advance the generation after the frame.
 - Primary media-transition attribution now uses AnalyticsListener event time. SurfaceLease keeps the renderer timestamp and, only when the same active lease already rendered at or after that transition time, carries that evidence into the new media generation. Frames before the transition remain stale and are cleared normally.
 - Unchanged activity/presentation updates now return before reconciliation, and repeated registration of the already-active same view/player/owner is ignored. This removes recomposition/player-event no-op reconcile churn without weakening real owner handoffs.
-- 1.15.24/code154 remains consumed by the stale side-branch attempt recorded below; canonical source therefore advances from verified 1.15.23/code153 to 1.15.25/code155.
+- 1.15.24/code154 already carried and verified the same reviewed surface implementation. Concurrent branch convergence then advanced the repository to 1.15.25/code155 without additional changes to the four surface implementation/test files.
 - No decoder choice, media quality, permissions, network access, signing, Stack behavior, or release APK is changed.
 - **Build verified locally:** `./gradlew testDebugUnitTest lintDebug :app:assembleDebug --offline` passed; `aapt dump badging` confirms package `com.local.listentomusic`, versionName `1.15.25`, versionCode `155`; signed with personal debug keystore; installed on A55/API 36; launch, library scan/load, local audio/video playback, prev/next/seek/pause/resume, playlist/Favorites playback, duplicate queue independence, Stack→Library/playlist transition, queue/Library add-to-list, Library delete three-confirm flow, mini-window/fullscreen/return flows verified; **0 FATAL EXCEPTION** in tested session.
 - State: **VERIFIED**. Latest verified APK is **1.15.25/code155**.
@@ -27,7 +35,7 @@ This file describes the **current repository state only**. Historical session no
 ### October 2 — post-1.15.23 branch-convergence audit (documentation only)
 
 - Re-reviewed every surviving branch against canonical 1.15.23 main. All useful color-theme, transport-alignment, same-side seek, Stack performance/synchronization, workflow, privacy, and security work is already represented on main.
-- PR #70 / `fix/1.15.24-final-convergence` is stale: it was prepared from pre-1.15.22 history and removed StackRecommend after that helper had already been integrated on main. It was closed without merge; 1.15.24/code154 remains consumed and must not be reused.
+- PR #70 / `fix/1.15.24-final-convergence` was stale and closed without merge. The 1.15.24 identity was later used canonically by the independently reviewed surface-attribution fix, so the stale PR did not define the final 1.15.24 content.
 - The only other divergent branch content is an empty Copilot plan commit or Replit's weaker/superseded gesture implementation; neither changes canonical behavior.
 - Corrected the top-level 1.15.23 verification boundary, which had accidentally retained the older 1.15.20 source/version text. No APK, executable source, build logic, permissions, dependencies, signing material, or release artifact changed in this documentation-only audit.
 - Current source/release remains **1.15.23/code153 VERIFIED**.

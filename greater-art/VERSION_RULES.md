@@ -152,8 +152,8 @@ The guard checks:
 - 1.15.21 (code 151) — superseded final-convergence PR published after concurrent main drift; version consumed on side branch, not merged
 - 1.15.22 (code 152) — Grok Stack branch republished only the already-present offline recommendation helper/test with stale 1.15.19 policy metadata; version consumed, rejected
 - 1.15.23 (code 153) — canonical forward recovery: remove the unintegrated Stack recommendation helper/test, preserve the reviewed 1.15.20 same-side seek + workflow docs, and restore one coherent main timeline; local build verified
-- 1.15.24 (code 154) — stale final-convergence side branch / PR #70 prepared from pre-1.15.22 main; removed StackRecommend after that helper had already been integrated on main; version consumed, not merged
-- 1.15.25 (code 155) — video-surface first-frame attribution recovery using analytics event time plus unchanged-presentation/candidate reconcile deduplication; local build verified
+- 1.15.24 (code 154) — canonical video-surface first-frame attribution recovery using analytics event time plus unchanged-presentation/candidate reconcile deduplication; local build verified
+- 1.15.25 (code 155) — concurrent-branch convergence advanced the already-reviewed 1.15.24 surface implementation to the next source identity without further surface source/test changes; local build verified
 
 Previous baseline: 1.13.26 (code 115).
 
