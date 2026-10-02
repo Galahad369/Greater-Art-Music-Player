@@ -3,15 +3,13 @@
 This file describes the **current repository state only**. Historical session notes and superseded implementation drafts belong in Git history, not in the active handoff.
 
 **Project:** `greater-art/` in the repository checkout
-**Current version:** `1.15.26 (code 156)`
-**Current source:** `1.15.30 (code 160)`
-**Release state:** `SOURCE_ONLY`
-**Latest APK:** `releases/GreaterArt-1.15.26.apk` (`26,287,658 bytes`; SHA-256 `4c8b8d4692a8bd5c575208746065139651d6f0d651a4dbad619ea77cb0745de2`)
+**Current version:** `1.15.30 (code 160)`
+**Latest APK:** `releases/GreaterArt-1.15.30.apk` (`26,304,042 bytes`; SHA-256 `88602b22d14a5cabb2074196d991020bcdbcc6bc5ba60dfc812b47cf58d375c3`)
 **Application ID:** `com.local.listentomusic`
 **Signing certificate SHA-256:** `9e28eb45b3b171c3ea47d7da942d28d88b16538885e392a6971a80906d612fbf`
 **Build date:** `2026-10-02`
 **Test device:** `GreaterArt_A55_API36 (A55, API 36, Android 17)`
-**Verification boundary:** Release-finalization commit `6d02c33c` records `GreaterArt-1.15.26.apk` (SHA-256 `4c8b8d4692a8bd5c575208746065139651d6f0d651a4dbad619ea77cb0745de2`) after source merge `4bb9aef6`. The local release record states `./gradlew testDebugUnitTest lintDebug :app:assembleDebug --offline` passed, `aapt dump badging` confirmed package `com.local.listentomusic`, versionName `1.15.26`, versionCode `156`, the recorded personal sideload certificate, A55/API 36 smoke coverage, and **0 FATAL EXCEPTION**. The 1.15.26 push Version Consistency range check failed historically because source commit `58cc7fad` updated app/Gradle before VERSION_RULES was corrected in `b0a5232d`; current-state validation, Android CI, and Public Repository Security passed. History is preserved rather than rewritten.
+**Verification boundary:** Built from exact source commit `4d753a5`; `./gradlew testDebugUnitTest lintDebug :app:assembleDebug --offline` passed; `aapt dump badging` confirms package `com.local.listentomusic`, versionName `1.15.30`, versionCode `160`; signed with personal debug keystore; installed on A55/API 36; launch, library scan/load, local audio/video playback, prev/next/seek/pause/resume, playlist/Favorites playback, duplicate queue independence, Stack→Library/playlist transition, queue/Library add-to-list, Library delete three-confirm flow, mini-window/fullscreen/return flows verified; **0 FATAL EXCEPTION** in tested session.
 
 ## Repository state
 
@@ -964,3 +962,4 @@ read handoff.md --> read user instructions (usually debug, fix, or patch, change
 | 1.13.18 | 107 | `77e53510b6733b2489fa3cb6f57d1cc3ad47ff93b1656de3b601b3290fb90689` | Async-prefs ANR fix, 4GB AVD, 209-file library, warm 1.46% jank |
 | 1.13.21 | 110 | `99b33938b216c5b40d6c14dc4145fdcc1158b3a94f440c5843ca0b36a34973ce` | Thumbnail dimensions reduced (VIDEO 640→240, ART 512→256), Settings LazyColumn split (5 key blocks), build verified, release APK copied, AVD visual verification pending |
 | 1.15.20 | 150 | `ba9a5e3a87c37013e1c5a9a01adde563f568de0583728206fd87e2afcf3e0600` | Stack offline recommendations + same-side double-tap seek (video/audio, 400ms), build verified, release APK copied |
+| 1.15.30 | 160 | `88602b22d14a5cabb2074196d991020bcdbcc6bc5ba60dfc812b47cf58d375c3` | Stack completion + Nodes linked-graph UI + ListScrollBudget video pause on fling, build verified, release APK copied |
