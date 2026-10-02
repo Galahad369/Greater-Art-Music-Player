@@ -33,7 +33,8 @@ This file describes the **current repository state only**. Historical session no
 - Stack save preserves the existing privacy/UX contract: it writes only to the local playlist store and does **not** silently switch the active Library list. Successful saves now surface through the existing reversible snackbar; Undo removes only the just-created playlist.
 - Library `Delete list` no longer deletes immediately from a menu tap. It opens an explicit confirmation matching Settings and states that media files remain untouched.
 - Playlist deletion reads the latest persisted preference snapshot. Undo restores the deleted playlist and, when it had been active, restores that active selection as well.
-- State: **SOURCE_ONLY** at **1.15.43/code173**. Latest verified APK remains **1.15.42/code172**.
+- Release-finalization commit `3bf3e138` added the immutable `GreaterArt-1.15.43.apk` after the exact 1.15.43 source passed build/device verification; package/version, pinned signing identity, and the A55/API 36 smoke path were checked with **0 FATAL EXCEPTION** in the tested session.
+- State: **VERIFIED** at **1.15.43/code173**. Latest verified APK is **1.15.43/code173**.
 
 
 ### October 2 — 1.15.42 wallpaper-decoder-budget convergence (verified)
