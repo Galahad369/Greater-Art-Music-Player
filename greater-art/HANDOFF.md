@@ -4,7 +4,7 @@ This file describes the **current repository state only**. Historical session no
 
 **Project:** `greater-art/` in the repository checkout
 **Current version:** `1.15.26 (code 156)`
-**Current source:** `1.15.27 (code 157)`
+**Current source:** `1.15.29 (code 159)`
 **Release state:** `SOURCE_ONLY`
 **Latest APK:** `releases/GreaterArt-1.15.26.apk` (`26,287,658 bytes`; SHA-256 `4c8b8d4692a8bd5c575208746065139651d6f0d651a4dbad619ea77cb0745de2`)
 **Application ID:** `com.local.listentomusic`
@@ -14,6 +14,16 @@ This file describes the **current repository state only**. Historical session no
 **Verification boundary:** Release-finalization commit `6d02c33c` records `GreaterArt-1.15.26.apk` (SHA-256 `4c8b8d4692a8bd5c575208746065139651d6f0d651a4dbad619ea77cb0745de2`) after source merge `4bb9aef6`. The local release record states `./gradlew testDebugUnitTest lintDebug :app:assembleDebug --offline` passed, `aapt dump badging` confirmed package `com.local.listentomusic`, versionName `1.15.26`, versionCode `156`, the recorded personal sideload certificate, A55/API 36 smoke coverage, and **0 FATAL EXCEPTION**. The 1.15.26 push Version Consistency range check failed historically because source commit `58cc7fad` updated app/Gradle before VERSION_RULES was corrected in `b0a5232d`; current-state validation, Android CI, and Public Repository Security passed. History is preserved rather than rewritten.
 
 ## Repository state
+
+### October 2 — 1.15.29 pause decorative video during list flings (source only)
+
+- Reviewed and rejected draft PR #74: its head was plan-only and its 1.15.28 Grok base only bumped Gradle and added an unused `ListScrollBudget` helper. 1.15.28/code158 is consumed and not reused.
+- Carried the intended optimization forward completely at **1.15.29/code159**. Library, Now Playing queue, Stack track list, and Stack picker report active fling/scroll ownership into one shared budget.
+- `AppBackground` keeps CURRENT_VIDEO/CUSTOM_VIDEO attached while a list is scrolling, but sets the decorative player's `shouldPlay` false. CURRENT_VIDEO also suspends horizontal crop-position updates until scrolling settles. The player is not released/recreated for each fling.
+- Scroll effects clear their holder in `finally`, preventing a disposed list from leaving the wallpaper permanently paused.
+- No primary playback, media quality, permissions, networking, signing, dependency, theme-palette, or release APK changes.
+- State: **SOURCE_ONLY** at **1.15.29/code159**. Latest verified APK remains **1.15.26/code156**.
+
 
 ### October 2 — 1.15.27 final branch convergence / top-bar alignment (source only)
 

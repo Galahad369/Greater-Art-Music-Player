@@ -73,6 +73,7 @@ fun AppBackground(
     modifier: Modifier = Modifier,
     visible: Boolean = true,
     allowVideoBackground: Boolean = true,
+    listScrolling: Boolean = false,
     horizontalPosition: (() -> Float)? = null,
 ) {
     val mode = preferences.backgroundMode
@@ -145,7 +146,7 @@ fun AppBackground(
                     ?.let {
                         BackgroundVideo(
                             source = it,
-                            shouldPlay = true,
+                            shouldPlay = !listScrolling,
                             scaleMode = preferences.backgroundScaleMode,
                         )
                     }
@@ -155,10 +156,10 @@ fun AppBackground(
             AppBackgroundMode.CURRENT_VIDEO -> if (currentVideoUri != null && attachVideoBackground) {
                 BackgroundVideo(
                     source = currentVideoUri,
-                    shouldPlay = true,
+                    shouldPlay = !listScrolling,
                     syncController = controller,
                     scaleMode = preferences.backgroundScaleMode,
-                    horizontalPosition = horizontalPosition,
+                    horizontalPosition = if (listScrolling) null else horizontalPosition,
                 )
             }
         }

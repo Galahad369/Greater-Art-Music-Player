@@ -7,7 +7,7 @@ This file is the authoritative version policy for Greater Art. If any handoff no
 ## Machine-checkable state
 
 
-Current source: **1.15.27 (code 157)**
+Current source: **1.15.29 (code 159)**
 Current release state: **SOURCE_ONLY**
 Latest verified APK: **1.15.26 (code 156)**
 Allowed series transition: **1.14.15 -> 1.15.1**
@@ -20,6 +20,7 @@ Allowed consumed transition: **1.15.23 (code 153) -> 1.15.24 (code 154)**
 Allowed consumed transition: **1.15.24 (code 154) -> 1.15.25 (code 155)**
 Allowed consumed transition: **1.15.25 (code 155) -> 1.15.26 (code 156)**
 Allowed consumed transition: **1.15.26 (code 156) -> 1.15.27 (code 157)**
+Allowed consumed transition: **1.15.27 (code 157) -> 1.15.29 (code 159)**
 
 ## Non-negotiable rules
 
@@ -158,6 +159,8 @@ The guard checks:
 - 1.15.25 (code 155) — concurrent-branch convergence advanced the already-reviewed 1.15.24 surface implementation to the next source identity without further surface source/test changes; local build verified
 - 1.15.26 (code 156) — **Grok**: LIBRARY_FAMILY_NAV text → icons (Layers / LibraryMusic / Hub); local build verified
 - 1.15.27 (code 157) — final branch convergence: carry forward Replit Now Playing lock/top-bar alignment using shared GaControl touch-target tokens; source only, CI pending
+- 1.15.28 (code 158) — incomplete Grok list-scroll branch: version bump plus unused `ListScrollBudget` helper only; intended AppBackground/list wiring never landed; version consumed, not merged
+- 1.15.29 (code 159) — canonical list-scroll video budget: Library, Now Playing queue, Stack list and Stack picker report fling state; decorative CURRENT_VIDEO/CUSTOM_VIDEO stays attached but pauses playback/crop-position work until scrolling settles; source only, CI pending
 
 Previous baseline: 1.13.26 (code 115).
 

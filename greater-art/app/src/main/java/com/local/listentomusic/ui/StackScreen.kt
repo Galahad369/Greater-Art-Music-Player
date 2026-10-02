@@ -64,6 +64,15 @@ fun StackScreen(
             }
         }
         val trackListState = rememberLazyListState()
+        LaunchedEffect(trackListState) {
+            try {
+                snapshotFlow { trackListState.isScrollInProgress }.collect { scrolling ->
+                    ListScrollBudget.set("stack", scrolling)
+                }
+            } finally {
+                ListScrollBudget.set("stack", false)
+            }
+        }
         LazyColumn(Modifier.fillMaxWidth().weight(1f).inspectElement("STACK_TRACK_LIST", "Up to eight simultaneous tracks"),
             state = trackListState, contentPadding = PaddingValues(bottom = 12.dp)) {
             items(displayed, key = { it.file.path }) { slot ->
@@ -240,6 +249,15 @@ private fun StackLibraryPicker(
                 }
                 Spacer(Modifier.height(8.dp))
                 val pickerListState = rememberLazyListState()
+                LaunchedEffect(pickerListState) {
+                    try {
+                        snapshotFlow { pickerListState.isScrollInProgress }.collect { scrolling ->
+                            ListScrollBudget.set("stack_picker", scrolling)
+                        }
+                    } finally {
+                        ListScrollBudget.set("stack_picker", false)
+                    }
+                }
                 LazyColumn(Modifier.heightIn(min = 260.dp, max = 470.dp), state = pickerListState) {
                     items(choices, key = { it.path }) { file ->
                         ListItem(
