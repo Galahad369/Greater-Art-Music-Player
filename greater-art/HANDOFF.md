@@ -15,6 +15,14 @@ This file describes the **current repository state only**. Historical session no
 
 ## Repository state
 
+### October 2 — post-1.15.31 final PR/branch audit (documentation only)
+
+- PR #78 merged the persistent user-owned Stack keyword as canonical **1.15.31/code161** after Version Consistency, Android test/lint/assemble, privacy/history audit, dependency review, and CodeQL passed on its exact source head.
+- PR #79 / `feat/1.15.32-stack-keyword` was a redundant forward-port created during concurrent main metadata churn. Direct Git blob comparison confirmed its six executable/test files were byte-for-byte identical to merged 1.15.31.
+- PR #79 was closed unmerged. Its published **1.15.32/code162** identity is consumed and must not be reused; it does not replace or supersede canonical 1.15.31.
+- No executable source, APK, dependency, permission, signing material, or release state changes in this audit. Current source remains **1.15.31/code161 SOURCE_ONLY**; latest verified APK remains **1.15.26/code156**.
+
+
 ### October 2 — 1.15.31 persistent Stack keyword (source only)
 
 - The Save Stack dialog now accepts an optional user-owned **Stack keyword** in addition to the pinned Stack tracks.
