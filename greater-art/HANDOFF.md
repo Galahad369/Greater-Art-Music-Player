@@ -4,14 +4,24 @@ This file describes the **current repository state only**. Historical session no
 
 **Project:** `greater-art/` in the repository checkout
 **Current version:** `1.15.38 (code 168)`
+**Current source:** `1.15.38 (code 168)`
+**Release state:** `VERIFIED`
 **Latest APK:** `releases/GreaterArt-1.15.38.apk` (`26,353,198 bytes`; SHA-256 `da07870b4f06defffbae6a0edd564ed34aa9ddfa21aa3924d89c65c4a5079fa7`)
 **Application ID:** `com.local.listentomusic`
 **Signing certificate SHA-256:** `9e28eb45b3b171c3ea47d7da942d28d88b16538885e392a6971a80906d612fbf`
 **Build date:** `2026-10-02`
 **Test device:** `GreaterArt_A55_API36 (A55, API 36, Android 17)`
-**Verification boundary:** Authoritative VERSION_RULES and repository contents establish 1.15.34/code164 as SOURCE_ONLY. No `releases/GreaterArt-1.15.34.apk` exists on main; the latest repository-backed verified APK remains 1.15.26/code156.
+**Verification boundary:** Current source and release metadata agree at `1.15.38/code168`. `releases/GreaterArt-1.15.38.apk` is the current immutable verified artifact; its recorded SHA-256 is `da07870b4f06defffbae6a0edd564ed34aa9ddfa21aa3924d89c65c4a5079fa7`. PR #89's exact source head passed Android test/lint/assemble, Version Consistency, privacy/secret audit, dependency review, and CodeQL before merge.
 
 ## Repository state
+
+### October 2 — 1.15.38 Stack crash-hardening convergence (verified)
+
+- PR #89 merged the canonical Stack crash-hardening source as **1.15.38/code168** after the exact source head passed Android `testDebugUnitTest lintDebug assembleDebug`, Version Consistency, privacy/secret audit, dependency review, and CodeQL.
+- Companion-player failures are marshalled onto the main looper, failed voices are stopped/released safely, released coordinators reject new starts, and Stack collapses to normal playback when fewer than two healthy tracks remain.
+- Preserves the 1.15.34 whole-Stack loop contract and the 1.15.36 consumed-transition validator fix.
+- **1.15.37/code167** remains a consumed side-branch identity from closed, unmerged PR #88; it is not a canonical main version.
+- Release finalization added `releases/GreaterArt-1.15.38.apk` and marked current source **VERIFIED**. No source or tooling change is introduced by this bookkeeping repair.
 
 ### October 2 — 1.15.36 version-guard consumed-transition consistency (source only)
 
