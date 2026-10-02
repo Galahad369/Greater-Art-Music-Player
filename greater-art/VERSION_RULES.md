@@ -7,7 +7,7 @@ This file is the authoritative version policy for Greater Art. If any handoff no
 ## Machine-checkable state
 
 
-Current source: **1.15.36 (code 166)**
+Current source: **1.15.38 (code 168)**
 Current release state: **SOURCE_ONLY**
 Latest verified APK: **1.15.26 (code 156)**
 Allowed series transition: **1.14.15 -> 1.15.1**
@@ -23,6 +23,7 @@ Allowed consumed transition: **1.15.26 (code 156) -> 1.15.27 (code 157)**
 Allowed consumed transition: **1.15.27 (code 157) -> 1.15.29 (code 159)**
 Allowed consumed transition: **1.15.31 (code 161) -> 1.15.34 (code 164)**
 Allowed consumed transition: **1.15.34 (code 164) -> 1.15.36 (code 166)**
+Allowed consumed transition: **1.15.36 (code 166) -> 1.15.38 (code 168)**
 
 ## Non-negotiable rules
 
@@ -168,6 +169,8 @@ The guard checks:
 - Consumed side-branch identity: **1.15.33 (code 163)** — rejected Grok crash-hardening commit `82c9e654`; despite its message claiming a full fix, its executable diff replaced the entire Stack coordinator with the literal `PLACEHOLDER`; consumed, not merged, never reuse
 - 1.15.34 (code 164) — Stack mini-window event-churn reduction plus whole-Stack loop control; duplicate compact binding/layout/artwork work is gated, and Stack repeat toggles synchronized session restart instead of independent primary repeat; source only, CI pending
 - 1.15.36 (code 166) — version-guard consistency fix: current-state ledger validation now honors exact Allowed consumed transition entries using the same version/code-step helper as commit-range validation; source only, CI pending
+- Consumed side-branch identity: **1.15.37 (code 167)** — stale combined convergence PR #88 was published from pre-1.15.36 main while PR #86 concurrently made 1.15.36 canonical; closed unmerged and must not be reused
+- 1.15.38 (code 168) — corrected Stack crash hardening: companion errors mutate shared state on the main looper, failed voices are safely released, released coordinators reject new starts, and Stack collapses below two healthy tracks while preserving canonical whole-Stack loop behavior; source only, CI pending
 - Consumed side-branch identity: **1.15.35 (code 165)** — redundant forward-port PR #82; executable/test blobs were byte-for-byte identical to canonical 1.15.34, so it was closed without merge and must not be reused
 - Consumed side-branch identity: **1.15.32 (code 162)** — redundant forward-port PR #79; executable/test blobs were identical to merged 1.15.31, so it was closed without merge and must not be reused
 
