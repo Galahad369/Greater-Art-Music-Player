@@ -167,6 +167,7 @@ The guard checks:
 - Consumed side-branch identity: **1.15.33 (code 163)** — rejected Grok crash-hardening commit `82c9e654`; despite its message claiming a full fix, its executable diff replaced the entire Stack coordinator with the literal `PLACEHOLDER`; consumed, not merged, never reuse
 - 1.15.34 (code 164) — Stack mini-window event-churn reduction plus whole-Stack loop control; duplicate compact binding/layout/artwork work is gated, and Stack repeat toggles synchronized session restart instead of independent primary repeat; source only, CI pending
 - Consumed side-branch identity: **1.15.32 (code 162)** — redundant forward-port PR #79; executable/test blobs were identical to merged 1.15.31, so it was closed without merge and must not be reused
+- Consumed side-branch identity: **1.15.35 (code 165)** — redundant Stack mini-window/group-loop forward-port `b427c018`; all executable/test blobs match canonical 1.15.34, so it is not merged and must not be reused
 
 Previous baseline: 1.13.26 (code 115).
 
