@@ -52,6 +52,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.drawscope.clipRect
 import androidx.compose.foundation.shape.CircleShape
@@ -1523,21 +1524,25 @@ private fun PlayerBottomControls(
         verticalAlignment = Alignment.CenterVertically,
     ) {
         IconButton(
-            onClick = onRepeat,
-            modifier = Modifier.size(48.dp).inspectElement(
-                "REPEAT_BUTTON",
-                if (playback.stackCount > 0) "Loop whole Stack: $cycleLabel" else cycleLabel,
-            ),
-        ) {
-            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Icon(when {
-                    playback.shuffleEnabled -> Icons.Rounded.Shuffle
-                    playback.repeatMode == Player.REPEAT_MODE_ONE -> Icons.Rounded.RepeatOne
-                    else -> Icons.Rounded.Repeat
-                }, uiText(playback.appLanguage, "Repeat mode", "重複模式"), Modifier.size(26.dp), tint = accent)
-                Text(cycleLabel, style = MaterialTheme.typography.labelSmall, maxLines = 1)
-            }
-        }
+                    onClick = onRepeat,
+                    modifier = Modifier
+                        .widthIn(min = 64.dp)
+                        .height(48.dp)
+                        .padding(horizontal = 4.dp)
+                        .inspectElement(
+                            "REPEAT_BUTTON",
+                            if (playback.stackCount > 0) "Loop whole Stack: $cycleLabel" else cycleLabel,
+                        ),
+                ) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth()) {
+                        Icon(when {
+                            playback.shuffleEnabled -> Icons.Rounded.Shuffle
+                            playback.repeatMode == Player.REPEAT_MODE_ONE -> Icons.Rounded.RepeatOne
+                            else -> Icons.Rounded.Repeat
+                        }, uiText(playback.appLanguage, "Repeat mode", "重複模式"), Modifier.size(26.dp), tint = accent)
+                        Text(cycleLabel, style = MaterialTheme.typography.labelSmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    }
+                }
         IconButton(onClick = onPrevious, enabled = playback.hasPrevious || playback.positionMs > 4_000L,
             modifier = Modifier.size(GaControl.touchTarget).inspectElement("PREVIOUS_BUTTON", "Previous media or restart current")) {
             Icon(Icons.Rounded.SkipPrevious, uiText(playback.appLanguage, "Previous", "上一首"), modifier = Modifier.size(GaControl.prominentIcon))
