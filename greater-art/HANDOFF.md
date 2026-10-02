@@ -3,26 +3,15 @@
 This file describes the **current repository state only**. Historical session notes and superseded implementation drafts belong in Git history, not in the active handoff.
 
 **Project:** `greater-art/` in the repository checkout
-**Current version:** `1.15.26 (code 156)`
-**Current source:** `1.15.38 (code 168)`
-**Release state:** `SOURCE_ONLY`
-**Latest APK:** `releases/GreaterArt-1.15.26.apk` (`26,287,658 bytes`; SHA-256 `4c8b8d4692a8bd5c575208746065139651d6f0d651a4dbad619ea77cb0745de2`)
+**Current version:** `1.15.36 (code 166)`
+**Latest APK:** `releases/GreaterArt-1.15.36.apk` (`26,287,658 bytes`; SHA-256 `4c0315426b14c87747570a5936ec355226fde6ded608756d1c08fa5f215976b9`)
 **Application ID:** `com.local.listentomusic`
 **Signing certificate SHA-256:** `9e28eb45b3b171c3ea47d7da942d28d88b16538885e392a6971a80906d612fbf`
 **Build date:** `2026-10-02`
 **Test device:** `GreaterArt_A55_API36 (A55, API 36, Android 17)`
-**Verification boundary:** Authoritative VERSION_RULES and repository contents establish 1.15.38/code168 as SOURCE_ONLY. No `releases/GreaterArt-1.15.38.apk` exists on main; the latest repository-backed verified APK remains 1.15.26/code156.
+**Verification boundary:** Authoritative VERSION_RULES and repository contents establish 1.15.34/code164 as SOURCE_ONLY. No `releases/GreaterArt-1.15.34.apk` exists on main; the latest repository-backed verified APK remains 1.15.26/code156.
 
 ## Repository state
-
-### October 2 — 1.15.38 Stack crash-hardening convergence (source only)
-
-- Forward-ports only the useful Stack crash-hardening onto canonical 1.15.36 after stale PR #88 published **1.15.37/code167** from an older base. That identity is consumed and not reused.
-- Companion-player error callbacks now marshal shared-state mutation onto the main looper. Failed companion voices are safely stopped/released and marked unavailable; when fewer than two healthy Stack tracks remain, playback collapses back to the normal single-player path.
-- Voice iteration/release paths use stable snapshots and guarded player operations, and a released coordinator refuses new Stack starts.
-- Preserves the canonical whole-Stack loop contract from 1.15.34: `StackPlaybackCoordinator.setLoop`, `StackSession.loopEnabled`, and `shouldRestartStack(...)` remain intact.
-- Preserves the canonical 1.15.36 version-validator fix. Source advances atomically to **1.15.38/code168**. State: **SOURCE_ONLY**; latest verified APK remains **1.15.26/code156**.
-
 
 ### October 2 — 1.15.36 version-guard consumed-transition consistency (source only)
 
