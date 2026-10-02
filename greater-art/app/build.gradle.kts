@@ -11,8 +11,8 @@ android {
                         applicationId = "com.local.listentomusic"
                         minSdk = 26
                         targetSdk = 37
-                        versionCode = 150
-                                                versionName = "1.15.20"
+                        versionCode = 151
+                                                versionName = "1.15.21"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables.useSupportLibrary = true
@@ -51,6 +51,8 @@ android {
 
     buildTypes {
         getByName("debug") {
+            // Personal sideload updates retain the historical certificate. Clean CI
+            // runners without this file use AGP's disposable verification key.
             if (pinnedSideloadKeystore.isFile) signingConfig = signingConfigs["sideloadDebug"]
         }
         release {

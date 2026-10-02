@@ -3,26 +3,29 @@
 This file describes the **current repository state only**. Historical session notes and superseded implementation drafts belong in Git history, not in the active handoff.
 
 **Project:** `greater-art/` in the repository checkout
-**Current version:** `1.15.20 (code 150)`
-**Latest APK:** `releases/GreaterArt-1.15.20.apk` (`26,304,042 bytes`; SHA-256 `ba9a5e3a87c37013e1c5a9a01adde563f568de0583728206fd87e2afcf3e0600`)
+**Current version:** `1.15.10 (code 140)`
+**Current source:** `1.15.21 (code 151)`
+**Release state:** `SOURCE_ONLY`
+**Latest APK:** `releases/GreaterArt-1.15.10.apk` (`26,287,658 bytes`; SHA-256 `cf362d30747685d03d462cf0d37aa7a7508eb3e76c60da2ad1b3be612adcd0a3`)
 **Application ID:** `com.local.listentomusic`
 **Signing certificate SHA-256:** `9e28eb45b3b171c3ea47d7da942d28d88b16538885e392a6971a80906d612fbf`
 **Build date:** `2026-10-02`
 **Test device:** `GreaterArt_A55_API36 (A55, API 36, Android 17)`
-**Verification boundary:** Built from exact source commit `ec9e0e7`; `./gradlew testDebugUnitTest lintDebug :app:assembleDebug --offline` passed; `aapt dump badging` confirms package `com.local.listentomusic`, versionName `1.15.20`, versionCode `150`; signed with personal debug keystore; installed on A55/API 36; launch, library scan/load, local audio/video playback, prev/next/seek/pause/resume, playlist/Favorites playback, duplicate queue independence, Stack→Library/playlist transition, queue/Library add-to-list, Library delete three-confirm flow, mini-window/fullscreen/return flows verified; **0 FATAL EXCEPTION** in tested session.
+**Verification boundary:** Built from exact source commit `56430b6`; `./gradlew testDebugUnitTest lintDebug :app:assembleDebug --offline` passed; `aapt dump badging` confirms package `com.local.listentomusic`, versionName `1.15.10`, versionCode `140`; signed with personal debug keystore; installed on A55/API 36; launch, library scan/load, local audio/video playback, prev/next/seek/pause/resume, playlist/Favorites playback, duplicate queue independence, Stack→Library/playlist transition, queue/Library add-to-list, Library delete three-confirm flow, mini-window/fullscreen/return flows verified; **0 FATAL EXCEPTION** in tested session.
 
 ## Repository state
 
-### October 2 — 1.15.20 same-side double-tap seek recovery (source only)
+### October 2 — 1.15.21 same-side double-tap and final branch convergence (source only)
 
-- Reviewed and rejected PR #65 as submitted: it downgraded source to consumed 1.15.18/code148, duplicated `doubleTapSeekDelta`, failed Android/CodeQL compilation, and did not wire the new detector into Now Playing.
-- PR #64 was a zero-diff draft on top of that broken branch and was closed without merge.
-- Recreated the useful behavior on current main: video and audio seek only after two taps on the same side within 400 ms; crossing sides or tapping the inert center breaks the pair.
-- Video long-press 2× playback is isolated from seek pairing, so a hold/release is not registered as one half of a double-tap seek.
-- Gesture pairing is local to the pointer detector and resets when the current media changes, avoiding Compose snapshot churn.
-- Existing low-overhead seek-feedback rendering is retained instead of the heavier Canvas/infinite-animation rewrite.
-- No playback-engine, media-quality, network-permission, signing, dependency, theme, or release-artifact changes.
+- 1.15.20/code150 was already consumed by conflicting published side branches and is not reused. PR #66 carried the real same-side double-tap implementation; the Grok Stack branch carried only an unintegrated recommendation helper/test plus stale 1.15.20 metadata.
+- Carries forward the stronger gesture implementation from PR #66: left/right taps pair only within the same side zone, the center remains inert, the pair resets on media changes, video hold-to-2× is isolated from seek pairing, and audio/video share the same-side rule.
+- Adds `CONTRIBUTING.md`, `greater-art/docs/AGENT_LOCAL_WORKFLOW.md`, and `greater-art/docs/AGENT_GITHUB_WORKFLOW.md` so local and GitHub-connected agents follow the version/review/privacy/release contract.
+- The abandoned 1.15.18 Grok/Copilot seek attempt is not merged: it used stale/consumed version metadata and never produced a complete canonical implementation. Replit's separate useful transport-control alignment was already integrated in 1.15.19.
+- PR #67 is rejected as plan-only: its head has no code changes beyond the incomplete Grok base, and the promised StackScreen replacement was never implemented. The unused Stack recommendation helper is not carried into main as dead code.
+- A concurrent release-finalization attempt briefly added an unverified remote 1.15.17 APK and changed the version validator without a source bump. Follow-up main cleanup removed that APK and restored 1.15.19 SOURCE_ONLY / 1.15.10 verified metadata; the filename-hardening validator change remains. History is not rewritten, so 1.15.21 is the forward-recovery source version.
+- No playback-engine, media-quality, permission, signing, dependency, theme-palette, or release-artifact changes.
 - State: **SOURCE_ONLY**. Latest verified APK remains **1.15.10/code140**.
+
 
 ### October 2 — 1.15.19 transport-control alignment and final branch convergence (source only)
 
@@ -881,6 +884,5 @@ read handoff.md --> read user instructions (usually debug, fix, or patch, change
 | Version | Code | APK SHA-256 | Notes |
 |---------|------|-------------|-------|
 | 1.13.16 | 105 | `ee7145b3369174c4ce9c5d95ec3b87a8009b45ce9bfe5639da33fba5ea29d935` | Scroll perf verified, thumbnail cache reverted, 209-file library test |
-| 1.13.18 | 107 | `77e53510b6733b2489fa3cb6f57d1cc3ad47ff93b1656de3b601b3290fb90689` | Async-prefs ANR fix, 4GB AVD, 209-file library, warm 1.46% jank |
-| 1.13.21 | 110 | `99b33938b216c5b40d6c14dc4145fdcc1158b3a94f440c5843ca0b36a34973ce` | Thumbnail dimensions reduced (VIDEO 640→240, ART 512→256), Settings LazyColumn split (5 key blocks), build verified, release APK copied, AVD visual verification pending |
-| 1.15.20 | 150 | `ba9a5e3a87c37013e1c5a9a01adde563f568de0583728206fd87e2afcf3e0600` | Stack offline recommendations + same-side double-tap seek (video/audio, 400ms), build verified, release APK copied |
+|| 1.13.18 | 107 | `77e53510b6733b2489fa3cb6f57d1cc3ad47ff93b1656de3b601b3290fb90689` | Async-prefs ANR fix, 4GB AVD, 209-file library, warm 1.46% jank |
+|| 1.13.21 | 110 | `99b33938b216c5b40d6c14dc4145fdcc1158b3a94f440c5843ca0b36a34973ce` | Thumbnail dimensions reduced (VIDEO 640→240, ART 512→256), Settings LazyColumn split (5 key blocks), build verified, release APK copied, AVD visual verification pending |
