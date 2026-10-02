@@ -1036,4 +1036,5 @@ read handoff.md --> read user instructions (usually debug, fix, or patch, change
 | 1.15.34 | 164 | `9659ec57e2a4fb78bc75a75df05017f5c9bd0a58d540f7dfe38ab3ee83124142` | Stack mini-window churn fix + group loop, build verified, release APK copied |
 | 1.15.38 | 168 | `da07870b4f06defffbae6a0edd564ed34aa9ddfa21aa3924d89c65c4a5079fa7` | Stack crash-hardening convergence (verified) |
 | 1.15.39 | 169 | `25db3b022eb5da45e867b54ff326ee8027608fc9ec7892293f5ac4b80b7036c8` | YouTube-style list-fling video budget — detach wallpaper surface, 80ms settle; verified release |
-| 1.15.42 | 172 | — | Canonical wallpaper decoder budget + version recovery; source only |
+| 1.15.42 | 172 | `2fe074f19403c63b8f06ca1f0609056cb9245370f2628b51373f9c6e85911369` | Canonical wallpaper decoder budget + version recovery (verified) |
+| 1.15.43 | 173 | `77e37b747f4122f289c936bc1f06e156575b102398fbc24f7ea4daab4b96cb61` | Stack save + playlist deletion fix, build verified, release APK copied |
