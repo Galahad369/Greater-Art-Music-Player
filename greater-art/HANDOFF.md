@@ -4,25 +4,26 @@ This file describes the **current repository state only**. Historical session no
 
 **Project:** `greater-art/` in the repository checkout
 **Current version:** `1.15.43 (code 173)`
-**Current source:** `1.15.44 (code 174)`
+**Current source:** `1.15.45 (code 175)`
 **Release state:** `SOURCE_ONLY`
 **Latest APK:** `releases/GreaterArt-1.15.43.apk` (`26,353,198 bytes`; SHA-256 `77e37b747f4122f289c936bc1f06e156575b102398fbc24f7ea4daab4b96cb61`)
 **Application ID:** `com.local.listentomusic`
 **Signing certificate SHA-256:** `9e28eb45b3b171c3ea47d7da942d28d88b16538885e392a6971a80906d612fbf`
 **Build date:** `2026-10-02`
 **Test device:** `GreaterArt_A55_API36 (A55, API 36, Android 17)`
-**Verification boundary:** Current source is `1.15.44/code174` and is **SOURCE_ONLY**. The latest immutable verified artifact remains `releases/GreaterArt-1.15.43.apk` (SHA-256 `77e37b747f4122f289c936bc1f06e156575b102398fbc24f7ea4daab4b96cb61`). No 1.15.44 release APK may exist until the exact source is built and device-verified under VERSION_RULES.
+**Verification boundary:** Current source is `1.15.45/code175` and is **SOURCE_ONLY**. The latest immutable verified artifact remains `releases/GreaterArt-1.15.43.apk` (SHA-256 `77e37b747f4122f289c936bc1f06e156575b102398fbc24f7ea4daab4b96cb61`). No 1.15.44 or 1.15.45 release APK may exist unless built and verified from its exact source under VERSION_RULES; 1.15.44 remains a consumed intermediate source identity.
 
 ## Repository state
 
-### October 2 — 1.15.44 fullscreen lifecycle + surface handoff hardening (source only)
+### October 2 — 1.15.45 fullscreen lifecycle + surface handoff hardening (source only)
 
-- Fullscreen video now has an explicit primary-surface ownership flag rather than depending on a never-finished `NOW_PLAYING` launch handoff for the entire Activity lifetime.
+- **1.15.44/code174 is consumed as an intermediate source identity.** Review found its explicit fullscreen flag still sat below the registered hidden Mini Window in owner priority, so completing the launch handoff could return the primary surface to the hidden overlay.
+- 1.15.45 corrects that priority mechanically: a live fullscreen Activity owns `NOW_PLAYING` even while the Mini Window service remains registered for return; when fullscreen is not active, ordinary system-overlay precedence is unchanged.
 - A transient fullscreen Activity pause (notification shade, system dialog, OEM transition) therefore keeps `NOW_PLAYING` authoritative instead of momentarily falling back to the hidden Mini Window owner.
-- The launch handoff is completed after the fullscreen PlayerView renders its first frame, with a 1.5 s cleanup timeout; explicit fullscreen ownership continues to keep the correct surface selected afterward.
-- Any terminal fullscreen Activity destruction now idempotently dispatches the return path unless Android is performing a configuration recreation, preventing `fullscreenActivityActive` from leaving the overlay suppressed.
-- Adds JVM coverage for fullscreen ownership across a transient loss of Activity foreground.
-- State: **SOURCE_ONLY** at **1.15.44/code174**. Latest verified APK remains **1.15.43/code173**.
+- The launch handoff is completed after the fullscreen PlayerView renders its first frame, with a 1.5 s cleanup timeout; explicit fullscreen ownership keeps the correct surface selected afterward without a stale handoff.
+- Any terminal fullscreen Activity destruction idempotently dispatches the return path unless Android is performing a configuration recreation, preventing `fullscreenActivityActive` from leaving the overlay suppressed.
+- JVM coverage now checks both fullscreen-over-hidden-overlay priority and unchanged ordinary overlay priority.
+- State: **SOURCE_ONLY** at **1.15.45/code175**. Latest verified APK remains **1.15.43/code173**.
 
 ### October 2 — 1.15.43 Stack save + delete-list reliability (verified)
 

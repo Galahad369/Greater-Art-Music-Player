@@ -5,8 +5,12 @@ internal fun expectedSurfaceOwner(
     nowPlaying: Boolean,
     pip: Boolean,
     fullscreenActivity: Boolean = false,
+    systemOverlayOwner: String? = null,
 ): String = when {
+    // A real fullscreen Activity must outrank the hidden overlay service that
+    // remains registered for the eventual return transition.
     fullscreenActivity -> "NOW_PLAYING"
+    systemOverlayOwner != null -> systemOverlayOwner
     pip -> "NOW_PLAYING"
     !foreground -> "MINI_WINDOW"
     nowPlaying -> "NOW_PLAYING"
