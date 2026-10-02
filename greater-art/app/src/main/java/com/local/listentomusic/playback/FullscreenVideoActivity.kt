@@ -10,17 +10,23 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.unit.dp
 import androidx.core.view.WindowCompat
+import androidx.lifecycle.lifecycleScope
 import com.local.listentomusic.MainActivity
 import com.local.listentomusic.MainViewModel
 import com.local.listentomusic.ui.NowPlayingScreen
 import com.local.listentomusic.ui.components.VideoSurfaceOwner
 import com.local.listentomusic.ui.theme.GreaterArtTheme
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withTimeoutOrNull
 
 /** A real Activity is required to rotate video; a system overlay cannot request orientation. */
 class FullscreenVideoActivity : ComponentActivity() {
     private val viewModel: MainViewModel by viewModels()
     private var returnDestination = "EXPANDED"
     private var returnDispatched = false
+    private var handoffCompletionJob: Job? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -87,8 +93,13 @@ class FullscreenVideoActivity : ComponentActivity() {
 
     override fun onResume() {
         super.onResume()
+        // Fullscreen is a real Activity, not a system overlay. Track it explicitly so
+        // a transient ON_PAUSE (shade/dialog/OEM transition) cannot hand the primary
+        // surface back to the hidden Mini Window while this Activity still owns video.
+        VideoSurfaceOwner.setFullscreenActivityVisible(true)
         VideoSurfaceOwner.setActivityForeground(true)
         VideoSurfaceOwner.setPresentation(nowPlayingVisible = true, pictureInPicture = false)
+        completeFullscreenHandoff()
     }
 
     override fun onPause() {
@@ -102,7 +113,10 @@ class FullscreenVideoActivity : ComponentActivity() {
     }
 
     override fun onDestroy() {
-        if (isFinishing && !isChangingConfigurations) dispatchReturn()
+        handoffCompletionJob?.cancel()
+        // Any terminal destruction must release fullscreen suppression. Android/OEM
+        // recreation is the only case where ownership should intentionally survive.
+        if (!isChangingConfigurations) dispatchReturn()
         super.onDestroy()
     }
 
@@ -113,13 +127,35 @@ class FullscreenVideoActivity : ComponentActivity() {
         finish()
     }
 
+    private fun completeFullscreenHandoff() {
+        handoffCompletionJob?.cancel()
+        handoffCompletionJob = lifecycleScope.launch {
+            // The launch handoff only bridges the old overlay surface to this Activity.
+            // Once the fullscreen PlayerView has produced a frame, explicit fullscreen
+            // ownership keeps NOW_PLAYING authoritative without leaving a stale handoff.
+            withTimeoutOrNull(1_500L) {
+                VideoSurfaceOwner.state.first { it.owner == "NOW_PLAYING" && it.firstFrame }
+            }
+            if (!returnDispatched) VideoSurfaceOwner.finishHandoff("NOW_PLAYING")
+        }
+    }
+
     private fun dispatchReturn() {
         if (returnDispatched) return
         returnDispatched = true
+        handoffCompletionJob?.cancel()
         VideoSurfaceOwner.beginHandoff("MINI_WINDOW")
-        startService(Intent(this, MiniWindowOverlayService::class.java).apply {
-            action = MiniWindowOverlayService.ACTION_FULLSCREEN_RETURN
-            putExtra(MiniWindowOverlayService.EXTRA_FULLSCREEN_DESTINATION, returnDestination)
-        })
+        VideoSurfaceOwner.setFullscreenActivityVisible(false)
+        val delivered = runCatching {
+            startService(Intent(this, MiniWindowOverlayService::class.java).apply {
+                action = MiniWindowOverlayService.ACTION_FULLSCREEN_RETURN
+                putExtra(MiniWindowOverlayService.EXTRA_FULLSCREEN_DESTINATION, returnDestination)
+            })
+        }.isSuccess
+        if (!delivered) {
+            // Allow onDestroy() to retry instead of permanently suppressing the player.
+            returnDispatched = false
+            VideoSurfaceOwner.finishHandoff("MINI_WINDOW")
+        }
     }
 }

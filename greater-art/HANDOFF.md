@@ -4,16 +4,27 @@ This file describes the **current repository state only**. Historical session no
 
 **Project:** `greater-art/` in the repository checkout
 **Current version:** `1.15.43 (code 173)`
+**Current source:** `1.15.44 (code 174)`
+**Release state:** `SOURCE_ONLY`
 **Latest APK:** `releases/GreaterArt-1.15.43.apk` (`26,353,198 bytes`; SHA-256 `77e37b747f4122f289c936bc1f06e156575b102398fbc24f7ea4daab4b96cb61`)
 **Application ID:** `com.local.listentomusic`
 **Signing certificate SHA-256:** `9e28eb45b3b171c3ea47d7da942d28d88b16538885e392a6971a80906d612fbf`
 **Build date:** `2026-10-02`
 **Test device:** `GreaterArt_A55_API36 (A55, API 36, Android 17)`
-**Verification boundary:** Built from exact source commit `HEAD`; `./gradlew testDebugUnitTest lintDebug :app:assembleDebug --offline` passed; `aapt dump badging` confirms package `com.local.listentomusic`, versionName `1.15.43`, versionCode `173`; signed with personal debug keystore; installed on A55/API 36; launch, library scan/load, local audio/video playback, prev/next/seek/pause/resume, playlist/Favorites playback, duplicate queue independence, Stack→Library/playlist transition, queue/Library add-to-list, Library delete three-confirm flow, mini-window/fullscreen/return flows verified; **0 FATAL EXCEPTION** in tested session.
+**Verification boundary:** Current source is `1.15.44/code174` and is **SOURCE_ONLY**. The latest immutable verified artifact remains `releases/GreaterArt-1.15.43.apk` (SHA-256 `77e37b747f4122f289c936bc1f06e156575b102398fbc24f7ea4daab4b96cb61`). No 1.15.44 release APK may exist until the exact source is built and device-verified under VERSION_RULES.
 
 ## Repository state
 
-### October 2 — 1.15.43 Stack save + delete-list reliability (source only)
+### October 2 — 1.15.44 fullscreen lifecycle + surface handoff hardening (source only)
+
+- Fullscreen video now has an explicit primary-surface ownership flag rather than depending on a never-finished `NOW_PLAYING` launch handoff for the entire Activity lifetime.
+- A transient fullscreen Activity pause (notification shade, system dialog, OEM transition) therefore keeps `NOW_PLAYING` authoritative instead of momentarily falling back to the hidden Mini Window owner.
+- The launch handoff is completed after the fullscreen PlayerView renders its first frame, with a 1.5 s cleanup timeout; explicit fullscreen ownership continues to keep the correct surface selected afterward.
+- Any terminal fullscreen Activity destruction now idempotently dispatches the return path unless Android is performing a configuration recreation, preventing `fullscreenActivityActive` from leaving the overlay suppressed.
+- Adds JVM coverage for fullscreen ownership across a transient loss of Activity foreground.
+- State: **SOURCE_ONLY** at **1.15.44/code174**. Latest verified APK remains **1.15.43/code173**.
+
+### October 2 — 1.15.43 Stack save + delete-list reliability (verified)
 
 - Final release-storage audit confirmed the historical 1.15.21 and 1.15.22 APKs are valid immutable verified artifacts: their release-finalization commits are ancestors of current main and explicitly added the matching APKs while marking those versions VERIFIED. VERSION_RULES provenance was corrected accordingly; no artifact was removed or rewritten.
 
