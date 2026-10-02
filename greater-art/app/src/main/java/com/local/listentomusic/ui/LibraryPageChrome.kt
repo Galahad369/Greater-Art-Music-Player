@@ -5,11 +5,14 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.ArrowBack
+import androidx.compose.material.icons.rounded.Hub
+import androidx.compose.material.icons.rounded.Layers
+import androidx.compose.material.icons.rounded.LibraryMusic
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
 import com.local.listentomusic.data.AppLanguage
 import com.local.listentomusic.ui.components.GaTonalIconAction
@@ -31,10 +34,19 @@ internal fun LibraryFamilyNavigationBar(
     onPage: (Int) -> Unit,
 ) {
     val position = libraryPagerNavigationPosition(currentPage, pageOffsetFraction)
-    val labels = listOf(
-        uiText(language, "Stack", "疊播"),
-        uiText(language, "All songs", "所有歌曲"),
-        uiText(language, "Nodes", "關聯圖"),
+    val destinations = listOf(
+        LibraryFamilyDestination(
+            icon = Icons.Rounded.Layers,
+            label = uiText(language, "Stack", "疊播"),
+        ),
+        LibraryFamilyDestination(
+            icon = Icons.Rounded.LibraryMusic,
+            label = uiText(language, "All songs", "所有歌曲"),
+        ),
+        LibraryFamilyDestination(
+            icon = Icons.Rounded.Hub,
+            label = uiText(language, "Nodes", "關聯圖"),
+        ),
     )
     Surface(
         modifier = Modifier.fillMaxWidth().statusBarsPadding()
@@ -46,18 +58,19 @@ internal fun LibraryFamilyNavigationBar(
                 Modifier.fillMaxWidth().height(52.dp).padding(horizontal = GaSpacing.sm),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                labels.forEachIndexed { index, label ->
+                destinations.forEachIndexed { index, destination ->
                     val selected = abs(position - index) < .5f
-                    TextButton(
+                    IconButton(
                         onClick = { onPage(index) },
                         modifier = Modifier.weight(1f).height(GaControl.touchTarget)
-                            .inspectElement("LIBRARY_FAMILY_NAV_$index", "Open $label"),
+                            .inspectElement("LIBRARY_FAMILY_NAV_$index", "Open ${destination.label}"),
                     ) {
-                        Text(
-                            label,
-                            color = if (selected) MaterialTheme.colorScheme.onBackground
+                        Icon(
+                            imageVector = destination.icon,
+                            contentDescription = destination.label,
+                            tint = if (selected) MaterialTheme.colorScheme.onBackground
                             else MaterialTheme.colorScheme.onSurfaceVariant,
-                            fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium,
+                            modifier = Modifier.size(if (selected) 26.dp else 24.dp),
                         )
                     }
                 }
@@ -76,6 +89,11 @@ internal fun LibraryFamilyNavigationBar(
         }
     }
 }
+
+private data class LibraryFamilyDestination(
+    val icon: ImageVector,
+    val label: String,
+)
 
 /** Shared Library-family header: Stack and Nodes are alternate Library views, not separate apps. */
 @Composable
