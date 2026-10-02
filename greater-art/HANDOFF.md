@@ -3,10 +3,8 @@
 This file describes the **current repository state only**. Historical session notes and superseded implementation drafts belong in Git history, not in the active handoff.
 
 **Project:** `greater-art/` in the repository checkout
-**Current version:** `1.15.38 (code 168)`
-**Current source:** `1.15.39 (code 169)`
-**Release state:** `SOURCE_ONLY`
-**Latest APK:** `releases/GreaterArt-1.15.38.apk` (`26,353,198 bytes`; SHA-256 `da07870b4f06defffbae6a0edd564ed34aa9ddfa21aa3924d89c65c4a5079fa7`)
+**Current version:** `1.15.39 (code 169)`
+**Latest APK:** `releases/GreaterArt-1.15.39.apk` (`26,353,198 bytes`; SHA-256 `25db3b022eb5da45e867b54ff326ee8027608fc9ec7892293f5ac4b80b7036c8`)
 **Application ID:** `com.local.listentomusic`
 **Signing certificate SHA-256:** `9e28eb45b3b171c3ea47d7da942d28d88b16538885e392a6971a80906d612fbf`
 **Build date:** `2026-10-02`
@@ -20,7 +18,7 @@ This file describes the **current repository state only**. Historical session no
 - Live main already contains the list-fling decorative-video surface-detach behavior at canonical **1.15.39/code169**: detach the wallpaper `PlayerView` during Library/queue/Stack flings, keep the prepared ExoPlayer, show the static fallback, and reattach after an 80 ms settle.
 - PR #91 / `fix/1.15.40-video-surface-budget-forward-port` was created from an older 1.15.38 base and became stale after 1.15.39 landed on main. Its remaining unique change was only a small test helper/seam; merging its metadata would incorrectly rewrite 1.15.39 provenance.
 - PR #91 was closed unmerged. Its published **1.15.40/code170** identity is consumed and must not be reused. The next executable source identity is therefore **1.15.41/code171** using the explicit consumed transition recorded in VERSION_RULES.
-- This audit changes documentation/ledger metadata only. Current source remains **1.15.39/code169 SOURCE_ONLY**; latest verified APK remains **1.15.38/code168**.
+- This audit changes documentation/ledger metadata only. Current source remains **1.15.39/code169 VERIFIED**; latest verified APK is **1.15.39/code169**.
 
 
 ### October 2 — 1.15.38 Stack crash-hardening convergence (verified)
