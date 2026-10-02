@@ -114,3 +114,6 @@ id_ed25519*
 **/lint-results-*.xml
 **/lint-results-*.txt
 **/lint-results-*.sarif
+
+# Skills — external at ../Random Coding stuff/skills/
+skills/
