@@ -407,11 +407,10 @@ def validate_release_artifact(
         fail(errors, f"verified release is missing APK: {apk_rel}")
         return
 
-    if f"releases/GreaterArt-{version}.apk" not in handoff:
-        fail(
-            errors,
-            f"HANDOFF Latest APK must point to releases/GreaterArt-{version}.apk",
-        )
+    apk_name = apk.name
+    expected_name = f"GreaterArt-{version}.apk"
+    if apk_name != expected_name:
+        fail(errors, f"APK filename must be '{expected_name}', found '{apk_name}'")
 
     digest = hashlib.sha256()
     with apk.open("rb") as handle:

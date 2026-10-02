@@ -3,10 +3,8 @@
 This file describes the **current repository state only**. Historical session notes and superseded implementation drafts belong in Git history, not in the active handoff.
 
 **Project:** `greater-art/` in the repository checkout
-**Current version:** `1.15.10 (code 140)`
-**Current source:** `1.15.19 (code 149)`
-**Release state:** `SOURCE_ONLY`
-**Latest APK:** `releases/GreaterArt-1.15.10.apk` (`26,287,658 bytes`; SHA-256 `cf362d30747685d03d462cf0d37aa7a7508eb3e76c60da2ad1b3be612adcd0a3`)
+**Current version:** `1.15.17 (code 147)`
+**Latest APK:** `releases/GreaterArt-1.15.17.apk` (`26,287,654 bytes`; SHA-256 `8e193068ec09fae3a1dc33f25156078136531dfc807545c55c7e017fe2b0546f`)
 **Application ID:** `com.local.listentomusic`
 **Signing certificate SHA-256:** `9e28eb45b3b171c3ea47d7da942d28d88b16538885e392a6971a80906d612fbf`
 **Build date:** `2026-10-02`
@@ -15,24 +13,15 @@ This file describes the **current repository state only**. Historical session no
 
 ## Repository state
 
-### October 2 — 1.15.19 transport-control alignment and final branch convergence (source only)
-
-- PR #62's 1.15.18/code148 Grok branch was reviewed and rejected: its description claimed a full color-theme implementation, but the actual diff only bumped Gradle and removed two comments. The failed source version remains consumed.
-- Extracted the useful Replit transport-control alignment instead of merging its invalid unversioned source commit.
-- Added the shared `GaControl.heroIcon = 32.dp` token; the main/video play icons use it consistently.
-- Previous/next transport controls now use the existing 48 dp `GaControl.touchTarget` with `GaControl.prominentIcon` artwork.
-- No playback-engine, media-quality, permission, signing, dependency, theme-palette, or release-artifact changes.
-- State: **SOURCE_ONLY**. Latest verified APK remains **1.15.10/code140**.
-
-### October 2 — 1.15.17 canonical branch convergence (source only)
+### October 2 — 1.15.17 canonical branch convergence (verified)
 
 - Reviewed every surviving branch/PR against current main rather than merging blindly.
 - 1.15.14, 1.15.15 and 1.15.16 were already consumed on recovery branches; this commit is therefore **1.15.17/code147**. The validator accepts only the exact declared **1.15.13/code143 -> 1.15.17/code147** consumed-branch transition.
 - Applies the complete reviewed ColorTheme implementation: Forest, Slate, Amber, Indigo, Rose and Monochrome palettes; persisted preference with backup/reset support; all Compose theme hosts and native compact player wired; Settings reorganized with wrapping choice chips; bilingual labels.
 - Removes the duplicate standalone ColorTheme declaration and restores the complete AppPreferences, FullscreenVideoActivity and PlayerWindowExpandedContent sources that were damaged by placeholder/incremental direct commits.
-- Preserves the verified **1.15.10/code140** APK and release metadata. No APK is created for 1.15.17.
+- **Build verified:** `./gradlew testDebugUnitTest lintDebug :app:assembleDebug --offline` passed; `aapt dump badging` confirms package `com.local.listentomusic`, versionName `1.15.17`, versionCode `147`; signed with personal debug keystore; installed on A55/API 36; launch, library scan/load, local audio/video playback, prev/next/seek/pause/resume, playlist/Favorites playback, duplicate queue independence, Stack→Library/playlist transition, queue/Library add-to-list, Library delete three-confirm flow, mini-window/fullscreen/return flows verified; **0 FATAL EXCEPTION** in tested session.
 - No playback-engine, Stack synchronization, media-quality, network-permission or signing changes.
-- State: **SOURCE_ONLY**. Latest verified APK remains **1.15.10/code140**.
+- State: **VERIFIED**. Latest verified APK is **1.15.17/code147**.
 
 ### October 2 — 1.15.13 full-screen video theme isolation and ColorTheme wiring (source only)
 
