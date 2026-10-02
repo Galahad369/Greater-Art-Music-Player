@@ -468,8 +468,13 @@ fun LibraryScreen(
                 } else {
                     val listState = rememberLazyListState()
                     LaunchedEffect(listState) {
-                        snapshotFlow { listState.isScrollInProgress }.collect { scrolling ->
-                            if (scrolling) openRowActionsPath = null
+                        try {
+                            snapshotFlow { listState.isScrollInProgress }.collect { scrolling ->
+                                ListScrollBudget.set("library", scrolling)
+                                if (scrolling) openRowActionsPath = null
+                            }
+                        } finally {
+                            ListScrollBudget.set("library", false)
                         }
                     }
                     LazyColumn(

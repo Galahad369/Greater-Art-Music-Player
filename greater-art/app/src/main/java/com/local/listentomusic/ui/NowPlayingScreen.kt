@@ -1063,8 +1063,13 @@ private fun NowPlayingQueue(
         }
     }
     LaunchedEffect(listState) {
-        snapshotFlow { listState.isScrollInProgress }.collect { scrolling ->
-            if (scrolling) openActionsKey = null
+        try {
+            snapshotFlow { listState.isScrollInProgress }.collect { scrolling ->
+                ListScrollBudget.set("now_playing_queue", scrolling)
+                if (scrolling) openActionsKey = null
+            }
+        } finally {
+            ListScrollBudget.set("now_playing_queue", false)
         }
     }
     Column(modifier.inspectElement("NOW_PLAYING_QUEUE", "Ordered playback queue and optional synchronized lyrics")) {

@@ -82,6 +82,7 @@ fun GreaterArtApp(
     val playHistory by viewModel.playHistory.collectAsStateWithLifecycle()
     val sleepTimer by viewModel.sleepTimer.collectAsStateWithLifecycle()
     val expandedPlayerVisible by com.local.listentomusic.playback.PlayerWindowVisibility.expandedShowing.collectAsStateWithLifecycle()
+    val listScrolling by ListScrollBudget.scrolling.collectAsStateWithLifecycle()
     val context = LocalContext.current
     val backupPicker = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("application/json")) { uri -> uri?.let { viewModel.backupSettings(it) } }
     val restorePicker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri -> uri?.let { viewModel.restoreSettings(it) } }
@@ -241,6 +242,7 @@ fun GreaterArtApp(
                 // Stack already owns a dense playback budget. Decorative video
                 // wallpaper yields its independent decoder while Stack is active.
                 allowVideoBackground = playback.stackCount == 0,
+                listScrolling = listScrolling,
                 horizontalPosition = backgroundHorizontalPosition,
             )
             Surface(
