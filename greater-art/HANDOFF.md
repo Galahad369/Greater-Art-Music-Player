@@ -9,9 +9,15 @@ This file describes the **current repository state only**. Historical session no
 **Signing certificate SHA-256:** `9e28eb45b3b171c3ea47d7da942d28d88b16538885e392a6971a80906d612fbf`
 **Build date:** `2026-10-02`
 **Test device:** `GreaterArt_A55_API36 (A55, API 36, Android 17)`
-**Verification boundary:** Release-finalization commit `07701f2` records `GreaterArt-1.15.22.apk` (SHA-256 `6b83da6d3dd951117f162927db9d2538ac1381d5f1cb12b79c9768ee6c3ff63c`) on top of source commit `4fc7969`. The previous HANDOFF line incorrectly described the older 1.15.10 verification; this record preserves the repository's 1.15.22 VERIFIED status without inventing a missing device-smoke transcript.
+**Verification boundary:** Built from exact source commit `e37184b9` and finalized by release commit `db108ab5`; `./gradlew testDebugUnitTest lintDebug :app:assembleDebug --offline` passed; `aapt dump badging` confirms package `com.local.listentomusic`, versionName `1.15.24`, versionCode `154`; APK SHA-256 is `07e4f329a36ebfa8bd1e6a5907acf07d602bf3f20eebcffd64868028f70c45ed`; signed with the recorded personal sideload certificate; installed on A55/API 36 and the documented playback/library/queue/Stack/mini-window/fullscreen smoke flows passed with **0 FATAL EXCEPTION**.
 
 ## Repository state
+
+### October 2 — post-1.15.24 consumed-version audit (documentation only)
+
+- PR #71 / `fix/1.15.25-surface-frame-attribution` reproduced the already-landed 1.15.24 surface fix byte-for-byte after main moved during CI. It was closed unmerged.
+- Because its executable source commit `c924594` was published as 1.15.25/code155, that identity is consumed and must not be reused.
+- No executable source, APK, permissions, dependencies, or release state changed in this audit. Canonical main remains **1.15.24/code154 VERIFIED**.
 
 ### October 2 — 1.15.24 surface first-frame attribution and reconcile-churn fix (verified)
 
