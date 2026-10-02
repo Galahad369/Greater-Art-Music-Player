@@ -64,6 +64,12 @@ internal fun shouldMirrorPrimaryPlayback(
     primaryIsPlaying: Boolean,
 ): Boolean = lifecycleActive && primaryIsPlaying
 
+internal fun shouldUseLiveVideoSurface(
+    attachVideoBackground: Boolean,
+    listScrolling: Boolean,
+    surfaceSettled: Boolean,
+): Boolean = attachVideoBackground && surfaceSettled && !listScrolling
+
 @Composable
 fun AppBackground(
     preferences: UserPreferences,
@@ -126,15 +132,38 @@ fun AppBackground(
         primaryFrameReady = primaryFrameReady,
     )
 
+    // YouTube-style: during list fling drop the live wallpaper surface (keep the player
+    // instance) and show a static base so Compose scroll is not compositing video frames.
+    // Short settle delay avoids attach thrash on brief isScrollInProgress flickers.
+    var videoSurfaceActive by remember { mutableStateOf(true) }
+    LaunchedEffect(listScrolling) {
+        if (listScrolling) {
+            videoSurfaceActive = false
+        } else {
+            delay(VIDEO_SURFACE_SETTLE_MS)
+            videoSurfaceActive = true
+        }
+    }
+    val liveVideoSurface = shouldUseLiveVideoSurface(
+        attachVideoBackground = attachVideoBackground,
+        listScrolling = listScrolling,
+        surfaceSettled = videoSurfaceActive,
+    )
+
     Box(modifier.fillMaxSize().graphicsLayer()) {
         // Stack can already own eight decoders. When decorative video is budgeted out,
         // retain a static backdrop instead of allocating another ExoPlayer/PlayerView.
+        // Also paint the static base while the surface is detached for fling.
         val videoFallback = mode == AppBackgroundMode.CUSTOM_VIDEO &&
             (preferences.customBackgroundVideoUri == null || !attachVideoBackground) ||
             mode == AppBackgroundMode.CURRENT_VIDEO &&
             (currentVideoUri == null || !attachVideoBackground)
-        if (visible && (mode == AppBackgroundMode.DEFAULT || videoFallback)) DefaultMetalBackground()
-        else Box(Modifier.fillMaxSize().background(androidx.compose.material3.MaterialTheme.colorScheme.background))
+        val videoMode = mode == AppBackgroundMode.CUSTOM_VIDEO || mode == AppBackgroundMode.CURRENT_VIDEO
+        if (visible && (mode == AppBackgroundMode.DEFAULT || videoFallback || (videoMode && !liveVideoSurface))) {
+            DefaultMetalBackground()
+        } else if (visible) {
+            Box(Modifier.fillMaxSize().background(androidx.compose.material3.MaterialTheme.colorScheme.background))
+        }
         when (mode) {
             AppBackgroundMode.DEFAULT -> Unit
             AppBackgroundMode.CUSTOM_IMAGE -> preferences.customBackgroundImageUri
@@ -146,7 +175,8 @@ fun AppBackground(
                     ?.let {
                         BackgroundVideo(
                             source = it,
-                            shouldPlay = !listScrolling,
+                            shouldPlay = liveVideoSurface,
+                            surfaceActive = liveVideoSurface,
                             scaleMode = preferences.backgroundScaleMode,
                         )
                     }
@@ -156,10 +186,11 @@ fun AppBackground(
             AppBackgroundMode.CURRENT_VIDEO -> if (currentVideoUri != null && attachVideoBackground) {
                 BackgroundVideo(
                     source = currentVideoUri,
-                    shouldPlay = !listScrolling,
+                    shouldPlay = liveVideoSurface,
+                    surfaceActive = liveVideoSurface,
                     syncController = controller,
                     scaleMode = preferences.backgroundScaleMode,
-                    horizontalPosition = if (listScrolling) null else horizontalPosition,
+                    horizontalPosition = if (liveVideoSurface) horizontalPosition else null,
                 )
             }
         }
@@ -239,6 +270,7 @@ private fun BackgroundImage(source: Uri, scaleMode: BackgroundScaleMode) {
 private fun BackgroundVideo(
     source: Uri,
     shouldPlay: Boolean,
+    surfaceActive: Boolean = true,
     scaleMode: BackgroundScaleMode = BackgroundScaleMode.CROP,
     syncController: MediaController? = null,
     horizontalPosition: (() -> Float)? = null,
@@ -357,7 +389,9 @@ private fun BackgroundVideo(
                     BackgroundScaleMode.CROP -> AspectRatioFrameLayout.RESIZE_MODE_ZOOM
                 }
                 setKeepContentOnPlayerReset(true)
+                // Surface starts attached; fling path detaches via update without releasing the player.
                 player = backgroundPlayer
+                visibility = android.view.View.VISIBLE
                 videoView = this
             }
         },
@@ -367,7 +401,15 @@ private fun BackgroundVideo(
                 BackgroundScaleMode.STRETCH -> AspectRatioFrameLayout.RESIZE_MODE_FILL
                 BackgroundScaleMode.CROP -> AspectRatioFrameLayout.RESIZE_MODE_ZOOM
             }
-            it.player = backgroundPlayer
+            // Detach surface during list fling so GPU is not compositing video under LazyColumn.
+            // Keep the ExoPlayer instance prepared so settle does not re-allocate a decoder.
+            if (surfaceActive) {
+                if (it.player !== backgroundPlayer) it.player = backgroundPlayer
+                it.visibility = android.view.View.VISIBLE
+            } else {
+                it.player = null
+                it.visibility = android.view.View.GONE
+            }
             if (videoView !== it) videoView = it
         },
         modifier = Modifier.fillMaxSize(),
@@ -400,6 +442,8 @@ private fun decodeSampledBitmap(
 }.getOrNull()
 
 private const val PRIMARY_VIDEO_HEAD_START_MS = 300L
+/** After fling ends, wait a frame or two before re-attaching the wallpaper surface. */
+private const val VIDEO_SURFACE_SETTLE_MS = 80L
 private const val BACKGROUND_SYNC_INTERVAL_MS = 5_000L
 private const val PLAYING_SYNC_TOLERANCE_MS = 2_000L
 private const val PAUSED_SYNC_TOLERANCE_MS = 80L

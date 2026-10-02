@@ -49,6 +49,14 @@ class AppBackgroundSyncTest {
         assertFalse(shouldMirrorPrimaryPlayback(lifecycleActive = false, primaryIsPlaying = true))
     }
 
+    @Test
+    fun listFlingKeepsDecorativeVideoDetachedUntilSurfaceSettle() {
+        assertFalse(shouldUseLiveVideoSurface(attachVideoBackground = true, listScrolling = true, surfaceSettled = true))
+        assertFalse(shouldUseLiveVideoSurface(attachVideoBackground = true, listScrolling = false, surfaceSettled = false))
+        assertFalse(shouldUseLiveVideoSurface(attachVideoBackground = false, listScrolling = false, surfaceSettled = true))
+        assertTrue(shouldUseLiveVideoSurface(attachVideoBackground = true, listScrolling = false, surfaceSettled = true))
+    }
+
 
     @Test
     fun normalPlaybackDriftDoesNotContinuouslyFlushVideoDecoder() {

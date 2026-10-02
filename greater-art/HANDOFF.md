@@ -3,17 +3,24 @@
 This file describes the **current repository state only**. Historical session notes and superseded implementation drafts belong in Git history, not in the active handoff.
 
 **Project:** `greater-art/` in the repository checkout
-**Current version:** `1.15.38 (code 168)`
-**Current source:** `1.15.38 (code 168)`
-**Release state:** `VERIFIED`
+**Current version:** `1.15.40 (code 170)`
+**Current source:** `1.15.40 (code 170)`
+**Release state:** `SOURCE_ONLY`
 **Latest APK:** `releases/GreaterArt-1.15.38.apk` (`26,353,198 bytes`; SHA-256 `da07870b4f06defffbae6a0edd564ed34aa9ddfa21aa3924d89c65c4a5079fa7`)
 **Application ID:** `com.local.listentomusic`
 **Signing certificate SHA-256:** `9e28eb45b3b171c3ea47d7da942d28d88b16538885e392a6971a80906d612fbf`
 **Build date:** `2026-10-02`
 **Test device:** `GreaterArt_A55_API36 (A55, API 36, Android 17)`
-**Verification boundary:** Current source and release metadata agree at `1.15.38/code168`. `releases/GreaterArt-1.15.38.apk` is the current immutable verified artifact; its recorded SHA-256 is `da07870b4f06defffbae6a0edd564ed34aa9ddfa21aa3924d89c65c4a5079fa7`. PR #89's exact source head passed Android test/lint/assemble, Version Consistency, privacy/secret audit, dependency review, and CodeQL before merge.
+**Verification boundary:** Current source is `1.15.40/code170` and is **SOURCE_ONLY**. The latest immutable verified artifact remains `releases/GreaterArt-1.15.38.apk` (SHA-256 `da07870b4f06defffbae6a0edd564ed34aa9ddfa21aa3924d89c65c4a5079fa7`). No 1.15.40 release APK may exist until the exact source is built and device-verified under VERSION_RULES.
 
 ## Repository state
+
+### October 2 — 1.15.40 list-fling video-surface budget forward-port (source only)
+
+- Reviewed concurrent `grok/1.15.39-youtube-scroll-video-budget` instead of merging it wholesale. Its useful AppBackground change detaches the decorative `PlayerView` from the prepared background ExoPlayer during Library/Now Playing queue/Stack flings, paints the static Liquid Metal fallback, and reattaches after an 80 ms settle.
+- The Grok branch's **1.15.39/code169** identity is consumed but rejected as a merge candidate because its source/version policy was split across commits and its final VERSION_RULES rewrite deleted most canonical history.
+- Forward-ported only the stronger surface-budget implementation, preserved the full ledger and existing primary-player/Stack behavior, and added JVM coverage for the live-surface gate. No source resolution, bitrate, FPS, decoder quality, or Stack track-limit reduction is introduced.
+- Source advances to **1.15.40/code170**. State: **SOURCE_ONLY**; latest verified APK remains **1.15.38/code168**.
 
 ### October 2 — 1.15.38 Stack crash-hardening convergence (verified)
 

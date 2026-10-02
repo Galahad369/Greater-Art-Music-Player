@@ -7,8 +7,8 @@ This file is the authoritative version policy for Greater Art. If any handoff no
 ## Machine-checkable state
 
 
-Current source: **1.15.38 (code 168)**
-Current release state: **VERIFIED**
+Current source: **1.15.40 (code 170)**
+Current release state: **SOURCE_ONLY**
 Latest verified APK: **1.15.38 (code 168)**
 Allowed series transition: **1.14.15 -> 1.15.1**
 Allowed consumed transition: **1.15.13 (code 143) -> 1.15.17 (code 147)**
@@ -24,6 +24,7 @@ Allowed consumed transition: **1.15.27 (code 157) -> 1.15.29 (code 159)**
 Allowed consumed transition: **1.15.31 (code 161) -> 1.15.34 (code 164)**
 Allowed consumed transition: **1.15.34 (code 164) -> 1.15.36 (code 166)**
 Allowed consumed transition: **1.15.36 (code 166) -> 1.15.38 (code 168)**
+Allowed consumed transition: **1.15.38 (code 168) -> 1.15.40 (code 170)**
 
 ## Non-negotiable rules
 
@@ -171,6 +172,8 @@ The guard checks:
 - 1.15.36 (code 166) — version-guard consistency fix: current-state ledger validation now honors exact Allowed consumed transition entries using the same version/code-step helper as commit-range validation; local build verified
 - Consumed side-branch identity: **1.15.37 (code 167)** — stale combined convergence PR #88 was published from pre-1.15.36 main while 1.15.36 concurrently became canonical; closed unmerged and must not be reused
 - 1.15.38 (code 168) — salvage Stack crash hardening: deduplicate Grok/copilot crash-hardening branches, fix Stack coordinator null-safety, preserve 1.15.34 list-scroll budget and 1.15.36 version-guard fix; local build verified; current verified APK
+- Consumed side-branch identity: **1.15.39 (code 169)** — Grok list-fling surface-detach branch contained useful AppBackground work but published an invalid split source/version timeline and truncated VERSION_RULES; reviewed code is forward-ported at 1.15.40, branch not merged, never reuse
+- 1.15.40 (code 170) — canonical forward-port of list-fling decorative-video surface detachment: retain the prepared background ExoPlayer, pause decode and detach PlayerView during Library/queue/Stack flings, render the static Liquid Metal fallback, and reattach after an 80 ms settle; adds JVM gate coverage; source only, CI pending
 - Consumed side-branch identity: **1.15.35 (code 165)** — redundant forward-port PR #82; executable/test blobs were byte-for-byte identical to canonical 1.15.34, so it was closed without merge and must not be reused
 - Consumed side-branch identity: **1.15.32 (code 162)** — redundant forward-port PR #79; executable/test blobs were identical to merged 1.15.31, so it was closed without merge and must not be reused
 
