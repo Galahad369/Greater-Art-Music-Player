@@ -181,12 +181,33 @@ private val LocalSystemPlayer = androidx.compose.runtime.compositionLocalOf { fa
 @Composable private fun playerStatusInsets() = if (LocalSystemPlayer.current) WindowInsets(0) else WindowInsets.statusBars
 @Composable private fun playerNavigationInsets() = if (LocalSystemPlayer.current) WindowInsets(0) else WindowInsets.navigationBars
 
-/** Side seek zones only. The middle 30% is deliberately inert on double tap. */
-internal fun doubleTapSeekDelta(x: Float, width: Float, seekOffsetMs: Long): Long? = when {
+internal enum class SeekSide { LEFT, RIGHT }
+
+/** Side seek zones only. The middle 30% is deliberately inert. */
+internal fun seekSideForX(x: Float, width: Float): SeekSide? = when {
     width <= 0f -> null
-    x < width * .35f -> -seekOffsetMs
-    x > width * .65f -> seekOffsetMs
+    x < width * .35f -> SeekSide.LEFT
+    x > width * .65f -> SeekSide.RIGHT
     else -> null
+}
+
+internal fun doubleTapSeekDelta(x: Float, width: Float, seekOffsetMs: Long): Long? = when (seekSideForX(x, width)) {
+    SeekSide.LEFT -> -seekOffsetMs
+    SeekSide.RIGHT -> seekOffsetMs
+    null -> null
+}
+
+internal const val SIDE_DOUBLE_TAP_MS = 400L
+
+/** Two quick taps seek only when both land on the same active side zone. */
+internal fun sideDoubleTapSeeks(
+    side: SeekSide?,
+    nowMs: Long,
+    lastSide: SeekSide?,
+    lastTapMs: Long,
+): Boolean {
+    val elapsedMs = nowMs - lastTapMs
+    return side != null && side == lastSide && elapsedMs in 1L..SIDE_DOUBLE_TAP_MS
 }
 
 @Composable
@@ -536,9 +557,13 @@ private fun VideoPlayerStage(
                     change.consume()
                 }
             })
-        }.pointerInput(seekOffsetMs) {
+        }.pointerInput(seekOffsetMs, playback.currentPath) {
+            var lastSeekSide: SeekSide? = null
+            var lastSeekTapMs = 0L
+            var pressStartedMs = 0L
             detectTapGestures(
                 onPress = {
+                    pressStartedMs = android.os.SystemClock.uptimeMillis()
                     coroutineScope {
                         val activation = launch {
                             delay(HOLD_2X_ACTIVATION_MS)
@@ -555,11 +580,28 @@ private fun VideoPlayerStage(
                         }
                     }
                 },
-                // A single video tap is inert; only a side double-tap seeks.
-                onDoubleTap = { offset ->
-                    doubleTapSeekDelta(offset.x, size.width.toFloat(), seekOffsetMs)?.let { delta ->
+                // Single taps only arm the pair; seeking requires a second tap on the same side.
+                onTap = seekTap@{ offset ->
+                    val nowMs = android.os.SystemClock.uptimeMillis()
+                    if (pressStartedMs != 0L && nowMs - pressStartedMs >= HOLD_2X_ACTIVATION_MS) {
+                        lastSeekSide = null
+                        lastSeekTapMs = 0L
+                        return@seekTap
+                    }
+                    val side = seekSideForX(offset.x, size.width.toFloat())
+                    if (sideDoubleTapSeeks(side, nowMs, lastSeekSide, lastSeekTapMs)) {
+                        val delta = when (side) {
+                            SeekSide.LEFT -> -seekOffsetMs
+                            SeekSide.RIGHT -> seekOffsetMs
+                            null -> return@seekTap
+                        }
                         onSeekBy(delta)
-                        seekFeedback = delta to android.os.SystemClock.uptimeMillis()
+                        seekFeedback = delta to nowMs
+                        lastSeekSide = null
+                        lastSeekTapMs = 0L
+                    } else {
+                        lastSeekSide = side
+                        lastSeekTapMs = nowMs
                     }
                 },
             )
@@ -714,12 +756,26 @@ private fun AudioPlayer(
         Column(Modifier.fillMaxSize(), horizontalAlignment = Alignment.CenterHorizontally) {
         LiquidMetalSurface(
             modifier = Modifier.padding(vertical = 4.dp).size(artSize)
-                .pointerInput(seekOffsetMs) {
+                .pointerInput(seekOffsetMs, playback.currentPath) {
+                    var lastSeekSide: SeekSide? = null
+                    var lastSeekTapMs = 0L
                     detectTapGestures(
-                        onDoubleTap = { offset ->
-                            doubleTapSeekDelta(offset.x, size.width.toFloat(), seekOffsetMs)?.let { delta ->
+                        onTap = { offset ->
+                            val side = seekSideForX(offset.x, size.width.toFloat())
+                            val nowMs = android.os.SystemClock.uptimeMillis()
+                            if (sideDoubleTapSeeks(side, nowMs, lastSeekSide, lastSeekTapMs)) {
+                                val delta = when (side) {
+                                    SeekSide.LEFT -> -seekOffsetMs
+                                    SeekSide.RIGHT -> seekOffsetMs
+                                    null -> return@detectTapGestures
+                                }
                                 onSeekBy(delta)
-                                seekFeedback = delta to android.os.SystemClock.uptimeMillis()
+                                seekFeedback = delta to nowMs
+                                lastSeekSide = null
+                                lastSeekTapMs = 0L
+                            } else {
+                                lastSeekSide = side
+                                lastSeekTapMs = nowMs
                             }
                         },
                     )
