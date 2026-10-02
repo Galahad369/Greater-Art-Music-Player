@@ -490,9 +490,13 @@ def validate_current_state(errors: list[str], require_release: bool) -> None:
         tracked,
         tracked[1:],
     ):
-        if (
-            not is_allowed_version_step(previous_version, current_version, rules_text)
-            or current_code != previous_code + 1
+        if not is_allowed_version_code_step(
+            previous_version,
+            previous_code,
+            current_version,
+            current_code,
+            rules_text,
+            rules_text,
         ):
             fail(
                 errors,
