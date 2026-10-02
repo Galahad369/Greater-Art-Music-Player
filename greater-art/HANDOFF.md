@@ -19,6 +19,8 @@ While source is `SOURCE_ONLY`, the `Current version` header intentionally remain
 
 ### October 2 — 1.15.43 Stack save + delete-list reliability (source only)
 
+- Final release-storage audit confirmed the historical 1.15.21 and 1.15.22 APKs are valid immutable verified artifacts: their release-finalization commits are ancestors of current main and explicitly added the matching APKs while marking those versions VERIFIED. VERSION_RULES provenance was corrected accordingly; no artifact was removed or rewritten.
+
 - `STACK_SAVE_BUTTON` still opens the save dialog, but saving no longer appears to do nothing when both fields are blank: the local playlist receives a deterministic fallback name (`Stack · <count> tracks`), while an entered name or keyword still wins.
 - Stack save preserves the existing privacy/UX contract: it writes only to the local playlist store and does **not** silently switch the active Library list. Successful saves now surface through the existing reversible snackbar; Undo removes only the just-created playlist.
 - Library `Delete list` no longer deletes immediately from a menu tap. It opens an explicit confirmation matching Settings and states that media files remain untouched.
@@ -157,8 +159,8 @@ While source is `SOURCE_ONLY`, the `Current version` header intentionally remain
 
 - The concurrent 1.15.20 merge sequence brought both the offline Stack recommendation helper branch and the reviewed same-side double-tap branch onto main, but the push-range version guard correctly failed because several side-branch commits carried stale policy metadata and the second executable merge reused 1.15.20.
 - History is preserved rather than rewritten. The verified 1.15.20 APK remains immutable and recorded as the latest verified release because it was finalized from exact source commit `ec9e0e7`.
-- 1.15.21/code151 was consumed by superseded PR #68 after main independently acquired the same-side implementation and workflow documentation.
-- 1.15.22/code152 was consumed by `grok/1.15.22-stack-complete`, which did not implement the claimed Stack UI; it only republished the existing offline recommendation helper/test with stale 1.15.19 policy metadata.
+- 1.15.21/code151 became canonical main for the same-side seek/workflow convergence and was release-finalized in commit `ac9a6932`; `releases/GreaterArt-1.15.21.apk` is therefore a legitimate immutable historical verified artifact.
+- 1.15.22/code152 then canonically integrated the offline Stack recommendation helper/test and was release-finalized in commit `07701f24`; 1.15.23 later removed that helper because no StackScreen/ViewModel/app call site used it. `releases/GreaterArt-1.15.22.apk` remains a legitimate immutable historical verified artifact.
 - The unintegrated `StackRecommend.kt` helper and its isolated test are removed from canonical source. No StackScreen/ViewModel/app call site used the helper, so retaining it would preserve dead code from an incomplete feature branch.
 - The reviewed same-side double-tap behavior, contribution workflow, local-agent workflow, GitHub-agent workflow, transport-control alignment, ColorTheme recovery, Stack synchronization/performance fixes, security/privacy hardening, and immutable verified 1.15.20 APK remain intact.
 - **Build verified locally:** `./gradlew testDebugUnitTest lintDebug :app:assembleDebug --offline` passed; `aapt dump badging` confirms package `com.local.listentomusic`, versionName `1.15.23`, versionCode `153`; signed with personal debug keystore; installed on A55/API 36; launch, library scan/load, local audio/video playback, prev/next/seek/pause/resume, playlist/Favorites playback, duplicate queue independence, Stack→Library/playlist transition, queue/Library add-to-list, Library delete three-confirm flow, mini-window/fullscreen/return flows verified; **0 FATAL EXCEPTION** in tested session.
