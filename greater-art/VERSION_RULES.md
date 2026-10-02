@@ -7,7 +7,7 @@ This file is the authoritative version policy for Greater Art. If any handoff no
 ## Machine-checkable state
 
 
-Current source: **1.15.44 (code 174)**
+Current source: **1.15.45 (code 175)**
 Current release state: **SOURCE_ONLY**
 Latest verified APK: **1.15.43 (code 173)**
 Allowed series transition: **1.14.15 -> 1.15.1**
@@ -121,7 +121,8 @@ Markdown/docs-only changes, release hashes/metadata, and adding a newly verified
 - Consumed side-branch identity: **1.15.41 (code 171)** — Grok wallpaper-decoder-budget branch split executable code, version bump, and VERSION_RULES across separate commits and truncated the canonical ledger; reviewed implementation was selectively recreated at 1.15.42; consumed, not merged, never reuse
 - 1.15.42 (code 172) — canonical forward recovery: retain the current Now Playing repeat/random text-fit fix, selectively forward-port the wallpaper decoder budget, cap only duplicate CURRENT_VIDEO wallpaper to 640×360, reduce decorative-video buffers, keep CUSTOM_VIDEO resolution uncapped, and preserve native primary resolution/bitrate/FPS; local build verified; current verified APK
 - 1.15.43 (code 173) — Stack-save and playlist-delete reliability: Stack save accepts blank metadata via deterministic local fallback naming, surfaces success through reversible snackbar feedback, Library delete requires confirmation, and delete Undo restores prior active-playlist selection; local build verified; current verified APK
-- 1.15.44 (code 174) — fullscreen lifecycle/surface handoff hardening: explicit fullscreen Activity ownership survives transient pause, the launch handoff is completed after first-frame/timeout instead of remaining stale, and terminal Activity destruction idempotently restores the floating player; source only, CI pending
+- 1.15.44 (code 174) — initial fullscreen lifecycle/surface handoff hardening; consumed intermediate source. Review found the new fullscreen flag was still evaluated after the registered hidden Mini Window overlay, so finishing the launch handoff could hand ownership back to the hidden overlay.
+- 1.15.45 (code 175) — corrected fullscreen owner precedence: explicit fullscreen Activity ownership outranks the hidden registered Mini Window while ordinary overlay precedence remains unchanged; retains first-frame handoff completion and terminal-destruction recovery from 1.15.44; source only, CI pending
 
 Previous baseline: 1.13.26 (code 115).
 

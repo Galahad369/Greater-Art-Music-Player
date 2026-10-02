@@ -21,8 +21,13 @@ object VideoSurfaceOwner {
     private var noOpReconciles = 0
     internal val state = MutableStateFlow(SurfaceLease())
     val expectedOwner: String
-        get() = handoffTarget ?: systemOverlayOwners.values.lastOrNull()
-            ?: expectedSurfaceOwner(foreground, nowPlaying, pip, fullscreenActivity)
+        get() = handoffTarget ?: expectedSurfaceOwner(
+            foreground = foreground,
+            nowPlaying = nowPlaying,
+            pip = pip,
+            fullscreenActivity = fullscreenActivity,
+            systemOverlayOwner = systemOverlayOwners.values.lastOrNull(),
+        )
     val systemOverlayActive: Boolean get() = systemOverlayOwners.isNotEmpty()
     val expandedOverlayActive: Boolean
         get() = unifiedExpanded || fullscreenActivity || systemOverlayOwners.containsValue("NOW_PLAYING")

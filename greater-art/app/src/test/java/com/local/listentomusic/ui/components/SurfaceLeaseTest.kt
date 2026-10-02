@@ -57,6 +57,20 @@ class SurfaceLeaseTest {
                 nowPlaying = true,
                 pip = false,
                 fullscreenActivity = true,
+                systemOverlayOwner = "MINI_WINDOW",
+            ),
+        )
+    }
+
+    @Test fun ordinarySystemOverlayStillOutranksForegroundActivityPresentation() {
+        assertEquals(
+            "MINI_WINDOW",
+            expectedSurfaceOwner(
+                foreground = true,
+                nowPlaying = true,
+                pip = false,
+                fullscreenActivity = false,
+                systemOverlayOwner = "MINI_WINDOW",
             ),
         )
     }
