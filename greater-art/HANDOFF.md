@@ -4,16 +4,26 @@ This file describes the **current repository state only**. Historical session no
 
 **Project:** `greater-art/` in the repository checkout
 **Current version:** `1.15.43 (code 173)`
-**Current source:** `1.15.45 (code 175)`
+**Current source:** `1.15.46 (code 176)`
 **Release state:** `SOURCE_ONLY`
 **Latest APK:** `releases/GreaterArt-1.15.43.apk` (`26,353,198 bytes`; SHA-256 `77e37b747f4122f289c936bc1f06e156575b102398fbc24f7ea4daab4b96cb61`)
 **Application ID:** `com.local.listentomusic`
 **Signing certificate SHA-256:** `9e28eb45b3b171c3ea47d7da942d28d88b16538885e392a6971a80906d612fbf`
 **Build date:** `2026-10-02`
 **Test device:** `GreaterArt_A55_API36 (A55, API 36, Android 17)`
-**Verification boundary:** Current source is `1.15.45/code175` and is **SOURCE_ONLY**. The latest immutable verified artifact remains `releases/GreaterArt-1.15.43.apk` (SHA-256 `77e37b747f4122f289c936bc1f06e156575b102398fbc24f7ea4daab4b96cb61`). No 1.15.44 or 1.15.45 release APK may exist unless built and verified from its exact source under VERSION_RULES; 1.15.44 remains a consumed intermediate source identity.
+**Verification boundary:** Current source is `1.15.46/code176` and is **SOURCE_ONLY**. The latest immutable verified artifact remains `releases/GreaterArt-1.15.43.apk` (SHA-256 `77e37b747f4122f289c936bc1f06e156575b102398fbc24f7ea4daab4b96cb61`). No 1.15.44, 1.15.45, or 1.15.46 release APK may exist unless built and verified from its exact source under VERSION_RULES; 1.15.44 remains a consumed intermediate source identity.
 
 ## Repository state
+
+### October 2 — 1.15.46 fullscreen single-source recovery (source only)
+
+- Removes the second fullscreen-active Boolean from `MiniWindowOverlayService`. `VideoSurfaceOwner` is now the sole authority for whether the real fullscreen Activity is active.
+- Overlay visibility reads that canonical state directly, so service recreation or a missed local assignment cannot make the hidden Mini/expanded overlay reappear over fullscreen or compete for the primary video surface.
+- Fullscreen launch marks the canonical state before starting the Activity; launch failure and fullscreen-return handling clear the same state idempotently.
+- Keeps the 1.15.45 ownership priority where a live fullscreen Activity outranks the registered hidden Mini Window.
+- Adds JVM coverage for fullscreen suppression and readiness gating of the player window.
+- State: **SOURCE_ONLY** at **1.15.46/code176**. Latest verified APK remains **1.15.43/code173**.
+
 
 ### October 2 — 1.15.45 fullscreen lifecycle + surface handoff hardening (source only)
 

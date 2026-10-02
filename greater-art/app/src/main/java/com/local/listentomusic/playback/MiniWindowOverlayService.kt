@@ -128,7 +128,6 @@ class MiniWindowOverlayService : Service(), LifecycleOwner, ViewModelStoreOwner,
     private var shareReceiverRegistered = false
     private var homeReceiverRegistered = false
     private var expandedFullscreen = false
-    private var fullscreenActivityActive = false
     private var detachUntilLibraryHidden = false
     private var windowAnimator: ValueAnimator? = null
     private var sharing = false
@@ -260,7 +259,7 @@ class MiniWindowOverlayService : Service(), LifecycleOwner, ViewModelStoreOwner,
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         if (intent?.action == ACTION_FULLSCREEN_RETURN) {
             com.local.listentomusic.ui.components.VideoSurfaceOwner.beginHandoff("MINI_WINDOW")
-            fullscreenActivityActive = false
+            com.local.listentomusic.ui.components.VideoSurfaceOwner.setFullscreenActivityVisible(false)
             val target = when (intent.getStringExtra(EXTRA_FULLSCREEN_DESTINATION)) {
                 "DOCKED" -> PlayerWindowMode.DOCKED
                 "DETACHED" -> PlayerWindowMode.DETACHED
@@ -782,8 +781,14 @@ class MiniWindowOverlayService : Service(), LifecycleOwner, ViewModelStoreOwner,
     }
 
     private fun updateVisibility() {
-        val visible = ready && !fullscreenActivityActive && if (expanded) true else if (docked) PlayerWindowVisibility.dockedVisible.value else
-            PlayerWindowVisibility.detachedVisible.value
+        val visible = com.local.listentomusic.ui.components.shouldShowPlayerWindow(
+            ready = ready,
+            fullscreenActivity = com.local.listentomusic.ui.components.VideoSurfaceOwner.fullscreenActivityActive,
+            expanded = expanded,
+            docked = docked,
+            dockedVisible = PlayerWindowVisibility.dockedVisible.value,
+            detachedVisible = PlayerWindowVisibility.detachedVisible.value,
+        )
         params?.let {
             it.alpha = if (visible) 1f else 0f
             it.flags = if (visible) it.flags and WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE.inv()
@@ -844,9 +849,9 @@ class MiniWindowOverlayService : Service(), LifecycleOwner, ViewModelStoreOwner,
     }
 
     private fun openLandscapeFullscreen() {
-        if (!expanded || fullscreenActivityActive) return
+        if (!expanded || com.local.listentomusic.ui.components.VideoSurfaceOwner.fullscreenActivityActive) return
         com.local.listentomusic.ui.components.VideoSurfaceOwner.beginHandoff("NOW_PLAYING")
-        fullscreenActivityActive = true
+        com.local.listentomusic.ui.components.VideoSurfaceOwner.setFullscreenActivityVisible(true)
         runCatching {
             startActivity(Intent(this, FullscreenVideoActivity::class.java).apply {
                 addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_NO_ANIMATION)
@@ -854,7 +859,7 @@ class MiniWindowOverlayService : Service(), LifecycleOwner, ViewModelStoreOwner,
             switchMode(PlayerWindowMode.DETACHED)
             updateVisibility()
         }.onFailure {
-            fullscreenActivityActive = false
+            com.local.listentomusic.ui.components.VideoSurfaceOwner.setFullscreenActivityVisible(false)
             com.local.listentomusic.ui.components.VideoSurfaceOwner.finishHandoff("NOW_PLAYING")
             switchMode(PlayerWindowMode.EXPANDED)
             updateVisibility()

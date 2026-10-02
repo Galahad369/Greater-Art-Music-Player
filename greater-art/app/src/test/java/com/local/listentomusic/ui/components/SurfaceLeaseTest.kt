@@ -4,6 +4,33 @@ import org.junit.Assert.*
 import org.junit.Test
 
 class SurfaceLeaseTest {
+    @Test fun overlayVisibilityUsesCanonicalFullscreenState() {
+        assertTrue(shouldShowPlayerWindow(
+            ready = true,
+            fullscreenActivity = false,
+            expanded = true,
+            docked = false,
+            dockedVisible = false,
+            detachedVisible = false,
+        ))
+        assertFalse(shouldShowPlayerWindow(
+            ready = true,
+            fullscreenActivity = true,
+            expanded = true,
+            docked = false,
+            dockedVisible = true,
+            detachedVisible = true,
+        ))
+        assertFalse(shouldShowPlayerWindow(
+            ready = false,
+            fullscreenActivity = false,
+            expanded = true,
+            docked = false,
+            dockedVisible = true,
+            detachedVisible = true,
+        ))
+    }
+
     @Test fun miniWindowStaysVisibleWhileNowPlayingSurfaceRegisters() {
         assertTrue(shouldRetainPrimarySurfaceDuringHandoff(
             currentOwner = "MINI_WINDOW",
