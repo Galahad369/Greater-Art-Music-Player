@@ -145,7 +145,7 @@ The guard checks:
 - 1.15.18 (code 148) — Grok branch reviewed and rejected; claimed color-theme implementation was only Gradle bump + comment removal; version consumed
 - 1.15.19 (code 149) — transport-control alignment and final branch convergence: `GaControl.heroIcon = 32.dp` token; main/video play icons consistent; prev/next use 48 dp `GaControl.touchTarget` with `GaControl.prominentIcon`; source only, local build pending
 - 1.15.20 (code 150) — conflicting published side-branch attempts: the same-side double-tap source branch and an incomplete Stack recommendation branch both consumed this identity; neither became canonical main source
-- 1.15.21 (code 151) — final convergence: same-side double-tap seek for audio/video plus contributor and agent workflow documentation; source only, GitHub CI pending
+- 1.15.21 (code 151) — final convergence and forward recovery after concurrent unversioned validator/release-metadata churn: same-side double-tap seek for audio/video plus contributor and agent workflow documentation; source only, GitHub CI pending
 
 Previous baseline: 1.13.26 (code 115).
 
