@@ -4,7 +4,7 @@ This file describes the **current repository state only**. Historical session no
 
 **Project:** `greater-art/` in the repository checkout
 **Current version:** `1.15.10 (code 140)`
-**Current source:** `1.15.19 (code 149)`
+**Current source:** `1.15.21 (code 151)`
 **Release state:** `SOURCE_ONLY`
 **Latest APK:** `releases/GreaterArt-1.15.10.apk` (`26,287,658 bytes`; SHA-256 `cf362d30747685d03d462cf0d37aa7a7508eb3e76c60da2ad1b3be612adcd0a3`)
 **Application ID:** `com.local.listentomusic`
@@ -14,6 +14,17 @@ This file describes the **current repository state only**. Historical session no
 **Verification boundary:** Built from exact source commit `56430b6`; `./gradlew testDebugUnitTest lintDebug :app:assembleDebug --offline` passed; `aapt dump badging` confirms package `com.local.listentomusic`, versionName `1.15.10`, versionCode `140`; signed with personal debug keystore; installed on A55/API 36; launch, library scan/load, local audio/video playback, prev/next/seek/pause/resume, playlist/Favorites playback, duplicate queue independence, Stack→Library/playlist transition, queue/Library add-to-list, Library delete three-confirm flow, mini-window/fullscreen/return flows verified; **0 FATAL EXCEPTION** in tested session.
 
 ## Repository state
+
+### October 2 — 1.15.21 same-side double-tap and final branch convergence (source only)
+
+- 1.15.20/code150 was already consumed by conflicting published side branches and is not reused. PR #66 carried the real same-side double-tap implementation; the Grok Stack branch carried only an unintegrated recommendation helper/test plus stale 1.15.20 metadata.
+- Carries forward the stronger gesture implementation from PR #66: left/right taps pair only within the same side zone, the center remains inert, the pair resets on media changes, video hold-to-2× is isolated from seek pairing, and audio/video share the same-side rule.
+- Adds `CONTRIBUTING.md`, `greater-art/docs/AGENT_LOCAL_WORKFLOW.md`, and `greater-art/docs/AGENT_GITHUB_WORKFLOW.md` so local and GitHub-connected agents follow the version/review/privacy/release contract.
+- Replit's remaining same-side implementation is rejected as weaker because it only guards the video stage; its useful transport-control alignment is already present on main.
+- PR #67 is rejected as plan-only: its head has no code changes beyond the incomplete Grok base, and the promised StackScreen replacement was never implemented. The unused Stack recommendation helper is not carried into main as dead code.
+- No playback-engine, media-quality, permission, signing, dependency, theme-palette, or release-artifact changes.
+- State: **SOURCE_ONLY**. Latest verified APK remains **1.15.10/code140**.
+
 
 ### October 2 — 1.15.19 transport-control alignment and final branch convergence (source only)
 
