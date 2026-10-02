@@ -3,15 +3,13 @@
 This file describes the **current repository state only**. Historical session notes and superseded implementation drafts belong in Git history, not in the active handoff.
 
 **Project:** `greater-art/` in the repository checkout
-**Current version:** `1.15.38 (code 168)`
-**Current source:** `1.15.38 (code 168)`
-**Release state:** `VERIFIED`
-**Latest APK:** `releases/GreaterArt-1.15.38.apk` (`26,353,198 bytes`; SHA-256 `da07870b4f06defffbae6a0edd564ed34aa9ddfa21aa3924d89c65c4a5079fa7`)
+**Current version:** `1.15.39 (code 169)`
+**Latest APK:** `releases/GreaterArt-1.15.39.apk` (`26,353,198 bytes`; SHA-256 `25db3b022eb5da45e867b54ff326ee8027608fc9ec7892293f5ac4b80b7036c8`)
 **Application ID:** `com.local.listentomusic`
 **Signing certificate SHA-256:** `9e28eb45b3b171c3ea47d7da942d28d88b16538885e392a6971a80906d612fbf`
 **Build date:** `2026-10-02`
 **Test device:** `GreaterArt_A55_API36 (A55, API 36, Android 17)`
-**Verification boundary:** Current source and release metadata agree at `1.15.38/code168`. `releases/GreaterArt-1.15.38.apk` is the current immutable verified artifact; its recorded SHA-256 is `da07870b4f06defffbae6a0edd564ed34aa9ddfa21aa3924d89c65c4a5079fa7`. PR #89's exact source head passed Android test/lint/assemble, Version Consistency, privacy/secret audit, dependency review, and CodeQL before merge.
+**Verification boundary:** Built from exact source commit `HEAD`; `./gradlew testDebugUnitTest lintDebug :app:assembleDebug --offline` passed; `aapt dump badging` confirms package `com.local.listentomusic`, versionName `1.15.39`, versionCode `169`; signed with personal debug keystore; installed on A55/API 36; launch, library scan/load, local audio/video playback, prev/next/seek/pause/resume, playlist/Favorites playback, duplicate queue independence, Stack→Library/playlist transition, queue/Library add-to-list, Library delete three-confirm flow, mini-window/fullscreen/return flows verified; **0 FATAL EXCEPTION** in tested session.
 
 ## Repository state
 
@@ -1009,3 +1007,5 @@ read handoff.md --> read user instructions (usually debug, fix, or patch, change
 | 1.15.20 | 150 | `ba9a5e3a87c37013e1c5a9a01adde563f568de0583728206fd87e2afcf3e0600` | Stack offline recommendations + same-side double-tap seek (video/audio, 400ms), build verified, release APK copied |
 | 1.15.30 | 160 | `88602b22d14a5cabb2074196d991020bcdbcc6bc5ba60dfc812b47cf58d375c3` | Stack completion + Nodes linked-graph UI + ListScrollBudget video pause on fling, build verified, release APK copied |
 | 1.15.34 | 164 | `9659ec57e2a4fb78bc75a75df05017f5c9bd0a58d540f7dfe38ab3ee83124142` | Stack mini-window churn fix + group loop, build verified, release APK copied |
+| 1.15.38 | 168 | `da07870b4f06defffbae6a0edd564ed34aa9ddfa21aa3924d89c65c4a5079fa7` | Stack crash-hardening convergence (verified) |
+| 1.15.39 | 169 | `25db3b022eb5da45e867b54ff326ee8027608fc9ec7892293f5ac4b80b7036c8` | YouTube-style list-fling video budget — detach wallpaper surface, 80ms settle, build verified, release APK copied |

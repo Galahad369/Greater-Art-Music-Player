@@ -114,6 +114,7 @@ Markdown/docs-only changes, release hashes/metadata, and adding a newly verified
 - 1.15.38 (code 168) — salvage Stack crash hardening: deduplicate Grok/copilot crash-hardening branches, fix Stack coordinator null-safety, preserve 1.15.34 list-scroll budget and 1.15.36 version-guard fix; local build verified; current verified APK
 - Consumed side-branch identity: **1.15.35 (code 165)** — redundant forward-port PR #82; executable/test blobs were byte-for-byte identical to canonical 1.15.34, so it was closed without merge and must not be reused
 - Consumed side-branch identity: **1.15.32 (code 162)** — redundant forward-port PR #79; executable/test blobs were identical to merged 1.15.31, so it was closed without merge and must not be reused
+- 1.15.39 (code 169) — **Grok**: YouTube-style list-fling video budget — detach wallpaper PlayerView surface (keep ExoPlayer), static base during scroll, 80ms settle; source only, local build pending
 
 Previous baseline: 1.13.26 (code 115).
 
