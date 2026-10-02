@@ -4,7 +4,7 @@ This file describes the **current repository state only**. Historical session no
 
 **Project:** `greater-art/` in the repository checkout
 **Current version:** `1.15.26 (code 156)`
-**Current source:** `1.15.31 (code 161)`
+**Current source:** `1.15.35 (code 165)`
 **Release state:** `SOURCE_ONLY`
 **Latest APK:** `releases/GreaterArt-1.15.26.apk` (`26,287,658 bytes`; SHA-256 `4c8b8d4692a8bd5c575208746065139651d6f0d651a4dbad619ea77cb0745de2`)
 **Application ID:** `com.local.listentomusic`
@@ -14,6 +14,16 @@ This file describes the **current repository state only**. Historical session no
 **Verification boundary:** Release-finalization commit `6d02c33c` records `GreaterArt-1.15.26.apk` (SHA-256 `4c8b8d4692a8bd5c575208746065139651d6f0d651a4dbad619ea77cb0745de2`) after source merge `4bb9aef6`. The local release record states `./gradlew testDebugUnitTest lintDebug :app:assembleDebug --offline` passed, `aapt dump badging` confirmed package `com.local.listentomusic`, versionName `1.15.26`, versionCode `156`, the recorded personal sideload certificate, A55/API 36 smoke coverage, and **0 FATAL EXCEPTION**. The 1.15.26 push Version Consistency range check failed historically because source commit `58cc7fad` updated app/Gradle before VERSION_RULES was corrected in `b0a5232d`; current-state validation, Android CI, and Public Repository Security passed. History is preserved rather than rewritten.
 
 ## Repository state
+
+### October 2 — 1.15.35 Stack mini-window + group loop fix (source only)
+
+- **Mini-window Stack lag:** Stack produces more renderer/play-state callbacks than ordinary playback. The overlay service and `CompactPlayerView` were both refreshing the same compact presentation for those callbacks. Same-controller/same-presentation binding is now a no-op, while the overlay only re-runs artwork/layout work for media-item, metadata, or video-size events that can actually change those outputs.
+- **Stack loop:** Stack previously forced the primary ExoPlayer to repeat-off and disabled the repeat control. The primary still remains repeat-off internally so one track cannot loop independently from companion voices. Stack now owns a separate **whole-session loop**, exposed as **Off ↔ Loop**; at the longest Stack duration it seeks the synchronized Stack back to 0.
+- Normal playback keeps the existing Off → One → All → Random cycle. Leaving Stack still restores the pre-Stack normal repeat/shuffle state.
+- Adds JVM coverage for Stack end-loop decisions and duplicate compact-binding suppression.
+- Version identities 1.15.32/code162, 1.15.33/code163, and 1.15.34/code164 were already published on superseded/rejected branches and are recorded sequentially in VERSION_RULES so they cannot be reused. The 1.15.34 executable candidate already passed Android test/lint/assemble before this byte-equivalent forward-port.
+- An unverified 1.15.30 APK that appeared on main without coherent release metadata was removed from the current tree; Git history remains intact. Latest verified APK remains **1.15.26/code156**.
+- Source advances to **1.15.35/code165**. State: **SOURCE_ONLY**.
 
 ### October 2 — post-1.15.31 final PR/branch audit (documentation only)
 

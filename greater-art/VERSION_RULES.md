@@ -7,7 +7,7 @@ This file is the authoritative version policy for Greater Art. If any handoff no
 ## Machine-checkable state
 
 
-Current source: **1.15.31 (code 161)**
+Current source: **1.15.35 (code 165)**
 Current release state: **SOURCE_ONLY**
 Latest verified APK: **1.15.26 (code 156)**
 Allowed series transition: **1.14.15 -> 1.15.1**
@@ -21,6 +21,7 @@ Allowed consumed transition: **1.15.24 (code 154) -> 1.15.25 (code 155)**
 Allowed consumed transition: **1.15.25 (code 155) -> 1.15.26 (code 156)**
 Allowed consumed transition: **1.15.26 (code 156) -> 1.15.27 (code 157)**
 Allowed consumed transition: **1.15.27 (code 157) -> 1.15.29 (code 159)**
+Allowed consumed transition: **1.15.31 (code 161) -> 1.15.35 (code 165)**
 
 ## Non-negotiable rules
 
@@ -163,7 +164,11 @@ The guard checks:
 - 1.15.29 (code 159) — canonical list-scroll video budget: Library, Now Playing queue, Stack list and Stack picker report fling state; decorative CURRENT_VIDEO/CUSTOM_VIDEO stays attached but pauses playback/crop-position work until scrolling settles; source only, CI pending
 - 1.15.30 (code 160) — Stack completion + Nodes linked-graph UI: NOW_PLAYING context/highlight, searchable multi-select, wired offline recommendations using local metadata/history, save Stack to playlist, and denser focused graph chrome; preserves 1.15.29 list-scroll budget; source only, CI pending
 - 1.15.31 (code 161) — persistent user-owned Stack keyword: saved Stack keeps pinned tracks plus an optional local keyword that dynamically includes matching song names/paths when reopened; legacy playlist rows remain compatible; source only, CI pending
-- Consumed side-branch identity: **1.15.32 (code 162)** — redundant forward-port PR #79; executable/test blobs were identical to merged 1.15.31, so it was closed without merge and must not be reused
+- 1.15.32 (code 162) — consumed redundant keyword forward-port from PR #79; executable/test blobs were identical to merged 1.15.31; closed unmerged and never reusable
+- 1.15.33 (code 163) — consumed rejected Grok crash-hardening identity; commit `82c9e654` replaced the 421-line Stack coordinator with literal `PLACEHOLDER`; never merged or reusable
+- 1.15.34 (code 164) — consumed first Stack mini-window/group-loop candidate `4c49357e`; Android test/lint/assemble passed, but Version Consistency exposed the non-sequential consumed-version ledger and concurrent main movement superseded the branch; unmerged
+- 1.15.35 (code 165) — canonical Stack mini-window event-churn reduction plus whole-Stack loop control; same-player compact rebinding is suppressed, mini artwork/layout work is event-gated, and Stack repeat restarts the synchronized whole session; source only, CI pending
+
 
 Previous baseline: 1.13.26 (code 115).
 

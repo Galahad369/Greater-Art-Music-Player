@@ -510,16 +510,31 @@ class MiniWindowOverlayService : Service(), LifecycleOwner, ViewModelStoreOwner,
     }
 
     private val listener = object : Player.Listener {
-        override fun onEvents(player: Player, events: Player.Events) = push(player)
+        override fun onEvents(player: Player, events: Player.Events) {
+            push(
+                player,
+                artworkMayHaveChanged = events.contains(Player.EVENT_MEDIA_ITEM_TRANSITION) ||
+                    events.contains(Player.EVENT_MEDIA_METADATA_CHANGED),
+                layoutMayHaveChanged = events.contains(Player.EVENT_MEDIA_ITEM_TRANSITION) ||
+                    events.contains(Player.EVENT_MEDIA_METADATA_CHANGED) ||
+                    events.contains(Player.EVENT_VIDEO_SIZE_CHANGED),
+            )
+        }
     }
 
-    private fun push(p: Player) {
+    private fun push(
+        p: Player,
+        artworkMayHaveChanged: Boolean = true,
+        layoutMayHaveChanged: Boolean = true,
+    ) {
         compact?.bind(p, "MINI_WINDOW")
         val path = p.currentMediaItem?.mediaId
-        isVideo.value = p.currentMediaItem?.mediaMetadata?.mediaType == MediaMetadata.MEDIA_TYPE_VIDEO ||
+        val videoNow = p.currentMediaItem?.mediaMetadata?.mediaType == MediaMetadata.MEDIA_TYPE_VIDEO ||
             path?.substringAfterLast('.').orEmpty().lowercase() in videoExtensions
-        updateMiniWindowSize()
-        updateArtwork(p.mediaMetadata.artworkData)
+        val videoChanged = isVideo.value != videoNow
+        if (videoChanged) isVideo.value = videoNow
+        if (layoutMayHaveChanged && !videoChanged) updateMiniWindowSize()
+        if (artworkMayHaveChanged) updateArtwork(p.mediaMetadata.artworkData)
         sessionHasMedia.value = p.currentMediaItem != null
     }
 
