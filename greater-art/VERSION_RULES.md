@@ -7,13 +7,14 @@ This file is the authoritative version policy for Greater Art. If any handoff no
 ## Machine-checkable state
 
 
-Current source: **1.15.21 (code 151)**
-Current release state: **VERIFIED**
+Current source: **1.15.24 (code 154)**
+Current release state: **SOURCE_ONLY**
 Latest verified APK: **1.15.21 (code 151)**
 Allowed series transition: **1.14.15 -> 1.15.1**
 Allowed consumed transition: **1.15.13 (code 143) -> 1.15.17 (code 147)**
 Allowed consumed transition: **1.15.17 (code 147) -> 1.15.19 (code 149)**
 Allowed consumed transition: **1.15.19 (code 149) -> 1.15.21 (code 151)**
+Allowed consumed transition: **1.15.21 (code 151) -> 1.15.24 (code 154)**
 
 ## Non-negotiable rules
 
@@ -146,6 +147,9 @@ The guard checks:
 - 1.15.19 (code 149) — transport-control alignment and final branch convergence: `GaControl.heroIcon = 32.dp` token; main/video play icons consistent; prev/next use 48 dp `GaControl.touchTarget` with `GaControl.prominentIcon`; source only, local build pending
 - 1.15.20 (code 150) — conflicting published side-branch attempts: the same-side double-tap source branch and an incomplete Stack recommendation branch both consumed this identity; neither became canonical main source
 - 1.15.21 (code 151) — final convergence and forward recovery after concurrent unversioned validator/release-metadata churn: same-side double-tap seek for audio/video plus contributor and agent workflow documentation; local build verified
+- 1.15.22 (code 152) — Grok branch republished only the already-present offline Stack recommendation helper/test while leaving VERSION_RULES/HANDOFF at 1.15.19; version consumed, rejected
+- 1.15.23 (code 153) — fully-green final-convergence PR prepared from the superseded 1.15.20 main before 1.15.21 landed; version consumed on side branch, not merged
+- 1.15.24 (code 154) — canonical final convergence: remove the unintegrated Stack recommendation helper/test and correct stale release-provenance documentation while preserving the immutable 1.15.21 verified APK; source only, CI pending
 
 Previous baseline: 1.13.26 (code 115).
 

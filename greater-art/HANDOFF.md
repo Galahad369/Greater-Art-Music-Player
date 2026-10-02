@@ -4,14 +4,27 @@ This file describes the **current repository state only**. Historical session no
 
 **Project:** `greater-art/` in the repository checkout
 **Current version:** `1.15.21 (code 151)`
+**Current source:** `1.15.24 (code 154)`
+**Release state:** `SOURCE_ONLY`
 **Latest APK:** `releases/GreaterArt-1.15.21.apk` (`26,304,042 bytes`; SHA-256 `8d7deda846640ee7cca84c77e9fc59b26f7bfba2b5716acde17d6f8d4a4696bf`)
 **Application ID:** `com.local.listentomusic`
 **Signing certificate SHA-256:** `9e28eb45b3b171c3ea47d7da942d28d88b16538885e392a6971a80906d612fbf`
 **Build date:** `2026-10-02`
 **Test device:** `GreaterArt_A55_API36 (A55, API 36, Android 17)`
-**Verification boundary:** Built from exact source commit `56430b6`; `./gradlew testDebugUnitTest lintDebug :app:assembleDebug --offline` passed; `aapt dump badging` confirms package `com.local.listentomusic`, versionName `1.15.10`, versionCode `140`; signed with personal debug keystore; installed on A55/API 36; launch, library scan/load, local audio/video playback, prev/next/seek/pause/resume, playlist/Favorites playback, duplicate queue independence, Stack→Library/playlist transition, queue/Library add-to-list, Library delete three-confirm flow, mini-window/fullscreen/return flows verified; **0 FATAL EXCEPTION** in tested session.
+**Verification boundary:** Repository release metadata records 1.15.21/code151 as the latest verified APK, finalized after source merge `f1f00a4`; the stored APK is `26,304,042 bytes` with SHA-256 `8d7deda846640ee7cca84c77e9fc59b26f7bfba2b5716acde17d6f8d4a4696bf` and the recorded signing certificate above. The previous handoff accidentally retained the old 1.15.10 verification sentence. This convergence pass does not independently repeat A55/device verification; current source 1.15.24 therefore remains SOURCE_ONLY.
 
 ## Repository state
+
+### October 2 — 1.15.24 final convergence / forward recovery (source only)
+
+- Live main independently merged the reviewed same-side double-tap implementation and workflow documentation, then finalized 1.15.21/code151. Its push Version Consistency and Android CI checks passed.
+- The 1.15.21 release-finalization handoff retained a stale 1.15.10 verification-boundary sentence even though its header, APK, hash, and version policy had moved to 1.15.21; that provenance text is corrected here without modifying the immutable APK.
+- 1.15.22/code152 was consumed by `grok/1.15.22-stack-complete`, which did not implement the claimed Stack UI and left policy metadata stale.
+- 1.15.23/code153 was consumed by superseded PR #69. That PR passed Version Consistency, Android test/lint/assemble, privacy, dependency review, and CodeQL but could not merge after main advanced to 1.15.21.
+- The unintegrated `StackRecommend.kt` helper and isolated test are removed. No StackScreen/ViewModel/app call site uses the helper; the incomplete branch therefore leaves no dead executable code on canonical main.
+- Same-side double-tap seek, contribution/agent docs, transport alignment, ColorTheme recovery, Stack synchronization/performance work, security/privacy hardening, and the verified 1.15.21 APK are preserved.
+- State: **SOURCE_ONLY** at **1.15.24/code154**. Latest verified APK remains **1.15.21/code151**.
+
 
 ### October 2 — 1.15.21 same-side double-tap and final branch convergence (verified)
 
