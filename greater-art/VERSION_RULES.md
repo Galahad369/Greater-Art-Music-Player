@@ -7,7 +7,7 @@ This file is the authoritative version policy for Greater Art. If any handoff no
 ## Machine-checkable state
 
 
-Current source: **1.15.34 (code 164)**
+Current source: **1.15.36 (code 166)**
 Current release state: **SOURCE_ONLY**
 Latest verified APK: **1.15.26 (code 156)**
 Allowed series transition: **1.14.15 -> 1.15.1**
@@ -168,6 +168,7 @@ The guard checks:
 - Consumed side-branch identity: **1.15.33 (code 163)** — rejected Grok crash-hardening commit `82c9e654`; despite its message claiming a full fix, its executable diff replaced the entire Stack coordinator with the literal `PLACEHOLDER`; consumed, not merged, never reuse
 - 1.15.34 (code 164) — Stack mini-window event-churn reduction plus whole-Stack loop control; duplicate compact binding/layout/artwork work is gated, and Stack repeat toggles synchronized session restart instead of independent primary repeat; source only, CI pending
 - Consumed side-branch identity: **1.15.35 (code 165)** — redundant forward-port PR #82; executable/test blobs were byte-for-byte identical to canonical 1.15.34, so it was closed without merge and must not be reused
+- 1.15.36 (code 166) — corrected Stack crash-hardening forward-port: main-looper companion error handling, safe voice release, released guard, and collapse to normal playback below two healthy tracks; preserves canonical Stack loop API/session state; source only, CI pending
 - Consumed side-branch identity: **1.15.32 (code 162)** — redundant forward-port PR #79; executable/test blobs were identical to merged 1.15.31, so it was closed without merge and must not be reused
 
 Previous baseline: 1.13.26 (code 115).
