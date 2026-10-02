@@ -13,6 +13,8 @@ This file describes the **current repository state only**. Historical session no
 **Test device:** `GreaterArt_A55_API36 (A55, API 36, Android 17)`
 **Verification boundary:** Current source is `1.15.43/code173` and is **SOURCE_ONLY**. The latest immutable verified artifact remains `releases/GreaterArt-1.15.42.apk` (SHA-256 `2fe074f19403c63b8f06ca1f0609056cb9245370f2628b51373f9c6e85911369`). No 1.15.43 release APK may exist until the exact source is built and device-verified under VERSION_RULES.
 
+While source is `SOURCE_ONLY`, the `Current version` header intentionally remains the latest verified release; `Current source` records the newer unverified source identity.
+
 ## Repository state
 
 ### October 2 — 1.15.43 Stack save + delete-list reliability (source only)
