@@ -8,14 +8,15 @@ This file is the authoritative version policy for Greater Art. If any handoff no
 
 
 Current source: **1.15.24 (code 154)**
-Current release state: **SOURCE_ONLY**
-Latest verified APK: **1.15.22 (code 152)**
+Current release state: **VERIFIED**
+Latest verified APK: **1.15.24 (code 154)**
 Allowed series transition: **1.14.15 -> 1.15.1**
 Allowed consumed transition: **1.15.13 (code 143) -> 1.15.17 (code 147)**
 Allowed consumed transition: **1.15.17 (code 147) -> 1.15.19 (code 149)**
 Allowed consumed transition: **1.15.19 (code 149) -> 1.15.21 (code 151)**
 Allowed consumed transition: **1.15.21 (code 151) -> 1.15.22 (code 152)**
-Allowed consumed transition: **1.15.22 (code 152) -> 1.15.24 (code 154)**
+Allowed consumed transition: **1.15.22 (code 152) -> 1.15.23 (code 153)**
+Allowed consumed transition: **1.15.23 (code 153) -> 1.15.24 (code 154)**
 
 ## Non-negotiable rules
 
@@ -150,7 +151,7 @@ The guard checks:
 - 1.15.21 (code 151) — final convergence and forward recovery after concurrent unversioned validator/release-metadata churn: same-side double-tap seek for audio/video plus contributor and agent workflow documentation; local build verified
 - 1.15.22 (code 152) — StackRecommend offline engine with unit tests; Grok branch integrated; local build verified
 - 1.15.23 (code 153) — superseded final-convergence side branch removed StackRecommend after live main had already integrated and verified it; version consumed, not merged
-- 1.15.24 (code 154) — video-surface first-frame attribution recovery using analytics event time plus unchanged-presentation/candidate reconcile deduplication; source only, CI pending
+- 1.15.24 (code 154) — video-surface first-frame attribution recovery using analytics event time plus unchanged-presentation/candidate reconcile deduplication; local build verified
 
 Previous baseline: 1.13.26 (code 115).
 
