@@ -705,7 +705,11 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         } else {
             val playlist = userPreferences.playlists.firstOrNull { it.id == id } ?: return
             playlist.rule?.let { rule -> scannedFiles.filter { rule.matches(it, MediaScanner.targetFolder().path) } }
-                ?: playlist.paths.mapNotNull(byPath::get)
+                ?: com.local.listentomusic.model.expandStackKeyword(
+                    explicitPaths = playlist.paths,
+                    library = scannedFiles,
+                    keyword = playlist.stackKeyword,
+                )
         }
         startNormalQueue(player, queue, 0, 0L)
     }
@@ -720,7 +724,11 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         }
         val playlist = userPreferences.playlists.firstOrNull { it.id == id } ?: return emptyList()
         return playlist.rule?.let { rule -> decorated.filter { rule.matches(it, MediaScanner.targetFolder().path) } }
-            ?: playlist.paths.mapNotNull(byPath::get)
+            ?: com.local.listentomusic.model.expandStackKeyword(
+                explicitPaths = playlist.paths,
+                library = decorated,
+                keyword = playlist.stackKeyword,
+            )
     }
     fun renamePlaylist(id: String, name: String) {
         if (name.isBlank()) return
@@ -734,10 +742,16 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     fun createSelectionPlaylist(name: String, paths: List<String>) = updatePreference {
         if (name.isNotBlank()) preferences.setActivePlaylist(preferences.createPlaylistWithPaths(name.take(60), paths))
     }
-    fun saveStackAsPlaylist(name: String, paths: List<String>) {
+    fun saveStackAsPlaylist(name: String, keyword: String, paths: List<String>) {
         val clean = paths.distinct()
-        if (name.isBlank() || clean.isEmpty()) return
-        viewModelScope.launch { preferences.createPlaylistWithPaths(name.trim().take(60), clean) }
+        val cleanKeyword = keyword.trim().take(80)
+        val resolvedName = name.trim().take(60).ifBlank {
+            cleanKeyword.takeIf(String::isNotBlank)?.let { "Stack · ${it.take(42)}" }.orEmpty()
+        }
+        if (resolvedName.isBlank() || clean.isEmpty()) return
+        viewModelScope.launch {
+            preferences.createPlaylistWithPaths(resolvedName, clean, stackKeyword = cleanKeyword)
+        }
     }
     fun addToPlaylist(id: String, path: String) = updatePreference { preferences.addToPlaylist(id, path) }
     fun removeFromActivePlaylist(path: String) {
@@ -984,7 +998,11 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             ?.let { playlist ->
                 val byPath = decorated.associateBy(MediaFile::path)
                 playlist.rule?.let { rule -> sortedLibrary.filter { rule.matches(it, MediaScanner.targetFolder().path) } }
-                    ?: playlist.paths.mapNotNull(byPath::get)
+                    ?: com.local.listentomusic.model.expandStackKeyword(
+                        explicitPaths = playlist.paths,
+                        library = sortedLibrary,
+                        keyword = playlist.stackKeyword,
+                    )
             }
             ?: sortedLibrary
         val normalized = com.local.listentomusic.model.searchText(query)

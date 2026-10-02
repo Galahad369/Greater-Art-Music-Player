@@ -92,6 +92,8 @@ data class LocalPlaylist(
     val name: String,
     val paths: List<String>,
     val rule: com.local.listentomusic.model.PlaylistRule? = null,
+    /** Optional persistent keyword created from Stack. Explicit paths remain pinned. */
+    val stackKeyword: String = "",
 )
 
 data class PlayHistoryEntry(val path: String, val playedAtEpochMs: Long)
@@ -380,9 +382,20 @@ class AppPreferences(private val context: Context) {
         return id
     }
 
-    suspend fun createPlaylistWithPaths(name: String, paths: List<String>): String {
+    suspend fun createPlaylistWithPaths(
+        name: String,
+        paths: List<String>,
+        stackKeyword: String = "",
+    ): String {
         val id = UUID.randomUUID().toString()
-        updatePlaylists { current -> current + LocalPlaylist(id, name.trim(), paths.distinct()) }
+        updatePlaylists {
+            current -> current + LocalPlaylist(
+                id = id,
+                name = name.trim(),
+                paths = paths.distinct(),
+                stackKeyword = stackKeyword.trim().take(80),
+            )
+        }
         return id
     }
 
@@ -487,11 +500,13 @@ class AppPreferences(private val context: Context) {
             encode(playlist.name),
             playlist.paths.joinToString(",", transform = ::encode),
             playlist.rule?.let { rule -> encode(org.json.JSONObject().put("folder", rule.folder).put("extension", rule.extension).put("text", rule.text).toString()) }.orEmpty(),
+            playlist.stackKeyword.takeIf(String::isNotBlank)?.let(::encode).orEmpty(),
         ).joinToString("|")
     }
 
     private fun decodePlaylists(encoded: String): List<LocalPlaylist> = encoded.lineSequence().mapNotNull { line ->
-        val parts = line.split('|', limit = 4)
+        // Four-field legacy rows remain valid; the fifth field is the optional Stack keyword.
+        val parts = line.split('|', limit = 5)
         if (parts.size < 3) return@mapNotNull null
         val id = decode(parts[0]) ?: return@mapNotNull null
         val name = decode(parts[1])?.takeIf { it.isNotBlank() } ?: return@mapNotNull null
@@ -500,7 +515,13 @@ class AppPreferences(private val context: Context) {
             val json = org.json.JSONObject(raw)
             com.local.listentomusic.model.PlaylistRule(json.optString("folder"), json.optString("extension"), json.optString("text"))
         }.getOrNull() }
-        LocalPlaylist(id, name, paths.distinct(), rule)
+        val stackKeyword = parts.getOrNull(4)
+            ?.takeIf { it.isNotBlank() }
+            ?.let(::decode)
+            ?.trim()
+            ?.take(80)
+            .orEmpty()
+        LocalPlaylist(id, name, paths.distinct(), rule, stackKeyword)
     }.toList()
 
     private fun encodePlayHistory(entries: List<PlayHistoryEntry>): String = entries.joinToString("\n") { entry ->
