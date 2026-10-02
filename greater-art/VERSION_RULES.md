@@ -7,7 +7,7 @@ This file is the authoritative version policy for Greater Art. If any handoff no
 ## Machine-checkable state
 
 
-Current source: **1.15.34 (code 164)**
+Current source: **1.15.37 (code 167)**
 Current release state: **SOURCE_ONLY**
 Latest verified APK: **1.15.26 (code 156)**
 Allowed series transition: **1.14.15 -> 1.15.1**
@@ -23,6 +23,7 @@ Allowed consumed transition: **1.15.26 (code 156) -> 1.15.27 (code 157)**
 Allowed consumed transition: **1.15.27 (code 157) -> 1.15.29 (code 159)**
 Allowed consumed transition: **1.15.31 (code 161) -> 1.15.34 (code 164)**
 Allowed consumed transition: **1.15.34 (code 164) -> 1.15.36 (code 166)**
+Allowed consumed transition: **1.15.34 (code 164) -> 1.15.37 (code 167)**
 
 ## Non-negotiable rules
 
@@ -167,6 +168,8 @@ The guard checks:
 - 1.15.31 (code 161) — persistent user-owned Stack keyword: saved Stack keeps pinned tracks plus an optional local keyword that dynamically includes matching song names/paths when reopened; legacy playlist rows remain compatible; source only, CI pending
 - Consumed side-branch identity: **1.15.33 (code 163)** — rejected Grok crash-hardening commit `82c9e654`; despite its message claiming a full fix, its executable diff replaced the entire Stack coordinator with the literal `PLACEHOLDER`; consumed, not merged, never reuse
 - 1.15.34 (code 164) — Stack mini-window event-churn reduction plus whole-Stack loop control; duplicate compact binding/layout/artwork work is gated, and Stack repeat toggles synchronized session restart instead of independent primary repeat; source only, CI pending
+- Consumed side-branch identity: **1.15.36 (code 166)** — conflicting validator-only PR #86 and crash-hardening PR #87 candidates were both published from 1.15.34; neither is merged, the identity is consumed, and canonical convergence skips to 1.15.37/code167
+- 1.15.37 (code 167) — final convergence: version guard now honors exact consumed-version transitions in current-state validation, plus corrected Stack crash hardening with canonical loop API/session state preserved; source only, CI pending
 - Consumed side-branch identity: **1.15.35 (code 165)** — redundant forward-port PR #82; executable/test blobs were byte-for-byte identical to canonical 1.15.34, so it was closed without merge and must not be reused
 - Consumed side-branch identity: **1.15.32 (code 162)** — redundant forward-port PR #79; executable/test blobs were identical to merged 1.15.31, so it was closed without merge and must not be reused
 

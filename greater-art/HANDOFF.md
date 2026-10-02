@@ -4,7 +4,7 @@ This file describes the **current repository state only**. Historical session no
 
 **Project:** `greater-art/` in the repository checkout
 **Current version:** `1.15.26 (code 156)`
-**Current source:** `1.15.34 (code 164)`
+**Current source:** `1.15.37 (code 167)`
 **Release state:** `SOURCE_ONLY`
 **Latest APK:** `releases/GreaterArt-1.15.26.apk` (`26,287,658 bytes`; SHA-256 `4c8b8d4692a8bd5c575208746065139651d6f0d651a4dbad619ea77cb0745de2`)
 **Application ID:** `com.local.listentomusic`
@@ -14,6 +14,15 @@ This file describes the **current repository state only**. Historical session no
 **Verification boundary:** Authoritative VERSION_RULES and repository contents establish 1.15.34/code164 as SOURCE_ONLY. No `releases/GreaterArt-1.15.34.apk` exists on main; the latest repository-backed verified APK remains 1.15.26/code156.
 
 ## Repository state
+
+### October 2 — 1.15.37 final Stack crash-hardening + version-guard convergence (source only)
+
+- Combines the valid parts of the conflicting 1.15.36 candidates into one clean commit from canonical 1.15.34. Published **1.15.35/code165** and **1.15.36/code166** identities remain consumed and are not reused.
+- Version validation now applies the existing exact `Allowed consumed transition` mechanism to current-state ledger validation as well as commit-range validation, fixing false failures for legitimate consumed-version jumps without weakening APK immutability or per-commit enforcement.
+- Stack companion-player errors are marshalled onto the main looper before shared-state mutation; failed voices are safely stopped/released, player iteration uses stable snapshots/guarded calls, released coordinators reject new starts, and Stack collapses to normal playback below two healthy tracks.
+- Canonical 1.15.34 loop behavior is retained: `StackPlaybackCoordinator.setLoop`, `StackSession.loopEnabled`, and `shouldRestartStack(...)` remain the loop-control path.
+- Source advances atomically to **1.15.37/code167**. State: **SOURCE_ONLY**; latest verified APK remains **1.15.26/code156**.
+
 
 ### October 2 — 1.15.34 Stack mini-window + loop fix (source only)
 
