@@ -98,8 +98,8 @@ Markdown/docs-only changes, release hashes/metadata, and adding a newly verified
 - 1.15.18 (code 148) — Grok branch reviewed and rejected; claimed color-theme implementation was only Gradle bump + comment removal; version consumed
 - 1.15.19 (code 149) — transport-control alignment and final branch convergence: `GaControl.heroIcon = 32.dp` token; main/video play icons consistent; prev/next use 48 dp `GaControl.touchTarget` with `GaControl.prominentIcon`; source only, local build pending
 - 1.15.20 (code 150) — same-side double-tap seek for video/audio with 400 ms pairing, cross-side rejection, and hold-to-2x isolation; local build verified
-- 1.15.21 (code 151) — superseded final-convergence PR published after concurrent main drift; version consumed on side branch, not merged
-- 1.15.22 (code 152) — Grok Stack branch republished only the already-present offline recommendation helper/test with stale 1.15.19 policy metadata; version consumed, rejected
+- 1.15.21 (code 151) — canonical forward convergence: same-side double-tap seek for audio/video plus contributor/agent workflow documentation; release-finalized and verified on main (release commit `ac9a6932`)
+- 1.15.22 (code 152) — canonical temporary StackRecommend helper/test integration; release-finalized and verified on main (release commit `07701f24`), then superseded functionally by 1.15.23 removing the unintegrated dead helper
 - 1.15.23 (code 153) — canonical forward recovery: remove the unintegrated Stack recommendation helper/test, preserve the reviewed 1.15.20 same-side seek + workflow docs, and restore one coherent main timeline; local build verified
 - 1.15.24 (code 154) — canonical video-surface first-frame attribution recovery using analytics event time plus unchanged-presentation/candidate reconcile deduplication; local build verified
 - 1.15.25 (code 155) — concurrent-branch convergence advanced the already-reviewed 1.15.24 surface implementation to the next source identity without further surface source/test changes; local build verified
