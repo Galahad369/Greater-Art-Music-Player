@@ -7,7 +7,7 @@ This file is the authoritative version policy for Greater Art. If any handoff no
 ## Machine-checkable state
 
 
-Current source: **1.15.31 (code 161)**
+Current source: **1.15.34 (code 164)**
 Current release state: **SOURCE_ONLY**
 Latest verified APK: **1.15.26 (code 156)**
 Allowed series transition: **1.14.15 -> 1.15.1**
@@ -21,6 +21,7 @@ Allowed consumed transition: **1.15.24 (code 154) -> 1.15.25 (code 155)**
 Allowed consumed transition: **1.15.25 (code 155) -> 1.15.26 (code 156)**
 Allowed consumed transition: **1.15.26 (code 156) -> 1.15.27 (code 157)**
 Allowed consumed transition: **1.15.27 (code 157) -> 1.15.29 (code 159)**
+Allowed consumed transition: **1.15.31 (code 161) -> 1.15.34 (code 164)**
 
 ## Non-negotiable rules
 
@@ -163,6 +164,8 @@ The guard checks:
 - 1.15.29 (code 159) — canonical list-scroll video budget: Library, Now Playing queue, Stack list and Stack picker report fling state; decorative CURRENT_VIDEO/CUSTOM_VIDEO stays attached but pauses playback/crop-position work until scrolling settles; source only, CI pending
 - 1.15.30 (code 160) — Stack completion + Nodes linked-graph UI: NOW_PLAYING context/highlight, searchable multi-select, wired offline recommendations using local metadata/history, save Stack to playlist, and denser focused graph chrome; preserves 1.15.29 list-scroll budget; source only, CI pending
 - 1.15.31 (code 161) — persistent user-owned Stack keyword: saved Stack keeps pinned tracks plus an optional local keyword that dynamically includes matching song names/paths when reopened; legacy playlist rows remain compatible; source only, CI pending
+- Consumed side-branch identity: **1.15.33 (code 163)** — rejected Grok crash-hardening commit `82c9e654`; despite its message claiming a full fix, its executable diff replaced the entire Stack coordinator with the literal `PLACEHOLDER`; consumed, not merged, never reuse
+- 1.15.34 (code 164) — Stack mini-window event-churn reduction plus whole-Stack loop control; duplicate compact binding/layout/artwork work is gated, and Stack repeat toggles synchronized session restart instead of independent primary repeat; source only, CI pending
 - Consumed side-branch identity: **1.15.32 (code 162)** — redundant forward-port PR #79; executable/test blobs were identical to merged 1.15.31, so it was closed without merge and must not be reused
 
 Previous baseline: 1.13.26 (code 115).
