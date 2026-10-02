@@ -4,14 +4,25 @@ This file describes the **current repository state only**. Historical session no
 
 **Project:** `greater-art/` in the repository checkout
 **Current version:** `1.15.36 (code 166)`
-**Latest APK:** `releases/GreaterArt-1.15.36.apk` (`26,287,658 bytes`; SHA-256 `4c0315426b14c87747570a5936ec355226fde6ded608756d1c08fa5f215976b9`)
+**Current source:** `1.15.38 (code 168)`
+**Release state:** `SOURCE_ONLY`
+**Latest APK:** `releases/GreaterArt-1.15.36.apk` (`26,353,198 bytes`; SHA-256 recorded by release-finalization as `4c0315426b14c87747570a5936ec355226fde6ded608756d1c08fa5f215976b9`)
 **Application ID:** `com.local.listentomusic`
 **Signing certificate SHA-256:** `9e28eb45b3b171c3ea47d7da942d28d88b16538885e392a6971a80906d612fbf`
 **Build date:** `2026-10-02`
 **Test device:** `GreaterArt_A55_API36 (A55, API 36, Android 17)`
-**Verification boundary:** Authoritative VERSION_RULES and repository contents establish 1.15.34/code164 as SOURCE_ONLY. No `releases/GreaterArt-1.15.34.apk` exists on main; the latest repository-backed verified APK remains 1.15.26/code156.
+**Verification boundary:** `1.15.36/code166` is the latest verified APK present in the repository. Canonical executable source subsequently advanced to `1.15.38/code168`; its exact PR head passed Android CI, Version Consistency, and Public Repository Security, but no `GreaterArt-1.15.38.apk` is present, so current source remains SOURCE_ONLY.
 
 ## Repository state
+
+### October 2 — 1.15.38 Stack crash-hardening convergence (source only)
+
+- Canonical source is **1.15.38/code168**. The exact feature head passed Android CI, Version Consistency, and Public Repository Security before merge.
+- Companion-player error callbacks marshal shared Stack mutation onto the main looper; failed voices are stopped/released safely, released coordinators reject new starts, and Stack collapses back to normal playback when fewer than two healthy tracks remain.
+- Preserves the 1.15.34 mini-window event-churn reduction and whole-Stack **Off ↔ Loop** behavior.
+- **1.15.37/code167** is a consumed stale side-branch identity and is not reused.
+- The later 1.15.36 release-finalization commit added a valid 1.15.36 APK but incorrectly rewound source metadata; this documentation repair restores the source/release boundary without changing executable code or APKs.
+- Current source **1.15.38/code168 SOURCE_ONLY**; latest verified APK **1.15.36/code166**.
 
 ### October 2 — 1.15.36 version-guard consumed-transition consistency (source only)
 
