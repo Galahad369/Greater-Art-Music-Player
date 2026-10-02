@@ -422,7 +422,11 @@ fun NowPlayingScreen(
         IconButton(
             onClick = { controlsLocked = !controlsLocked },
             modifier = Modifier.align(Alignment.TopEnd).windowInsetsPadding(playerStatusInsets())
-                .padding(end = 100.dp).size(48.dp)
+                .padding(
+                    top = if (playback.isVideo) (GaControl.hero - GaControl.touchTarget) / 2f else 0.dp,
+                    end = GaSpacing.xs + GaControl.touchTarget + GaControl.touchTarget,
+                )
+                .size(GaControl.touchTarget)
                 .inspectElement("PLAYER_LOCK_BUTTON", if (controlsLocked) "Unlock Now Playing controls" else "Lock Now Playing controls"),
         ) {
             Icon(
@@ -430,7 +434,7 @@ fun NowPlayingScreen(
                 uiText(language, if (controlsLocked) "Unlock player controls" else "Lock player controls",
                     if (controlsLocked) "解鎖播放器控制" else "鎖定播放器控制"),
                 tint = if (playback.isVideo && immersiveVideo) Color.White else MaterialTheme.colorScheme.onSurface,
-                modifier = Modifier.size(27.dp),
+                modifier = Modifier.size(30.dp),
             )
         }
     }
@@ -1753,7 +1757,7 @@ private fun NowPlayingTopBar(
             .padding(horizontal = GaSpacing.xs),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        IconButton(onClick = onPictureInPicture, modifier = Modifier.inspectElement("FLOATING_PLAYER_BUTTON", "Opens the selected floating-player mode")) {
+        IconButton(onClick = onPictureInPicture, modifier = Modifier.size(GaControl.touchTarget).inspectElement("FLOATING_PLAYER_BUTTON", "Opens the selected floating-player mode")) {
             Icon(
                 Icons.Rounded.PictureInPictureAlt,
                 uiText(language, "Open floating player", "開啟浮動播放器"),
@@ -1761,19 +1765,19 @@ private fun NowPlayingTopBar(
                 modifier = Modifier.size(30.dp),
             )
         }
-        IconButton(onClick = onHome, modifier = Modifier.inspectElement("HOME_BUTTON", "Returns to Library")) {
+        IconButton(onClick = onHome, modifier = Modifier.size(GaControl.touchTarget).inspectElement("HOME_BUTTON", "Returns to Library")) {
             Icon(Icons.Rounded.Home, uiText(language, "Home", "首頁"), Modifier.size(30.dp), tint = foreground)
         }
         onLocateCurrent?.let { locateAction ->
-            IconButton(onClick = locateAction, modifier = Modifier.inspectElement("LOCATE_CURRENT_BUTTON", "Scroll to currently playing song in queue")) {
+            IconButton(onClick = locateAction, modifier = Modifier.size(GaControl.touchTarget).inspectElement("LOCATE_CURRENT_BUTTON", "Scroll to currently playing song in queue")) {
                 Icon(Icons.Rounded.QueueMusic, uiText(language, "Locate current song", "定位當前播放"), Modifier.size(30.dp), tint = foreground)
             }
         }
         Spacer(Modifier.weight(1f))
         // The lock is drawn above the whole player so it remains usable when
         // an input-blocking layer protects the rest of Now Playing.
-        Spacer(Modifier.size(48.dp))
-        IconButton(onClick = onFullscreen, modifier = Modifier.inspectElement("FULLSCREEN_BUTTON", if (fullscreen) "Exit fullscreen" else "Enter fullscreen")) {
+        Spacer(Modifier.size(GaControl.touchTarget))
+        IconButton(onClick = onFullscreen, modifier = Modifier.size(GaControl.touchTarget).inspectElement("FULLSCREEN_BUTTON", if (fullscreen) "Exit fullscreen" else "Enter fullscreen")) {
             Icon(
                 if (fullscreen) Icons.Rounded.FullscreenExit else Icons.Rounded.Fullscreen,
                 if (fullscreen) uiText(language, "Exit fullscreen", "離開全螢幕")
@@ -1782,7 +1786,7 @@ private fun NowPlayingTopBar(
                 modifier = Modifier.size(30.dp),
             )
         }
-        IconButton(onClick = onClose, modifier = Modifier.inspectElement("CLOSE_PLAYER_BUTTON", "Closes Now Playing without stopping playback")) {
+        IconButton(onClick = onClose, modifier = Modifier.size(GaControl.touchTarget).inspectElement("CLOSE_PLAYER_BUTTON", "Closes Now Playing without stopping playback")) {
             Icon(Icons.Rounded.Close, uiText(language, "Close player", "關閉播放器"), Modifier.size(30.dp), tint = foreground)
         }
     }
