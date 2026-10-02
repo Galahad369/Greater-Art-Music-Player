@@ -7,8 +7,8 @@ This file is the authoritative version policy for Greater Art. If any handoff no
 ## Machine-checkable state
 
 
-Current source: **1.15.26 (code 156)**
-Current release state: **VERIFIED**
+Current source: **1.15.27 (code 157)**
+Current release state: **SOURCE_ONLY**
 Latest verified APK: **1.15.26 (code 156)**
 Allowed series transition: **1.14.15 -> 1.15.1**
 Allowed consumed transition: **1.15.13 (code 143) -> 1.15.17 (code 147)**
@@ -19,6 +19,7 @@ Allowed consumed transition: **1.15.22 (code 152) -> 1.15.23 (code 153)**
 Allowed consumed transition: **1.15.23 (code 153) -> 1.15.24 (code 154)**
 Allowed consumed transition: **1.15.24 (code 154) -> 1.15.25 (code 155)**
 Allowed consumed transition: **1.15.25 (code 155) -> 1.15.26 (code 156)**
+Allowed consumed transition: **1.15.26 (code 156) -> 1.15.27 (code 157)**
 
 ## Non-negotiable rules
 
@@ -156,6 +157,7 @@ The guard checks:
 - 1.15.24 (code 154) — canonical video-surface first-frame attribution recovery using analytics event time plus unchanged-presentation/candidate reconcile deduplication; local build verified
 - 1.15.25 (code 155) — concurrent-branch convergence advanced the already-reviewed 1.15.24 surface implementation to the next source identity without further surface source/test changes; local build verified
 - 1.15.26 (code 156) — **Grok**: LIBRARY_FAMILY_NAV text → icons (Layers / LibraryMusic / Hub); local build verified
+- 1.15.27 (code 157) — final branch convergence: carry forward Replit Now Playing lock/top-bar alignment using shared GaControl touch-target tokens; source only, CI pending
 
 Previous baseline: 1.13.26 (code 115).
 
