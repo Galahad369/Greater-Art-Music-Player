@@ -13,6 +13,16 @@ This file describes the **current repository state only**. Historical session no
 
 ## Repository state
 
+### October 3 — final PR/branch convergence bookkeeping
+
+- **1.15.52/code182 remains the current VERIFIED source and release.**
+- PR #105 was closed because its Copilot head had no implementation diff; its Grok base only consumed a 1.15.52 version bump without implementing the requested audio-correlation feature.
+- PR #106 became the canonical 1.15.52 Stack loop/late-ready alignment implementation and passed all required repository gates before merge and device verification.
+- A separate recovery commit had already consumed **1.15.53/code183** from an older base. Its useful behavior is superseded by 1.15.52, but the identity itself is spent under VERSION_RULES and may not be reused.
+- Therefore the next executable/source change after verified 1.15.52 must use **1.15.54/code184**.
+- This bookkeeping commit changes no executable source, Gradle configuration, permissions, signing, or APK artifact.
+
+
 ### October 3 — 1.15.52 Stack loop UI fix + late-ready alignment (verified)
 
 - Fixes Stack loop toggle visibility in Now Playing: the loop glyph now appears only while Stack is active and correctly reflects the session loop state (accent when on, onSurfaceVariant when off).
