@@ -70,6 +70,7 @@ fun StackScreen(
     val alignScope = rememberCoroutineScope()
     var alignJob by remember { mutableStateOf<Job?>(null) }
     var alignProgress by remember { mutableStateOf<String?>(null) }
+    var alignmentResult by remember { mutableStateOf<String?>(null) }
     var stagedPaths by rememberSaveable { mutableStateOf(emptyList<String>()) }
     val staged = remember(files, stagedPaths) {
         stagedPaths.mapNotNull { path -> files.firstOrNull { it.path == path } }
@@ -187,7 +188,14 @@ fun StackScreen(
             }
         }
         if (session.active && session.slots.size >= 2) {
-            Row(Modifier.fillMaxWidth().padding(horizontal = 14.dp), verticalAlignment = Alignment.CenterVertically) {
+            Surface(
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 6.dp),
+                shape = RoundedCornerShape(12.dp),
+                color = gaChromeColor(),
+                border = androidx.compose.foundation.BorderStroke(1.dp, gaDividerColor()),
+            ) {
+            Column(Modifier.padding(horizontal = 8.dp, vertical = 4.dp)) {
+            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                 if (alignProgress != null) {
                     CircularProgressIndicator(Modifier.size(20.dp), strokeWidth = 2.dp)
                     Text(alignProgress!!, Modifier.weight(1f).padding(start = 10.dp), style = MaterialTheme.typography.labelMedium)
@@ -199,23 +207,31 @@ fun StackScreen(
                             val snapshot = StackPlayback.state.value
                             val primary = snapshot.slots.firstOrNull { it.file.path == snapshot.primaryPath } ?: return@TextButton
                             val companions = snapshot.slots.filterNot { it.file.path == snapshot.primaryPath }
+                            alignmentResult = null
+                            // Analysis competes with up to eight real-time decoders.
+                            // Freeze the shared timeline, analyse once, then resume.
+                            if (snapshot.playing) StackPlayback.pause()
                             alignProgress = uiText(language, "Aligning by sound", "正在按聲音對齊")
                             alignJob = alignScope.launch {
                                 try {
-                                    val offsets = mutableMapOf<String, Long>()
-                                    companions.forEachIndexed { index, slot ->
+                                    val matches = aligner.estimateAll(primary.file, companions.map { it.file }) { index ->
                                         alignProgress = "${uiText(language, "Aligning by sound", "正在按聲音對齊")} ${index + 1}/${companions.size}"
-                                        val match = aligner.estimate(primary.file, slot.file)
-                                        if (match.confident) offsets[slot.file.path] = match.offsetMs
                                     }
+                                    val offsets = matches.filterValues { it.confident }.mapValues { it.value.offsetMs }
                                     val current = StackPlayback.state.value
                                     if (current.primaryPath == snapshot.primaryPath && current.slots.map { it.file.path } == snapshot.slots.map { it.file.path }) {
                                         StackPlayback.setOffsets(offsets)
+                                        alignmentResult = "${uiText(language, "Aligned tracks", "已對齊歌曲")}: ${offsets.size}/${companions.size}"
                                         error = if (offsets.size < companions.size) uiText(language, "Uncertain matches kept unchanged", "未能確認的匹配保持不變") else null
                                     } else error = uiText(language, "Stack changed; align again", "疊播已改變，請重新對齊")
                                 } catch (cancelled: CancellationException) { throw cancelled }
                                 catch (_: Exception) { error = uiText(language, "Could not analyse these files", "無法分析這些檔案") }
-                                finally { alignProgress = null; alignJob = null }
+                                finally {
+                                    val current = StackPlayback.state.value
+                                    if (snapshot.playing && current.active && current.primaryPath == snapshot.primaryPath &&
+                                        current.slots.map { it.file.path } == snapshot.slots.map { it.file.path }) StackPlayback.play()
+                                    alignProgress = null; alignJob = null
+                                }
                             }
                         },
                     ) {
@@ -224,6 +240,16 @@ fun StackScreen(
                         Text(uiText(language, "Align by sound", "按聲音對齊"))
                     }
                 }
+            }
+            if (alignProgress != null) Text(
+                uiText(language, "Playback resumes after analysis", "分析後繼續播放"),
+                Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            alignmentResult?.let { Text(it, Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.secondary) }
+            }
             }
         }
         LazyColumn(
@@ -334,7 +360,7 @@ fun StackScreen(
                         scrubPosition = null
                     },
                     valueRange = 0f..duration.toFloat(),
-                    enabled = session.active,
+                    enabled = session.active && alignProgress == null,
                     modifier = Modifier.fillMaxWidth().inspectElement("STACK_MASTER_TIMELINE", "Seeks all active tracks"),
                 )
             }
@@ -364,6 +390,7 @@ fun StackScreen(
                             }
                             IconButton(
                                 onClick = { if (session.playing) StackPlayback.pause() else StackPlayback.play() },
+                                enabled = alignProgress == null,
                                 modifier = Modifier.size(56.dp).inspectElement("STACK_MASTER_PLAY", "Play or pause every track"),
                             ) {
                                 Icon(

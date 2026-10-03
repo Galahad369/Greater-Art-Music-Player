@@ -107,7 +107,7 @@ internal fun correlateStackEnvelopes(primary: FloatArray, companion: FloatArray)
  * fused per lag; a strong result must have either meaningful envelope evidence or
  * meaningful chroma evidence, and still pass the existing distinct-peak rejection.
  */
-internal fun correlateStackFeatures(primary: StackAudioFeatures, companion: StackAudioFeatures): StackAlignment {
+internal fun correlateStackFeatures(primary: StackAudioFeatures, companion: StackAudioFeatures, checkActive: () -> Unit = {}): StackAlignment {
     if (minOf(primary.envelope.size, companion.envelope.size) < 150) {
         return StackAlignment(0, 0.0, false)
     }
@@ -121,6 +121,7 @@ internal fun correlateStackFeatures(primary: StackAudioFeatures, companion: Stac
     var bestHarmonic = -1.0
 
     for (lag in -limit..limit) {
+        if (lag % 16 == 0) checkActive()
         val energy = energyCorrelation(a, b, lag)
         val harmonic = harmonicCorrelation(primary, companion, lag)
         val score = when {

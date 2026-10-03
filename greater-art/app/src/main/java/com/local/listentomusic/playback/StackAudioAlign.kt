@@ -31,20 +31,21 @@ import kotlin.math.sqrt
  * fingerprint so different vocal timbres can still align on shared harmonic structure.
  */
 class StackAudioAlign(context: Context) {
-    private val cache = File(context.applicationContext.cacheDir, "stack-align-v2")
+    private val cache = File(context.applicationContext.cacheDir, "stack-align-v3")
 
     companion object {
         private val mutex = Mutex()
         private const val FEATURE_BINS = 4500
         private const val CHROMA_SIZE = 12
         private const val CHROMA_SAMPLES = 64
-        private const val CHROMA_FREQUENCIES = 24
+        private const val CHROMA_FREQUENCIES = 36
+        private const val CHROMA_WINDOW_BINS = 5
+        private const val CHROMA_WINDOW_SAMPLES = CHROMA_SAMPLES * CHROMA_WINDOW_BINS
         private const val CHROMA_SAMPLE_RATE = CHROMA_SAMPLES * 50.0
         private const val CACHE_LIMIT = 32
 
-        private val chromaWindow = DoubleArray(CHROMA_SAMPLES) { index ->
-            if (CHROMA_SAMPLES <= 1) 1.0
-            else 0.5 - 0.5 * cos(2.0 * PI * index / (CHROMA_SAMPLES - 1))
+        private val chromaWindow = DoubleArray(CHROMA_WINDOW_SAMPLES) { index ->
+            0.5 - 0.5 * cos(2.0 * PI * index / (CHROMA_WINDOW_SAMPLES - 1))
         }
         private val chromaCoefficients = DoubleArray(CHROMA_FREQUENCIES) { semitone ->
             val frequency = 130.81278265 * 2.0.pow(semitone / 12.0) // C3..B4
@@ -57,6 +58,19 @@ class StackAudioAlign(context: Context) {
         val b = features(companion)
         coroutineContext.ensureActive()
         correlateStackFeatures(a, b)
+    }
+
+    suspend fun estimateAll(primary: MediaFile, companions: List<MediaFile>, progress: (Int) -> Unit): Map<String, StackAlignment> {
+        val reference = features(primary)
+        return companions.mapIndexed { index, companion ->
+            progress(index)
+            val candidate = features(companion)
+            val match = withContext(Dispatchers.Default) {
+                val activeContext = coroutineContext
+                correlateStackFeatures(reference, candidate) { activeContext.ensureActive() }
+            }
+            companion.path to match
+        }.toMap()
     }
 
     private suspend fun features(file: MediaFile): StackAudioFeatures = withContext(Dispatchers.IO) {
@@ -113,7 +127,7 @@ class StackAudioAlign(context: Context) {
         val energy = FloatArray(FEATURE_BINS)
         val counts = IntArray(FEATURE_BINS)
         val chromaSamples = FloatArray(FEATURE_BINS * CHROMA_SAMPLES)
-        val chromaFilled = BooleanArray(FEATURE_BINS * CHROMA_SAMPLES)
+        val chromaCounts = IntArray(FEATURE_BINS * CHROMA_SAMPLES)
         var rate = 44100
         var channels = 1
         var encoding = AudioFormat.ENCODING_PCM_16BIT
@@ -148,10 +162,10 @@ class StackAudioAlign(context: Context) {
                         .toInt()
                         .coerceIn(0, CHROMA_SAMPLES - 1)
                     val index = bin * CHROMA_SAMPLES + slot
-                    if (!chromaFilled[index]) {
-                        chromaFilled[index] = true
-                        chromaSamples[index] = mono.toFloat()
-                    }
+                    // Average, rather than pick one high-rate sample: reduce aliasing
+                    // from vocal harmonics before this analysis-only downsampling.
+                    chromaSamples[index] += mono.toFloat()
+                    chromaCounts[index]++
                 }
             }
         }
@@ -169,16 +183,16 @@ class StackAudioAlign(context: Context) {
         }
 
         fun chromaFrame(bin: Int): FloatArray {
-            val base = bin * CHROMA_SAMPLES
+            val base = (bin / CHROMA_WINDOW_BINS * CHROMA_WINDOW_BINS) * CHROMA_SAMPLES
             var populated = 0
             var mean = 0.0
-            for (slot in 0 until CHROMA_SAMPLES) {
-                if (chromaFilled[base + slot]) {
+            for (slot in 0 until CHROMA_WINDOW_SAMPLES) {
+                if (base + slot < chromaCounts.size && chromaCounts[base + slot] > 0) {
                     populated++
-                    mean += chromaSamples[base + slot]
+                    mean += chromaSamples[base + slot] / chromaCounts[base + slot]
                 }
             }
-            if (populated < CHROMA_SAMPLES / 2) return FloatArray(CHROMA_SIZE)
+            if (populated < CHROMA_WINDOW_SAMPLES / 2) return FloatArray(CHROMA_SIZE)
             mean /= populated
 
             val folded = DoubleArray(CHROMA_SIZE)
@@ -186,9 +200,9 @@ class StackAudioAlign(context: Context) {
                 val coefficient = chromaCoefficients[semitone]
                 var q1 = 0.0
                 var q2 = 0.0
-                for (slot in 0 until CHROMA_SAMPLES) {
-                    val sample = if (chromaFilled[base + slot]) {
-                        (chromaSamples[base + slot] - mean) * chromaWindow[slot]
+                for (slot in 0 until CHROMA_WINDOW_SAMPLES) {
+                    val sample = if (base + slot < chromaCounts.size && chromaCounts[base + slot] > 0) {
+                        (chromaSamples[base + slot] / chromaCounts[base + slot] - mean) * chromaWindow[slot]
                     } else {
                         0.0
                     }
@@ -279,7 +293,11 @@ class StackAudioAlign(context: Context) {
             val envelope = FloatArray(n) {
                 if (counts[it] > 0) sqrt(energy[it] / counts[it]) else 0f
             }
-            val chroma = Array(n, ::chromaFrame)
+            val windows = Array((n + CHROMA_WINDOW_BINS - 1) / CHROMA_WINDOW_BINS) {
+                coroutineContext.ensureActive()
+                chromaFrame(it * CHROMA_WINDOW_BINS)
+            }
+            val chroma = Array(n) { windows[it / CHROMA_WINDOW_BINS] }
             return StackAudioFeatures(envelope, chroma)
         } finally {
             codec?.let {

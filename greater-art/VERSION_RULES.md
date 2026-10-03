@@ -7,7 +7,7 @@ This file is the authoritative version policy for Greater Art. If any handoff no
 ## Machine-checkable state
 
 
-Current source: **1.15.56 (code 186)**
+Current source: **1.15.58 (code 188)**
 Current release state: **SOURCE_ONLY**
 Latest verified APK: **1.15.55 (code 185)**
 Allowed series transition: **1.14.15 -> 1.15.1**
@@ -144,5 +144,9 @@ Previous baseline: 1.13.26 (code 115).
 
 - 1.15.55 (code 185) — release guard recognizes exact-parent integration merges while retaining source-commit and immutable APK validation. Exact build source `2f093d3`; 171 app tests, three guard tests, lint/build and emulator saved-Stack/cached-alignment smoke passed. APK SHA-256 `3e1f29142a736315938d4e5f0069bdb0e78da2190cd3da647b51fc618ac24a11`.
 - 1.15.56 (code 186) — MVP missing-parts pass: Stack alignment adds cached 12-bin chroma/harmonic fingerprints fused with the existing 20 ms energy-envelope correlation while retaining ambiguity rejection; ColorTheme display names become Luna / Orbit / Sol / Astra / Nova / Space Black without changing persisted enum identities; CURRENT_VIDEO uses the primary MediaController surface through VideoSurfaceOwner instead of a duplicate ExoPlayer, with BACKGROUND handoff retention to reduce black-frame transitions; deterministic eight-track headroom/cap coverage added. Source only; real 6–8 varying-singer hardware listening remains pending and no phase-perfect/time-warp claim is made.
+
+- 1.15.57 (code 187) — Stack blank-page snackbar constraint fix, 100ms averaged harmonic windows, one-reference batch alignment, cancellable correlation, analysis pause/resume and localized results; source only pending verification.
+
+- 1.15.58 (code 188) — verification follow-up: compact undo/save feedback clears Stack's fixed transport controls as well as the Library dock. 1.15.57 identity consumed on repair branch, never released here.
 
 **No silent builds. No version reuse. No version skips. No APK overwrite/rename/copy.**

@@ -261,6 +261,9 @@ fun GreaterArtApp(
                 } else Color.Transparent,
                 contentColor = MaterialTheme.colorScheme.onBackground,
             ) {
+            // Surface propagates its full-screen minimum constraints. Transient
+            // feedback must not inherit them and cover the library with a snackbar.
+            Box(Modifier.fillMaxSize()) {
             AnimatedContent(
                 targetState = screen,
                 transitionSpec = {
@@ -488,7 +491,10 @@ fun GreaterArtApp(
             val undoMessage by viewModel.undoMessage.collectAsStateWithLifecycle()
             undoMessage?.let { message ->
                 androidx.compose.material3.Snackbar(modifier = Modifier.align(Alignment.BottomCenter).navigationBarsPadding()
-                    .padding(bottom = if (playback.hasMedia) com.local.listentomusic.model.MiniWindowMetrics.HEIGHT_DP.dp else 0.dp), action = {
+                    .padding(bottom =
+                        (if (playback.hasMedia) com.local.listentomusic.model.MiniWindowMetrics.HEIGHT_DP.dp else 0.dp) +
+                            (if (screen == Screen.LIBRARY && libraryPager.currentPage == 0) 120.dp else 0.dp)
+                    ), action = {
                     androidx.compose.material3.TextButton(onClick = viewModel::undoLastEdit) { androidx.compose.material3.Text(uiText(settings.appLanguage, "Undo", "復原")) }
                 }) { androidx.compose.material3.Text(message) }
             }
@@ -587,6 +593,7 @@ fun GreaterArtApp(
             editDisplay?.let { file -> DisplayOverrideDialog(file, settings.localOverrides[file.path], settings.appLanguage,
                 viewModel::loadThumbnail, { title, cover -> viewModel.setLocalOverride(file.path, title, cover) }, { editDisplay = null }) }
             if (createRule) RulePlaylistDialog(settings.appLanguage, viewModel::createRulePlaylist, { createRule = false })
+        }
         }
         }
         }

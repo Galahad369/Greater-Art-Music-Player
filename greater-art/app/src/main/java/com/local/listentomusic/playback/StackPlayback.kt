@@ -75,7 +75,7 @@ internal fun stackSecondarySlots(slots: List<StackSlot>, primaryPath: String?): 
 /** Stack transport uses the loop glyph, never shuffle / repeat-one / playlist-repeat. */
 internal fun stackTransportUsesLoopIcon(stackCount: Int): Boolean = stackCount > 0
 
-internal const val STACK_START_ALIGNMENT_MS = 120L
+internal const val STACK_START_ALIGNMENT_MS = 30L
 internal const val STACK_DRIFT_CORRECTION_MS = 100L
 internal const val STACK_CORRECTION_INTERVAL_MS = 750L
 

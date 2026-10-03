@@ -9,9 +9,17 @@ This file describes the **current repository state only**. Historical session no
 **Signing certificate SHA-256:** `9e28eb45b3b171c3ea47d7da942d28d88b16538885e392a6971a80906d612fbf`
 **Build date:** `2026-10-04`
 **Test device:** `GreaterArt_A55_API36 (A55-sized emulator, API 36, Android 16)`
-**Current source:** `1.15.56/code186`, **SOURCE_ONLY**. Latest verified release remains `1.15.55/code185` / `GreaterArt-1.15.55.apk` (SHA-256 `3e1f29142a736315938d4e5f0069bdb0e78da2190cd3da647b51fc618ac24a11`). Mainline identities 1.15.48–1.15.50 and side-branch 1.15.53 are consumed; never reuse them. Real-device multi-singer listening is still a separate verification boundary.
+**Current source:** `1.15.58/code188`, **SOURCE_ONLY**. Latest verified release remains `1.15.55/code185` / `GreaterArt-1.15.55.apk` (SHA-256 `3e1f29142a736315938d4e5f0069bdb0e78da2190cd3da647b51fc618ac24a11`). 1.15.57/code187 was consumed by the repair commit; do not reuse it. Real-device multi-singer listening is still a separate verification boundary.
 
 ## Repository state
+
+### October 4 — six-take Stack repair (Grok branch, source verification in progress)
+
+- Reviewed all remaining remote branches: fix/1.15.56-mvp-missing-parts, grok/1.15.57-blank-library-route and copilot/fix11557-allowed-consumed-transition all point to `8401d97`, already main. PR #112 is merged; closed PR #113 adds no executable repair. No blind merges or history rewrites.
+- Blank save feedback cause: root Material3 Surface propagates full-screen minimum constraints to its children; direct Snackbar content inherited that height and obscured the page. Introduced an explicit non-propagating Box for screen/transient overlays. Keep snackbar content outside inherited full-screen minimum constraints in future UI changes.
+- Alignment cache v3 uses averaged downsampling and 100ms harmonic windows instead of insufficient 20ms pitch estimates. Spectral windows computed once per five frames; reference features loaded once per batch. Correlation checks cancellation. Start synchronization tolerance tightened from 120ms to 30ms; no primary resolution/FPS/bitrate change.
+- Align action pauses the active mix while analysis runs, shows progress/cancel and localized result count, then resumes only the unchanged session if it was originally playing. This avoids competing with six/eight real-time decoders. Uncertain matches still preserve existing offsets; Stop or membership/primary changes prevent stale resume/apply.
+- Offline independent comparison of all six emulator `孤独毒毒` recordings against 吉乃 found small confident offsets (−20 to +60ms), not seconds of leading silence. Android analysis of the actual six videos against リオナ aligned all five companions and resumed playback; 吉乃 displayed +0.02s. Saving preserved the visible six-track page instead of expanding feedback to full-screen. 174 JVM tests, lint/build and all PR source CI checks passed at c6af48e. Verification exposed feedback overlapping fixed transport controls; 1.15.58 adds their clearance, final build/reload tests pending.
 
 ### October 4 — 1.15.56 MVP missing-parts pass (source only)
 
