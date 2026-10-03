@@ -4,15 +4,26 @@ This file describes the **current repository state only**. Historical session no
 
 **Project:** `greater-art/` in the repository checkout
 **Current version:** `1.15.47 (code 177)`
-**Current source:** `1.15.51 (code 181)`
+**Current source:** `1.15.53 (code 183)`
 **Latest APK:** `releases/GreaterArt-1.15.47.apk` (`26,369,578 bytes`; SHA-256 `85919929b4b0f65eeb03c2b268fab6ae65da0a9977d9dabd33eec4b82b5833b3`)
 **Application ID:** `com.local.listentomusic`
 **Signing certificate SHA-256:** `9e28eb45b3b171c3ea47d7da942d28d88b16538885e392a6971a80906d612fbf`
 **Build date:** `2026-10-02`
 **Test device:** `GreaterArt_A55_API36 (A55, API 36, Android 17)`
-**Verification boundary:** Current source is `1.15.51/code181` and is **SOURCE_ONLY**. The latest immutable verified artifact remains `releases/GreaterArt-1.15.47.apk` (SHA-256 `85919929b4b0f65eeb03c2b268fab6ae65da0a9977d9dabd33eec4b82b5833b3`). Mainline identities 1.15.48/code178, 1.15.49/code179, and 1.15.50/code180 are consumed by historical source commits and must not be reused.
+**Verification boundary:** Current source is `1.15.53/code183` and is **SOURCE_ONLY**. The latest immutable verified artifact remains `releases/GreaterArt-1.15.47.apk` (SHA-256 `85919929b4b0f65eeb03c2b268fab6ae65da0a9977d9dabd33eec4b82b5833b3`). Mainline identities 1.15.48/code178, 1.15.49/code179, and 1.15.50/code180 remain consumed historical source identities. Side-branch identity 1.15.52/code182 is also consumed and is not reusable.
 
 ## Repository state
+
+### October 3 — 1.15.53 final PR convergence (source only)
+
+- 1.15.52/code182 was consumed by concurrent side branches before convergence: Grok published a version-only Stack-audio-align commit and two loop/alignment repair branches also used that identity. None is canonical; 1.15.52 is spent.
+- Preserves 1.15.51's compact subordinate Now Playing rows for every non-primary Stack track.
+- Restores the stronger late-ready companion path: a companion reaching READY after the primary has advanced immediately aligns to the authoritative primary-player clock.
+- Removes the obsolete longer-companion primary-switch path so the primary track remains authoritative for Stack duration and loop boundary.
+- Stack master controls now expose exactly one loop action using `Icons.Rounded.Repeat`, 26 dp inside a 48 dp target, centered with the existing 56 dp play/pause and Stop controls. Now Playing uses the same Repeat glyph for Stack loop state.
+- PR #105 contained no implementation diff; its Grok base only consumed 1.15.52 with a version bump. PR #106 duplicated the loop/alignment repair but retained the obsolete primary-switch block.
+- State: **SOURCE_ONLY** at **1.15.53/code183**. Latest verified APK remains **1.15.47/code177**.
+
 
 ### October 3 — 1.15.51 Now Playing full Stack rows + mainline recovery (source only)
 

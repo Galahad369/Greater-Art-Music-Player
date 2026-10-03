@@ -7,7 +7,7 @@ This file is the authoritative version policy for Greater Art. If any handoff no
 ## Machine-checkable state
 
 
-Current source: **1.15.51 (code 181)**
+Current source: **1.15.53 (code 183)**
 Current release state: **SOURCE_ONLY**
 Latest verified APK: **1.15.47 (code 177)**
 Allowed series transition: **1.14.15 -> 1.15.1**
@@ -27,6 +27,7 @@ Allowed consumed transition: **1.15.36 (code 166) -> 1.15.38 (code 168)**
 Allowed consumed transition: **1.15.39 (code 169) -> 1.15.41 (code 171)**
 Allowed consumed transition: **1.15.39 (code 169) -> 1.15.42 (code 172)**
 Allowed consumed transition: **1.15.47 (code 177) -> 1.15.51 (code 181)**
+Allowed consumed transition: **1.15.51 (code 181) -> 1.15.53 (code 183)**
 
 ## Non-negotiable rules
 
@@ -132,6 +133,8 @@ Markdown/docs-only changes, release hashes/metadata, and adding a newly verified
 - Consumed mainline identity: **1.15.49 (code 179)** — overlay-dock Activity-dialog interception source commit later rolled back during 1.15.47 release finalization; remains in main history and must not be reused
 - Consumed mainline identity: **1.15.50 (code 180)** — Stack primary-seek acknowledgement source commit later partially rolled back during 1.15.47 release finalization; remains in main history and must not be reused
 - 1.15.51 (code 181) — forward recovery from the partial 1.15.48–1.15.50 rollback: restore the Stack helper/coordinator contracts already referenced by live service/UI/tests, preserve primary-seek acknowledgement and repeat-persistence behavior, and show every non-primary Stack track as a compact tappable subordinate row under the normal Now Playing primary header; source only, CI pending
+- Consumed side-branch identity: **1.15.52 (code 182)** — Grok committed a version-only Stack-audio-align branch before implementation, while two concurrent Stack loop/alignment repair branches also used the same identity. None may be merged as canonical 1.15.52; the version/code are spent and must not be reused.
+- 1.15.53 (code 183) — canonical final Stack PR convergence: preserve 1.15.51 Now Playing subordinate rows, restore late-ready companion alignment to the authoritative primary clock, remove unreachable longer-companion primary switching, and replace duplicate/mixed Stack loop controls with one centered Repeat-glyph control shared with Now Playing; source only, CI pending
 
 Previous baseline: 1.13.26 (code 115).
 
