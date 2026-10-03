@@ -8,7 +8,7 @@ This file describes the **current repository state only**. Historical session no
 **Application ID:** `com.local.listentomusic`
 **Signing certificate SHA-256:** `9e28eb45b3b171c3ea47d7da942d28d88b16538885e392a6971a80906d612fbf`
 **Build date:** `2026-10-04`
-**Test device:** `GreaterArt_A55_API36 (A55, API 36, Android 17)`
+**Test device:** `GreaterArt_A55_API36 (A55-sized emulator, API 36, Android 16)`
 **Current source:** `1.15.55/code185`, **VERIFIED**, exact build source `2f093d3`. PR #110 is merged; guard repair PR #111. Mainline identities 1.15.48–1.15.50 and side-branch 1.15.53 are consumed; never reuse them. Verified means automated checks plus the emulator flows listed here, not exhaustive device/singer testing.
 
 ## Repository state
@@ -16,7 +16,7 @@ This file describes the **current repository state only**. Historical session no
 ### October 4 — integration-merge release guard repair
 
 - PR #110 merged as `ac494d1`; its tree exactly matches the already verified branch parent. The guard incorrectly treated this integration as a new SOURCE_ONLY implementation commit. 1.15.55 fixes that provenance distinction: only exact-parent trees qualify, all underlying commits and APK checks remain validated. New conflict-resolution trees retain normal version requirements. Three focused regression tests cover these cases. No playback implementation or quality setting changed after 1.15.54.
-- Final APK verified as 1.15.55/code185 with the pinned certificate. 171 app tests, three guard tests, lint and assemble pass. Installed on A55-sized API36 emulator; saved Stack restored, cached Align by sound returned +1.00s, playback controls remained available, and crash buffer was empty. No new permissions/dependencies. Source PR Android, privacy, dependency and version checks passed; CodeQL still pending at release-record preparation.
+- Final APK verified as 1.15.55/code185 with the pinned certificate. 171 app tests, three guard tests, lint and assemble pass. Installed on A55-sized API36 emulator; saved Stack restored, cached Align by sound returned +1.00s, playback controls remained available, and crash buffer was empty. No new permissions/dependencies. All source PR checks passed, including Android, privacy, dependency, version and CodeQL, before PR #111 merged. Main release-finalization version check also passed; its Android/security reruns were still in progress at handoff.
 
 ### October 4 — 1.15.54 offline Stack sound alignment (Grok proposal; Codex implementation)
 
