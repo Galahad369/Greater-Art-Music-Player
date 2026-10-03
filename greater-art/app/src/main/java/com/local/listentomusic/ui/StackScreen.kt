@@ -13,6 +13,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.Clear
 import androidx.compose.material.icons.rounded.Close
+import androidx.compose.material.icons.rounded.Loop
 import androidx.compose.material.icons.rounded.Pause
 import androidx.compose.material.icons.rounded.PlayArrow
 import androidx.compose.material.icons.rounded.Repeat
@@ -35,12 +36,15 @@ import com.local.listentomusic.data.PlayHistoryEntry
 import com.local.listentomusic.data.SavedStack
 import com.local.listentomusic.model.MediaFile
 import com.local.listentomusic.model.sourceMediaPath
+import com.local.listentomusic.playback.STACK_LOOP_DEFAULT
 import com.local.listentomusic.playback.StackPlayback
 import com.local.listentomusic.playback.StackRecommendation
 import com.local.listentomusic.playback.StackRecommendationReason
 import com.local.listentomusic.playback.StackSlot
 import com.local.listentomusic.playback.recommendStackTracks
 import com.local.listentomusic.ui.components.LiquidMetalSurface
+import com.local.listentomusic.ui.theme.gaChromeColor
+import com.local.listentomusic.ui.theme.gaDividerColor
 
 /** Temporary multi-track listening, sharing Library's wallpaper and visual language. */
 @Composable
@@ -122,7 +126,7 @@ fun StackScreen(
             Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 5.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Surface(shape = RoundedCornerShape(50), color = MaterialTheme.colorScheme.surface.copy(alpha = .62f)) {
+            Surface(shape = RoundedCornerShape(50), color = gaChromeColor()) {
                 Text(
                     "${displayed.size} / ${StackPlayback.MAX_TRACKS}",
                     Modifier.padding(horizontal = 12.dp, vertical = 7.dp),
@@ -224,9 +228,9 @@ fun StackScreen(
                             modifier = Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 5.dp)
                                 .inspectElement("STACK_EMPTY_SLOT", "Tap to choose local tracks"),
                             shape = RoundedCornerShape(12.dp),
-                            color = MaterialTheme.colorScheme.surface.copy(alpha = .52f),
+                            color = gaChromeColor(),
                             border = androidx.compose.foundation.BorderStroke(
-                                1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = .55f),
+                                1.dp, gaDividerColor(),
                             ),
                         ) {
                             Row(
@@ -242,7 +246,7 @@ fun StackScreen(
                                         Icons.Rounded.Add,
                                         null,
                                         Modifier.padding(9.dp),
-                                        tint = MaterialTheme.colorScheme.secondary,
+                                        tint = MaterialTheme.colorScheme.primary,
                                     )
                                 }
                                 Spacer(Modifier.width(12.dp))
@@ -264,7 +268,7 @@ fun StackScreen(
         error?.let { Text(it, Modifier.padding(horizontal = 16.dp), color = MaterialTheme.colorScheme.error) }
 
         Column(
-            Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.surface.copy(alpha = .82f))
+            Modifier.fillMaxWidth().background(gaChromeColor())
                 .padding(horizontal = 16.dp, vertical = 8.dp)
                 .inspectElement("STACK_MASTER_CONTROLS", "Shared seek and play/pause"),
         ) {
@@ -290,6 +294,18 @@ fun StackScreen(
                 horizontalArrangement = Arrangement.SpaceBetween,
             ) {
                 Text(stackTime(position), style = MaterialTheme.typography.labelMedium)
+                val loopOn = if (session.active) session.loopEnabled else STACK_LOOP_DEFAULT
+                IconButton(
+                    onClick = { StackPlayback.setLoop(!session.loopEnabled) },
+                    enabled = session.active,
+                    modifier = Modifier.inspectElement("STACK_LOOP_BUTTON", if (loopOn) "Loop on" else "Loop off"),
+                ) {
+                    Icon(
+                        Icons.Rounded.Loop,
+                        uiText(language, if (loopOn) "Loop" else "Loop off", if (loopOn) "循環" else "不循環"),
+                        tint = if (loopOn) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
                 if (session.active) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         IconButton(
@@ -449,11 +465,11 @@ private fun StackNowPlayingRow(
     onAdd: () -> Unit,
 ) {
     Surface(
-        color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = .36f),
+        color = MaterialTheme.colorScheme.primaryContainer,
         modifier = Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 5.dp)
             .inspectElement("STACK_NOW_PLAYING_CONTEXT", file.name),
         shape = RoundedCornerShape(12.dp),
-        border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = .4f)),
+        border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.primary),
     ) {
         Row(
             Modifier.fillMaxWidth().heightIn(min = 68.dp).padding(horizontal = 12.dp, vertical = 8.dp),
@@ -494,8 +510,7 @@ private fun StackTrackRow(
     onRemove: () -> Unit,
 ) {
     val path = slot.file.path
-    val rowColor = if (isNowPlaying) MaterialTheme.colorScheme.primaryContainer.copy(alpha = .28f)
-        else MaterialTheme.colorScheme.surface.copy(alpha = .48f)
+    val rowColor = if (isNowPlaying) MaterialTheme.colorScheme.primaryContainer else Color.Transparent
     Column(Modifier.fillMaxWidth().background(rowColor)) {
         Row(
             Modifier.fillMaxWidth().heightIn(min = 72.dp).clickable(onClick = onToggleExpanded)
@@ -531,7 +546,7 @@ private fun StackTrackRow(
                 )
             }
             if (isPrimary) {
-                Icon(Icons.Rounded.Star, uiText(language, "Primary visual", "主要畫面"), tint = MaterialTheme.colorScheme.secondary)
+                Icon(Icons.Rounded.Star, uiText(language, "Primary visual", "主要畫面"), tint = MaterialTheme.colorScheme.primary)
             }
             IconButton(onClick = onRemove, modifier = Modifier.inspectElement("STACK_REMOVE_BUTTON", slot.file.name)) {
                 Icon(Icons.Rounded.Close, uiText(language, "Remove track", "移除歌曲"))
@@ -564,7 +579,7 @@ private fun StackTrackRow(
                 }
             }
         }
-        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = .35f))
+        HorizontalDivider(color = gaDividerColor())
     }
 }
 
@@ -684,7 +699,7 @@ private fun StackLibraryPicker(
                                 .inspectElement("STACK_PICKER_ROW", file.name),
                             colors = ListItemDefaults.colors(containerColor = Color.Transparent),
                         )
-                        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = .28f))
+                        HorizontalDivider(color = gaDividerColor())
                     }
                 }
             }
@@ -771,7 +786,7 @@ private fun StackRecommendationPicker(
                                 .inspectElement("STACK_RECOMMENDATION_ROW", file.name),
                             colors = ListItemDefaults.colors(containerColor = Color.Transparent),
                         )
-                        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = .28f))
+                        HorizontalDivider(color = gaDividerColor())
                     }
                 }
             }

@@ -47,8 +47,6 @@ internal class StackPlaybackCoordinator(
     val active: Boolean get() = slots.isNotEmpty()
     val primary: String? get() = primaryPath
     val changingMain: Boolean get() = internalMainChange
-    val repeatModeForPersistence: Int
-        get() = persistedRepeatMode(active, previousRepeat, main.repeatMode)
 
     fun voiceDiagnostics(): String = voices.mapIndexed { index, voice ->
         "${index + 1}:${voice.player.playbackState}/${voice.player.isPlaying}@${voice.player.currentPosition}ms"
@@ -89,26 +87,6 @@ internal class StackPlaybackCoordinator(
                 engine.repeatMode = Player.REPEAT_MODE_OFF
                 engine.setMediaItem(file.toMediaItem())
                 engine.addListener(object : Player.Listener {
-                    override fun onPlaybackStateChanged(playbackState: Int) {
-                        if (playbackState != Player.STATE_READY) return
-                        onMain {
-                            if (released || !active || !playing || !main.isPlaying) return@onMain
-                            val readyVoice = voices.firstOrNull { it.player === engine } ?: return@onMain
-                            val now = position()
-                            val duration = knownDuration(readyVoice.file)
-                            if (duration > 0L && now >= duration) {
-                                readyVoice.player.pause()
-                            } else {
-                                val target = boundedSeek(now, duration)
-                                if (kotlin.math.abs(readyVoice.player.currentPosition - target) > STACK_START_ALIGNMENT_MS) {
-                                    readyVoice.player.seekTo(target)
-                                }
-                                readyVoice.player.playbackParameters = main.playbackParameters
-                                readyVoice.player.playWhenReady = true
-                            }
-                        }
-                    }
-
                     override fun onPlayerError(error: PlaybackException) {
                         // Same pattern as Parallel layers: mutate on the main looper only.
                         onMain {
@@ -142,7 +120,7 @@ internal class StackPlaybackCoordinator(
         return if (live > 0L && live != C.TIME_UNSET) live else file.durationMs.coerceAtLeast(0L)
     }
 
-    private fun sessionDuration(): Long = slots.firstOrNull { it.file.path == primaryPath }?.let { knownDuration(it.file) } ?: 0L
+    private fun sessionDuration(): Long = slots.maxOfOrNull { knownDuration(it.file) } ?: 0L
 
     private fun clampToSession(value: Long): Long {
         val duration = sessionDuration()
@@ -167,7 +145,7 @@ internal class StackPlaybackCoordinator(
         anchorMs = 0L
         anchorTimeMs = SystemClock.elapsedRealtime()
         clockSpeed = main.playbackParameters.speed
-        loopEnabled = true
+        loopEnabled = STACK_LOOP_DEFAULT
         internalMainChange = true
         try {
             main.repeatMode = Player.REPEAT_MODE_OFF
@@ -304,29 +282,21 @@ internal class StackPlaybackCoordinator(
         publish()
     }
 
-    fun seek(targetMs: Long) = seekAll(targetMs, primaryEvent = false)
-
-    private fun seekAll(targetMs: Long, primaryEvent: Boolean) {
+    fun seek(targetMs: Long) {
         if (!active) return
-        val plan = stackSeekPlan(targetMs, sessionDuration(), primaryEvent)
-        anchorMs = plan.positionMs
+        anchorMs = clampToSession(targetMs)
         anchorTimeMs = SystemClock.elapsedRealtime()
         voices.toList().forEach { voice ->
-            val target = boundedSeek(anchorMs, knownDuration(voice.file))
-            if (!primaryEvent || kotlin.math.abs(voice.player.currentPosition - target) > STACK_START_ALIGNMENT_MS) {
-                voice.player.seekTo(target)
-            }
+            voice.player.seekTo(boundedSeek(anchorMs, knownDuration(voice.file)))
             voice.player.playWhenReady = playing && main.isPlaying &&
                 (knownDuration(voice.file) <= 0L || anchorMs < knownDuration(voice.file))
         }
-        if (plan.seekPrimary) {
-            val primaryDuration = sessionDuration()
-            internalMainChange = true
-            try {
-                main.seekTo(boundedSeek(anchorMs, primaryDuration))
-                main.playWhenReady = playing && (primaryDuration <= 0L || anchorMs < primaryDuration)
-            } finally { internalMainChange = false }
-        }
+        val primaryDuration = slots.firstOrNull { it.file.path == primaryPath }?.file?.let(::knownDuration) ?: 0L
+        internalMainChange = true
+        try {
+            main.seekTo(boundedSeek(anchorMs, primaryDuration))
+            main.playWhenReady = playing && (primaryDuration <= 0L || anchorMs < primaryDuration)
+        } finally { internalMainChange = false }
         publish()
     }
 
@@ -336,15 +306,11 @@ internal class StackPlaybackCoordinator(
     }
 
     fun onMainSeek() {
-        if (active && !internalMainChange) seekAll(main.currentPosition, primaryEvent = true)
+        if (active && !internalMainChange) seek(main.currentPosition)
     }
 
     fun onMainIsPlayingChanged(isPlaying: Boolean) {
         if (!active || !playing) return
-        if (!isPlaying && main.playbackState == Player.STATE_ENDED && !internalMainChange) {
-            onPrimaryEnded()
-            return
-        }
         val now = position()
         if (!isPlaying) {
             voices.toList().forEach { safePlayer { it.player.pause() } }
@@ -398,13 +364,12 @@ internal class StackPlaybackCoordinator(
     fun applyVolumes(mainBaseGain: Float) {
         sourceGain = mainBaseGain
         if (!active) return
-        val solo = slots.any { it.solo && !it.muted && it.error == null }
-        val audibleCount = stackAudibleTrackCount(slots)
-        main.volume = (slots.firstOrNull { it.file.path == primaryPath }
-            ?.let { stackAudibleVolume(it, solo, audibleCount) } ?: 0f) * sourceGain
+        val solo = slots.any { it.solo }
+        val count = slots.size
+        main.volume = (slots.firstOrNull { it.file.path == primaryPath }?.let { stackAudibleVolume(it, solo, count) } ?: 0f) * sourceGain
         voices.toList().forEach { voice ->
-            voice.player.volume = (slots.firstOrNull { it.file.path == voice.file.path }
-                ?.let { stackAudibleVolume(it, solo, audibleCount) } ?: 0f) * sourceGain
+            voice.player.volume = slots.firstOrNull { it.file.path == voice.file.path }
+                ?.let { stackAudibleVolume(it, solo, count) } ?: 0f
         }
     }
 
@@ -412,11 +377,6 @@ internal class StackPlaybackCoordinator(
         if (!active || loopEnabled == enabled) return
         loopEnabled = enabled
         publish()
-    }
-
-    fun onPrimaryEnded() {
-        if (!active || !playing || internalMainChange) return
-        if (loopEnabled) seek(0L) else pause()
     }
 
     fun stop(clearMain: Boolean) {
@@ -470,6 +430,15 @@ internal class StackPlaybackCoordinator(
                         publish()
                     }
                     continue
+                }
+                val currentPrimary = slots.firstOrNull { it.file.path == primaryPath }?.file
+                val primaryDuration = currentPrimary?.let(::knownDuration) ?: 0L
+                if (playing && primaryDuration > 0L && now >= primaryDuration) {
+                    val nextVisual = slots.asSequence()
+                        .filter { it.file.path != primaryPath && it.error == null }
+                        .filter { knownDuration(it.file) <= 0L || knownDuration(it.file) > now }
+                        .maxByOrNull { knownDuration(it.file) }
+                    if (nextVisual == null || !setPrimary(nextVisual.file.path)) pause()
                 }
                 if (playing && main.isPlaying &&
                     SystemClock.elapsedRealtime() - lastCorrectionMs >= STACK_CORRECTION_INTERVAL_MS) {

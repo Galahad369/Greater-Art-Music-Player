@@ -74,6 +74,7 @@ import androidx.compose.material.icons.rounded.Movie
 import androidx.compose.material.icons.rounded.Pause
 import androidx.compose.material.icons.rounded.PictureInPictureAlt
 import androidx.compose.material.icons.rounded.PlayArrow
+import androidx.compose.material.icons.rounded.Loop
 import androidx.compose.material.icons.rounded.Repeat
 import androidx.compose.material.icons.rounded.RepeatOne
 import androidx.compose.material.icons.rounded.Shuffle
@@ -157,6 +158,7 @@ import androidx.media3.session.MediaController
 import androidx.media3.ui.AspectRatioFrameLayout
 import androidx.media3.ui.PlayerView
 import com.local.listentomusic.PlaybackUiState
+import com.local.listentomusic.playback.stackTransportUsesLoopIcon
 import com.local.listentomusic.SleepTimerState
 import com.local.listentomusic.data.AppLanguage
 import com.local.listentomusic.model.MediaFile
@@ -1510,23 +1512,12 @@ private fun PlayerBottomControls(
     val accent = MaterialTheme.colorScheme.secondary
     val cycleLabel = when {
         playback.stackCount > 0 && playback.repeatMode == Player.REPEAT_MODE_ALL ->
-            uiText(playback.appLanguage, "Stack loop", "疊播循環")
+            uiText(playback.appLanguage, "Loop", "循環")
         playback.stackCount > 0 -> uiText(playback.appLanguage, "Off", "關閉")
         playback.shuffleEnabled -> uiText(playback.appLanguage, "Random", "隨機")
-        playback.repeatMode == Player.REPEAT_MODE_ONE -> uiText(playback.appLanguage, "Loop 1", "單曲循環")
-        playback.repeatMode == Player.REPEAT_MODE_ALL -> uiText(playback.appLanguage, "Loop all", "全部循環")
+        playback.repeatMode == Player.REPEAT_MODE_ONE -> uiText(playback.appLanguage, "One", "單曲")
+        playback.repeatMode == Player.REPEAT_MODE_ALL -> uiText(playback.appLanguage, "All", "全部")
         else -> uiText(playback.appLanguage, "Off", "關閉")
-    }
-    val cycleActive = if (playback.stackCount > 0) {
-        playback.repeatMode == Player.REPEAT_MODE_ALL
-    } else {
-        playback.shuffleEnabled || playback.repeatMode != Player.REPEAT_MODE_OFF
-    }
-    val cycleIcon = when {
-        playback.stackCount > 0 -> Icons.Rounded.Repeat
-        playback.shuffleEnabled -> Icons.Rounded.Shuffle
-        playback.repeatMode == Player.REPEAT_MODE_ONE -> Icons.Rounded.RepeatOne
-        else -> Icons.Rounded.Repeat
     }
     Row(
         modifier = Modifier.fillMaxWidth().padding(top = 2.dp)
@@ -1546,11 +1537,22 @@ private fun PlayerBottomControls(
                         ),
                 ) {
                     Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth()) {
+                        val stackLoop = stackTransportUsesLoopIcon(playback.stackCount)
+                        val stackLoopOn = stackLoop && playback.repeatMode == Player.REPEAT_MODE_ALL
                         Icon(
-                            cycleIcon,
-                            uiText(playback.appLanguage, "Playback loop mode", "播放循環模式"),
+                            when {
+                                stackLoop -> Icons.Rounded.Loop
+                                playback.shuffleEnabled -> Icons.Rounded.Shuffle
+                                playback.repeatMode == Player.REPEAT_MODE_ONE -> Icons.Rounded.RepeatOne
+                                else -> Icons.Rounded.Repeat
+                            },
+                            uiText(
+                                playback.appLanguage,
+                                if (stackLoop) if (stackLoopOn) "Loop" else "Loop off" else "Repeat mode",
+                                if (stackLoop) if (stackLoopOn) "循環" else "不循環" else "重複模式",
+                            ),
                             Modifier.size(26.dp),
-                            tint = if (cycleActive) accent else MaterialTheme.colorScheme.onSurfaceVariant,
+                            tint = if (stackLoop && !stackLoopOn) MaterialTheme.colorScheme.onSurfaceVariant else accent,
                         )
                         Text(cycleLabel, style = MaterialTheme.typography.labelSmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
                     }

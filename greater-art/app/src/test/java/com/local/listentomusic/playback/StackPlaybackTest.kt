@@ -55,6 +55,12 @@ class StackPlaybackTest {
         assertTrue(shouldCorrectStackVoice(4300L, 5000L))
     }
 
+    @Test fun stackLoopIsTheDefault() {
+        assertTrue(STACK_LOOP_DEFAULT)
+        assertTrue(stackTransportUsesLoopIcon(2))
+        assertFalse(stackTransportUsesLoopIcon(0))
+    }
+
     @Test fun stackLoopRestartsOnlyAtSessionEnd() {
         assertFalse(shouldRestartStack(loopEnabled = false, playing = true, positionMs = 5000L, durationMs = 5000L))
         assertFalse(shouldRestartStack(loopEnabled = true, playing = false, positionMs = 5000L, durationMs = 5000L))

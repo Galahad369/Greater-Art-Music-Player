@@ -4,7 +4,7 @@ This file describes the **current repository state only**. Historical session no
 
 **Project:** `greater-art/` in the repository checkout
 **Current version:** `1.15.43 (code 173)`
-**Current source:** `1.15.50 (code 180)`
+**Current source:** `1.15.47 (code 177)`
 **Release state:** `SOURCE_ONLY`
 **Latest APK:** `releases/GreaterArt-1.15.43.apk` (`26,353,198 bytes`; SHA-256 `77e37b747f4122f289c936bc1f06e156575b102398fbc24f7ea4daab4b96cb61`)
 **Application ID:** `com.local.listentomusic`
@@ -15,39 +15,11 @@ This file describes the **current repository state only**. Historical session no
 
 ## Repository state
 
-### October 3 — 1.15.50 Stack ANR / seek feedback repair (verification pending)
+### October 3 — 1.15.47 Stack loop default, loop icon, theme tokens (source only)
 
-- 1.15.49 compiled, passed 163 tests and lint. Three-second primary / nine-second companion fixtures exposed an ANR while the session repeatedly reported BUFFERING at zero.
-- Android's protected ANR trace showed the app main thread in MediaSession's `setPlaybackState` from `onPositionDiscontinuity`. Code review found `onMainSeek` reissued `main.seekTo` for a primary seek notification. The synchronous `internalMainChange` guard did not cover delayed Media3 acknowledgements, creating seek feedback.
-- Primary events now synchronize companions only. User seeks and whole-mix loop restarts still seek the primary once. Near-aligned companions need no redundant acknowledgement seek. No decoder/media-quality change is used to hide the issue.
-- Regression coverage distinguishes commands from notifications and checks repeated acknowledgements cannot command the primary. Device verification pending; do not distribute 1.15.49 as a verified repair.
-
-### October 3 — 1.15.49 actual dock/dialog interception fix (verification pending)
-
-- 1.15.48 compiled, passed 162 tests and lint, and installed successfully. Device testing exposed an additional cause of broken Stack save/add/delete: `TYPE_APPLICATION_OVERLAY` dock stayed above Activity dialogs. The picker Add button at y=2128 instead tapped the dock and opened Now Playing. No crash occurred in this reproduction.
-- Activity window-focus state now gates **only the dock's visibility/touchability**, hiding it while a dialog/system window holds focus. Returning focus restores the dock; expanded/detached ownership and app lifecycle remain independent. Includes a regression test.
-- Source advances to 1.15.49/code179; 1.15.48 is a consumed source identity, not a released artifact. Device regression is pending.
-
-### October 3 — 1.15.48 separate saved mixes and primary-clock loop (verification pending)
-
-- User clarified that the **primary song**, not the longest track, defines each Stack cycle. Primary end now restarts all voices at zero with loop enabled (the default); loop off pauses the whole mix. Primary does not silently switch to a longer companion.
-- Root cause of saved-Stack confusion: `saveStackAsPlaylist` persisted only filenames into the ordinary playlist store. New `saved_stacks_v1` storage is separate and retains primary, ordered tracks, levels, mute, solo and loop. Old Library playlists are preserved; no destructive name-based migration is attempted.
-- Save takes a stable snapshot when its dialog opens. Saved Stacks can be reopened or deleted with confirmation and Undo. Missing files produce a message rather than an empty playback start. Stop/two-to-one removal retains an editable draft instead of erasing the mix.
-- Root cause of dock overlap: the Library Scaffold's padding was ignored, Stack/Nodes guessed separate clearance, and Settings/Undo reserved none. Library-family pages now consume the Scaffold allocation once; Settings and Undo reserve the dock footprint.
-- Static metal background uses the selected palette's gradient instead of a fixed green grid. Main media resolution/FPS/bitrate and permissions are unchanged.
-- All remote heads inspected at the audit cutoff were identical to main `e1e669f` (PR #102); nothing unique remains to blindly merge. GitHub CLI PR access returned 401. Existing uncommitted primary-checkout work is preserved; repair is isolated in `../greater-art-stack-repair/`.
-- Verification is pending. Java needed the Windows trusted certificate store to download Gradle 9.8.0; the newly merged AGP/Kotlin artifacts were absent from the offline cache. Do not label an APK verified before compile, tests, signing and emulator checks finish.
-
-### October 3 — 1.15.47 Stack/cycle/theme cleanup (source only)
-
-- Stack companion players that become READY after the primary has already started now re-align immediately to the shared master position instead of waiting for the periodic drift pass.
-- Stack mix headroom is based on audible tracks only; muted/error tracks no longer attenuate the whole mix, and source gain is applied consistently to primary and companion players.
-- Stack exposes its own loop control instead of relying only on the normal queue repeat button.
-- The playback engine now establishes **Loop 1** synchronously before asynchronous preference restore, closing the first-play race that could leave a fresh session on Repeat Off.
-- Stack's temporary internal Repeat Off is excluded from playback-preference persistence, so using Stack can no longer silently replace the user's Loop 1 / Loop all / Off choice.
-- Repeat UI now distinguishes Off / Loop 1 / Loop all / Random / Stack loop and dims the icon when looping is actually off.
-- Theme palettes keep their identities but use neutral backgrounds/surfaces and restrained accents for cleaner contrast and less color cast.
-- State: **SOURCE_ONLY** at **1.15.47/code177**. Latest verified APK remains **1.15.43/code173**.
+- Stack sessions now start with whole-set loop on. Reaching the longest track restarts every voice at 0 unless the user turns loop off. Leaving Stack still restores the previous normal repeat/shuffle state.
+- Now Playing repeat control shows the loop glyph while Stack is active (accent when on, onSurfaceVariant when off) instead of shuffle, repeat-one, or playlist-repeat. Stack's own master bar has the same loop control.
+- Stack chips, empty slots, track rows, now-playing context, dividers, and the master bar use `gaChromeColor` / `gaDividerColor` / `primary` / `primaryContainer` / `onSurface` rather than one-off translucent alphas and secondary tints.
 
 
 ### October 2 — 1.15.46 fullscreen single-source recovery (source only)

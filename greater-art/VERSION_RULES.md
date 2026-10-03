@@ -7,7 +7,7 @@ This file is the authoritative version policy for Greater Art. If any handoff no
 ## Machine-checkable state
 
 
-Current source: **1.15.50 (code 180)**
+Current source: **1.15.47 (code 177)**
 Current release state: **SOURCE_ONLY**
 Latest verified APK: **1.15.43 (code 173)**
 Allowed series transition: **1.14.15 -> 1.15.1**
@@ -62,7 +62,6 @@ Markdown/docs-only changes, release hashes/metadata, and adding a newly verified
 `.github/workflows/version-consistency.yml` runs `scripts/validate-greater-art-version.py`.
 
 ## Versions tracked
-
 
 - 1.14.1 (code 116)
 - 1.14.2 (code 117) — shared navigation container
@@ -126,14 +125,9 @@ Markdown/docs-only changes, release hashes/metadata, and adding a newly verified
 - 1.15.45 (code 175) — corrected fullscreen owner precedence: explicit fullscreen Activity ownership outranks the hidden registered Mini Window while ordinary overlay precedence remains unchanged; retains first-frame handoff completion and terminal-destruction recovery from 1.15.44; required GitHub CI/security gates passed; source only, device verification pending
 
 - 1.15.46 (code 176) — fullscreen single-source recovery: overlay visibility, launch suppression, and return recovery now use VideoSurfaceOwner as the sole fullscreen-active state; removes the service shadow flag and adds JVM coverage; source only, CI pending
-- 1.15.47 (code 177) — Stack synchronization/mix correctness and playback-cycle/theme cleanup: late-ready companion voices re-align to the master clock, mix headroom counts only audible tracks and applies source gain consistently, Stack gains an explicit loop control, temporary Stack Repeat Off no longer overwrites the user's saved cycle mode, the engine establishes Loop 1 before asynchronous preference restore, repeat icon/labels reflect active state, and all theme palettes move to neutral surfaces with restrained accents; source only, CI pending
+
+- 1.15.47 (code 177) — Stack defaults to whole-session loop, transport and Stack controls use the loop glyph instead of repeat-mode icons, and Stack cards/toolbar use Library chrome tokens (surface/primary/onSurface) instead of washed hardcoded alphas; source only, local build pending
 
 Previous baseline: 1.13.26 (code 115).
-
-- 1.15.48 (code 178) — separate saved Stack mixes with levels/primary/mute/solo/loop; primary-ended whole-mix loop; retained staged mixes; dock-safe Settings and library-family layout; source only, verification pending.
-
-- 1.15.49 (code 179) — emulator-proven Activity-dialog tap interception by overlay dock; hide only dock while Activity window loses focus, preserving detached/expanded lifecycle and restoring dock on dialog dismissal; source only, verification pending.
-
-- 1.15.50 (code 180) — emulator ANR seek-acknowledgement feedback repair: primary seek events align companion voices without reissuing primary seek; adds command-versus-event regression coverage; source only, verification pending.
 
 **No silent builds. No version reuse. No version skips. No APK overwrite/rename/copy.**
