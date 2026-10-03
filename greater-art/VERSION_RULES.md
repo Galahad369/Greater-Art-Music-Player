@@ -7,7 +7,7 @@ This file is the authoritative version policy for Greater Art. If any handoff no
 ## Machine-checkable state
 
 
-Current source: **1.15.62 (code 192)**
+Current source: **1.15.63 (code 193)**
 Current release state: **SOURCE_ONLY**
 Latest verified APK: **1.15.58 (code 188)**
 Allowed series transition: **1.14.15 -> 1.15.1**
@@ -155,5 +155,7 @@ Previous baseline: 1.13.26 (code 115).
 - 1.15.61 (code 191) — exact shared v0 bot identity accepted by public-author audit; no personal addresses or vendor-wide exceptions. App synchronization behavior remains 1.15.60. SOURCE_ONLY pending final artifact verification.
 
 - 1.15.62 (code 192) — emulator end-seek exposed stale Media3 position overwriting the barrier's requested seek anchor. Gates now preserve the frozen/requested master timeline through asynchronous seek acknowledgement. SOURCE_ONLY pending verification.
+
+- 1.15.63 (code 193) — aspect-preserving background policy: legacy saved STRETCH resolves to CROP and the picker offers only Crop/Whole-frame fit. Primary video FIT remains unchanged. SOURCE_ONLY pending verification.
 
 **No silent builds. No version reuse. No version skips. No APK overwrite/rename/copy.**

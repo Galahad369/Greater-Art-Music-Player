@@ -192,7 +192,7 @@ class AppPreferences(private val context: Context) {
                         backgroundScaleMode = enumValueOrDefault(
                             prefs[Keys.backgroundScaleMode],
                             BackgroundScaleMode.CROP,
-                        ),
+                        ).let { if (it == BackgroundScaleMode.STRETCH) BackgroundScaleMode.CROP else it },
                         playlists = decodePlaylists(prefs[Keys.playlists].orEmpty()),
             savedStacks = SavedStackCodec.decode(prefs[Keys.savedStacks].orEmpty()),
             activePlaylistId = prefs[Keys.activePlaylistId],
