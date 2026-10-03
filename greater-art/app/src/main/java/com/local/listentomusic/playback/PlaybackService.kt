@@ -113,6 +113,10 @@ class PlaybackService : MediaLibraryService() {
 
         player.installVideoDiagnostics("PRIMARY")
         player.skipSilenceEnabled = false
+        // DataStore restores asynchronously. Establish the product default immediately
+        // so a first play tap cannot strand the fresh player in Media3's Repeat Off.
+        player.repeatMode = Player.REPEAT_MODE_ONE
+        player.shuffleModeEnabled = false
         stackCoordinator = StackPlaybackCoordinator(this, player, serviceScope, ::applyMixLevels)
         StackPlayback.startCommand = { files ->
             layers.toList().forEach { removeLayer(it.id) }
@@ -439,7 +443,7 @@ class PlaybackService : MediaLibraryService() {
         val path = player.currentMediaItem?.mediaId?.takeIf { it.isNotBlank() }
         val position = player.currentPosition
         val speed = speedBeforeTemporaryHold ?: player.playbackParameters.speed
-        val repeat = player.repeatMode
+        val repeat = if (::stackCoordinator.isInitialized) stackCoordinator.repeatModeForPersistence else player.repeatMode
         persistPlayback(path, position, speed, repeat)
     }
 

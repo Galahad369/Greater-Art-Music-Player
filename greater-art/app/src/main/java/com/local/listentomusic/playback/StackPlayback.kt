@@ -29,9 +29,16 @@ internal fun stackDuration(slots: List<StackSlot>): Long = slots.maxOfOrNull { i
 internal fun canAddStackTrack(slots: List<StackSlot>, file: MediaFile): Boolean =
     slots.size < StackPlayback.MAX_TRACKS && slots.none { it.file.path == file.path }
 
-internal fun stackAudibleVolume(slot: StackSlot, anySolo: Boolean, count: Int): Float =
+internal fun stackAudibleTrackCount(slots: List<StackSlot>): Int {
+    val anySolo = slots.any { it.solo && !it.muted && it.error == null }
+    return slots.count { slot ->
+        !slot.muted && slot.error == null && (!anySolo || slot.solo)
+    }.coerceAtLeast(1)
+}
+
+internal fun stackAudibleVolume(slot: StackSlot, anySolo: Boolean, audibleCount: Int): Float =
     if (slot.muted || anySolo && !slot.solo || slot.error != null) 0f
-    else slot.volume.coerceIn(0f, 1f) / count.coerceAtLeast(1)
+    else slot.volume.coerceIn(0f, 1f) / audibleCount.coerceAtLeast(1)
 
 internal fun stackMasterPosition(primaryPositionMs: Long, fallbackPositionMs: Long, primaryAvailable: Boolean): Long =
     (if (primaryAvailable) primaryPositionMs else fallbackPositionMs).coerceAtLeast(0L)
@@ -41,6 +48,9 @@ internal fun shouldCorrectStackVoice(voicePositionMs: Long, masterPositionMs: Lo
 
 internal fun shouldRestartStack(loopEnabled: Boolean, playing: Boolean, positionMs: Long, durationMs: Long): Boolean =
     loopEnabled && playing && durationMs > 0L && positionMs >= durationMs
+
+internal fun persistedRepeatMode(stackActive: Boolean, repeatBeforeStack: Int, currentRepeat: Int): Int =
+    if (stackActive) repeatBeforeStack else currentRepeat
 
 internal const val STACK_START_ALIGNMENT_MS = 120L
 internal const val STACK_DRIFT_CORRECTION_MS = 600L

@@ -22,12 +22,18 @@ class StackPlaybackTest {
         assertFalse(canAddStackTrack(seven, file(0)))
     }
 
-    @Test fun muteSoloAndVolumePreserveStoredLevel() {
+    @Test fun muteSoloAndVolumeUseOnlyAudibleTracksForHeadroom() {
         val slot = StackSlot(file(1), volume = .6f)
         assertEquals(.3f, stackAudibleVolume(slot, false, 2), .0001f)
-        assertEquals(0f, stackAudibleVolume(slot.copy(muted = true), false, 2), 0f)
-        assertEquals(0f, stackAudibleVolume(slot, true, 2), 0f)
-        assertEquals(.3f, stackAudibleVolume(slot.copy(solo = true), true, 2), .0001f)
+        assertEquals(.6f, stackAudibleVolume(slot, false, 1), .0001f)
+        assertEquals(0f, stackAudibleVolume(slot.copy(muted = true), false, 1), 0f)
+        assertEquals(0f, stackAudibleVolume(slot, true, 1), 0f)
+        assertEquals(.6f, stackAudibleVolume(slot.copy(solo = true), true, 1), .0001f)
+
+        val muted = slot.copy(muted = true)
+        val failed = StackSlot(file(2), error = "Playback unavailable")
+        assertEquals(1, stackAudibleTrackCount(listOf(slot, muted, failed)))
+        assertEquals(1, stackAudibleTrackCount(listOf(slot.copy(solo = true), StackSlot(file(3)))))
     }
 
     @Test fun primaryPlayerClockWinsOverSyntheticFallback() {
@@ -45,5 +51,10 @@ class StackPlaybackTest {
         assertFalse(shouldRestartStack(loopEnabled = true, playing = false, positionMs = 5000L, durationMs = 5000L))
         assertFalse(shouldRestartStack(loopEnabled = true, playing = true, positionMs = 4999L, durationMs = 5000L))
         assertTrue(shouldRestartStack(loopEnabled = true, playing = true, positionMs = 5000L, durationMs = 5000L))
+    }
+
+    @Test fun temporaryStackRepeatOffNeverOverwritesUserRepeatPreference() {
+        assertEquals(1, persistedRepeatMode(stackActive = true, repeatBeforeStack = 1, currentRepeat = 0))
+        assertEquals(2, persistedRepeatMode(stackActive = false, repeatBeforeStack = 1, currentRepeat = 2))
     }
 }
