@@ -7,8 +7,8 @@ This file is the authoritative version policy for Greater Art. If any handoff no
 ## Machine-checkable state
 
 
-Current source: **1.15.52 (code 182)**
-Current release state: **VERIFIED**
+Current source: **1.15.53 (code 183)**
+Current release state: **SOURCE_ONLY**
 Latest verified APK: **1.15.52 (code 182)**
 Allowed series transition: **1.14.15 -> 1.15.1**
 Allowed consumed transition: **1.15.13 (code 143) -> 1.15.17 (code 147)**
@@ -135,5 +135,7 @@ Markdown/docs-only changes, release hashes/metadata, and adding a newly verified
 - 1.15.52 (code 182) — Stack loop UI fix: loop glyph visibility in Now Playing now correctly reflects session loop state; late-ready Stack alignment race fixed by waiting for secondary player readiness before advancing primary; preserves 1.15.51 Stack rows and contracts; local build verified
 
 Previous baseline: 1.13.26 (code 115).
+
+- 1.15.53 (code 183) — Grok-proposed offline sound alignment implemented on `grok/1.15.53-stack-audio-align`: cached 20ms energy envelopes, confidence-gated ±15s correlation, signed per-voice offsets, delayed starts, primary rebasing, saved-mix compatibility and cancellation/progress UI; source only, verification pending. PR #105 contained no implementation and was not merged.
 
 **No silent builds. No version reuse. No version skips. No APK overwrite/rename/copy.**

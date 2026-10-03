@@ -4,6 +4,8 @@ Greater Art is a native Kotlin/Jetpack Compose player for local music and video.
 
 ## Current release
 
+Current development source: **1.15.53/code183**, `grok/1.15.53-stack-audio-align` (verification pending). Grok proposed offline Stack sound alignment; Codex implemented it after verifying PR #105 contained no executable changes. Active Stacks can analyse the first 90 seconds of each take, apply confident timeline offsets, nudge by 0.1s and save offsets with the mix. Uncertain/repetitive material stays unchanged. A fixed offset does not correct singers using different tempos.
+
 - Verified release: **1.15.47**, code **177** (see HANDOFF.md for artifact hash).
 - Current source: **1.15.52**, code **182** — SOURCE_ONLY; not a released APK.
 - Application ID: `com.local.listentomusic`

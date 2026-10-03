@@ -50,9 +50,10 @@ class StackPlaybackTest {
         assertEquals(4200L, stackMasterPosition(1250L, 4200L, false))
     }
 
-    @Test fun driftCorrectionOnlyHandlesSevereDesync() {
-        assertFalse(shouldCorrectStackVoice(4500L, 5000L))
-        assertTrue(shouldCorrectStackVoice(4300L, 5000L))
+    @Test fun driftCorrectionUsesOffsetAwareTargetWithBoundedTolerance() {
+        assertFalse(shouldCorrectStackVoice(4950L, 5000L))
+        assertTrue(shouldCorrectStackVoice(4800L, 5000L))
+        assertFalse(shouldCorrectStackVoice(5500L, stackVoiceTarget(5000L, 500L)))
     }
 
     @Test fun stackLoopIsTheDefault() {

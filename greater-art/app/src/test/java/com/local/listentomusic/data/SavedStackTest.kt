@@ -4,6 +4,12 @@ import org.junit.Assert.*
 import org.junit.Test
 
 class SavedStackTest {
+    @Test fun offsetsPersistAndLegacyFourFieldsRemainReadable() {
+        val aligned = mix.copy(tracks = mix.tracks.mapIndexed { index, track -> track.copy(offsetMs = index * -1000L) })
+        assertEquals(aligned, SavedStackCodec.decode(SavedStackCodec.encode(listOf(aligned))).single())
+        val legacy = SavedStackCodec.encode(listOf(mix)).replace("~false~0", "~false").replace("~true~0", "~true")
+        assertEquals(mix, SavedStackCodec.decode(legacy).single())
+    }
     private val mix = SavedStack("mix", "鋼琴 | live 🎵", listOf(
         SavedStackTrack("/Download/一.mp3", .35f, muted = true),
         SavedStackTrack("/Download/a,b|c.mp4", .8f, solo = true)),
