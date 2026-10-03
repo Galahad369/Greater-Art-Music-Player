@@ -72,4 +72,13 @@ class StackPlaybackTest {
         assertEquals(1, persistedRepeatMode(stackActive = true, repeatBeforeStack = 1, currentRepeat = 0))
         assertEquals(2, persistedRepeatMode(stackActive = false, repeatBeforeStack = 1, currentRepeat = 2))
     }
+
+    @Test fun nowPlayingKeepsPrimaryOutOfCompactStackRowsAndPreservesOrder() {
+        val slots = listOf(StackSlot(file(1)), StackSlot(file(2)), StackSlot(file(3)))
+        assertEquals(
+            listOf(slots[1], slots[2]),
+            stackSecondarySlots(slots, primaryPath = slots[0].file.path),
+        )
+        assertEquals(slots, stackSecondarySlots(slots, primaryPath = null))
+    }
 }
