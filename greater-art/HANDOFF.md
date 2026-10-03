@@ -9,7 +9,7 @@ This file describes the **current repository state only**. Historical session no
 **Signing certificate SHA-256:** `9e28eb45b3b171c3ea47d7da942d28d88b16538885e392a6971a80906d612fbf`
 **Build date:** `2026-10-02`
 **Test device:** `GreaterArt_A55_API36 (A55, API 36, Android 17)`
-**Verification boundary:** Current source is `1.15.51/code181` and is **SOURCE_ONLY**. The latest immutable verified artifact remains `releases/GreaterArt-1.15.47.apk` (SHA-256 `85919929b4b0f65eeb03c2b268fab6ae65da0a9977d9dabd33eec4b82b5833b3`). Mainline identities 1.15.48/code178, 1.15.49/code179, and 1.15.50/code180 are consumed by historical source commits and must not be reused.
+**Verification boundary:** Current source and latest immutable verified artifact are both `1.15.52/code182`: `releases/GreaterArt-1.15.52.apk` (SHA-256 `65a2e42f1c2b6319417560d0d25adebf1354ac7ab0396da1be746c792faae4da`). Mainline identities 1.15.48/code178, 1.15.49/code179, and 1.15.50/code180 remain consumed historical source identities and must not be reused.
 
 ## Repository state
 
