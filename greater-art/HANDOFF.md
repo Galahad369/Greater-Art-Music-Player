@@ -4,7 +4,7 @@ This file describes the **current repository state only**. Historical session no
 
 **Project:** `greater-art/` in the repository checkout
 **Current version:** `1.15.43 (code 173)`
-**Current source:** `1.15.48 (code 178)`
+**Current source:** `1.15.49 (code 179)`
 **Release state:** `SOURCE_ONLY`
 **Latest APK:** `releases/GreaterArt-1.15.43.apk` (`26,353,198 bytes`; SHA-256 `77e37b747f4122f289c936bc1f06e156575b102398fbc24f7ea4daab4b96cb61`)
 **Application ID:** `com.local.listentomusic`
@@ -14,6 +14,12 @@ This file describes the **current repository state only**. Historical session no
 **Verification boundary:** Current source is `1.15.47/code177` and is **SOURCE_ONLY**. The latest immutable verified artifact remains `releases/GreaterArt-1.15.43.apk` (SHA-256 `77e37b747f4122f289c936bc1f06e156575b102398fbc24f7ea4daab4b96cb61`). No 1.15.44, 1.15.45, 1.15.46, or 1.15.47 release APK may exist unless built and verified from its exact source under VERSION_RULES; 1.15.44 remains a consumed intermediate source identity.
 
 ## Repository state
+
+### October 3 — 1.15.49 actual dock/dialog interception fix (verification pending)
+
+- 1.15.48 compiled, passed 162 tests and lint, and installed successfully. Device testing exposed an additional cause of broken Stack save/add/delete: `TYPE_APPLICATION_OVERLAY` dock stayed above Activity dialogs. The picker Add button at y=2128 instead tapped the dock and opened Now Playing. No crash occurred in this reproduction.
+- Activity window-focus state now gates **only the dock's visibility/touchability**, hiding it while a dialog/system window holds focus. Returning focus restores the dock; expanded/detached ownership and app lifecycle remain independent. Includes a regression test.
+- Source advances to 1.15.49/code179; 1.15.48 is a consumed source identity, not a released artifact. Device regression is pending.
 
 ### October 3 — 1.15.48 separate saved mixes and primary-clock loop (verification pending)
 

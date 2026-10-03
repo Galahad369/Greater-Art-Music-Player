@@ -136,6 +136,11 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+    override fun onWindowFocusChanged(hasFocus: Boolean) {
+        super.onWindowFocusChanged(hasFocus)
+        com.local.listentomusic.playback.PlayerWindowVisibility.windowFocus(hasFocus)
+    }
+
     override fun onResume() {
         super.onResume()
         com.local.listentomusic.ui.components.VideoSurfaceOwner.setActivityForeground(true)

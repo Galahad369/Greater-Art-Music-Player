@@ -5,7 +5,7 @@ Greater Art is a native Kotlin/Jetpack Compose player for local music and video.
 ## Current release
 
 - Verified release: **1.15.43**, code **173** (see HANDOFF.md for artifact hash).
-- Current source: **1.15.48**, code **178** — verification pending; not a released APK.
+- Current source: **1.15.49**, code **179** — verification pending; not a released APK.
 - Application ID: `com.local.listentomusic`
 - APK: `releases/GreaterArt-1.15.43.apk`
 - APK SHA-256: `77e37b747f4122f289c936bc1f06e156575b102398fbc24f7ea4daab4b96cb61`

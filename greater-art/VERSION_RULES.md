@@ -7,7 +7,7 @@ This file is the authoritative version policy for Greater Art. If any handoff no
 ## Machine-checkable state
 
 
-Current source: **1.15.48 (code 178)**
+Current source: **1.15.49 (code 179)**
 Current release state: **SOURCE_ONLY**
 Latest verified APK: **1.15.43 (code 173)**
 Allowed series transition: **1.14.15 -> 1.15.1**
@@ -131,5 +131,7 @@ Markdown/docs-only changes, release hashes/metadata, and adding a newly verified
 Previous baseline: 1.13.26 (code 115).
 
 - 1.15.48 (code 178) — separate saved Stack mixes with levels/primary/mute/solo/loop; primary-ended whole-mix loop; retained staged mixes; dock-safe Settings and library-family layout; source only, verification pending.
+
+- 1.15.49 (code 179) — emulator-proven Activity-dialog tap interception by overlay dock; hide only dock while Activity window loses focus, preserving detached/expanded lifecycle and restoring dock on dialog dismissal; source only, verification pending.
 
 **No silent builds. No version reuse. No version skips. No APK overwrite/rename/copy.**

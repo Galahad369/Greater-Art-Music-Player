@@ -4,6 +4,20 @@ import org.junit.Assert.*
 import org.junit.Test
 
 class PlayerWindowVisibilityTest {
+    @Test fun dialogFocusLossHidesOnlyDockAndRestoresItAfterDismissal() {
+        PlayerWindowVisibility.app(true)
+        PlayerWindowVisibility.library(true)
+        PlayerWindowVisibility.expanded(false)
+        PlayerWindowVisibility.windowFocus(true)
+        assertTrue(PlayerWindowVisibility.dockedVisible.value)
+        PlayerWindowVisibility.windowFocus(false)
+        assertFalse(PlayerWindowVisibility.dockedVisible.value)
+        assertFalse(PlayerWindowVisibility.detachedVisible.value)
+        PlayerWindowVisibility.windowFocus(true)
+        assertTrue(PlayerWindowVisibility.dockedVisible.value)
+        PlayerWindowVisibility.library(false)
+        PlayerWindowVisibility.app(false)
+    }
     @Test fun detachedOnlyAppearsAfterTheAppAndExpandedPlayerLeave() {
         assertTrue(showDetachedPlayer(false, false))
         assertFalse(showDetachedPlayer(true, false))
