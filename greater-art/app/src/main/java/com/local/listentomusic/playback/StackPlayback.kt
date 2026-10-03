@@ -12,6 +12,7 @@ data class StackSlot(
     val solo: Boolean = false,
     val error: String? = null,
     val resolvedDurationMs: Long = 0L,
+    val offsetMs: Long = 0L,
 )
 
 data class StackSession(
@@ -75,8 +76,8 @@ internal fun stackSecondarySlots(slots: List<StackSlot>, primaryPath: String?): 
 internal fun stackTransportUsesLoopIcon(stackCount: Int): Boolean = stackCount > 0
 
 internal const val STACK_START_ALIGNMENT_MS = 120L
-internal const val STACK_DRIFT_CORRECTION_MS = 600L
-internal const val STACK_CORRECTION_INTERVAL_MS = 5_000L
+internal const val STACK_DRIFT_CORRECTION_MS = 100L
+internal const val STACK_CORRECTION_INTERVAL_MS = 750L
 
 /** Main-thread commands are attached by the single PlaybackService. */
 object StackPlayback {
@@ -94,6 +95,7 @@ object StackPlayback {
     internal var pauseCommand: (() -> Unit)? = null
     internal var seekCommand: ((Long) -> Unit)? = null
     internal var loopCommand: ((Boolean) -> Unit)? = null
+    internal var offsetsCommand: ((Map<String, Long>) -> Unit)? = null
     internal var stopCommand: (() -> Unit)? = null
 
     fun start(files: List<MediaFile>): Boolean = startCommand?.invoke(files) ?: false
@@ -107,12 +109,14 @@ object StackPlayback {
     fun pause() { pauseCommand?.invoke() }
     fun seek(positionMs: Long) { seekCommand?.invoke(positionMs) }
     fun setLoop(enabled: Boolean) { loopCommand?.invoke(enabled) }
+    fun setOffsets(offsets: Map<String, Long>) { offsetsCommand?.invoke(offsets) }
+    fun setOffset(path: String, offsetMs: Long) = setOffsets(mapOf(path to offsetMs))
     fun stop() { stopCommand?.invoke() }
     internal fun publish(session: StackSession) { mutable.value = session }
     internal fun detach() {
         startCommand = null; addCommand = null; removeCommand = null; primaryCommand = null
         volumeCommand = null; muteCommand = null; soloCommand = null
-        playCommand = null; pauseCommand = null; seekCommand = null; loopCommand = null; stopCommand = null
+        playCommand = null; pauseCommand = null; seekCommand = null; loopCommand = null; offsetsCommand = null; stopCommand = null
         mutable.value = StackSession()
     }
 }

@@ -132,6 +132,7 @@ class PlaybackService : MediaLibraryService() {
         StackPlayback.pauseCommand = stackCoordinator::pause
         StackPlayback.seekCommand = stackCoordinator::seek
         StackPlayback.loopCommand = stackCoordinator::setLoop
+        StackPlayback.offsetsCommand = stackCoordinator::setOffsets
         StackPlayback.stopCommand = { stackCoordinator.stop(clearMain = true) }
         ParallelPlayback.addCommand = ::addLayer
         ParallelPlayback.stopCommand = {

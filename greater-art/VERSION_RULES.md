@@ -7,9 +7,9 @@ This file is the authoritative version policy for Greater Art. If any handoff no
 ## Machine-checkable state
 
 
-Current source: **1.15.52 (code 182)**
+Current source: **1.15.54 (code 184)**
 Current release state: **VERIFIED**
-Latest verified APK: **1.15.52 (code 182)**
+Latest verified APK: **1.15.54 (code 184)**
 Allowed series transition: **1.14.15 -> 1.15.1**
 Allowed consumed transition: **1.15.13 (code 143) -> 1.15.17 (code 147)**
 Allowed consumed transition: **1.15.17 (code 147) -> 1.15.19 (code 149)**
@@ -137,5 +137,8 @@ Markdown/docs-only changes, release hashes/metadata, and adding a newly verified
 - Consumed side-branch identity: **1.15.53 (code 183)** — stale final-convergence recovery was committed from pre-1.15.52 main while PR #106 concurrently became canonical. Its useful Stack loop and late-ready alignment work is already represented by verified 1.15.52; the side-branch identity remains spent and must not be reused.
 
 Previous baseline: 1.13.26 (code 115).
+
+- 1.15.53 (code 183) — initial alignment branch identity in `00b48bd`, discovered concurrently consumed by main bookkeeping PR #109; never released here. Forward recovery at 1.15.54 preserves both histories without reusing the identity.
+- 1.15.54 (code 184) — Grok-proposed offline sound alignment: cached 20ms envelopes, confidence-gated ±15s correlation, signed per-voice offsets, delayed starts, primary rebasing, saved-mix compatibility and cancellation/progress UI; exact source `c04d12a`, 171 tests/lint/build, signing/version and emulator checks passed. SHA-256 `434d8ffe8118b2c6fc7faf7a481bfca81f78a232cf0600eb9e8fabfda988cd79`. Real varying-singer/tempo-drift and six/eight-track hardware listening tests pending. PR #105 contained no implementation and was not merged.
 
 **No silent builds. No version reuse. No version skips. No APK overwrite/rename/copy.**

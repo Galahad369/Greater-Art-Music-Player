@@ -1,6 +1,12 @@
 package com.local.listentomusic.ui
 
 import android.graphics.Bitmap
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.material.icons.rounded.GraphicEq
+import com.local.listentomusic.playback.StackAudioAlign
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.launch
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -59,6 +65,11 @@ fun StackScreen(
     onDeleteStack: (String) -> Unit,
 ) {
     val session by StackPlayback.state.collectAsState()
+    val context = LocalContext.current.applicationContext
+    val aligner = remember(context) { StackAudioAlign(context) }
+    val alignScope = rememberCoroutineScope()
+    var alignJob by remember { mutableStateOf<Job?>(null) }
+    var alignProgress by remember { mutableStateOf<String?>(null) }
     var stagedPaths by rememberSaveable { mutableStateOf(emptyList<String>()) }
     val staged = remember(files, stagedPaths) {
         stagedPaths.mapNotNull { path -> files.firstOrNull { it.path == path } }
@@ -83,14 +94,14 @@ fun StackScreen(
         if (session.active) {
             stagedPaths = session.slots.map { it.file.path }
             stagedPresetRaw = com.local.listentomusic.data.SavedStackCodec.encode(listOf(SavedStack("draft", "draft", session.slots.map {
-                com.local.listentomusic.data.SavedStackTrack(it.file.path, it.volume, it.muted, it.solo)
+                com.local.listentomusic.data.SavedStackTrack(it.file.path, it.volume, it.muted, it.solo, it.offsetMs)
             }, session.primaryPath ?: session.slots.first().file.path, session.loopEnabled)))
         }
     }
 
     val displayed = if (session.active) session.slots else staged.map { file ->
         val saved = stagedPreset?.tracks?.firstOrNull { it.path == file.path }
-        StackSlot(file, saved?.volume ?: 1f, saved?.muted ?: false, saved?.solo ?: false)
+        StackSlot(file, saved?.volume ?: 1f, saved?.muted ?: false, saved?.solo ?: false, offsetMs = saved?.offsetMs ?: 0L)
     }
     val displayedPaths = remember(displayed) { displayed.map { it.file.path }.toSet() }
     val nowPlayingSource = nowPlayingPath?.let(::sourceMediaPath)
@@ -173,6 +184,46 @@ fun StackScreen(
                 }
             } finally {
                 ListScrollBudget.set("stack", false)
+            }
+        }
+        if (session.active && session.slots.size >= 2) {
+            Row(Modifier.fillMaxWidth().padding(horizontal = 14.dp), verticalAlignment = Alignment.CenterVertically) {
+                if (alignProgress != null) {
+                    CircularProgressIndicator(Modifier.size(20.dp), strokeWidth = 2.dp)
+                    Text(alignProgress!!, Modifier.weight(1f).padding(start = 10.dp), style = MaterialTheme.typography.labelMedium)
+                    TextButton(onClick = { alignJob?.cancel() }) { Text(uiText(language, "Cancel", "取消")) }
+                } else {
+                    TextButton(
+                        modifier = Modifier.inspectElement("STACK_ALIGN_SOUND_BUTTON", "Offline arrangement alignment; uncertain matches are unchanged"),
+                        onClick = {
+                            val snapshot = StackPlayback.state.value
+                            val primary = snapshot.slots.firstOrNull { it.file.path == snapshot.primaryPath } ?: return@TextButton
+                            val companions = snapshot.slots.filterNot { it.file.path == snapshot.primaryPath }
+                            alignProgress = uiText(language, "Aligning by sound", "正在按聲音對齊")
+                            alignJob = alignScope.launch {
+                                try {
+                                    val offsets = mutableMapOf<String, Long>()
+                                    companions.forEachIndexed { index, slot ->
+                                        alignProgress = "${uiText(language, "Aligning by sound", "正在按聲音對齊")} ${index + 1}/${companions.size}"
+                                        val match = aligner.estimate(primary.file, slot.file)
+                                        if (match.confident) offsets[slot.file.path] = match.offsetMs
+                                    }
+                                    val current = StackPlayback.state.value
+                                    if (current.primaryPath == snapshot.primaryPath && current.slots.map { it.file.path } == snapshot.slots.map { it.file.path }) {
+                                        StackPlayback.setOffsets(offsets)
+                                        error = if (offsets.size < companions.size) uiText(language, "Uncertain matches kept unchanged", "未能確認的匹配保持不變") else null
+                                    } else error = uiText(language, "Stack changed; align again", "疊播已改變，請重新對齊")
+                                } catch (cancelled: CancellationException) { throw cancelled }
+                                catch (_: Exception) { error = uiText(language, "Could not analyse these files", "無法分析這些檔案") }
+                                finally { alignProgress = null; alignJob = null }
+                            }
+                        },
+                    ) {
+                        Icon(Icons.Rounded.GraphicEq, null)
+                        Spacer(Modifier.width(6.dp))
+                        Text(uiText(language, "Align by sound", "按聲音對齊"))
+                    }
+                }
             }
         }
         LazyColumn(
@@ -340,6 +391,7 @@ fun StackScreen(
                                         if (slot.solo) StackPlayback.toggleSolo(slot.file.path)
                                     }
                                     StackPlayback.setLoop(stagedPreset?.loopEnabled ?: STACK_LOOP_DEFAULT)
+                                    StackPlayback.setOffsets(displayed.associate { it.file.path to it.offsetMs })
                                     error = null
                                 } else {
                                     error = uiText(language, "Could not start these files on this device", "這部裝置無法播放這些檔案")
@@ -560,6 +612,12 @@ private fun StackTrackRow(
                 }
             }
             if (sessionActive) {
+                if (!isPrimary) Row(Modifier.fillMaxWidth().padding(horizontal = 14.dp), verticalAlignment = Alignment.CenterVertically) {
+                    TextButton(onClick = { StackPlayback.setOffset(path, slot.offsetMs - 100L) }) { Text("−0.1s") }
+                    Text(java.lang.String.format(java.util.Locale.ROOT, "%+.2fs", slot.offsetMs / 1000.0), Modifier.weight(1f), style = MaterialTheme.typography.labelMedium)
+                    TextButton(onClick = { StackPlayback.setOffset(path, slot.offsetMs + 100L) }) { Text("+0.1s") }
+                    TextButton(onClick = { StackPlayback.setOffset(path, 0L) }) { Text(uiText(language, "Reset alignment", "重設對齊")) }
+                }
                 Row(Modifier.fillMaxWidth().padding(horizontal = 18.dp), verticalAlignment = Alignment.CenterVertically) {
                     Text("${(slot.volume * 100).toInt()}%", style = MaterialTheme.typography.labelMedium)
                     Slider(

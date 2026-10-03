@@ -3,15 +3,26 @@
 This file describes the **current repository state only**. Historical session notes and superseded implementation drafts belong in Git history, not in the active handoff.
 
 **Project:** `greater-art/` in the repository checkout
-**Current version:** `1.15.52 (code 182)`
-**Latest APK:** `releases/GreaterArt-1.15.52.apk` (`26,451,578 bytes`; SHA-256 `65a2e42f1c2b6319417560d0d25adebf1354ac7ab0396da1be746c792faae4da`)
+**Current version:** `1.15.54 (code 184)`
+**Latest APK:** `releases/GreaterArt-1.15.54.apk` (`26,484,341 bytes`; SHA-256 `434d8ffe8118b2c6fc7faf7a481bfca81f78a232cf0600eb9e8fabfda988cd79`)
 **Application ID:** `com.local.listentomusic`
 **Signing certificate SHA-256:** `9e28eb45b3b171c3ea47d7da942d28d88b16538885e392a6971a80906d612fbf`
-**Build date:** `2026-10-02`
+**Build date:** `2026-10-04`
 **Test device:** `GreaterArt_A55_API36 (A55, API 36, Android 17)`
-**Verification boundary:** Current source and latest immutable verified artifact are both `1.15.52/code182`: `releases/GreaterArt-1.15.52.apk` (SHA-256 `65a2e42f1c2b6319417560d0d25adebf1354ac7ab0396da1be746c792faae4da`). Mainline identities 1.15.48/code178, 1.15.49/code179, and 1.15.50/code180 remain consumed historical source identities and must not be reused.
+**Current source:** `1.15.54/code184`, **VERIFIED**, exact build source `c04d12a`, on `grok/1.15.53-stack-audio-align` (branch retains its initial name), PR #110. Mainline identities 1.15.48–1.15.50 and side-branch 1.15.53 are consumed; never reuse them. Verified means automated checks plus the emulator flows listed here, not exhaustive device/singer testing.
 
 ## Repository state
+
+### October 4 — 1.15.54 offline Stack sound alignment (Grok proposal; Codex implementation)
+
+- PR #105 was closed unmerged; its head `5963a72` is an empty Initial plan commit. It did not contain the aligner claimed in the incoming handoff. No placeholder/empty implementation was merged. During testing, main merged PR #109 recording an earlier consumed 1.15.53 identity. This branch advances forward to 1.15.54/code184, preserving both histories; no 1.15.53 APK was released here.
+- Credit Grok for the signed-offset / 20ms envelope / correlation proposal. Implemented separate bounded MediaExtractor/MediaCodec analysis, first 90 seconds, ±15-second lag search, overlap-normalized correlation with log-energy compression and ambiguity rejection. Correlation >=0.35 and distinct-peak margin >=0.025 required; uncertain matches keep existing offsets unchanged. This is structural timing, not phase-perfect vocals or automatic time-stretch/tempo warping.
+- Cache: app-private `stack-align-v1`, identity includes canonical source path/actual size/mtime/clip bounds, atomic write, at most 64 small envelope files. One analysis decoder at a time; coroutine cancellation and per-file deadline release codec/extractor. No network/permission/dependency added, no primary quality/FPS/bitrate setting changed.
+- Offset-aware runtime targets cover start/readiness/seek/loop/drift and primary promotion. Negative targets keep companions paused until their start, rather than clamping them into early playback. Promoting an eligible companion rebases all offsets and the master timeline. ±0.1s and Reset affect only changed companions, never re-seek the primary. Saved mixes write five fields, accept legacy four-field tracks, and restore offsets.
+- UI: localized Align by sound, progress/cancel, uncertainty feedback; active Stack only. Apply is guarded against changed primary or track membership. Existing playback controls and mix workflow retained.
+- Verification: exact source `c04d12a` built as 1.15.54/code184; 171 tests, lint, assemble and version guard pass. Manifest and pinned signing certificate checked; no INTERNET permission/new permission. Installed final identity on A55-sized API36 emulator: saved mix start and cached align restored +1.00s. Earlier identical implementation tests decoded PCM and 1080p/AAC fixtures and yielded +1.00s between different tones/gains; cache entries created; −0.1s displayed +0.90s; promotion rebased the other take to −1.00s; save/Stop/reopen/start preserved +1.00s. Crash buffer empty and no ANR since boot. Different real singers/tempo-drift material and six/eight simultaneous takes still require listening/device tests; long decode cancellation/codec failure paths have not been fault-injected on hardware.
+- GitHub Android build, version guard, dependency and privacy audit gates passed on the source PR; CodeQL was still running at finalization. Local full-ref privacy scan flags an unrelated pre-existing local commit author email; no new secrets or workstation paths found. Do not rewrite the user's local refs to hide that finding.
+- Usage: Stack → add takes → Play together → choose primary → Align by sound → optionally nudge an expanded companion → Save Stack. Weak/repetitive matches keep existing offsets. If primary/membership changes during analysis, discard results and ask to align again. Decoder PCM handling follows Android's [MediaCodec output-format contract](https://developer.android.com/reference/android/media/MediaCodec), accepting PCM16/float only and rejecting unsupported formats gracefully.
 
 ### October 3 — final PR/branch convergence bookkeeping
 

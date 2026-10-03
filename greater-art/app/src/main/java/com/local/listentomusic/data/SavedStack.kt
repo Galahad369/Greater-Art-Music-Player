@@ -3,7 +3,7 @@ package com.local.listentomusic.data
 import java.util.Base64
 
 /** A simultaneous mix, deliberately independent of sequential Library playlists. */
-data class SavedStackTrack(val path: String, val volume: Float = 1f, val muted: Boolean = false, val solo: Boolean = false)
+data class SavedStackTrack(val path: String, val volume: Float = 1f, val muted: Boolean = false, val solo: Boolean = false, val offsetMs: Long = 0L)
 
 data class SavedStack(
     val id: String,
@@ -21,7 +21,7 @@ internal object SavedStackCodec {
     fun encode(stacks: List<SavedStack>): String = stacks.joinToString("\n") { stack ->
         listOf(encode(stack.id), encode(stack.name), encode(stack.primaryPath), stack.loopEnabled.toString(),
             encode(stack.keyword), stack.tracks.joinToString(",") {
-                "${encode(it.path)}~${it.volume}~${it.muted}~${it.solo}"
+                "${encode(it.path)}~${it.volume}~${it.muted}~${it.solo}~${it.offsetMs}"
             }).joinToString("|")
     }
 
@@ -31,10 +31,11 @@ internal object SavedStackCodec {
             require(fields.size == 6)
             val tracks = fields[5].split(',').map { track ->
                 val parts = track.split('~')
-                require(parts.size == 4)
+                require(parts.size in 4..5)
                 val volume = parts[1].toFloat().also { require(it.isFinite()) }.coerceIn(0f, 1f)
                 SavedStackTrack(decodeText(parts[0]).also { require(it.isNotBlank()) }, volume,
-                    parts[2].toBooleanStrict(), parts[3].toBooleanStrict())
+                    parts[2].toBooleanStrict(), parts[3].toBooleanStrict(),
+                    if (parts.size == 5) parts[4].toLong().also { require(it in -30_000L..30_000L) } else 0L)
             }.distinctBy { it.path }
             require(tracks.size in 1..8)
             val primary = decodeText(fields[2]).takeIf { path -> tracks.any { it.path == path } } ?: tracks.first().path
