@@ -4,13 +4,12 @@ Greater Art is a native Kotlin/Jetpack Compose player for local music and video.
 
 ## Current release
 
-Current verified release: **1.15.55/code185**, built from `2f093d3`. Current source is **1.15.56/code186 SOURCE_ONLY**. Align by sound now combines the existing energy envelope with an offline chroma/harmonic fingerprint; CURRENT_VIDEO shares the primary decoder rather than running a duplicate player; premium theme display names are Luna / Orbit / Sol / Astra / Nova / Space Black. Fixed offsets still do not time-warp singers with different tempos.
+Current verified release/source: **1.15.58/code188**, built from `fd85f03`. Stack save feedback stays compact and clears fixed controls. Align by sound uses cached 100ms harmonic windows and pauses/resumes analysis to avoid decoder contention; the six local 孤独毒毒 takes passed emulator alignment and save/reload checks. Fixed offsets still do not time-warp singers with different tempos.
 
-- Verified release: **1.15.55**, code **185** (171 app tests, three guard tests, lint/build and emulator smoke checks).
-- Current source: **1.15.56**, code **186** — SOURCE_ONLY; CI/device verification pending.
+- Verified release/source: **1.15.58**, code **188** (174 app tests, lint/build and six-track emulator smoke checks).
 - Application ID: `com.local.listentomusic`
-- APK: `releases/GreaterArt-1.15.55.apk`
-- APK SHA-256: `3e1f29142a736315938d4e5f0069bdb0e78da2190cd3da647b51fc618ac24a11`
+- APK: `releases/GreaterArt-1.15.58.apk`
+- APK SHA-256: `1f5f08bf13a6996496492dd97cc85b2863f0bfe344c294ca96f2313eb37e96e8`
 - Signing certificate SHA-256: `9e28eb45b3b171c3ea47d7da942d28d88b16538885e392a6971a80906d612fbf`
 - v1.13.20 keeps detached Mini hidden over Settings and other in-app pages while preserving Library's dock and Android Home's detached presentation.
 - v1.13.19 guards delayed session restore from replacing a newly selected song, moves final playback saving off the main thread, fits detached Mini to the media aspect without an opaque edge, and keeps theme updates from restoring its background. Metal highlights are now static and the audio cover no longer pulses continuously; long Now Playing titles make one restrained reveal. No media quality limit or new permission was added.

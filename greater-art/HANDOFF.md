@@ -3,15 +3,21 @@
 This file describes the **current repository state only**. Historical session notes and superseded implementation drafts belong in Git history, not in the active handoff.
 
 **Project:** `greater-art/` in the repository checkout
-**Current version:** `1.15.55 (code 185)`
-**Latest APK:** `releases/GreaterArt-1.15.55.apk` (`26,484,341 bytes`; SHA-256 `3e1f29142a736315938d4e5f0069bdb0e78da2190cd3da647b51fc618ac24a11`)
+**Current version:** `1.15.58 (code 188)`
+**Latest APK:** `releases/GreaterArt-1.15.58.apk` (`26,484,345 bytes`; SHA-256 `1f5f08bf13a6996496492dd97cc85b2863f0bfe344c294ca96f2313eb37e96e8`)
 **Application ID:** `com.local.listentomusic`
 **Signing certificate SHA-256:** `9e28eb45b3b171c3ea47d7da942d28d88b16538885e392a6971a80906d612fbf`
 **Build date:** `2026-10-04`
 **Test device:** `GreaterArt_A55_API36 (A55-sized emulator, API 36, Android 16)`
-**Current source:** `1.15.58/code188`, **SOURCE_ONLY**. Latest verified release remains `1.15.55/code185` / `GreaterArt-1.15.55.apk` (SHA-256 `3e1f29142a736315938d4e5f0069bdb0e78da2190cd3da647b51fc618ac24a11`). 1.15.57/code187 was consumed by the repair commit; do not reuse it. Real-device multi-singer listening is still a separate verification boundary.
+**Current source:** `1.15.58/code188`, **VERIFIED**, exact build source `fd85f03`, Grok repair branch / PR #114. 1.15.57/code187 was consumed by the repair commit; do not reuse it. Real-device multi-singer listening is still a separate verification boundary.
 
 ## Repository state
+
+### Final 1.15.58 verification
+
+- Exact source fd85f03: 174 JVM tests, lint and assemble passed; manifest 1.15.58/code188 and pinned signing certificate verified. No new permissions/dependencies or primary quality limits.
+- Actual six `孤独毒毒` videos: all five companions aligned against リオナ, playback resumed, 吉乃 +0.02s. Save/Stop/reload/start restored all six tracks and +0.02s on final 1.15.58. Compact save feedback remained above fixed transport; page and controls stayed visible. Cancel during a test cache miss resumed playback; only one regenerable test-created cache entry was invalidated, no media deleted. Six bounded cache entries created. Crash buffer empty; no ANR observed.
+- All PR source checks passed for final fd85f03, including Android/version/privacy/dependency and CodeQL. Real hardware listening/latency, changing tempos and eight-track load remain unverified; do not claim phase-perfect synchronization or zero lag.
 
 ### October 4 — six-take Stack repair (Grok branch, source verification in progress)
 
