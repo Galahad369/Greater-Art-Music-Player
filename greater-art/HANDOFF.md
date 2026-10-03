@@ -3,10 +3,8 @@
 This file describes the **current repository state only**. Historical session notes and superseded implementation drafts belong in Git history, not in the active handoff.
 
 **Project:** `greater-art/` in the repository checkout
-**Current version:** `1.15.43 (code 173)`
-**Current source:** `1.15.47 (code 177)`
-**Release state:** `SOURCE_ONLY`
-**Latest APK:** `releases/GreaterArt-1.15.43.apk` (`26,353,198 bytes`; SHA-256 `77e37b747f4122f289c936bc1f06e156575b102398fbc24f7ea4daab4b96cb61`)
+**Current version:** `1.15.47 (code 177)`
+**Latest APK:** `releases/GreaterArt-1.15.47.apk` (`26,369,578 bytes`; SHA-256 `85919929b4b0f65eeb03c2b268fab6ae65da0a9977d9dabd33eec4b82b5833b3`)
 **Application ID:** `com.local.listentomusic`
 **Signing certificate SHA-256:** `9e28eb45b3b171c3ea47d7da942d28d88b16538885e392a6971a80906d612fbf`
 **Build date:** `2026-10-02`
@@ -15,11 +13,13 @@ This file describes the **current repository state only**. Historical session no
 
 ## Repository state
 
-### October 3 — 1.15.47 Stack loop default, loop icon, theme tokens (source only)
+### October 3 — 1.15.47 Stack loop default, loop icon, theme tokens (verified)
 
 - Stack sessions now start with whole-set loop on. Reaching the longest track restarts every voice at 0 unless the user turns loop off. Leaving Stack still restores the previous normal repeat/shuffle state.
 - Now Playing repeat control shows the loop glyph while Stack is active (accent when on, onSurfaceVariant when off) instead of shuffle, repeat-one, or playlist-repeat. Stack's own master bar has the same loop control.
 - Stack chips, empty slots, track rows, now-playing context, dividers, and the master bar use `gaChromeColor` / `gaDividerColor` / `primary` / `primaryContainer` / `onSurface` rather than one-off translucent alphas and secondary tints.
+- **Build verified locally:** `./gradlew testDebugUnitTest lintDebug :app:assembleDebug --offline` passed; `aapt dump badging` confirms package `com.local.listentomusic`, versionName `1.15.47`, versionCode `177`; signed with personal debug keystore; installed on A55/API 36; launch, library scan/load, local audio/video playback, prev/next/seek/pause/resume, playlist/Favorites playback, duplicate queue independence, Stack→Library/playlist transition, queue/Library add-to-list, Library delete three-confirm flow, mini-window/fullscreen/return flows verified; **0 FATAL EXCEPTION** in tested session.
+- State: **VERIFIED**. Latest verified APK is **1.15.47/code177**.
 
 
 ### October 2 — 1.15.46 fullscreen single-source recovery (source only)
