@@ -4,12 +4,12 @@ Greater Art is a native Kotlin/Jetpack Compose player for local music and video.
 
 ## Current release
 
-Current verified release/source: **1.15.58/code188**, built from `fd85f03`. Stack save feedback stays compact and clears fixed controls. Align by sound uses cached 100ms harmonic windows and pauses/resumes analysis to avoid decoder contention; the six local 孤独毒毒 takes passed emulator alignment and save/reload checks. Fixed offsets still do not time-warp singers with different tempos.
+Current verified build: **1.15.63/code193**, app source `aaf1304`. Opus/v0's Stack start barrier and pitch-preserving rate correction replace frequent drift seeks; review fixes keep the primary READY and preserve the requested seek anchor. Six actual 孤独毒毒 takes were exercised on the API 36 emulator. Backgrounds preserve aspect ratio: old Stretch settings resolve to Crop. This is not real-phone acoustic synchronization proof, and fixed offsets do not time-warp different arrangements or tempos.
 
-- Verified release/source: **1.15.58**, code **188** (174 app tests, lint/build and six-track emulator smoke checks).
+- Verified build: **1.15.63**, code **193** (181 app tests, lint/build and six-track emulator smoke checks).
 - Application ID: `com.local.listentomusic`
-- APK: `releases/GreaterArt-1.15.58.apk`
-- APK SHA-256: `1f5f08bf13a6996496492dd97cc85b2863f0bfe344c294ca96f2313eb37e96e8`
+- APK: `releases/GreaterArt-1.15.63.apk`
+- APK SHA-256: `718385f181b65c480fc264a1117961a79d3e243de932bba168cd06d30a71f5d2`
 - Signing certificate SHA-256: `9e28eb45b3b171c3ea47d7da942d28d88b16538885e392a6971a80906d612fbf`
 - v1.13.20 keeps detached Mini hidden over Settings and other in-app pages while preserving Library's dock and Android Home's detached presentation.
 - v1.13.19 guards delayed session restore from replacing a newly selected song, moves final playback saving off the main thread, fits detached Mini to the media aspect without an opaque edge, and keeps theme updates from restoring its background. Metal highlights are now static and the audio cover no longer pulses continuously; long Now Playing titles make one restrained reveal. No media quality limit or new permission was added.

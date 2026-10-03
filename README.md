@@ -4,8 +4,8 @@ Greater Art is a local-first Android audio and video player. This repository con
 
 > **Vibe-coded disclosure:** Greater Art was built through iterative work with AI coding agents. Human direction, product decisions, device feedback, and acceptance guide the work; substantial code and documentation are AI-assisted.
 
-- Verified release/source: **1.15.58 (code 188)** — six-take Stack alignment and save-feedback repair; see the handoff for exact verification limits.
-- APK: [GreaterArt-1.15.58.apk](greater-art/releases/GreaterArt-1.15.58.apk)
+- Verified build: **1.15.63 (code 193)** — reviewed Opus Stack readiness gates, rate correction, seek-anchor repair and aspect-preserving backgrounds. Emulator smoke testing is not acoustic synchronization proof; see the handoff.
+- APK: [GreaterArt-1.15.63.apk](greater-art/releases/GreaterArt-1.15.63.apk)
 - [App documentation](greater-art/README.md) · [Handoff and verification](greater-art/HANDOFF.md)
 - [User demonstration](greater-art-user-demo.html) · [Technical demonstration](greater-art-technical-demo.html)
 
