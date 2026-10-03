@@ -218,6 +218,14 @@ def rules_from_ref(ref: str) -> tuple[str, int, str, str, int, list[tuple[str, i
     return parse_rules(run_git("show", f"{ref}:{RULES_REL}"))
 
 
+def is_pure_integration_merge(commit: str) -> bool:
+    parents = run_git("rev-list", "--parents", "-n", "1", commit).split()[1:]
+    if len(parents) < 2:
+        return False
+    tree = run_git("rev-parse", f"{commit}^{{tree}}").strip()
+    return any(tree == run_git("rev-parse", f"{parent}^{{tree}}").strip() for parent in parents)
+
+
 def validate_commit_range(errors: list[str], base: str, head: str = "HEAD") -> None:
     try:
         head_rules_text = run_git("show", f"{head}:{RULES_REL}")
@@ -239,7 +247,10 @@ def validate_commit_range(errors: list[str], base: str, head: str = "HEAD") -> N
             for path in paths
         )
 
-        if substantive:
+        # An exact parent tree adds no new implementation. rev-list above still
+        # validates the underlying source/finalization commits; APK checks below
+        # remain mandatory. Conflict resolutions with a new tree get no exemption.
+        if substantive and not is_pure_integration_merge(commit):
             try:
                 previous_version, previous_code = version_from_ref(parent)
                 current_version, current_code = version_from_ref(commit)

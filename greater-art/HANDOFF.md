@@ -9,9 +9,13 @@ This file describes the **current repository state only**. Historical session no
 **Signing certificate SHA-256:** `9e28eb45b3b171c3ea47d7da942d28d88b16538885e392a6971a80906d612fbf`
 **Build date:** `2026-10-04`
 **Test device:** `GreaterArt_A55_API36 (A55, API 36, Android 17)`
-**Current source:** `1.15.54/code184`, **VERIFIED**, exact build source `c04d12a`, on `grok/1.15.53-stack-audio-align` (branch retains its initial name), PR #110. Mainline identities 1.15.48–1.15.50 and side-branch 1.15.53 are consumed; never reuse them. Verified means automated checks plus the emulator flows listed here, not exhaustive device/singer testing.
+**Current source:** `1.15.55/code185`, **SOURCE_ONLY**, local build pending. Latest verified APK remains 1.15.54 from `c04d12a`. PR #110 is merged. Mainline identities 1.15.48–1.15.50 and side-branch 1.15.53 are consumed; never reuse them. Verified means automated checks plus the emulator flows listed here, not exhaustive device/singer testing.
 
 ## Repository state
+
+### October 4 — integration-merge release guard repair
+
+- PR #110 merged as `ac494d1`; its tree exactly matches the already verified branch parent. The guard incorrectly treated this integration as a new SOURCE_ONLY implementation commit. 1.15.55 fixes that provenance distinction: only exact-parent trees qualify, all underlying commits and APK checks remain validated. New conflict-resolution trees retain normal version requirements. Three focused regression tests cover these cases. No playback implementation or quality setting changed after 1.15.54.
 
 ### October 4 — 1.15.54 offline Stack sound alignment (Grok proposal; Codex implementation)
 
