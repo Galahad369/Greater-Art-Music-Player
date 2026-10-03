@@ -47,6 +47,8 @@ internal class StackPlaybackCoordinator(
     val active: Boolean get() = slots.isNotEmpty()
     val primary: String? get() = primaryPath
     val changingMain: Boolean get() = internalMainChange
+    val repeatModeForPersistence: Int
+        get() = persistedRepeatMode(active, previousRepeat, main.repeatMode)
 
     fun voiceDiagnostics(): String = voices.mapIndexed { index, voice ->
         "${index + 1}:${voice.player.playbackState}/${voice.player.isPlaying}@${voice.player.currentPosition}ms"
@@ -120,7 +122,8 @@ internal class StackPlaybackCoordinator(
         return if (live > 0L && live != C.TIME_UNSET) live else file.durationMs.coerceAtLeast(0L)
     }
 
-    private fun sessionDuration(): Long = slots.maxOfOrNull { knownDuration(it.file) } ?: 0L
+    private fun sessionDuration(): Long =
+        slots.firstOrNull { it.file.path == primaryPath }?.let { knownDuration(it.file) } ?: 0L
 
     private fun clampToSession(value: Long): Long {
         val duration = sessionDuration()
@@ -282,21 +285,29 @@ internal class StackPlaybackCoordinator(
         publish()
     }
 
-    fun seek(targetMs: Long) {
+    fun seek(targetMs: Long) = seekAll(targetMs, primaryEvent = false)
+
+    private fun seekAll(targetMs: Long, primaryEvent: Boolean) {
         if (!active) return
-        anchorMs = clampToSession(targetMs)
+        val plan = stackSeekPlan(targetMs, sessionDuration(), primaryEvent)
+        anchorMs = plan.positionMs
         anchorTimeMs = SystemClock.elapsedRealtime()
         voices.toList().forEach { voice ->
-            voice.player.seekTo(boundedSeek(anchorMs, knownDuration(voice.file)))
+            val target = boundedSeek(anchorMs, knownDuration(voice.file))
+            if (!primaryEvent || kotlin.math.abs(voice.player.currentPosition - target) > STACK_START_ALIGNMENT_MS) {
+                voice.player.seekTo(target)
+            }
             voice.player.playWhenReady = playing && main.isPlaying &&
                 (knownDuration(voice.file) <= 0L || anchorMs < knownDuration(voice.file))
         }
-        val primaryDuration = slots.firstOrNull { it.file.path == primaryPath }?.file?.let(::knownDuration) ?: 0L
-        internalMainChange = true
-        try {
-            main.seekTo(boundedSeek(anchorMs, primaryDuration))
-            main.playWhenReady = playing && (primaryDuration <= 0L || anchorMs < primaryDuration)
-        } finally { internalMainChange = false }
+        if (plan.seekPrimary) {
+            val primaryDuration = sessionDuration()
+            internalMainChange = true
+            try {
+                main.seekTo(boundedSeek(anchorMs, primaryDuration))
+                main.playWhenReady = playing && (primaryDuration <= 0L || anchorMs < primaryDuration)
+            } finally { internalMainChange = false }
+        }
         publish()
     }
 
@@ -306,11 +317,15 @@ internal class StackPlaybackCoordinator(
     }
 
     fun onMainSeek() {
-        if (active && !internalMainChange) seek(main.currentPosition)
+        if (active && !internalMainChange) seekAll(main.currentPosition, primaryEvent = true)
     }
 
     fun onMainIsPlayingChanged(isPlaying: Boolean) {
         if (!active || !playing) return
+        if (!isPlaying && main.playbackState == Player.STATE_ENDED && !internalMainChange) {
+            onPrimaryEnded()
+            return
+        }
         val now = position()
         if (!isPlaying) {
             voices.toList().forEach { safePlayer { it.player.pause() } }
@@ -364,12 +379,13 @@ internal class StackPlaybackCoordinator(
     fun applyVolumes(mainBaseGain: Float) {
         sourceGain = mainBaseGain
         if (!active) return
-        val solo = slots.any { it.solo }
-        val count = slots.size
-        main.volume = (slots.firstOrNull { it.file.path == primaryPath }?.let { stackAudibleVolume(it, solo, count) } ?: 0f) * sourceGain
+        val solo = slots.any { it.solo && !it.muted && it.error == null }
+        val audibleCount = stackAudibleTrackCount(slots)
+        main.volume = (slots.firstOrNull { it.file.path == primaryPath }
+            ?.let { stackAudibleVolume(it, solo, audibleCount) } ?: 0f) * sourceGain
         voices.toList().forEach { voice ->
-            voice.player.volume = slots.firstOrNull { it.file.path == voice.file.path }
-                ?.let { stackAudibleVolume(it, solo, count) } ?: 0f
+            voice.player.volume = (slots.firstOrNull { it.file.path == voice.file.path }
+                ?.let { stackAudibleVolume(it, solo, audibleCount) } ?: 0f) * sourceGain
         }
     }
 
@@ -377,6 +393,11 @@ internal class StackPlaybackCoordinator(
         if (!active || loopEnabled == enabled) return
         loopEnabled = enabled
         publish()
+    }
+
+    fun onPrimaryEnded() {
+        if (!active || !playing || internalMainChange) return
+        if (loopEnabled) seek(0L) else pause()
     }
 
     fun stop(clearMain: Boolean) {

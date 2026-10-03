@@ -1609,56 +1609,125 @@ private fun CurrentMediaHeader(
     headline: Boolean,
     onSearch: () -> Unit,
 ) {
-    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-        Column(Modifier.weight(1f)) {
-            Text(
-                com.local.listentomusic.model.mediaTitle(playback.title, playback.currentPath),
-                style = if (headline) MaterialTheme.typography.headlineSmall else MaterialTheme.typography.titleMedium,
-                fontWeight = if (headline) FontWeight.Bold else FontWeight.SemiBold,
-                maxLines = 1,
-                overflow = TextOverflow.Clip,
-                color = MaterialTheme.colorScheme.onSurface,
-                modifier = Modifier.fillMaxWidth().inspectElement("CURRENT_MEDIA_TITLE", playback.title)
-                    .padding(start = if (headline) 0.dp else 2.dp, end = 4.dp)
-                    .basicMarquee(iterations = 1, initialDelayMillis = 1_200),
-            )
-            if (playback.stackCount > 0) Text("Stack · ${playback.stackCount} tracks",
-                style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.secondary,
-                modifier = Modifier.inspectElement("STACK_NOW_PLAYING_BADGE", "Shared Stack transport"))
-        }
-        IconButton(
-            onClick = onToggleFavourite,
-            modifier = Modifier.inspectElement("FAVOURITE_BUTTON", "Stores the current file in the local Favorites list"),
-        ) {
-            Icon(
-                if (isFavourite) Icons.Rounded.Favorite else Icons.Rounded.FavoriteBorder,
-                uiText(playback.appLanguage, if (isFavourite) "Remove from Favorites" else "Add to Favorites", if (isFavourite) "從我的最愛移除" else "加入我的最愛"),
-                tint = if (isFavourite) MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.outline,
-                modifier = Modifier.size(28.dp),
-            )
-        }
-        var shareMenuOpen by remember { mutableStateOf(false) }
-        IconButton(onClick = onSearch, modifier = Modifier.inspectElement("QUEUE_SEARCH_BUTTON", "Search the current list")) {
-            Icon(Icons.Rounded.Search, uiText(playback.appLanguage, "Search current queue", "搜尋目前播放佇列"), Modifier.size(28.dp))
-        }
-        Box {
-            IconButton(
-                onClick = { shareMenuOpen = true },
-                modifier = Modifier.inspectElement("SHARE_BUTTON", "Choose the current file or an M3U8 queue"),
-            ) {
-                Icon(Icons.Rounded.Share, uiText(playback.appLanguage, "Share", "分享"), Modifier.size(28.dp))
+    val stack by com.local.listentomusic.playback.StackPlayback.state.collectAsState()
+    val secondaryStackSlots = remember(stack.slots, stack.primaryPath) {
+        com.local.listentomusic.playback.stackSecondarySlots(stack.slots, stack.primaryPath)
+    }
+    var shareMenuOpen by remember { mutableStateOf(false) }
+
+    Column(Modifier.fillMaxWidth()) {
+        // The primary keeps the ordinary Now Playing header. Stack context is
+        // represented only by the compact subordinate rows below it.
+        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+            Column(Modifier.weight(1f)) {
+                Text(
+                    com.local.listentomusic.model.mediaTitle(playback.title, playback.currentPath),
+                    style = if (headline) MaterialTheme.typography.headlineSmall else MaterialTheme.typography.titleMedium,
+                    fontWeight = if (headline) FontWeight.Bold else FontWeight.SemiBold,
+                    maxLines = 1,
+                    overflow = TextOverflow.Clip,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    modifier = Modifier.fillMaxWidth().inspectElement("CURRENT_MEDIA_TITLE", playback.title)
+                        .padding(start = if (headline) 0.dp else 2.dp, end = 4.dp)
+                        .basicMarquee(iterations = 1, initialDelayMillis = 1_200),
+                )
             }
-            DropdownMenu(shareMenuOpen, { shareMenuOpen = false }) {
-                DropdownMenuItem(
-                    text = { Text(uiText(playback.appLanguage, "Current media file", "目前媒體檔案")) },
-                    enabled = playback.currentPath != null,
-                    onClick = { shareMenuOpen = false; onShareCurrentMedia() },
+            IconButton(
+                onClick = onToggleFavourite,
+                modifier = Modifier.inspectElement("FAVOURITE_BUTTON", "Stores the current file in the local Favorites list"),
+            ) {
+                Icon(
+                    if (isFavourite) Icons.Rounded.Favorite else Icons.Rounded.FavoriteBorder,
+                    uiText(playback.appLanguage, if (isFavourite) "Remove from Favorites" else "Add to Favorites", if (isFavourite) "從我的最愛移除" else "加入我的最愛"),
+                    tint = if (isFavourite) MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.outline,
+                    modifier = Modifier.size(28.dp),
                 )
-                DropdownMenuItem(
-                    text = { Text(uiText(playback.appLanguage, "Queue as M3U8", "將播放佇列分享為 M3U8")) },
-                    enabled = canShareQueue,
-                    onClick = { shareMenuOpen = false; onShareQueue() },
-                )
+            }
+            IconButton(onClick = onSearch, modifier = Modifier.inspectElement("QUEUE_SEARCH_BUTTON", "Search the current list")) {
+                Icon(Icons.Rounded.Search, uiText(playback.appLanguage, "Search current queue", "搜尋目前播放佇列"), Modifier.size(28.dp))
+            }
+            Box {
+                IconButton(
+                    onClick = { shareMenuOpen = true },
+                    modifier = Modifier.inspectElement("SHARE_BUTTON", "Choose the current file or an M3U8 queue"),
+                ) {
+                    Icon(Icons.Rounded.Share, uiText(playback.appLanguage, "Share", "分享"), Modifier.size(28.dp))
+                }
+                DropdownMenu(shareMenuOpen, { shareMenuOpen = false }) {
+                    DropdownMenuItem(
+                        text = { Text(uiText(playback.appLanguage, "Current media file", "目前媒體檔案")) },
+                        enabled = playback.currentPath != null,
+                        onClick = { shareMenuOpen = false; onShareCurrentMedia() },
+                    )
+                    DropdownMenuItem(
+                        text = { Text(uiText(playback.appLanguage, "Queue as M3U8", "將播放佇列分享為 M3U8")) },
+                        enabled = canShareQueue,
+                        onClick = { shareMenuOpen = false; onShareQueue() },
+                    )
+                }
+            }
+        }
+
+        if (stack.active && secondaryStackSlots.isNotEmpty()) {
+            Spacer(Modifier.height(2.dp))
+            Column(
+                Modifier.fillMaxWidth()
+                    .padding(start = if (headline) 8.dp else 4.dp, end = 4.dp)
+                    .inspectElement("NOW_PLAYING_STACK_ROWS", "${secondaryStackSlots.size} secondary Stack tracks"),
+            ) {
+                secondaryStackSlots.forEach { slot ->
+                    val duration = slot.resolvedDurationMs.takeIf { it > 0L } ?: slot.file.durationMs
+                    val ended = duration > 0L && stack.positionMs >= duration
+                    val enabled = slot.error == null && !ended
+                    val supporting = when {
+                        slot.error != null -> uiText(playback.appLanguage, "Playback unavailable", "無法播放")
+                        ended -> uiText(playback.appLanguage, "Ended", "已播完")
+                        slot.muted -> uiText(playback.appLanguage, "Muted", "已靜音")
+                        slot.solo -> uiText(playback.appLanguage, "Solo", "獨奏")
+                        slot.file.artist.isNotBlank() -> slot.file.artist
+                        else -> uiText(playback.appLanguage, "Stacked track", "疊播歌曲")
+                    }
+                    Row(
+                        modifier = Modifier.fillMaxWidth()
+                            .clip(RoundedCornerShape(9.dp))
+                            .clickable(enabled = enabled) {
+                                com.local.listentomusic.playback.StackPlayback.setPrimary(slot.file.path)
+                            }
+                            .inspectElement(
+                                "NOW_PLAYING_STACK_SUBROW",
+                                if (enabled) "Tap to make primary: ${slot.file.name}" else slot.file.name,
+                            )
+                            .padding(horizontal = 8.dp, vertical = 4.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Box(
+                            Modifier.width(2.dp).height(28.dp).background(
+                                if (enabled) MaterialTheme.colorScheme.outlineVariant
+                                else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.45f)
+                            )
+                        )
+                        Spacer(Modifier.width(8.dp))
+                        Column(Modifier.weight(1f)) {
+                            Text(
+                                slot.file.name.substringBeforeLast('.'),
+                                style = MaterialTheme.typography.bodySmall,
+                                fontWeight = FontWeight.Medium,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                                color = if (enabled) MaterialTheme.colorScheme.onSurface
+                                    else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+                            )
+                            Text(
+                                supporting,
+                                style = MaterialTheme.typography.labelSmall,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                                color = if (slot.error != null) MaterialTheme.colorScheme.error
+                                    else MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                    }
+                }
             }
         }
     }

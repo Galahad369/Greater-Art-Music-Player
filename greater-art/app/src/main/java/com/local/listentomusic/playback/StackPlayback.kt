@@ -25,13 +25,23 @@ data class StackSession(
     val active: Boolean get() = slots.isNotEmpty()
 }
 
-internal fun stackDuration(slots: List<StackSlot>): Long = slots.maxOfOrNull { it.file.durationMs.coerceAtLeast(0L) } ?: 0L
+internal fun stackDuration(slots: List<StackSlot>, primaryPath: String? = slots.firstOrNull()?.file?.path): Long =
+    slots.firstOrNull { it.file.path == primaryPath }?.let {
+        (it.resolvedDurationMs.takeIf { duration -> duration > 0L } ?: it.file.durationMs).coerceAtLeast(0L)
+    } ?: 0L
 internal fun canAddStackTrack(slots: List<StackSlot>, file: MediaFile): Boolean =
     slots.size < StackPlayback.MAX_TRACKS && slots.none { it.file.path == file.path }
 
-internal fun stackAudibleVolume(slot: StackSlot, anySolo: Boolean, count: Int): Float =
+internal fun stackAudibleTrackCount(slots: List<StackSlot>): Int {
+    val anySolo = slots.any { it.solo && !it.muted && it.error == null }
+    return slots.count { slot ->
+        !slot.muted && slot.error == null && (!anySolo || slot.solo)
+    }.coerceAtLeast(1)
+}
+
+internal fun stackAudibleVolume(slot: StackSlot, anySolo: Boolean, audibleCount: Int): Float =
     if (slot.muted || anySolo && !slot.solo || slot.error != null) 0f
-    else slot.volume.coerceIn(0f, 1f) / count.coerceAtLeast(1)
+    else slot.volume.coerceIn(0f, 1f) / audibleCount.coerceAtLeast(1)
 
 internal fun stackMasterPosition(primaryPositionMs: Long, fallbackPositionMs: Long, primaryAvailable: Boolean): Long =
     (if (primaryAvailable) primaryPositionMs else fallbackPositionMs).coerceAtLeast(0L)
@@ -44,6 +54,22 @@ internal const val STACK_LOOP_DEFAULT = true
 
 internal fun shouldRestartStack(loopEnabled: Boolean, playing: Boolean, positionMs: Long, durationMs: Long): Boolean =
     loopEnabled && playing && durationMs > 0L && positionMs >= durationMs
+
+internal data class StackSeekPlan(val positionMs: Long, val seekPrimary: Boolean)
+
+/** A primary event is an acknowledgement, not a new primary seek command. */
+internal fun stackSeekPlan(positionMs: Long, durationMs: Long, primaryEvent: Boolean): StackSeekPlan =
+    StackSeekPlan(
+        if (durationMs > 0L) positionMs.coerceIn(0L, durationMs) else positionMs.coerceAtLeast(0L),
+        !primaryEvent,
+    )
+
+internal fun persistedRepeatMode(stackActive: Boolean, repeatBeforeStack: Int, currentRepeat: Int): Int =
+    if (stackActive) repeatBeforeStack else currentRepeat
+
+/** Preserve Stack order while omitting the primary already shown by normal Now Playing chrome. */
+internal fun stackSecondarySlots(slots: List<StackSlot>, primaryPath: String?): List<StackSlot> =
+    slots.filterNot { it.file.path == primaryPath }
 
 /** Stack transport uses the loop glyph, never shuffle / repeat-one / playlist-repeat. */
 internal fun stackTransportUsesLoopIcon(stackCount: Int): Boolean = stackCount > 0
