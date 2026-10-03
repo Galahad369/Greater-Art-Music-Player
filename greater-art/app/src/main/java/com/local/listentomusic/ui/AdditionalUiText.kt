@@ -16,6 +16,8 @@ internal fun additionalUiText(language: AppLanguage, key: String): String? {
 
 internal val additionalTranslations = """
 Align by sound|按聲音對齊|音で位置合わせ|Nach Klang ausrichten|Aligner par le son
+Aligned tracks|已對齊歌曲|位置合わせ済み|Ausgerichtete Titel|Pistes alignées
+Playback resumes after analysis|分析後繼續播放|解析後に再生を再開|Wiedergabe nach Analyse fortsetzen|Lecture reprise après analyse
 Aligning by sound|正在按聲音對齊|音を解析中|Klang wird analysiert|Analyse du son
 Uncertain matches kept unchanged|未能確認的匹配保持不變|不確かな一致は変更しません|Unsichere Treffer bleiben unverändert|Correspondances incertaines inchangées
 Stack changed; align again|疊播已改變，請重新對齊|ミックスが変わりました。再解析してください|Mix geändert; erneut ausrichten|Mix modifié ; réalignez

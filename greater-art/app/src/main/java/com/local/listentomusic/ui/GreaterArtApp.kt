@@ -261,6 +261,9 @@ fun GreaterArtApp(
                 } else Color.Transparent,
                 contentColor = MaterialTheme.colorScheme.onBackground,
             ) {
+            // Surface propagates its full-screen minimum constraints. Transient
+            // feedback must not inherit them and cover the library with a snackbar.
+            Box(Modifier.fillMaxSize()) {
             AnimatedContent(
                 targetState = screen,
                 transitionSpec = {
@@ -587,6 +590,7 @@ fun GreaterArtApp(
             editDisplay?.let { file -> DisplayOverrideDialog(file, settings.localOverrides[file.path], settings.appLanguage,
                 viewModel::loadThumbnail, { title, cover -> viewModel.setLocalOverride(file.path, title, cover) }, { editDisplay = null }) }
             if (createRule) RulePlaylistDialog(settings.appLanguage, viewModel::createRulePlaylist, { createRule = false })
+        }
         }
         }
         }

@@ -5,6 +5,16 @@ import org.junit.Test
 import kotlin.random.Random
 
 class StackAlignmentTest {
+    @Test fun cancellationCheckedDuringCorrelation() {
+        var checks = 0
+        val features = StackAudioFeatures(pattern(), Array(1500) { FloatArray(12) })
+        try {
+            correlateStackFeatures(features, features) { if (++checks == 3) throw java.util.concurrent.CancellationException() }
+            fail("Cancelled analysis must stop")
+        } catch (_: java.util.concurrent.CancellationException) {
+            assertEquals(3, checks)
+        }
+    }
     private fun pattern() = FloatArray(1500) { Random(it * 37 + 9).nextFloat() }
     @Test fun detectsPaddingAndDifferentGain() {
         val a = pattern()
