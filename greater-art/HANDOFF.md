@@ -9,7 +9,7 @@ This file describes the **current repository state only**. Historical session no
 **Signing certificate SHA-256:** `9e28eb45b3b171c3ea47d7da942d28d88b16538885e392a6971a80906d612fbf`
 **Build date:** `2026-10-04`
 **Test device:** `GreaterArt_A55_API36 (A55-sized emulator, API 36, Android 16)`
-**Current source:** `1.15.60/code190`, **SOURCE_ONLY**, reviewing Opus/v0 1.15.59 on grok/opus-stack-sync-review. Latest verified APK remains 1.15.58/code188. 1.15.59 is consumed; never reuse it. No 1.16.1 claim without real-device listening evidence.
+**Current source:** `1.15.62/code192`, **SOURCE_ONLY**, reviewing Opus/v0 1.15.59 on grok/opus-stack-sync-review (PR #115). Latest verified APK remains 1.15.58/code188. Intermediate identities 1.15.59–61 are consumed; never reuse them. No 1.16.1 claim without real-device listening evidence.
 
 ## Repository state
 
@@ -17,7 +17,9 @@ This file describes the **current repository state only**. Historical session no
 
 - Opus/v0 commit d77928d compiled, passed JVM tests and lint locally. Retain credit for start-gated playback, onset-assisted alignment and pitch-preserving rate correction replacing frequent 100ms-drift hard seeks. Primary source resolution/frame rate/bitrate remain untouched.
 - Review fixes consume 1.15.60/code190: timeout must not release companions before primary READY; companion BUFFERING also regroups and re-parks all voices on the frozen primary timeline; gate cannot open reentrantly while parking. End-of-track inside a gate restarts/stops normally instead of hanging; primary errors leave playback paused rather than falsely active. Added readiness/timeout regression coverage.
-- Local six-take timing, seek/resume/loop and final APK verification pending. Same-looper release is not a shared hardware audio clock, and diagnostics are not a listening proof. Keep patch-series version until real phone testing supports stronger claims.
+- 1.15.60 and 1.15.61 local builds passed 181 JVM tests, lint and assembly. Emulator loaded six actual 孤独毒毒 takes, pause/resume worked, Align by sound reported 5/5 and resumed; crash buffer empty. Seeking to the end exposed a frozen loop: asynchronous Media3 seek acknowledgement could leave the old position visible while arming the gate, overwriting the requested restart anchor. 1.15.62 preserves the requested/frozen gate anchor; final rebuild and regression verification pending.
+- 1.15.61 narrowly accepts the exact shared public v0 service author identity in the privacy audit; credential, personal-author and vendor-domain checks remain enforced. Preserve Opus/v0 source credit.
+- Live acoustic synchronization has not been measured/listened to. Same-looper release is not a shared hardware audio clock, and UI/diagnostics are not a listening proof. Keep patch-series version until real phone testing supports stronger claims. Different arrangements/tempo drift still need time-warp alignment, which this feature does not implement.
 
 ### Final 1.15.58 verification
 
