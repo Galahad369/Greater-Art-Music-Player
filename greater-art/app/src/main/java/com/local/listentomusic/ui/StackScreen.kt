@@ -13,7 +13,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.Clear
 import androidx.compose.material.icons.rounded.Close
-import androidx.compose.material.icons.rounded.Loop
 import androidx.compose.material.icons.rounded.Pause
 import androidx.compose.material.icons.rounded.PlayArrow
 import androidx.compose.material.icons.rounded.Repeat
@@ -291,73 +290,66 @@ fun StackScreen(
             Row(
                 Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween,
             ) {
                 Text(stackTime(position), style = MaterialTheme.typography.labelMedium)
-                val loopOn = if (session.active) session.loopEnabled else STACK_LOOP_DEFAULT
-                IconButton(
-                    onClick = { StackPlayback.setLoop(!session.loopEnabled) },
-                    enabled = session.active,
-                    modifier = Modifier.inspectElement("STACK_LOOP_BUTTON", if (loopOn) "Loop on" else "Loop off"),
-                ) {
-                    Icon(
-                        Icons.Rounded.Loop,
-                        uiText(language, if (loopOn) "Loop" else "Loop off", if (loopOn) "循環" else "不循環"),
-                        tint = if (loopOn) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
-                if (session.active) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        IconButton(
-                            onClick = { if (session.playing) StackPlayback.pause() else StackPlayback.play() },
-                            modifier = Modifier.size(56.dp).inspectElement("STACK_MASTER_PLAY", "Play or pause every track"),
+                Box(Modifier.weight(1f), contentAlignment = Alignment.Center) {
+                    if (session.active) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.Center,
                         ) {
-                            Icon(
-                                if (session.playing) Icons.Rounded.Pause else Icons.Rounded.PlayArrow,
-                                uiText(
-                                    language,
-                                    if (session.playing) "Pause Stack" else "Play Stack",
-                                    if (session.playing) "暫停疊播" else "播放疊播",
-                                ),
-                                Modifier.size(32.dp),
-                            )
-                        }
-                        IconButton(
-                            onClick = { StackPlayback.setLoop(!session.loopEnabled) },
-                            modifier = Modifier.size(48.dp)
-                                .inspectElement("STACK_LOOP_BUTTON", if (session.loopEnabled) "Stack loop on" else "Stack loop off"),
-                        ) {
-                            Icon(
-                                Icons.Rounded.Repeat,
-                                uiText(language, "Loop whole Stack", "循環整個疊播"),
-                                tint = if (session.loopEnabled) MaterialTheme.colorScheme.secondary
-                                    else MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
-                        }
-                        TextButton(onClick = { StackPlayback.stop() }) { Text(uiText(language, "Stop", "停止")) }
-                    }
-                } else {
-                    Button(
-                        enabled = staged.size >= 2,
-                        onClick = {
-                            val primary = stagedPreset?.primaryPath
-                            val ordered = staged.sortedBy { if (it.path == primary) 0 else 1 }
-                            if (StackPlayback.start(ordered)) {
-                                displayed.forEach { slot ->
-                                    StackPlayback.setVolume(slot.file.path, slot.volume)
-                                    if (slot.muted) StackPlayback.toggleMute(slot.file.path)
-                                    if (slot.solo) StackPlayback.toggleSolo(slot.file.path)
-                                }
-                                StackPlayback.setLoop(stagedPreset?.loopEnabled ?: true)
-                                error = null
-                            } else {
-                                error = uiText(language, "Could not start these files on this device", "這部裝置無法播放這些檔案")
+                            IconButton(
+                                onClick = { StackPlayback.setLoop(!session.loopEnabled) },
+                                modifier = Modifier.size(48.dp)
+                                    .inspectElement("STACK_LOOP_BUTTON", if (session.loopEnabled) "Stack loop on" else "Stack loop off"),
+                            ) {
+                                Icon(
+                                    Icons.Rounded.Repeat,
+                                    uiText(language, "Loop whole Stack", "循環整個疊播"),
+                                    Modifier.size(26.dp),
+                                    tint = if (session.loopEnabled) MaterialTheme.colorScheme.secondary
+                                        else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.45f),
+                                )
                             }
-                        },
-                        modifier = Modifier.inspectElement("STACK_START_BUTTON", "Starts selected tracks together"),
-                    ) {
-                        Icon(Icons.Rounded.PlayArrow, null)
-                        Text(uiText(language, "Play together", "一齊播放"))
+                            IconButton(
+                                onClick = { if (session.playing) StackPlayback.pause() else StackPlayback.play() },
+                                modifier = Modifier.size(56.dp).inspectElement("STACK_MASTER_PLAY", "Play or pause every track"),
+                            ) {
+                                Icon(
+                                    if (session.playing) Icons.Rounded.Pause else Icons.Rounded.PlayArrow,
+                                    uiText(
+                                        language,
+                                        if (session.playing) "Pause Stack" else "Play Stack",
+                                        if (session.playing) "暫停疊播" else "播放疊播",
+                                    ),
+                                    Modifier.size(32.dp),
+                                )
+                            }
+                            TextButton(onClick = { StackPlayback.stop() }) { Text(uiText(language, "Stop", "停止")) }
+                        }
+                    } else {
+                        Button(
+                            enabled = staged.size >= 2,
+                            onClick = {
+                                val primary = stagedPreset?.primaryPath
+                                val ordered = staged.sortedBy { if (it.path == primary) 0 else 1 }
+                                if (StackPlayback.start(ordered)) {
+                                    displayed.forEach { slot ->
+                                        StackPlayback.setVolume(slot.file.path, slot.volume)
+                                        if (slot.muted) StackPlayback.toggleMute(slot.file.path)
+                                        if (slot.solo) StackPlayback.toggleSolo(slot.file.path)
+                                    }
+                                    StackPlayback.setLoop(stagedPreset?.loopEnabled ?: STACK_LOOP_DEFAULT)
+                                    error = null
+                                } else {
+                                    error = uiText(language, "Could not start these files on this device", "這部裝置無法播放這些檔案")
+                                }
+                            },
+                            modifier = Modifier.inspectElement("STACK_START_BUTTON", "Starts selected tracks together"),
+                        ) {
+                            Icon(Icons.Rounded.PlayArrow, null)
+                            Text(uiText(language, "Play together", "一齊播放"))
+                        }
                     }
                 }
                 Text(stackTime(duration), style = MaterialTheme.typography.labelMedium)

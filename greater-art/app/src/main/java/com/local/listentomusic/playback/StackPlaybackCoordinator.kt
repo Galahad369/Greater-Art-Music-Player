@@ -89,6 +89,26 @@ internal class StackPlaybackCoordinator(
                 engine.repeatMode = Player.REPEAT_MODE_OFF
                 engine.setMediaItem(file.toMediaItem())
                 engine.addListener(object : Player.Listener {
+                    override fun onPlaybackStateChanged(playbackState: Int) {
+                        if (playbackState != Player.STATE_READY) return
+                        onMain {
+                            if (released || !active || !playing || !main.isPlaying) return@onMain
+                            val readyVoice = voices.firstOrNull { it.player === engine } ?: return@onMain
+                            val now = position()
+                            val duration = knownDuration(readyVoice.file)
+                            if (duration > 0L && now >= duration) {
+                                readyVoice.player.pause()
+                            } else {
+                                val target = boundedSeek(now, duration)
+                                if (kotlin.math.abs(readyVoice.player.currentPosition - target) > STACK_START_ALIGNMENT_MS) {
+                                    readyVoice.player.seekTo(target)
+                                }
+                                readyVoice.player.playbackParameters = main.playbackParameters
+                                readyVoice.player.playWhenReady = true
+                            }
+                        }
+                    }
+
                     override fun onPlayerError(error: PlaybackException) {
                         // Same pattern as Parallel layers: mutate on the main looper only.
                         onMain {
