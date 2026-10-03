@@ -4,15 +4,23 @@ This file describes the **current repository state only**. Historical session no
 
 **Project:** `greater-art/` in the repository checkout
 **Current version:** `1.15.47 (code 177)`
-**Current source:** `1.15.51 (code 181)`
+**Current source:** `1.15.52 (code 182)`
 **Latest APK:** `releases/GreaterArt-1.15.47.apk` (`26,369,578 bytes`; SHA-256 `85919929b4b0f65eeb03c2b268fab6ae65da0a9977d9dabd33eec4b82b5833b3`)
 **Application ID:** `com.local.listentomusic`
 **Signing certificate SHA-256:** `9e28eb45b3b171c3ea47d7da942d28d88b16538885e392a6971a80906d612fbf`
 **Build date:** `2026-10-02`
 **Test device:** `GreaterArt_A55_API36 (A55, API 36, Android 17)`
-**Verification boundary:** Current source is `1.15.51/code181` and is **SOURCE_ONLY**. The latest immutable verified artifact remains `releases/GreaterArt-1.15.47.apk` (SHA-256 `85919929b4b0f65eeb03c2b268fab6ae65da0a9977d9dabd33eec4b82b5833b3`). Mainline identities 1.15.48/code178, 1.15.49/code179, and 1.15.50/code180 are consumed by historical source commits and must not be reused.
+**Verification boundary:** Current source is `1.15.52/code182` and is **SOURCE_ONLY**. The latest immutable verified artifact remains `releases/GreaterArt-1.15.47.apk` (SHA-256 `85919929b4b0f65eeb03c2b268fab6ae65da0a9977d9dabd33eec4b82b5833b3`). Mainline identities 1.15.48/code178, 1.15.49/code179, and 1.15.50/code180 are consumed by historical source commits and must not be reused.
 
 ## Repository state
+
+### October 3 — 1.15.52 Stack loop UI + late-ready alignment (source only)
+
+- Removes the duplicate Stack loop controls and keeps exactly one loop button in the centered master transport cluster.
+- Standardizes Stack loop UI on `Icons.Rounded.Repeat` in both Stack and Now Playing, avoiding the previously unreliable Loop glyph/rendering path while preserving active/inactive tint semantics.
+- Companion Stack players now realign to the live primary clock as soon as Media3 reports READY, so a slow-loading secondary does not begin from stale position 0 after the primary has already advanced.
+- Preserves the 1.15.51 Now Playing hierarchy: the primary remains a normal row and every non-primary Stack track stays visible underneath as a compact tappable sub-row.
+- State: **SOURCE_ONLY** at **1.15.52/code182**. Latest verified APK remains **1.15.47/code177**.
 
 ### October 3 — 1.15.51 Now Playing full Stack rows + mainline recovery (source only)
 

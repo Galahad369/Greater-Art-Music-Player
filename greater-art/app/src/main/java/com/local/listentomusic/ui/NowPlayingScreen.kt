@@ -74,7 +74,6 @@ import androidx.compose.material.icons.rounded.Movie
 import androidx.compose.material.icons.rounded.Pause
 import androidx.compose.material.icons.rounded.PictureInPictureAlt
 import androidx.compose.material.icons.rounded.PlayArrow
-import androidx.compose.material.icons.rounded.Loop
 import androidx.compose.material.icons.rounded.Repeat
 import androidx.compose.material.icons.rounded.RepeatOne
 import androidx.compose.material.icons.rounded.Shuffle
@@ -1541,7 +1540,7 @@ private fun PlayerBottomControls(
                         val stackLoopOn = stackLoop && playback.repeatMode == Player.REPEAT_MODE_ALL
                         Icon(
                             when {
-                                stackLoop -> Icons.Rounded.Loop
+                                stackLoop -> Icons.Rounded.Repeat
                                 playback.shuffleEnabled -> Icons.Rounded.Shuffle
                                 playback.repeatMode == Player.REPEAT_MODE_ONE -> Icons.Rounded.RepeatOne
                                 else -> Icons.Rounded.Repeat
