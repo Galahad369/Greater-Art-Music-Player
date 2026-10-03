@@ -14,6 +14,16 @@ This file describes the **current repository state only**. Historical session no
 
 ## Repository state
 
+### October 3 — post-1.15.52 PR/branch convergence
+
+- PR #106 is the canonical **1.15.52/code182 SOURCE_ONLY** Stack loop/late-ready alignment source and passed Version Consistency, Android test/lint/assemble, privacy/history audit, dependency review, and CodeQL before merge.
+- PR #105 was closed: its Copilot head had no changed files, and its Grok base only consumed 1.15.52 with a version bump without implementing the requested audio-correlation feature.
+- PR #103 became stale during concurrent main movement and its Copilot head branch was deleted. Its useful behavior was superseded by #106.
+- A recovery commit at **1.15.53/code183** was then created from the older 1.15.51 base before #106 landed. Because 1.15.52 became canonical first, 1.15.53 is now a consumed side-branch identity and is not reusable.
+- The next executable/source version after 1.15.52 must therefore be **1.15.54/code184**.
+- No additional executable change is introduced by this convergence bookkeeping.
+
+
 ### October 3 — 1.15.52 Stack loop UI + late-ready alignment (source only)
 
 - Removes the duplicate Stack loop controls and keeps exactly one loop button in the centered master transport cluster.
