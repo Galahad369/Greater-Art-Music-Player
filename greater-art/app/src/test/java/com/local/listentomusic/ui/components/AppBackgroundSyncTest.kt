@@ -43,30 +43,37 @@ class AppBackgroundSyncTest {
     }
 
     @Test
-    fun currentVideoBackgroundMirrorsPrimaryPauseState() {
-        assertTrue(shouldMirrorPrimaryPlayback(lifecycleActive = true, primaryIsPlaying = true))
-        assertFalse(shouldMirrorPrimaryPlayback(lifecycleActive = true, primaryIsPlaying = false))
-        assertFalse(shouldMirrorPrimaryPlayback(lifecycleActive = false, primaryIsPlaying = true))
+    fun currentVideoBackgroundUsesPrimaryPlayerOnlyWhenItCanOwnTheSurface() {
+        assertTrue(shouldUsePrimaryVideoBackground(
+            visible = true,
+            allowVideoBackground = true,
+            isVideo = true,
+            controllerAvailable = true,
+        ))
+        assertFalse(shouldUsePrimaryVideoBackground(
+            visible = false,
+            allowVideoBackground = true,
+            isVideo = true,
+            controllerAvailable = true,
+        ))
+        assertFalse(shouldUsePrimaryVideoBackground(
+            visible = true,
+            allowVideoBackground = false,
+            isVideo = true,
+            controllerAvailable = true,
+        ))
+        assertFalse(shouldUsePrimaryVideoBackground(
+            visible = true,
+            allowVideoBackground = true,
+            isVideo = false,
+            controllerAvailable = true,
+        ))
+        assertFalse(shouldUsePrimaryVideoBackground(
+            visible = true,
+            allowVideoBackground = true,
+            isVideo = true,
+            controllerAvailable = false,
+        ))
     }
 
-    @Test
-    fun onlyDuplicateCurrentVideoWallpaperGetsResolutionBudget() {
-        assertEquals(640 to 360, currentVideoWallpaperMaxSize(mirrorsPrimary = true))
-        assertEquals(null, currentVideoWallpaperMaxSize(mirrorsPrimary = false))
-    }
-
-
-    @Test
-    fun normalPlaybackDriftDoesNotContinuouslyFlushVideoDecoder() {
-        assertFalse(shouldResyncBackground(10_000, 10_350, true))
-        assertFalse(shouldResyncBackground(10_000, 12_000, true))
-        assertTrue(shouldResyncBackground(10_000, 12_001, true))
-    }
-
-    @Test
-    fun pausedFrameAndExplicitSeekUseTighterAlignment() {
-        assertFalse(shouldResyncBackground(1_000, 1_080, false))
-        assertTrue(shouldResyncBackground(1_000, 1_081, false))
-        assertTrue(shouldResyncBackground(30_000, 1_000, false))
-    }
 }

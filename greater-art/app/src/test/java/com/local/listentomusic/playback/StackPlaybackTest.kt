@@ -45,6 +45,14 @@ class StackPlaybackTest {
         assertEquals(1, stackAudibleTrackCount(listOf(slot.copy(solo = true), StackSlot(file(3)))))
     }
 
+    @Test fun eightTrackDomainBudgetKeepsAllVoicesAudibleWithHeadroom() {
+        assertEquals(8, StackPlayback.MAX_TRACKS)
+        val slots = (0 until StackPlayback.MAX_TRACKS).map { StackSlot(file(it), volume = 1f) }
+        assertEquals(8, stackAudibleTrackCount(slots))
+        assertEquals(0.125f, stackAudibleVolume(slots.first(), anySolo = false, audibleCount = 8), .0001f)
+        assertFalse(canAddStackTrack(slots, file(99)))
+    }
+
     @Test fun primaryPlayerClockWinsOverSyntheticFallback() {
         assertEquals(1250L, stackMasterPosition(1250L, 4200L, true))
         assertEquals(4200L, stackMasterPosition(1250L, 4200L, false))

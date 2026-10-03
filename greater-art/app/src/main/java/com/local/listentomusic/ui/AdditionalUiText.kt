@@ -81,12 +81,12 @@ Choose how custom images and videos fill the screen. Cut to screen size is the d
 Background|背景|背景|Hintergrund|Arrière-plan
 Color theme|色彩主題|カラーテーマ|Farbthema|Thème de couleur
 Choose an accent palette while keeping your light/dark mode preference.|在保留淺色／深色模式偏好的同時，選擇你喜歡的色彩調性。|ライト/ダーク設定を保ったまま、アクセント配色を選びます。|Akzentpalette wählen, ohne Hell/Dunkel-Einstellung zu ändern.|Choisissez une palette d’accent sans changer le mode clair/sombre.
-Forest|森林|フォレスト|Wald|Forêt
-Slate|石板|スレート|Schiefer|Ardoise
-Amber|琥珀|アンバー|Bernstein|Ambre
-Indigo|靛藍|インディゴ|Indigo|Indigo
-Rose|玫瑰|ローズ|Rosenholz|Rose
-Monochrome|單色|モノクロ|Monochrom|Monochrome
+Luna|Luna|Luna|Luna|Luna
+Orbit|Orbit|Orbit|Orbit|Orbit
+Sol|Sol|Sol|Sol|Sol
+Astra|Astra|Astra|Astra|Astra
+Nova|Nova|Nova|Nova|Nova
+Space Black|Space Black|Space Black|Space Black|Space Black
 Library & lists|音樂庫與清單|ライブラリとリスト|Bibliothek und Listen|Bibliothèque et listes
 Privacy & data|私隱與資料|プライバシーとデータ|Datenschutz und Daten|Confidentialité et données
 Developer|開發者|開発者|Entwickler|Développeur

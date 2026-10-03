@@ -7,8 +7,8 @@ This file is the authoritative version policy for Greater Art. If any handoff no
 ## Machine-checkable state
 
 
-Current source: **1.15.55 (code 185)**
-Current release state: **VERIFIED**
+Current source: **1.15.56 (code 186)**
+Current release state: **SOURCE_ONLY**
 Latest verified APK: **1.15.55 (code 185)**
 Allowed series transition: **1.14.15 -> 1.15.1**
 Allowed consumed transition: **1.15.13 (code 143) -> 1.15.17 (code 147)**
@@ -143,5 +143,6 @@ Previous baseline: 1.13.26 (code 115).
 - 1.15.54 (code 184) — Grok-proposed offline sound alignment: cached 20ms envelopes, confidence-gated ±15s correlation, signed per-voice offsets, delayed starts, primary rebasing, saved-mix compatibility and cancellation/progress UI; exact source `c04d12a`, 171 tests/lint/build, signing/version and emulator checks passed. SHA-256 `434d8ffe8118b2c6fc7faf7a481bfca81f78a232cf0600eb9e8fabfda988cd79`. Real varying-singer/tempo-drift and six/eight-track hardware listening tests pending. PR #105 contained no implementation and was not merged.
 
 - 1.15.55 (code 185) — release guard recognizes exact-parent integration merges while retaining source-commit and immutable APK validation. Exact build source `2f093d3`; 171 app tests, three guard tests, lint/build and emulator saved-Stack/cached-alignment smoke passed. APK SHA-256 `3e1f29142a736315938d4e5f0069bdb0e78da2190cd3da647b51fc618ac24a11`.
+- 1.15.56 (code 186) — MVP missing-parts pass: Stack alignment adds cached 12-bin chroma/harmonic fingerprints fused with the existing 20 ms energy-envelope correlation while retaining ambiguity rejection; ColorTheme display names become Luna / Orbit / Sol / Astra / Nova / Space Black without changing persisted enum identities; CURRENT_VIDEO uses the primary MediaController surface through VideoSurfaceOwner instead of a duplicate ExoPlayer, with BACKGROUND handoff retention to reduce black-frame transitions; deterministic eight-track headroom/cap coverage added. Source only; real 6–8 varying-singer hardware listening remains pending and no phase-perfect/time-warp claim is made.
 
 **No silent builds. No version reuse. No version skips. No APK overwrite/rename/copy.**

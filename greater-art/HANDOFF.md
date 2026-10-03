@@ -9,9 +9,19 @@ This file describes the **current repository state only**. Historical session no
 **Signing certificate SHA-256:** `9e28eb45b3b171c3ea47d7da942d28d88b16538885e392a6971a80906d612fbf`
 **Build date:** `2026-10-04`
 **Test device:** `GreaterArt_A55_API36 (A55-sized emulator, API 36, Android 16)`
-**Current source:** `1.15.55/code185`, **VERIFIED**, exact build source `2f093d3`. PR #110 is merged; guard repair PR #111. Mainline identities 1.15.48–1.15.50 and side-branch 1.15.53 are consumed; never reuse them. Verified means automated checks plus the emulator flows listed here, not exhaustive device/singer testing.
+**Current source:** `1.15.56/code186`, **SOURCE_ONLY**. Latest verified release remains `1.15.55/code185` / `GreaterArt-1.15.55.apk` (SHA-256 `3e1f29142a736315938d4e5f0069bdb0e78da2190cd3da647b51fc618ac24a11`). Mainline identities 1.15.48–1.15.50 and side-branch 1.15.53 are consumed; never reuse them. Real-device multi-singer listening is still a separate verification boundary.
 
 ## Repository state
+
+### October 4 — 1.15.56 MVP missing-parts pass (source only)
+
+- Stack Align by sound now analyses two feature families from the same bounded offline PCM decode: the existing 20 ms loudness envelope plus a lightweight 12-bin pitch-class/chroma fingerprint. Lag selection fuses both signals and keeps the distinct-peak/confidence rejection, so weak or repetitive matches still remain unchanged. Cache namespace advances to `stack-align-v2`; no network, permission, or playback-source quality change.
+- Existing ColorTheme enum constants remain FOREST/SLATE/AMBER/INDIGO/ROSE/MONOCHROME for backup/DataStore compatibility, but user-facing names are now **Luna / Orbit / Sol / Astra / Nova / Space Black**.
+- `CURRENT_VIDEO` no longer constructs a second ExoPlayer. The full-screen Library background leases the primary MediaController through `VideoSurfaceOwner` as owner `BACKGROUND`; Now Playing, fullscreen, PiP and system Mini Window keep higher ownership priority. During list fling the surface detaches without creating another decoder, and BACKGROUND handoffs retain the outgoing surface until the incoming primary surface registers.
+- `CUSTOM_VIDEO` remains an independent muted decorative ExoPlayer and still yields while Stack is active. CURRENT_VIDEO can remain available during Stack because it adds no decoder.
+- Added JVM coverage for chroma-assisted offset recovery/rejection, shared CURRENT_VIDEO eligibility, BACKGROUND ownership priority/handoff retention, and eight-track headroom/cap behavior.
+- This removes CURRENT_VIDEO decoder-to-decoder drift, but does **not** claim zero render/handoff latency, phase-perfect multi-singer merging, or hardware proof. Six/eight varying-singer physical-device listening is still pending.
+
 
 ### October 4 — integration-merge release guard repair
 

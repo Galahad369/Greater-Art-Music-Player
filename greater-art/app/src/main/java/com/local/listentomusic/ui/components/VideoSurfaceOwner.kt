@@ -15,6 +15,7 @@ object VideoSurfaceOwner {
     private var nowPlaying = false
     private var pip = false
     private var fullscreenActivity = false
+    private var currentVideoBackground = false
     private var handoffTarget: String? = null
     private val systemOverlayOwners = linkedMapOf<String, String>()
     private var unifiedExpanded = false
@@ -27,6 +28,7 @@ object VideoSurfaceOwner {
             pip = pip,
             fullscreenActivity = fullscreenActivity,
             systemOverlayOwner = systemOverlayOwners.values.lastOrNull(),
+            currentVideoBackground = currentVideoBackground,
         )
     val systemOverlayActive: Boolean get() = systemOverlayOwners.isNotEmpty()
     val fullscreenActivityActive: Boolean get() = fullscreenActivity
@@ -41,6 +43,12 @@ object VideoSurfaceOwner {
         if (foreground == value) return
         foreground = value
         log("foreground=$value expected=$expectedOwner", active.get())
+        reconcile()
+    }
+    fun setCurrentVideoBackgroundActive(value: Boolean) {
+        if (currentVideoBackground == value) return
+        currentVideoBackground = value
+        log("currentVideoBackground=$value expected=$expectedOwner", active.get())
         reconcile()
     }
     fun setFullscreenActivityVisible(value: Boolean) {
@@ -83,6 +91,24 @@ object VideoSurfaceOwner {
         log("handoffFinish target=$targetOwner expected=$expectedOwner", active.get())
         reconcile()
     }
+    fun attachBackground(player: Player?, target: PlayerView) {
+        if (player == null) {
+            detach(target)
+            return
+        }
+        val owner = "BACKGROUND"
+        val registered = candidates[owner]
+        if (registered?.view?.get() === target &&
+            registered.player.get() === player &&
+            expectedOwner == owner &&
+            state.value.owner == owner &&
+            active.get() === target &&
+            target.player === player
+        ) return
+        candidates[owner] = Candidate(WeakReference(target), WeakReference(player), owner)
+        reconcile()
+    }
+
     fun attach(player: Player?, target: PlayerView, overlay: Boolean = false) {
         if (player == null) { detach(target); return }
         val owner = if (overlay) "MINI_WINDOW" else if (target.tag == "NOW_PLAYING") "NOW_PLAYING" else "LIBRARY_MINI"
