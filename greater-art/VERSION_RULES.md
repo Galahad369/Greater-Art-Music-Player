@@ -7,7 +7,7 @@ This file is the authoritative version policy for Greater Art. If any handoff no
 ## Machine-checkable state
 
 
-Current source: **1.15.59 (code 189)**
+Current source: **1.15.60 (code 190)**
 Current release state: **SOURCE_ONLY**
 Latest verified APK: **1.15.58 (code 188)**
 Allowed series transition: **1.14.15 -> 1.15.1**
@@ -149,5 +149,7 @@ Previous baseline: 1.13.26 (code 115).
 
 - 1.15.58 (code 188) — verification follow-up: compact undo/save feedback clears Stack's fixed transport controls as well as the Library dock. Exact source fd85f03; 174 tests/lint/build, emulator six-take alignment/persistence, manifest/signing checked. SHA-256 `1f5f08bf13a6996496492dd97cc85b2863f0bfe344c294ca96f2313eb37e96e8`. 1.15.57 identity consumed on repair branch, never released here.
 - 1.15.59 (code 189) — Stack sync engine: start gate releases primary and companions together once all are READY; drift corrected by pitch-preserving ±5% rate trim instead of 750ms seek loop; seeks only above 400ms with learned lead; primary stalls regroup all voices. Align by sound adds onset-novelty correlation and sub-frame peak refinement. SOURCE_ONLY: not compiled in v0 sandbox (no JDK); needs tests/lint/build and real-device six-take listening.
+
+- 1.15.60 (code 190) — Codex review of Opus sync: gate requires a READY primary even after timeout/external Play; companion buffering regroups and re-parks every voice at the frozen primary timeline. Source-only pending full local verification. 1.15.59 consumed on v0 branch; not overwritten.
 
 **No silent builds. No version reuse. No version skips. No APK overwrite/rename/copy.**

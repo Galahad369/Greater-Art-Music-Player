@@ -69,6 +69,7 @@ internal class StackPlaybackCoordinator(
     private var internalMainChange = false
     private var released = false
     private var gateDeadlineMs = 0L
+    private var armingGate = false
     private var lastPublishMs = 0L
     private val mainHandler = Handler(Looper.getMainLooper())
     private val gated: Boolean get() = gateDeadlineMs != 0L
@@ -120,6 +121,12 @@ internal class StackPlaybackCoordinator(
                 engine.setMediaItem(file.toMediaItem())
                 engine.addListener(object : Player.Listener {
                     override fun onPlaybackStateChanged(playbackState: Int) {
+                        if (playbackState == Player.STATE_BUFFERING) {
+                            onMain {
+                                val voice = voices.firstOrNull { it.player === engine }
+                                if (active && playing && !gated && voice != null && voiceInWindow(voice, position())) armStartGate()
+                            }
+                        }
                         if (playbackState != Player.STATE_READY) return
                         onMain { onVoiceReady(engine) }
                     }
@@ -189,20 +196,31 @@ internal class StackPlaybackCoordinator(
     /** Hold every player until all of them can produce audio at the same instant. */
     private fun armStartGate() {
         if (!playing || !active) return
+        val master = position()
+        anchorMs = master
+        anchorTimeMs = SystemClock.elapsedRealtime()
         gateDeadlineMs = SystemClock.elapsedRealtime() + STACK_START_GATE_TIMEOUT_MS
-        voices.toList().forEach { voice -> safePlayer { voice.player.playWhenReady = false } }
-        setMainPlayWhenReady(false)
+        armingGate = true
+        try {
+            setMainPlayWhenReady(false)
+            voices.toList().forEach { voice -> safePlayer { parkVoice(voice, master, anchorTimeMs, alwaysSeek = false) } }
+        } finally { armingGate = false }
     }
 
-    private fun tryOpenStartGate(force: Boolean = false) {
-        if (!gated || released || !active) return
+    private fun tryOpenStartGate() {
+        if (!gated || armingGate || released || !active) return
         if (!playing) { gateDeadlineMs = 0L; return }
+        if (main.playerError != null) { pause(); return }
+        if (main.playbackState == Player.STATE_ENDED) {
+            gateDeadlineMs = 0L
+            onPrimaryEnded()
+            return
+        }
         val master = position()
         val joining = voices.filter { voiceInWindow(it, master) }
-        val ready = main.playbackState == Player.STATE_READY &&
-            joining.all { it.player.playbackState == Player.STATE_READY }
         val expired = SystemClock.elapsedRealtime() >= gateDeadlineMs
-        if (!ready && !force && !expired) return
+        if (!stackStartGateCanOpen(main.playbackState == Player.STATE_READY,
+                joining.all { it.player.playbackState == Player.STATE_READY }, expired)) return
         gateDeadlineMs = 0L
         val nowMs = SystemClock.elapsedRealtime()
         anchorMs = master
@@ -522,8 +540,8 @@ internal class StackPlaybackCoordinator(
     fun onMainPlayChanged(ready: Boolean) {
         if (!active || internalMainChange) return
         if (gated) {
-            // Our own gate parks the primary; only an external Play may open it early.
-            if (ready) tryOpenStartGate(force = true)
+            // An external Play request must still respect the readiness barrier.
+            if (ready) { setMainPlayWhenReady(false); tryOpenStartGate() }
             return
         }
         if (ready) play() else pause()

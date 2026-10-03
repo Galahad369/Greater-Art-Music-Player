@@ -6,6 +6,13 @@ import org.junit.Assert.*
 import org.junit.Test
 
 class StackPlaybackTest {
+    @Test fun gateNeverReleasesVoicesBeforePrimaryIsReady() {
+        assertFalse(stackStartGateCanOpen(false, true, true))
+        assertFalse(stackStartGateCanOpen(false, false, true))
+        assertFalse(stackStartGateCanOpen(true, false, false))
+        assertTrue(stackStartGateCanOpen(true, true, false))
+        assertTrue(stackStartGateCanOpen(true, false, true))
+    }
     @Test fun primaryAcknowledgementsCannotCreateSeekFeedback() {
         val command = stackSeekPlan(1200L, 3000L, primaryEvent = false)
         assertTrue(command.seekPrimary)

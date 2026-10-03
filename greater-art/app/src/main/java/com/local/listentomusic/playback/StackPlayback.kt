@@ -99,6 +99,10 @@ internal const val STACK_SYNC_TICK_MS = 50L
 
 internal enum class StackSyncAction { NONE, RATE, SEEK }
 
+/** A companion timeout may degrade the group, but must never run ahead of an unready primary. */
+internal fun stackStartGateCanOpen(primaryReady: Boolean, companionsReady: Boolean, expired: Boolean): Boolean =
+    primaryReady && (companionsReady || expired)
+
 /** Positive drift means the voice is ahead of where the master says it should be. */
 internal fun stackSyncAction(driftMs: Double, msSinceLastSeek: Long): StackSyncAction = when {
     kotlin.math.abs(driftMs) >= STACK_HARD_RESYNC_MS && msSinceLastSeek >= STACK_SEEK_COOLDOWN_MS -> StackSyncAction.SEEK
