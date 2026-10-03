@@ -491,7 +491,10 @@ fun GreaterArtApp(
             val undoMessage by viewModel.undoMessage.collectAsStateWithLifecycle()
             undoMessage?.let { message ->
                 androidx.compose.material3.Snackbar(modifier = Modifier.align(Alignment.BottomCenter).navigationBarsPadding()
-                    .padding(bottom = if (playback.hasMedia) com.local.listentomusic.model.MiniWindowMetrics.HEIGHT_DP.dp else 0.dp), action = {
+                    .padding(bottom =
+                        (if (playback.hasMedia) com.local.listentomusic.model.MiniWindowMetrics.HEIGHT_DP.dp else 0.dp) +
+                            (if (screen == Screen.LIBRARY && libraryPager.currentPage == 0) 120.dp else 0.dp)
+                    ), action = {
                     androidx.compose.material3.TextButton(onClick = viewModel::undoLastEdit) { androidx.compose.material3.Text(uiText(settings.appLanguage, "Undo", "復原")) }
                 }) { androidx.compose.material3.Text(message) }
             }
