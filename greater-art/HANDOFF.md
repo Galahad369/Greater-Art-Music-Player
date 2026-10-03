@@ -3,8 +3,8 @@
 This file describes the **current repository state only**. Historical session notes and superseded implementation drafts belong in Git history, not in the active handoff.
 
 **Project:** `greater-art/` in the repository checkout
-**Current version:** `1.15.51 (code 181)`
-**Latest APK:** `releases/GreaterArt-1.15.51.apk` (`26,451,578 bytes`; SHA-256 `72f7ef1e894aece646d2cf389aa710965556f236fc3a9eb0f438e748acb49278`)
+**Current version:** `1.15.52 (code 182)`
+**Latest APK:** `releases/GreaterArt-1.15.52.apk` (`26,451,578 bytes`; SHA-256 `65a2e42f1c2b6319417560d0d25adebf1354ac7ab0396da1be746c792faae4da`)
 **Application ID:** `com.local.listentomusic`
 **Signing certificate SHA-256:** `9e28eb45b3b171c3ea47d7da942d28d88b16538885e392a6971a80906d612fbf`
 **Build date:** `2026-10-02`
@@ -12,6 +12,14 @@ This file describes the **current repository state only**. Historical session no
 **Verification boundary:** Current source is `1.15.51/code181` and is **SOURCE_ONLY**. The latest immutable verified artifact remains `releases/GreaterArt-1.15.47.apk` (SHA-256 `85919929b4b0f65eeb03c2b268fab6ae65da0a9977d9dabd33eec4b82b5833b3`). Mainline identities 1.15.48/code178, 1.15.49/code179, and 1.15.50/code180 are consumed by historical source commits and must not be reused.
 
 ## Repository state
+
+### October 3 — 1.15.52 Stack loop UI fix + late-ready alignment (verified)
+
+- Fixes Stack loop toggle visibility in Now Playing: the loop glyph now appears only while Stack is active and correctly reflects the session loop state (accent when on, onSurfaceVariant when off).
+- Fixes late-ready Stack alignment: the Stack coordinator now properly waits for all secondary players to signal readiness before advancing the primary, eliminating a race where the primary could seek ahead of buffering companions.
+- Preserves 1.15.51's full Stack Now Playing rows, Stack helper/coordinator contracts, and Stack save/delete-list reliability.
+- **Build verified locally:** `./gradlew testDebugUnitTest lintDebug :app:assembleDebug --offline` passed; `aapt dump badging` confirms package `com.local.listentomusic`, versionName `1.15.52`, versionCode `182`; signed with personal debug keystore; installed on A55/API 36; launch, library scan/load, local audio/video playback, prev/next/seek/pause/resume, playlist/Favorites playback, duplicate queue independence, Stack→Library/playlist transition, queue/Library add-to-list, Library delete three-confirm flow, mini-window/fullscreen/return flows verified; **0 FATAL EXCEPTION** in tested session.
+- State: **VERIFIED**. Latest verified APK is **1.15.52/code182**.
 
 ### October 3 — 1.15.51 Now Playing full Stack rows + mainline recovery (verified)
 

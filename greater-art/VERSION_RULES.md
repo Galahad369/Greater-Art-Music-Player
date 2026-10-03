@@ -7,9 +7,9 @@ This file is the authoritative version policy for Greater Art. If any handoff no
 ## Machine-checkable state
 
 
-Current source: **1.15.51 (code 181)**
+Current source: **1.15.52 (code 182)**
 Current release state: **VERIFIED**
-Latest verified APK: **1.15.51 (code 181)**
+Latest verified APK: **1.15.52 (code 182)**
 Allowed series transition: **1.14.15 -> 1.15.1**
 Allowed consumed transition: **1.15.13 (code 143) -> 1.15.17 (code 147)**
 Allowed consumed transition: **1.15.17 (code 147) -> 1.15.19 (code 149)**
@@ -131,7 +131,8 @@ Markdown/docs-only changes, release hashes/metadata, and adding a newly verified
 - Consumed mainline identity: **1.15.48 (code 178)** — saved Stack-mix / primary-boundary-loop source commit later rolled back during 1.15.47 release finalization; remains in main history and must not be reused
 - Consumed mainline identity: **1.15.49 (code 179)** — overlay-dock Activity-dialog interception source commit later rolled back during 1.15.47 release finalization; remains in main history and must not be reused
 - Consumed mainline identity: **1.15.50 (code 180)** — Stack primary-seek acknowledgement source commit later partially rolled back during 1.15.47 release finalization; remains in main history and must not be reused
-- 1.15.51 (code 181) — forward recovery from the partial 1.15.48–1.15.50 rollback: restore the Stack helper/coordinator contracts already referenced by live service/UI/tests, preserve primary-seek acknowledgement and repeat-persistence behavior, and show every non-primary Stack track as a compact tappable subordinate row under the normal Now Playing primary header; source only, CI pending
+- 1.15.51 (code 181) — forward recovery from the partial 1.15.48–1.15.50 rollback: restore the Stack helper/coordinator contracts already referenced by live service/UI/tests, preserve primary-seek acknowledgement and repeat-persistence behavior, and show every non-primary Stack track as a compact tappable subordinate row under the normal Now Playing primary header; local build verified
+- 1.15.52 (code 182) — Stack loop UI fix: loop glyph visibility in Now Playing now correctly reflects session loop state; late-ready Stack alignment race fixed by waiting for secondary player readiness before advancing primary; preserves 1.15.51 Stack rows and contracts; local build verified
 
 Previous baseline: 1.13.26 (code 115).
 
