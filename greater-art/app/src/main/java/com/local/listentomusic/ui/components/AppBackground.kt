@@ -50,7 +50,6 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.flow.collect
 import java.io.File
-import kotlin.math.abs
 import kotlin.math.max
 
 internal fun shouldAttachVideoBackground(
@@ -59,17 +58,12 @@ internal fun shouldAttachVideoBackground(
     primaryFrameReady: Boolean,
 ): Boolean = visible && (!primaryIsVideo || primaryFrameReady)
 
-internal fun shouldMirrorPrimaryPlayback(
-    lifecycleActive: Boolean,
-    primaryIsPlaying: Boolean,
-): Boolean = lifecycleActive && primaryIsPlaying
-
-/**
- * CURRENT_VIDEO duplicates the primary file in a decorative secondary decoder.
- * Budget only that duplicate; CUSTOM_VIDEO keeps its source resolution.
- */
-internal fun currentVideoWallpaperMaxSize(mirrorsPrimary: Boolean): Pair<Int, Int>? =
-    if (mirrorsPrimary) WALLPAPER_CURRENT_MAX_W to WALLPAPER_CURRENT_MAX_H else null
+internal fun shouldUsePrimaryVideoBackground(
+    visible: Boolean,
+    allowVideoBackground: Boolean,
+    isVideo: Boolean,
+    controllerAvailable: Boolean,
+): Boolean = visible && allowVideoBackground && isVideo && controllerAvailable
 
 @Composable
 fun AppBackground(
@@ -127,15 +121,27 @@ fun AppBackground(
         }
     }
 
-    val attachVideoBackground = allowVideoBackground && shouldAttachVideoBackground(
-        visible = visible,
-        primaryIsVideo = isVideo,
-        primaryFrameReady = primaryFrameReady,
-    )
+    val attachCustomVideoBackground =
+        mode == AppBackgroundMode.CUSTOM_VIDEO &&
+            allowVideoBackground &&
+            shouldAttachVideoBackground(
+                visible = visible,
+                primaryIsVideo = isVideo,
+                primaryFrameReady = primaryFrameReady,
+            )
+    val usePrimaryVideoBackground =
+        mode == AppBackgroundMode.CURRENT_VIDEO &&
+            currentVideoUri != null &&
+            controller != null &&
+            shouldUsePrimaryVideoBackground(
+                visible = visible,
+                allowVideoBackground = allowVideoBackground,
+                isVideo = isVideo,
+                controllerAvailable = true,
+            )
 
-    // YouTube-style: during list fling drop the live wallpaper surface (keep the player
-    // instance) and show a static base so Compose scroll is not compositing video frames.
-    // Short settle delay avoids attach thrash on brief isScrollInProgress flickers.
+    // During list fling drop only the presentation surface. CURRENT_VIDEO shares the
+    // real player, so this cannot create/release a second decoder or a second timeline.
     var videoSurfaceActive by remember { mutableStateOf(true) }
     LaunchedEffect(listScrolling) {
         if (listScrolling) {
@@ -145,16 +151,14 @@ fun AppBackground(
             videoSurfaceActive = true
         }
     }
-    val liveVideoSurface = attachVideoBackground && videoSurfaceActive && !listScrolling
+    val liveVideoSurface =
+        videoSurfaceActive && !listScrolling && (attachCustomVideoBackground || usePrimaryVideoBackground)
 
     Box(modifier.fillMaxSize().graphicsLayer()) {
-        // Stack can already own eight decoders. When decorative video is budgeted out,
-        // retain a static backdrop instead of allocating another ExoPlayer/PlayerView.
-        // Also paint the static base while the surface is detached for fling.
         val videoFallback = mode == AppBackgroundMode.CUSTOM_VIDEO &&
-            (preferences.customBackgroundVideoUri == null || !attachVideoBackground) ||
+            (preferences.customBackgroundVideoUri == null || !attachCustomVideoBackground) ||
             mode == AppBackgroundMode.CURRENT_VIDEO &&
-            (currentVideoUri == null || !attachVideoBackground)
+            !usePrimaryVideoBackground
         val videoMode = mode == AppBackgroundMode.CUSTOM_VIDEO || mode == AppBackgroundMode.CURRENT_VIDEO
         if (visible && (mode == AppBackgroundMode.DEFAULT || videoFallback || (videoMode && !liveVideoSurface))) {
             DefaultMetalBackground()
@@ -166,7 +170,7 @@ fun AppBackground(
             AppBackgroundMode.CUSTOM_IMAGE -> preferences.customBackgroundImageUri
                 ?.let(Uri::parse)
                 ?.let { BackgroundImage(it, preferences.backgroundScaleMode) }
-            AppBackgroundMode.CUSTOM_VIDEO -> if (attachVideoBackground) {
+            AppBackgroundMode.CUSTOM_VIDEO -> if (attachCustomVideoBackground) {
                 preferences.customBackgroundVideoUri
                     ?.let(Uri::parse)
                     ?.let {
@@ -178,14 +182,10 @@ fun AppBackground(
                         )
                     }
             }
-            // Independent muted output never participates in VideoSurfaceOwner.
-            // Let Media3 choose a decoder with fallback; software is not presumed faster.
-            AppBackgroundMode.CURRENT_VIDEO -> if (currentVideoUri != null && attachVideoBackground) {
-                BackgroundVideo(
-                    source = currentVideoUri,
-                    shouldPlay = liveVideoSurface,
+            AppBackgroundMode.CURRENT_VIDEO -> if (usePrimaryVideoBackground && controller != null) {
+                PrimaryVideoBackground(
+                    controller = controller,
                     surfaceActive = liveVideoSurface,
-                    syncController = controller,
                     scaleMode = preferences.backgroundScaleMode,
                     horizontalPosition = if (liveVideoSurface) horizontalPosition else null,
                 )
@@ -246,112 +246,27 @@ private fun BackgroundImage(source: Uri, scaleMode: BackgroundScaleMode) {
     }
 }
 
-@OptIn(UnstableApi::class)
 @Composable
-private fun BackgroundVideo(
-    source: Uri,
-    shouldPlay: Boolean,
-    surfaceActive: Boolean = true,
-    scaleMode: BackgroundScaleMode = BackgroundScaleMode.CROP,
-    syncController: MediaController? = null,
-    horizontalPosition: (() -> Float)? = null,
+private fun PrimaryVideoBackground(
+    controller: MediaController,
+    surfaceActive: Boolean,
+    scaleMode: BackgroundScaleMode,
+    horizontalPosition: (() -> Float)?,
 ) {
-    val context = LocalContext.current
-    val lifecycleOwner = LocalLifecycleOwner.current
     var videoView by remember { mutableStateOf<PlayerView?>(null) }
-    var lifecycleActive by remember(lifecycleOwner) {
-        mutableStateOf(lifecycleOwner.lifecycle.currentState.isAtLeast(Lifecycle.State.STARTED))
-    }
-    val mirrorsPrimary = syncController != null
-    val backgroundPlayer = remember(source, mirrorsPrimary) {
-        val renderersFactory = DefaultRenderersFactory(context.applicationContext)
-            .setEnableDecoderFallback(true)
 
-        ExoPlayer.Builder(context.applicationContext, renderersFactory)
-            .setLoadControl(
-                androidx.media3.exoplayer.DefaultLoadControl.Builder()
-                    .setBufferDurationsMs(
-                        WALLPAPER_MIN_BUFFER_MS,
-                        WALLPAPER_MAX_BUFFER_MS,
-                        WALLPAPER_PLAYBACK_BUFFER_MS,
-                        WALLPAPER_REBUFFER_MS,
-                    )
-                    .setTargetBufferBytes(WALLPAPER_TARGET_BUFFER_BYTES)
-                    .setPrioritizeTimeOverSizeThresholds(true)
-                    .build(),
-            ).build().apply {
-            installVideoDiagnostics(if (mirrorsPrimary) "CURRENT_VIDEO_BACKGROUND" else "CUSTOM_VIDEO_BACKGROUND")
-            volume = 0f
-            repeatMode = Player.REPEAT_MODE_ONE
-            val selection = trackSelectionParameters.buildUpon()
-                .setTrackTypeDisabled(C.TRACK_TYPE_AUDIO, true)
-            currentVideoWallpaperMaxSize(mirrorsPrimary)?.let { (width, height) ->
-                selection.setMaxVideoSize(width, height)
-            }
-            trackSelectionParameters = selection.build()
-            setMediaItem(MediaItem.fromUri(source))
-            prepare()
+    // CURRENT_VIDEO is a presentation lease on the real player. There is no secondary
+    // ExoPlayer, no duplicate decode, and therefore no decoder-to-decoder drift.
+    DisposableEffect(controller) {
+        VideoSurfaceOwner.setCurrentVideoBackgroundActive(true)
+        onDispose {
+            // Change expected owner first so reconcile can switch directly to an already
+            // registered Mini/Now Playing surface before this background view detaches.
+            VideoSurfaceOwner.setCurrentVideoBackgroundActive(false)
+            videoView?.let(VideoSurfaceOwner::detach)
         }
     }
 
-    DisposableEffect(lifecycleOwner) {
-        val observer = LifecycleEventObserver { _, event ->
-            when (event) {
-                Lifecycle.Event.ON_START -> lifecycleActive = true
-                Lifecycle.Event.ON_STOP -> lifecycleActive = false
-                else -> Unit
-            }
-        }
-        lifecycleOwner.lifecycle.addObserver(observer)
-        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
-    }
-    DisposableEffect(backgroundPlayer) {
-        onDispose { backgroundPlayer.release() }
-    }
-
-    DisposableEffect(backgroundPlayer, shouldPlay, lifecycleActive, syncController) {
-        val primary = syncController
-        fun mirror() {
-            backgroundPlayer.playWhenReady = shouldPlay && shouldMirrorPrimaryPlayback(lifecycleActive, primary?.isPlaying ?: true)
-            primary?.let {
-                if (abs(backgroundPlayer.playbackParameters.speed - it.playbackParameters.speed) > .001f)
-                    backgroundPlayer.setPlaybackSpeed(it.playbackParameters.speed)
-            }
-        }
-        fun align() {
-            primary?.let {
-                if (shouldResyncBackground(backgroundPlayer.currentPosition, it.currentPosition, false))
-                    backgroundPlayer.seekTo(it.currentPosition.coerceAtLeast(0L))
-            }
-        }
-        val listener = object : Player.Listener {
-            override fun onEvents(player: Player, events: Player.Events) { mirror() }
-            override fun onPositionDiscontinuity(oldPosition: Player.PositionInfo, newPosition: Player.PositionInfo, reason: Int) {
-                align()
-            }
-        }
-        primary?.addListener(listener)
-        align()
-        mirror()
-        onDispose { primary?.removeListener(listener) }
-    }
-
-    // Pause, speed and user seeks are event-driven above. Correct natural drift only
-    // occasionally; polling-and-seeking every 250 ms can continuously flush the decoder.
-    LaunchedEffect(backgroundPlayer, shouldPlay, lifecycleActive, syncController) {
-        val primary = syncController ?: return@LaunchedEffect
-        if (!shouldPlay || !lifecycleActive) return@LaunchedEffect
-        while (true) {
-            delay(BACKGROUND_SYNC_INTERVAL_MS)
-            if (backgroundPlayer.playbackState == Player.STATE_READY &&
-                shouldResyncBackground(backgroundPlayer.currentPosition, primary.currentPosition, primary.isPlaying)) {
-                backgroundPlayer.seekTo(primary.currentPosition.coerceAtLeast(0L))
-            }
-        }
-    }
-
-    // The pager owns this presentation-only position. Updating the already-attached
-    // content frame does not rebuild the player, seek, or recompose the page tree.
     LaunchedEffect(videoView, horizontalPosition, scaleMode) {
         val view = videoView ?: return@LaunchedEffect
         val frame = view.findViewById<android.view.View>(androidx.media3.ui.R.id.exo_content_frame)
@@ -375,36 +290,127 @@ private fun BackgroundVideo(
 
     AndroidView(
         factory = { viewContext ->
-            (android.view.LayoutInflater.from(viewContext).inflate(com.local.listentomusic.R.layout.background_video, android.widget.FrameLayout(viewContext), false) as PlayerView).apply {
-                useController = false
-                this.resizeMode = when (scaleMode) {
-                    BackgroundScaleMode.FIT -> AspectRatioFrameLayout.RESIZE_MODE_FIT
-                    BackgroundScaleMode.STRETCH -> AspectRatioFrameLayout.RESIZE_MODE_FILL
-                    BackgroundScaleMode.CROP -> AspectRatioFrameLayout.RESIZE_MODE_ZOOM
+            (android.view.LayoutInflater.from(viewContext)
+                .inflate(com.local.listentomusic.R.layout.background_video, android.widget.FrameLayout(viewContext), false) as PlayerView)
+                .apply {
+                    useController = false
+                    tag = "BACKGROUND"
+                    resizeMode = when (scaleMode) {
+                        BackgroundScaleMode.FIT -> AspectRatioFrameLayout.RESIZE_MODE_FIT
+                        BackgroundScaleMode.STRETCH -> AspectRatioFrameLayout.RESIZE_MODE_FILL
+                        BackgroundScaleMode.CROP -> AspectRatioFrameLayout.RESIZE_MODE_ZOOM
+                    }
+                    setKeepContentOnPlayerReset(true)
+                    videoView = this
                 }
-                setKeepContentOnPlayerReset(true)
-                // Surface starts attached; fling path detaches via update without releasing the player.
-                player = backgroundPlayer
-                visibility = android.view.View.VISIBLE
-                videoView = this
-            }
         },
-        update = {
-            it.resizeMode = when (scaleMode) {
+        update = { view ->
+            view.resizeMode = when (scaleMode) {
                 BackgroundScaleMode.FIT -> AspectRatioFrameLayout.RESIZE_MODE_FIT
                 BackgroundScaleMode.STRETCH -> AspectRatioFrameLayout.RESIZE_MODE_FILL
                 BackgroundScaleMode.CROP -> AspectRatioFrameLayout.RESIZE_MODE_ZOOM
             }
-            // Detach surface during list fling so GPU is not compositing video under LazyColumn.
-            // Keep the ExoPlayer instance prepared so settle does not re-allocate a decoder.
             if (surfaceActive) {
-                if (it.player !== backgroundPlayer) it.player = backgroundPlayer
-                it.visibility = android.view.View.VISIBLE
+                view.visibility = android.view.View.VISIBLE
+                VideoSurfaceOwner.attachBackground(controller, view)
             } else {
-                it.player = null
-                it.visibility = android.view.View.GONE
+                VideoSurfaceOwner.detach(view)
+                view.visibility = android.view.View.GONE
             }
-            if (videoView !== it) videoView = it
+            if (videoView !== view) videoView = view
+        },
+        modifier = Modifier.fillMaxSize(),
+    )
+}
+
+@OptIn(UnstableApi::class)
+@Composable
+private fun BackgroundVideo(
+    source: Uri,
+    shouldPlay: Boolean,
+    surfaceActive: Boolean = true,
+    scaleMode: BackgroundScaleMode = BackgroundScaleMode.CROP,
+) {
+    val context = LocalContext.current
+    val lifecycleOwner = LocalLifecycleOwner.current
+    var lifecycleActive by remember(lifecycleOwner) {
+        mutableStateOf(lifecycleOwner.lifecycle.currentState.isAtLeast(Lifecycle.State.STARTED))
+    }
+    val backgroundPlayer = remember(source) {
+        val renderersFactory = DefaultRenderersFactory(context.applicationContext)
+            .setEnableDecoderFallback(true)
+
+        ExoPlayer.Builder(context.applicationContext, renderersFactory)
+            .setLoadControl(
+                androidx.media3.exoplayer.DefaultLoadControl.Builder()
+                    .setBufferDurationsMs(
+                        WALLPAPER_MIN_BUFFER_MS,
+                        WALLPAPER_MAX_BUFFER_MS,
+                        WALLPAPER_PLAYBACK_BUFFER_MS,
+                        WALLPAPER_REBUFFER_MS,
+                    )
+                    .setTargetBufferBytes(WALLPAPER_TARGET_BUFFER_BYTES)
+                    .setPrioritizeTimeOverSizeThresholds(true)
+                    .build(),
+            ).build().apply {
+                installVideoDiagnostics("CUSTOM_VIDEO_BACKGROUND")
+                volume = 0f
+                repeatMode = Player.REPEAT_MODE_ONE
+                trackSelectionParameters = trackSelectionParameters.buildUpon()
+                    .setTrackTypeDisabled(C.TRACK_TYPE_AUDIO, true)
+                    .build()
+                setMediaItem(MediaItem.fromUri(source))
+                prepare()
+            }
+    }
+
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            when (event) {
+                Lifecycle.Event.ON_START -> lifecycleActive = true
+                Lifecycle.Event.ON_STOP -> lifecycleActive = false
+                else -> Unit
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+    }
+    DisposableEffect(backgroundPlayer) {
+        onDispose { backgroundPlayer.release() }
+    }
+    LaunchedEffect(backgroundPlayer, shouldPlay, lifecycleActive) {
+        backgroundPlayer.playWhenReady = shouldPlay && lifecycleActive
+    }
+
+    AndroidView(
+        factory = { viewContext ->
+            (android.view.LayoutInflater.from(viewContext)
+                .inflate(com.local.listentomusic.R.layout.background_video, android.widget.FrameLayout(viewContext), false) as PlayerView)
+                .apply {
+                    useController = false
+                    resizeMode = when (scaleMode) {
+                        BackgroundScaleMode.FIT -> AspectRatioFrameLayout.RESIZE_MODE_FIT
+                        BackgroundScaleMode.STRETCH -> AspectRatioFrameLayout.RESIZE_MODE_FILL
+                        BackgroundScaleMode.CROP -> AspectRatioFrameLayout.RESIZE_MODE_ZOOM
+                    }
+                    setKeepContentOnPlayerReset(true)
+                    player = backgroundPlayer
+                    visibility = android.view.View.VISIBLE
+                }
+        },
+        update = { view ->
+            view.resizeMode = when (scaleMode) {
+                BackgroundScaleMode.FIT -> AspectRatioFrameLayout.RESIZE_MODE_FIT
+                BackgroundScaleMode.STRETCH -> AspectRatioFrameLayout.RESIZE_MODE_FILL
+                BackgroundScaleMode.CROP -> AspectRatioFrameLayout.RESIZE_MODE_ZOOM
+            }
+            if (surfaceActive) {
+                if (view.player !== backgroundPlayer) view.player = backgroundPlayer
+                view.visibility = android.view.View.VISIBLE
+            } else {
+                view.player = null
+                view.visibility = android.view.View.GONE
+            }
         },
         modifier = Modifier.fillMaxSize(),
     )
@@ -435,9 +441,6 @@ private fun decodeSampledBitmap(
     resolver.openInputStream(source)?.use { BitmapFactory.decodeStream(it, null, options) }
 }.getOrNull()
 
-// Decorative duplicate-video budget: primary playback remains native resolution/FPS/bitrate.
-private const val WALLPAPER_CURRENT_MAX_W = 640
-private const val WALLPAPER_CURRENT_MAX_H = 360
 private const val WALLPAPER_MIN_BUFFER_MS = 500
 private const val WALLPAPER_MAX_BUFFER_MS = 2_000
 private const val WALLPAPER_PLAYBACK_BUFFER_MS = 100
@@ -446,10 +449,4 @@ private const val WALLPAPER_TARGET_BUFFER_BYTES = 2 * 1024 * 1024
 private const val PRIMARY_VIDEO_HEAD_START_MS = 300L
 /** After fling ends, wait a frame or two before re-attaching the wallpaper surface. */
 private const val VIDEO_SURFACE_SETTLE_MS = 80L
-private const val BACKGROUND_SYNC_INTERVAL_MS = 5_000L
-private const val PLAYING_SYNC_TOLERANCE_MS = 2_000L
-private const val PAUSED_SYNC_TOLERANCE_MS = 80L
 private const val MAX_BACKGROUND_PIXELS = 1_600
-
-internal fun shouldResyncBackground(position: Long, target: Long, playing: Boolean): Boolean =
-    abs(position - target) > if (playing) PLAYING_SYNC_TOLERANCE_MS else PAUSED_SYNC_TOLERANCE_MS

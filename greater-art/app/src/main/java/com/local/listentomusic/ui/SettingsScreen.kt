@@ -211,12 +211,12 @@ fun SettingsScreen(
                     preferences.colorTheme,
                     {
                         when (it) {
-                            ColorTheme.FOREST -> uiText(language, "Forest", "森林")
-                            ColorTheme.SLATE -> uiText(language, "Slate", "石板")
-                            ColorTheme.AMBER -> uiText(language, "Amber", "琥珀")
-                            ColorTheme.INDIGO -> uiText(language, "Indigo", "靛藍")
-                            ColorTheme.ROSE -> uiText(language, "Rose", "玫瑰")
-                            ColorTheme.MONOCHROME -> uiText(language, "Monochrome", "單色")
+                            ColorTheme.FOREST -> uiText(language, "Luna", "Luna")
+                            ColorTheme.SLATE -> uiText(language, "Orbit", "Orbit")
+                            ColorTheme.AMBER -> uiText(language, "Sol", "Sol")
+                            ColorTheme.INDIGO -> uiText(language, "Astra", "Astra")
+                            ColorTheme.ROSE -> uiText(language, "Nova", "Nova")
+                            ColorTheme.MONOCHROME -> uiText(language, "Space Black", "Space Black")
                         }
                     },
                     onColorTheme,

@@ -64,12 +64,12 @@ data class UserPreferences(
 enum class LibraryRowSize(val label: String) { SMALL("Small"), MEDIUM("Medium"), LARGE("Large") }
 enum class ThemeMode(val label: String) { SYSTEM("System"), LIGHT("Light"), DARK("Dark") }
 enum class ColorTheme(val label: String) {
-    FOREST("Forest"),
-    SLATE("Slate"),
-    AMBER("Amber"),
-    INDIGO("Indigo"),
-    ROSE("Rose"),
-    MONOCHROME("Monochrome"),
+    FOREST("Luna"),
+    SLATE("Orbit"),
+    AMBER("Sol"),
+    INDIGO("Astra"),
+    ROSE("Nova"),
+    MONOCHROME("Space Black"),
 }
 enum class FloatingWindowMode { COMPACT, FOLLOW_VIDEO, MINI_WINDOW }
 enum class AppLanguage(val label: String) {

@@ -243,9 +243,12 @@ fun GreaterArtApp(
                 isVideo = playback.isVideo,
                 controller = controller,
                 visible = !expandedPlayerVisible,
-                // Stack already owns a dense playback budget. Decorative video
-                // wallpaper yields its independent decoder while Stack is active.
-                allowVideoBackground = playback.stackCount == 0,
+                // CUSTOM_VIDEO still yields its independent decorative decoder while
+                // Stack is active. CURRENT_VIDEO is now the primary player's own surface,
+                // so it adds no decoder and can remain available.
+                allowVideoBackground =
+                    settings.backgroundMode == com.local.listentomusic.data.AppBackgroundMode.CURRENT_VIDEO ||
+                        playback.stackCount == 0,
                 listScrolling = listScrolling,
                 horizontalPosition = backgroundHorizontalPosition,
             )

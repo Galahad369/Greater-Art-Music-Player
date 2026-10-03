@@ -76,6 +76,50 @@ class SurfaceLeaseTest {
         assertEquals("NOW_PLAYING", expectedSurfaceOwner(false, true, true))
     }
 
+    @Test fun currentVideoBackgroundOwnsForegroundLibrarySurfaceWithoutChangingOverlayPriority() {
+        assertEquals(
+            "BACKGROUND",
+            expectedSurfaceOwner(
+                foreground = true,
+                nowPlaying = false,
+                pip = false,
+                currentVideoBackground = true,
+            ),
+        )
+        assertEquals(
+            "NOW_PLAYING",
+            expectedSurfaceOwner(
+                foreground = true,
+                nowPlaying = true,
+                pip = false,
+                currentVideoBackground = true,
+            ),
+        )
+        assertEquals(
+            "MINI_WINDOW",
+            expectedSurfaceOwner(
+                foreground = true,
+                nowPlaying = false,
+                pip = false,
+                systemOverlayOwner = "MINI_WINDOW",
+                currentVideoBackground = true,
+            ),
+        )
+    }
+
+    @Test fun backgroundSurfaceIsHeldUntilIncomingPrimarySurfaceRegisters() {
+        assertTrue(shouldRetainPrimarySurfaceDuringHandoff(
+            currentOwner = "BACKGROUND",
+            expectedOwner = "NOW_PLAYING",
+            expectedCandidateReady = false,
+        ))
+        assertTrue(shouldRetainPrimarySurfaceDuringHandoff(
+            currentOwner = "MINI_WINDOW",
+            expectedOwner = "BACKGROUND",
+            expectedCandidateReady = false,
+        ))
+    }
+
     @Test fun fullscreenActivityKeepsNowPlayingOwnerAcrossTransientPause() {
         assertEquals(
             "NOW_PLAYING",

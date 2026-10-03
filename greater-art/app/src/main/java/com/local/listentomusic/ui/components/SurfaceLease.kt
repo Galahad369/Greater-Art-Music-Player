@@ -6,6 +6,7 @@ internal fun expectedSurfaceOwner(
     pip: Boolean,
     fullscreenActivity: Boolean = false,
     systemOverlayOwner: String? = null,
+    currentVideoBackground: Boolean = false,
 ): String = when {
     // A real fullscreen Activity must outrank the hidden overlay service that
     // remains registered for the eventual return transition.
@@ -14,6 +15,7 @@ internal fun expectedSurfaceOwner(
     pip -> "NOW_PLAYING"
     !foreground -> "MINI_WINDOW"
     nowPlaying -> "NOW_PLAYING"
+    currentVideoBackground -> "BACKGROUND"
     else -> "LIBRARY_MINI"
 }
 
@@ -26,7 +28,13 @@ internal fun shouldRetainPrimarySurfaceDuringHandoff(
     return (currentOwner == "MINI_WINDOW" && expectedOwner == "NOW_PLAYING") ||
         (currentOwner == "NOW_PLAYING" && expectedOwner == "MINI_WINDOW") ||
         (currentOwner == "LIBRARY_MINI" && expectedOwner == "MINI_WINDOW") ||
-        (currentOwner == "MINI_WINDOW" && expectedOwner == "LIBRARY_MINI")
+        (currentOwner == "MINI_WINDOW" && expectedOwner == "LIBRARY_MINI") ||
+        (currentOwner == "BACKGROUND" && expectedOwner == "NOW_PLAYING") ||
+        (currentOwner == "NOW_PLAYING" && expectedOwner == "BACKGROUND") ||
+        (currentOwner == "BACKGROUND" && expectedOwner == "MINI_WINDOW") ||
+        (currentOwner == "MINI_WINDOW" && expectedOwner == "BACKGROUND") ||
+        (currentOwner == "BACKGROUND" && expectedOwner == "LIBRARY_MINI") ||
+        (currentOwner == "LIBRARY_MINI" && expectedOwner == "BACKGROUND")
 }
 
 internal fun shouldShowPlayerWindow(
