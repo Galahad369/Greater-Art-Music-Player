@@ -58,7 +58,38 @@ class StackAlignmentTest {
             StackAudioFeatures(companionEnvelope, companionChroma),
         )
         assertTrue(result.confident)
-        assertEquals(lag * 20L, result.offsetMs)
+        // Sub-frame peak refinement may move the estimate inside the winning 20 ms frame.
+        assertEquals((lag * 20L).toDouble(), result.offsetMs.toDouble(), 10.0)
+    }
+
+    @Test fun onsetNoveltyAlignsSharedBeatDespiteDifferentVocalLoudness() {
+        val frames = 1500
+        val lag = 42
+        var state = 99
+        val hits = BooleanArray(frames + lag) {
+            state = state * 1103515245 + 12345
+            (state ushr 16) % 9 == 0
+        }
+        val primary = FloatArray(frames) { index -> (if (hits[index + lag]) 1f else .05f) + (index % 13) * .02f }
+        val companion = FloatArray(frames + lag) { index -> (if (hits[index]) .6f else .03f) + ((index * 7) % 29) * .015f }
+        val result = correlateStackFeatures(
+            StackAudioFeatures(primary, Array(frames) { FloatArray(12) }),
+            StackAudioFeatures(companion, Array(frames + lag) { FloatArray(12) }),
+        )
+        assertTrue(result.confident)
+        assertEquals(lag * 20.0, result.offsetMs.toDouble(), 10.0)
+    }
+
+    @Test fun onsetNoveltyIsHalfWaveRectified() {
+        val novelty = stackOnsetNovelty(doubleArrayOf(0.0, 1.0, 0.5, 2.0))
+        assertArrayEquals(doubleArrayOf(0.0, 1.0, 0.0, 1.5), novelty, 1e-9)
+    }
+
+    @Test fun peakRefinementInterpolatesBetweenFrames() {
+        assertEquals(0.0, stackRefinePeak(doubleArrayOf(.2, .8, .2), 1), 1e-9)
+        assertTrue(stackRefinePeak(doubleArrayOf(.2, .8, .6), 1) > 0.0)
+        assertTrue(stackRefinePeak(doubleArrayOf(.6, .8, .2), 1) < 0.0)
+        assertEquals(0.0, stackRefinePeak(doubleArrayOf(.8, .2), 0), 1e-9)
     }
 
     @Test fun unrelatedHarmonicPatternStillFailsConfidenceGate() {

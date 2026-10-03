@@ -113,37 +113,70 @@ internal fun correlateStackFeatures(primary: StackAudioFeatures, companion: Stac
     }
     val a = DoubleArray(primary.envelope.size) { ln(1.0 + primary.envelope[it].coerceAtLeast(0f) * 100.0) }
     val b = DoubleArray(companion.envelope.size) { ln(1.0 + companion.envelope[it].coerceAtLeast(0f) * 100.0) }
+    // Onset novelty (rising log-energy) peaks on drum hits and note attacks that every take
+    // shares through the backing track, while sustained vocal loudness differs per singer.
+    val onsetA = stackOnsetNovelty(a)
+    val onsetB = stackOnsetNovelty(b)
     val limit = minOf(750, minOf(a.size, b.size) / 3)
     val scores = DoubleArray(limit * 2 + 1) { -1.0 }
     var best = -1.0
     var bestLag = 0
     var bestEnergy = -1.0
     var bestHarmonic = -1.0
+    var bestOnset = -1.0
 
     for (lag in -limit..limit) {
         if (lag % 16 == 0) checkActive()
         val energy = energyCorrelation(a, b, lag)
+        val onset = energyCorrelation(onsetA, onsetB, lag)
         val harmonic = harmonicCorrelation(primary, companion, lag)
-        val score = when {
-            harmonic < 0.0 -> energy
-            energy < 0.0 -> harmonic * 0.72
-            else -> energy.coerceAtLeast(0.0) * 0.45 + harmonic.coerceAtLeast(0.0) * 0.55
-        }
+        val score = stackFusedScore(energy, onset, harmonic)
         scores[lag + limit] = score
         if (score > best) {
             best = score
             bestLag = lag
             bestEnergy = energy
             bestHarmonic = harmonic
+            bestOnset = onset
         }
     }
 
     val alternative = scores.indices
         .filter { kotlin.math.abs(it - limit - bestLag) > 25 }
         .maxOfOrNull { scores[it] } ?: -1.0
-    val evidence = bestEnergy >= .35 || bestHarmonic >= .55
+    val evidence = bestEnergy >= .35 || bestHarmonic >= .55 || bestOnset >= .30
     val confident = best >= .40 && evidence && best - alternative >= .025 && kotlin.math.abs(bestLag) < limit
-    return StackAlignment(if (confident) bestLag * 20L else 0L, best.coerceAtLeast(0.0), confident)
+    if (!confident) return StackAlignment(0L, best.coerceAtLeast(0.0), false)
+    val refined = stackRefinePeak(scores, bestLag + limit)
+    return StackAlignment(kotlin.math.round((bestLag + refined) * 20.0).toLong(), best.coerceAtLeast(0.0), true)
+}
+
+internal fun stackOnsetNovelty(logEnvelope: DoubleArray): DoubleArray =
+    DoubleArray(logEnvelope.size) { index ->
+        if (index == 0) 0.0 else (logEnvelope[index] - logEnvelope[index - 1]).coerceAtLeast(0.0)
+    }
+
+internal fun stackFusedScore(energy: Double, onset: Double, harmonic: Double): Double = when {
+    harmonic < 0.0 && onset < 0.0 -> energy
+    harmonic < 0.0 -> energy.coerceAtLeast(0.0) * 0.55 + onset.coerceAtLeast(0.0) * 0.45
+    energy < 0.0 && onset < 0.0 -> harmonic * 0.72
+    else -> energy.coerceAtLeast(0.0) * 0.25 + onset.coerceAtLeast(0.0) * 0.20 + harmonic.coerceAtLeast(0.0) * 0.55
+}
+
+/**
+ * Parabolic interpolation around the winning lag for sub-frame (< 20 ms) precision.
+ * Returns a fractional lag correction in [-0.5, 0.5]; 0 when the peak is flat or at an edge.
+ */
+internal fun stackRefinePeak(scores: DoubleArray, peakIndex: Int): Double {
+    if (peakIndex <= 0 || peakIndex >= scores.size - 1) return 0.0
+    val left = scores[peakIndex - 1]
+    val center = scores[peakIndex]
+    val right = scores[peakIndex + 1]
+    if (left < -0.5 || right < -0.5) return 0.0
+    val curvature = left - 2.0 * center + right
+    if (curvature >= -1e-9) return 0.0
+    val shift = 0.5 * (left - right) / curvature
+    return if (shift.isFinite()) shift.coerceIn(-0.5, 0.5) else 0.0
 }
 
 internal fun stackVoiceTarget(masterMs: Long, offsetMs: Long): Long =

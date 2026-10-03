@@ -79,6 +79,54 @@ internal const val STACK_START_ALIGNMENT_MS = 30L
 internal const val STACK_DRIFT_CORRECTION_MS = 100L
 internal const val STACK_CORRECTION_INTERVAL_MS = 750L
 
+/** Drift under this is inaudible as an echo; leave the voice at the master rate. */
+internal const val STACK_SYNC_DEADBAND_MS = 12L
+/** Only drift this large is worth a seek (and its rebuffer); smaller drift is rate-nudged. */
+internal const val STACK_HARD_RESYNC_MS = 400L
+internal const val STACK_SEEK_COOLDOWN_MS = 2_000L
+/** Ignore position readings right after start/seek while AudioTrack timestamps settle. */
+internal const val STACK_SETTLE_MS = 350L
+internal const val STACK_RATE_UPDATE_MS = 200L
+/** Pitch-preserving rate trim limit. ±5% closes 100 ms in ~2 s without audible warble. */
+internal const val STACK_MAX_RATE_TRIM = 0.05f
+/** Start gate waits for every voice to be READY, but never longer than this. */
+internal const val STACK_START_GATE_TIMEOUT_MS = 2_500L
+internal const val STACK_MAX_SEEK_LEAD_MS = 400L
+internal const val STACK_INITIAL_SEEK_LEAD_MS = 150L
+/** A parked voice starts once the master is this close to its parked position. */
+internal const val STACK_ENTRY_LEAD_MS = 25L
+internal const val STACK_SYNC_TICK_MS = 50L
+
+internal enum class StackSyncAction { NONE, RATE, SEEK }
+
+/** A companion timeout may degrade the group, but must never run ahead of an unready primary. */
+internal fun stackStartGateCanOpen(primaryReady: Boolean, companionsReady: Boolean, expired: Boolean): Boolean =
+    primaryReady && (companionsReady || expired)
+
+/** Positive drift means the voice is ahead of where the master says it should be. */
+internal fun stackSyncAction(driftMs: Double, msSinceLastSeek: Long): StackSyncAction = when {
+    kotlin.math.abs(driftMs) >= STACK_HARD_RESYNC_MS && msSinceLastSeek >= STACK_SEEK_COOLDOWN_MS -> StackSyncAction.SEEK
+    kotlin.math.abs(driftMs) > STACK_SYNC_DEADBAND_MS -> StackSyncAction.RATE
+    else -> StackSyncAction.NONE
+}
+
+/**
+ * Proportional rate trim, quantized to 0.5% steps so playback parameters are not
+ * rewritten on every noisy reading. A voice ahead of the master slows down.
+ */
+internal fun stackRateTrim(driftMs: Double): Float {
+    if (!driftMs.isFinite() || kotlin.math.abs(driftMs) <= STACK_SYNC_DEADBAND_MS) return 1f
+    val raw = (-driftMs / 2_000.0).coerceIn(-STACK_MAX_RATE_TRIM.toDouble(), STACK_MAX_RATE_TRIM.toDouble())
+    val quantized = kotlin.math.round(raw * 200.0) / 200.0
+    return (1.0 + quantized).toFloat()
+}
+
+/** Learn how far a voice falls behind during a seek so the next seek lands on time. */
+internal fun stackNextSeekLead(currentLeadMs: Long, residualDriftMs: Double): Long {
+    if (!residualDriftMs.isFinite()) return currentLeadMs
+    return (currentLeadMs - residualDriftMs * 0.6).toLong().coerceIn(0L, STACK_MAX_SEEK_LEAD_MS)
+}
+
 /** Main-thread commands are attached by the single PlaybackService. */
 object StackPlayback {
     const val MAX_TRACKS = 8
