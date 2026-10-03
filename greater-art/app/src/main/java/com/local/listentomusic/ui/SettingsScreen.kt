@@ -144,8 +144,8 @@ fun SettingsScreen(
     var resetConfirmOpen by remember { mutableStateOf(false) }
     var folderDraft by remember { mutableStateOf("") }
     val repeatModes = listOf(
-        PlaybackCycleChoice(Player.REPEAT_MODE_ONE, false, uiText(language, "One", "單曲")),
-        PlaybackCycleChoice(Player.REPEAT_MODE_ALL, false, uiText(language, "All", "全部")),
+        PlaybackCycleChoice(Player.REPEAT_MODE_ONE, false, uiText(language, "Loop 1", "單曲循環")),
+        PlaybackCycleChoice(Player.REPEAT_MODE_ALL, false, uiText(language, "Loop all", "全部循環")),
         PlaybackCycleChoice(Player.REPEAT_MODE_ALL, true, uiText(language, "Random", "隨機")),
         PlaybackCycleChoice(Player.REPEAT_MODE_OFF, false, uiText(language, "Off", "關閉")),
     )

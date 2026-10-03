@@ -15,6 +15,7 @@ import androidx.compose.material.icons.rounded.Clear
 import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.Pause
 import androidx.compose.material.icons.rounded.PlayArrow
+import androidx.compose.material.icons.rounded.Repeat
 import androidx.compose.material.icons.rounded.Save
 import androidx.compose.material.icons.rounded.Search
 import androidx.compose.material.icons.rounded.Star
@@ -253,21 +254,35 @@ fun StackScreen(
             ) {
                 Text(stackTime(position), style = MaterialTheme.typography.labelMedium)
                 if (session.active) {
-                    IconButton(
-                        onClick = { if (session.playing) StackPlayback.pause() else StackPlayback.play() },
-                        modifier = Modifier.size(56.dp).inspectElement("STACK_MASTER_PLAY", "Play or pause every track"),
-                    ) {
-                        Icon(
-                            if (session.playing) Icons.Rounded.Pause else Icons.Rounded.PlayArrow,
-                            uiText(
-                                language,
-                                if (session.playing) "Pause Stack" else "Play Stack",
-                                if (session.playing) "暫停疊播" else "播放疊播",
-                            ),
-                            Modifier.size(32.dp),
-                        )
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        IconButton(
+                            onClick = { if (session.playing) StackPlayback.pause() else StackPlayback.play() },
+                            modifier = Modifier.size(56.dp).inspectElement("STACK_MASTER_PLAY", "Play or pause every track"),
+                        ) {
+                            Icon(
+                                if (session.playing) Icons.Rounded.Pause else Icons.Rounded.PlayArrow,
+                                uiText(
+                                    language,
+                                    if (session.playing) "Pause Stack" else "Play Stack",
+                                    if (session.playing) "暫停疊播" else "播放疊播",
+                                ),
+                                Modifier.size(32.dp),
+                            )
+                        }
+                        IconButton(
+                            onClick = { StackPlayback.setLoop(!session.loopEnabled) },
+                            modifier = Modifier.size(48.dp)
+                                .inspectElement("STACK_LOOP_BUTTON", if (session.loopEnabled) "Stack loop on" else "Stack loop off"),
+                        ) {
+                            Icon(
+                                Icons.Rounded.Repeat,
+                                uiText(language, "Loop whole Stack", "循環整個疊播"),
+                                tint = if (session.loopEnabled) MaterialTheme.colorScheme.secondary
+                                    else MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                        TextButton(onClick = { StackPlayback.stop() }) { Text(uiText(language, "Stop", "停止")) }
                     }
-                    TextButton(onClick = { StackPlayback.stop() }) { Text(uiText(language, "Stop", "停止")) }
                 } else {
                     Button(
                         enabled = staged.size >= 2,

@@ -4,16 +4,28 @@ This file describes the **current repository state only**. Historical session no
 
 **Project:** `greater-art/` in the repository checkout
 **Current version:** `1.15.43 (code 173)`
-**Current source:** `1.15.46 (code 176)`
+**Current source:** `1.15.47 (code 177)`
 **Release state:** `SOURCE_ONLY`
 **Latest APK:** `releases/GreaterArt-1.15.43.apk` (`26,353,198 bytes`; SHA-256 `77e37b747f4122f289c936bc1f06e156575b102398fbc24f7ea4daab4b96cb61`)
 **Application ID:** `com.local.listentomusic`
 **Signing certificate SHA-256:** `9e28eb45b3b171c3ea47d7da942d28d88b16538885e392a6971a80906d612fbf`
 **Build date:** `2026-10-02`
 **Test device:** `GreaterArt_A55_API36 (A55, API 36, Android 17)`
-**Verification boundary:** Current source is `1.15.46/code176` and is **SOURCE_ONLY**. The latest immutable verified artifact remains `releases/GreaterArt-1.15.43.apk` (SHA-256 `77e37b747f4122f289c936bc1f06e156575b102398fbc24f7ea4daab4b96cb61`). No 1.15.44, 1.15.45, or 1.15.46 release APK may exist unless built and verified from its exact source under VERSION_RULES; 1.15.44 remains a consumed intermediate source identity.
+**Verification boundary:** Current source is `1.15.47/code177` and is **SOURCE_ONLY**. The latest immutable verified artifact remains `releases/GreaterArt-1.15.43.apk` (SHA-256 `77e37b747f4122f289c936bc1f06e156575b102398fbc24f7ea4daab4b96cb61`). No 1.15.44, 1.15.45, 1.15.46, or 1.15.47 release APK may exist unless built and verified from its exact source under VERSION_RULES; 1.15.44 remains a consumed intermediate source identity.
 
 ## Repository state
+
+### October 3 — 1.15.47 Stack/cycle/theme cleanup (source only)
+
+- Stack companion players that become READY after the primary has already started now re-align immediately to the shared master position instead of waiting for the periodic drift pass.
+- Stack mix headroom is based on audible tracks only; muted/error tracks no longer attenuate the whole mix, and source gain is applied consistently to primary and companion players.
+- Stack exposes its own loop control instead of relying only on the normal queue repeat button.
+- The playback engine now establishes **Loop 1** synchronously before asynchronous preference restore, closing the first-play race that could leave a fresh session on Repeat Off.
+- Stack's temporary internal Repeat Off is excluded from playback-preference persistence, so using Stack can no longer silently replace the user's Loop 1 / Loop all / Off choice.
+- Repeat UI now distinguishes Off / Loop 1 / Loop all / Random / Stack loop and dims the icon when looping is actually off.
+- Theme palettes keep their identities but use neutral backgrounds/surfaces and restrained accents for cleaner contrast and less color cast.
+- State: **SOURCE_ONLY** at **1.15.47/code177**. Latest verified APK remains **1.15.43/code173**.
+
 
 ### October 2 — 1.15.46 fullscreen single-source recovery (source only)
 
