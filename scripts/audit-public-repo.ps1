@@ -74,7 +74,9 @@ foreach ($path in $objectPaths) { if ($path -and $path -match $sensitiveNamePatt
 Write-Host "Checking public commit identities..."
 $emails = @(Invoke-Git log --all --format=%ae | Sort-Object -Unique)
 foreach ($email in $emails) {
-    if ($email -and $email -notmatch "@users\.noreply\.github\.com$" -and $email -notin @("noreply@github.com", "copilot@github.com")) {
+    # v0's shared service identity is not a personal author address; allow only
+    # that exact bot identity, not the vendor's entire email domain.
+    if ($email -and $email -notmatch "@users\.noreply\.github\.com$" -and $email -notin @("noreply@github.com", "copilot@github.com", "it+v0agent@vercel.com")) {
         Add-Finding "Commit author email is not a GitHub noreply address"
     }
 }
