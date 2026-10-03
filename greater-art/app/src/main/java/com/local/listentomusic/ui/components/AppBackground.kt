@@ -200,37 +200,21 @@ fun AppBackground(
 
 @Composable
 private fun DefaultMetalBackground() {
-    val isLight = androidx.compose.material3.MaterialTheme.colorScheme.background.luminance() > 0.5f
+    val palette = androidx.compose.material3.MaterialTheme.colorScheme
     LiquidMetalSurface(
         modifier = Modifier.fillMaxSize(),
         shape = RectangleShape,
-        baseColor = if (isLight) Color(0xFFF2F4F2) else Color(0xFF080A09),
-        accentColor = if (isLight) Color(0xFF94BFB5) else Color(0xFF72D7C0),
+        baseColor = palette.background,
+        accentColor = palette.primary,
     ) {
-        // Quiet technical grid inspired by editorial motion graphics. It stays
-        // subordinate to content and costs no per-frame layout work.
-        Canvas(Modifier.matchParentSize()) {
-            val line = if (isLight) Color.Black.copy(alpha = 0.055f) else Color.White.copy(alpha = 0.045f)
-            repeat(6) { index ->
-                val x = size.width * index / 5f
-                drawLine(line, Offset(x, 0f), Offset(x, size.height), strokeWidth = 1f)
-            }
-            repeat(9) { index ->
-                val y = size.height * index / 8f
-                drawLine(line, Offset(0f, y), Offset(size.width, y), strokeWidth = 1f)
-            }
-        }
+        // One static themed gradient: no animation work behind scrolling or video.
         Box(
             Modifier.matchParentSize().background(
                 Brush.verticalGradient(
-                    if (isLight) listOf(
-                        Color.White.copy(alpha = 0.82f),
-                        Color(0xFFD7DFDC).copy(alpha = 0.42f),
-                        Color.White.copy(alpha = 0.70f),
-                    ) else listOf(
-                        Color(0xFF07100E).copy(alpha = 0.70f),
-                        Color(0xFF0B0D0C).copy(alpha = 0.34f),
-                        Color.Black.copy(alpha = 0.58f),
+                    listOf(
+                        palette.primaryContainer.copy(alpha = 0.30f),
+                        palette.surface.copy(alpha = 0.55f),
+                        palette.background.copy(alpha = 0.85f),
                     ),
                 ),
             ),

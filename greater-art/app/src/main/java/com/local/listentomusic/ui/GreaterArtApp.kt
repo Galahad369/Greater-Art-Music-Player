@@ -1,5 +1,9 @@
 package com.local.listentomusic.ui
 
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.consumeWindowInsets
+import androidx.compose.foundation.layout.navigationBarsPadding
+
 import android.content.Intent
 import android.graphics.Rect
 import android.os.Build
@@ -287,8 +291,8 @@ fun GreaterArtApp(
                             Spacer(Modifier.fillMaxWidth().height(com.local.listentomusic.model.MiniWindowMetrics.HEIGHT_DP.dp))
                         }
                     },
-                ) { _ ->
-                    Column(Modifier.fillMaxSize()) {
+                ) { dockPadding ->
+                    Column(Modifier.fillMaxSize().padding(dockPadding).consumeWindowInsets(dockPadding)) {
                         LibraryFamilyNavigationBar(
                             currentPage = libraryPager.currentPage,
                             pageOffsetFraction = libraryPager.currentPageOffsetFraction,
@@ -305,11 +309,13 @@ fun GreaterArtApp(
                                                                                 StackScreen(
                                                                                     files = stackFiles,
                                                                                     language = settings.appLanguage,
-                                                                                    contentPadding = PaddingValues(bottom = if (playback.hasMedia) (com.local.listentomusic.model.MiniWindowMetrics.HEIGHT_DP + 24).dp else 0.dp),
+                                                                                    contentPadding = PaddingValues(0.dp),
                                                                                     nowPlayingPath = playback.currentPath,
                                                                                     playHistory = playHistory,
                                                                                     onLoadThumbnail = viewModel::loadThumbnail,
-                                                                                    onSaveList = viewModel::saveStackAsPlaylist,
+                                                                                    savedStacks = settings.savedStacks,
+                                                                                    onSaveStack = viewModel::saveStack,
+                                                                                    onDeleteStack = viewModel::deleteStack,
                                                                                 )
                                                                             } else if (page == 2) {
                                                                                 NodesScreen(
@@ -317,7 +323,7 @@ fun GreaterArtApp(
                                                                                     loading = graphLoading,
                                                                                     error = graphError,
                                                                                     currentPath = playback.currentPath,
-                                                                                    contentPadding = PaddingValues(bottom = if (playback.hasMedia) com.local.listentomusic.model.MiniWindowMetrics.HEIGHT_DP.dp else 0.dp),
+                                                                                    contentPadding = PaddingValues(0.dp),
                                                                                     onRetry = viewModel::requestGraph,
                                                                                     onPlay = viewModel::playGraphNode,
                                                                                     options = settings.graphOptions,
@@ -396,6 +402,7 @@ fun GreaterArtApp(
                     appName = appName,
                     preferences = settings,
                     playback = playback,
+                    dockInset = if (playback.hasMedia) com.local.listentomusic.model.MiniWindowMetrics.HEIGHT_DP.dp else 0.dp,
                     onBack = { screen = Screen.LIBRARY },
                     onRowSize = viewModel::setLibraryRowSize,
                     onThemeMode = viewModel::setThemeMode,
@@ -477,7 +484,8 @@ fun GreaterArtApp(
             }
             val undoMessage by viewModel.undoMessage.collectAsStateWithLifecycle()
             undoMessage?.let { message ->
-                androidx.compose.material3.Snackbar(modifier = Modifier.align(Alignment.BottomCenter), action = {
+                androidx.compose.material3.Snackbar(modifier = Modifier.align(Alignment.BottomCenter).navigationBarsPadding()
+                    .padding(bottom = if (playback.hasMedia) com.local.listentomusic.model.MiniWindowMetrics.HEIGHT_DP.dp else 0.dp), action = {
                     androidx.compose.material3.TextButton(onClick = viewModel::undoLastEdit) { androidx.compose.material3.Text(uiText(settings.appLanguage, "Undo", "復原")) }
                 }) { androidx.compose.material3.Text(message) }
             }

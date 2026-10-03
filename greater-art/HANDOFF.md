@@ -4,7 +4,7 @@ This file describes the **current repository state only**. Historical session no
 
 **Project:** `greater-art/` in the repository checkout
 **Current version:** `1.15.43 (code 173)`
-**Current source:** `1.15.47 (code 177)`
+**Current source:** `1.15.48 (code 178)`
 **Release state:** `SOURCE_ONLY`
 **Latest APK:** `releases/GreaterArt-1.15.43.apk` (`26,353,198 bytes`; SHA-256 `77e37b747f4122f289c936bc1f06e156575b102398fbc24f7ea4daab4b96cb61`)
 **Application ID:** `com.local.listentomusic`
@@ -14,6 +14,16 @@ This file describes the **current repository state only**. Historical session no
 **Verification boundary:** Current source is `1.15.47/code177` and is **SOURCE_ONLY**. The latest immutable verified artifact remains `releases/GreaterArt-1.15.43.apk` (SHA-256 `77e37b747f4122f289c936bc1f06e156575b102398fbc24f7ea4daab4b96cb61`). No 1.15.44, 1.15.45, 1.15.46, or 1.15.47 release APK may exist unless built and verified from its exact source under VERSION_RULES; 1.15.44 remains a consumed intermediate source identity.
 
 ## Repository state
+
+### October 3 — 1.15.48 separate saved mixes and primary-clock loop (verification pending)
+
+- User clarified that the **primary song**, not the longest track, defines each Stack cycle. Primary end now restarts all voices at zero with loop enabled (the default); loop off pauses the whole mix. Primary does not silently switch to a longer companion.
+- Root cause of saved-Stack confusion: `saveStackAsPlaylist` persisted only filenames into the ordinary playlist store. New `saved_stacks_v1` storage is separate and retains primary, ordered tracks, levels, mute, solo and loop. Old Library playlists are preserved; no destructive name-based migration is attempted.
+- Save takes a stable snapshot when its dialog opens. Saved Stacks can be reopened or deleted with confirmation and Undo. Missing files produce a message rather than an empty playback start. Stop/two-to-one removal retains an editable draft instead of erasing the mix.
+- Root cause of dock overlap: the Library Scaffold's padding was ignored, Stack/Nodes guessed separate clearance, and Settings/Undo reserved none. Library-family pages now consume the Scaffold allocation once; Settings and Undo reserve the dock footprint.
+- Static metal background uses the selected palette's gradient instead of a fixed green grid. Main media resolution/FPS/bitrate and permissions are unchanged.
+- All remote heads inspected at the audit cutoff were identical to main `e1e669f` (PR #102); nothing unique remains to blindly merge. GitHub CLI PR access returned 401. Existing uncommitted primary-checkout work is preserved; repair is isolated in `../greater-art-stack-repair/`.
+- Verification is pending. Java needed the Windows trusted certificate store to download Gradle 9.8.0; the newly merged AGP/Kotlin artifacts were absent from the offline cache. Do not label an APK verified before compile, tests, signing and emulator checks finish.
 
 ### October 3 — 1.15.47 Stack/cycle/theme cleanup (source only)
 

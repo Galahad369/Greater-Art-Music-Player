@@ -17,6 +17,8 @@ import androidx.compose.material.icons.rounded.Pause
 import androidx.compose.material.icons.rounded.PlayArrow
 import androidx.compose.material.icons.rounded.Repeat
 import androidx.compose.material.icons.rounded.Save
+import androidx.compose.material.icons.rounded.FolderOpen
+import androidx.compose.material.icons.rounded.Delete
 import androidx.compose.material.icons.rounded.Search
 import androidx.compose.material.icons.rounded.Star
 import androidx.compose.material3.*
@@ -30,6 +32,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.local.listentomusic.data.AppLanguage
 import com.local.listentomusic.data.PlayHistoryEntry
+import com.local.listentomusic.data.SavedStack
 import com.local.listentomusic.model.MediaFile
 import com.local.listentomusic.model.sourceMediaPath
 import com.local.listentomusic.playback.StackPlayback
@@ -48,7 +51,9 @@ fun StackScreen(
     nowPlayingPath: String?,
     playHistory: List<PlayHistoryEntry>,
     onLoadThumbnail: suspend (MediaFile) -> Bitmap?,
-    onSaveList: (String, String, List<String>) -> Unit,
+    savedStacks: List<SavedStack>,
+    onSaveStack: (String, String, List<StackSlot>, String?, Boolean) -> Unit,
+    onDeleteStack: (String) -> Unit,
 ) {
     val session by StackPlayback.state.collectAsState()
     var stagedPaths by rememberSaveable { mutableStateOf(emptyList<String>()) }
@@ -58,11 +63,32 @@ fun StackScreen(
     var pickerOpen by remember { mutableStateOf(false) }
     var recommendationsOpen by remember { mutableStateOf(false) }
     var saveOpen by remember { mutableStateOf(false) }
+    var savedOpen by remember { mutableStateOf(false) }
+    var deleteSaved by remember { mutableStateOf<SavedStack?>(null) }
+    var stagedPresetRaw by rememberSaveable { mutableStateOf("") }
+    val stagedPreset = remember(stagedPresetRaw) { com.local.listentomusic.data.SavedStackCodec.decode(stagedPresetRaw).firstOrNull() }
+    var saveSnapshot by remember { mutableStateOf<List<StackSlot>>(emptyList()) }
+    var savePrimary by remember { mutableStateOf<String?>(null) }
+    var saveLoop by remember { mutableStateOf(true) }
     var expandedPath by remember { mutableStateOf<String?>(null) }
     var error by remember { mutableStateOf<String?>(null) }
     var scrubPosition by remember { mutableStateOf<Long?>(null) }
 
-    val displayed = if (session.active) session.slots else staged.map(::StackSlot)
+    // Keep the editable mix when Stop, a failed voice, or a two-to-one removal
+    // ends simultaneous playback. Previously stagedPaths was cleared at Start.
+    LaunchedEffect(session.slots, session.primaryPath, session.loopEnabled) {
+        if (session.active) {
+            stagedPaths = session.slots.map { it.file.path }
+            stagedPresetRaw = com.local.listentomusic.data.SavedStackCodec.encode(listOf(SavedStack("draft", "draft", session.slots.map {
+                com.local.listentomusic.data.SavedStackTrack(it.file.path, it.volume, it.muted, it.solo)
+            }, session.primaryPath ?: session.slots.first().file.path, session.loopEnabled)))
+        }
+    }
+
+    val displayed = if (session.active) session.slots else staged.map { file ->
+        val saved = stagedPreset?.tracks?.firstOrNull { it.path == file.path }
+        StackSlot(file, saved?.volume ?: 1f, saved?.muted ?: false, saved?.solo ?: false)
+    }
     val displayedPaths = remember(displayed) { displayed.map { it.file.path }.toSet() }
     val nowPlayingSource = nowPlayingPath?.let(::sourceMediaPath)
     val nowPlayingFile = remember(files, nowPlayingPath, nowPlayingSource) {
@@ -106,14 +132,23 @@ fun StackScreen(
             }
             Spacer(Modifier.weight(1f))
             IconButton(
+                onClick = { savedOpen = true },
+                modifier = Modifier.inspectElement("STACK_SAVED_BUTTON", "Open saved simultaneous mixes"),
+            ) { Icon(Icons.Rounded.FolderOpen, uiText(language, "Saved Stacks", "已儲存疊播")) }
+            IconButton(
                 onClick = { recommendationsOpen = true },
                 enabled = canAdd && (displayed.isNotEmpty() || nowPlayingFile != null),
                 modifier = Modifier.inspectElement("STACK_RECOMMEND_BUTTON", "Offline local recommendations"),
             ) { Icon(Icons.Rounded.Star, uiText(language, "Recommend tracks", "推薦歌曲")) }
             IconButton(
-                onClick = { saveOpen = true },
+                onClick = {
+                    saveSnapshot = displayed.toList()
+                    savePrimary = if (session.active) session.primaryPath else stagedPreset?.primaryPath ?: staged.firstOrNull()?.path
+                    saveLoop = if (session.active) session.loopEnabled else stagedPreset?.loopEnabled ?: true
+                    saveOpen = true
+                },
                 enabled = displayed.isNotEmpty(),
-                modifier = Modifier.inspectElement("STACK_SAVE_BUTTON", "Save Stack as a named playlist"),
+                modifier = Modifier.inspectElement("STACK_SAVE_BUTTON", "Save this simultaneous mix, not the Library playlist"),
             ) { Icon(Icons.Rounded.Save, uiText(language, "Save Stack", "儲存疊播")) }
             if (canAdd) {
                 FilledTonalButton(
@@ -175,7 +210,8 @@ fun StackScreen(
                     isScrolling = { trackListState.isScrollInProgress },
                     onToggleExpanded = { expandedPath = if (expandedPath == path) null else path },
                     onRemove = {
-                        if (session.active) StackPlayback.remove(path) else stagedPaths = stagedPaths - path
+                        stagedPaths = stagedPaths - path
+                        if (session.active) StackPlayback.remove(path)
                     },
                 )
             }
@@ -232,7 +268,8 @@ fun StackScreen(
                 .padding(horizontal = 16.dp, vertical = 8.dp)
                 .inspectElement("STACK_MASTER_CONTROLS", "Shared seek and play/pause"),
         ) {
-            val duration = if (session.active) session.durationMs else staged.maxOfOrNull { it.durationMs } ?: 0L
+            val duration = if (session.active) session.durationMs else com.local.listentomusic.playback.stackDuration(displayed,
+                stagedPreset?.primaryPath?.takeIf { path -> displayed.any { it.file.path == path } } ?: staged.firstOrNull()?.path)
             val position = scrubPosition ?: session.positionMs
             if (duration > 0L) {
                 Slider(
@@ -287,8 +324,15 @@ fun StackScreen(
                     Button(
                         enabled = staged.size >= 2,
                         onClick = {
-                            if (StackPlayback.start(staged)) {
-                                stagedPaths = emptyList()
+                            val primary = stagedPreset?.primaryPath
+                            val ordered = staged.sortedBy { if (it.path == primary) 0 else 1 }
+                            if (StackPlayback.start(ordered)) {
+                                displayed.forEach { slot ->
+                                    StackPlayback.setVolume(slot.file.path, slot.volume)
+                                    if (slot.muted) StackPlayback.toggleMute(slot.file.path)
+                                    if (slot.solo) StackPlayback.toggleSolo(slot.file.path)
+                                }
+                                StackPlayback.setLoop(stagedPreset?.loopEnabled ?: true)
                                 error = null
                             } else {
                                 error = uiText(language, "Could not start these files on this device", "這部裝置無法播放這些檔案")
@@ -338,13 +382,57 @@ fun StackScreen(
         )
     }
 
+    if (savedOpen) {
+        AlertDialog(
+            onDismissRequest = { savedOpen = false },
+            title = { Text(uiText(language, "Saved Stacks", "已儲存疊播")) },
+            text = {
+                if (savedStacks.isEmpty()) Text(uiText(language, "Save a mix here, separately from Library playlists.", "儲存疊播組合，與音樂庫播放清單分開。"))
+                else LazyColumn(Modifier.heightIn(max = 380.dp)) {
+                    items(savedStacks, key = { it.id }) { saved ->
+                        ListItem(
+                            headlineContent = { Text(saved.name, maxLines = 2, overflow = TextOverflow.Ellipsis) },
+                            supportingContent = { Text(uiText(language, "${saved.tracks.size} tracks · simultaneous", "${saved.tracks.size} 首 · 同時播放")) },
+                            trailingContent = { IconButton(onClick = { deleteSaved = saved }) {
+                                Icon(Icons.Rounded.Delete, uiText(language, "Delete Stack", "刪除疊播"), tint = MaterialTheme.colorScheme.error)
+                            } },
+                            modifier = Modifier.clickable {
+                                val available = saved.tracks.mapNotNull { track -> files.firstOrNull { it.path == track.path } }
+                                if (available.isEmpty()) {
+                                    error = uiText(language, "Saved files are missing. Restore the files or delete this saved Stack.", "儲存的檔案已遺失，請還原檔案或刪除此疊播。")
+                                } else {
+                                    if (session.active) StackPlayback.stop()
+                                    stagedPaths = available.map { it.path }
+                                    stagedPresetRaw = com.local.listentomusic.data.SavedStackCodec.encode(listOf(saved))
+                                    error = if (available.size < saved.tracks.size) uiText(language, "Some saved files are missing", "部分已儲存檔案已遺失") else null
+                                }
+                                savedOpen = false
+                            }.inspectElement("STACK_SAVED_ROW", saved.name),
+                        )
+                    }
+                }
+            },
+            confirmButton = { TextButton(onClick = { savedOpen = false }) { Text(uiText(language, "Close", "關閉")) } },
+        )
+    }
+    deleteSaved?.let { saved ->
+        AlertDialog(
+            onDismissRequest = { deleteSaved = null },
+            title = { Text(uiText(language, "Delete Stack?", "刪除疊播？")) },
+            text = { Text(uiText(language, "Remove ${saved.name}? Media files stay untouched.", "移除「${saved.name}」？媒體檔案不會被刪除。")) },
+            confirmButton = { TextButton(onClick = { onDeleteStack(saved.id); deleteSaved = null }) {
+                Text(uiText(language, "Delete", "刪除"), color = MaterialTheme.colorScheme.error)
+            } },
+            dismissButton = { TextButton(onClick = { deleteSaved = null }) { Text(uiText(language, "Cancel", "取消")) } },
+        )
+    }
     if (saveOpen) {
         SaveStackDialog(
             language = language,
-            count = displayed.size,
+            count = saveSnapshot.size,
             onDismiss = { saveOpen = false },
             onSave = { name, keyword ->
-                onSaveList(name, keyword, displayed.map { it.file.path })
+                onSaveStack(name, keyword, saveSnapshot, savePrimary, saveLoop)
                 saveOpen = false
             },
         )
@@ -715,8 +803,8 @@ private fun SaveStackDialog(
                 Text(
                     uiText(
                         language,
-                        "Save these $count tracks. An optional keyword stays attached and automatically includes matching local songs when this list is opened later.",
-                        "儲存這 $count 首歌曲。可選關鍵字會保留，日後開啟此清單時會自動加入符合的本機歌曲。",
+                        "Save this $count-track simultaneous mix, including its primary track, levels, mute, solo and loop. It stays separate from Library playlists.",
+                        "儲存這 $count 首的同時播放組合，包括主歌曲、音量、靜音、獨奏與循環，與音樂庫播放清單分開。",
                     ),
                     style = MaterialTheme.typography.bodyMedium,
                 )
@@ -747,8 +835,8 @@ private fun SaveStackDialog(
                         Text(
                             uiText(
                                 language,
-                                "Matches local song names and file paths. The keyword is saved, not sent anywhere.",
-                                "比對本機歌曲名稱及檔案路徑。關鍵字只會儲存在本機，不會傳送出去。",
+                                "A local label for this mix. It does not change its saved tracks.",
+                                "此組合的本機標籤，不會改變已儲存的歌曲。",
                             ),
                         )
                     },

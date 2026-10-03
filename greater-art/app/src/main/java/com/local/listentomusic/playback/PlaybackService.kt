@@ -207,7 +207,10 @@ class PlaybackService : MediaLibraryService() {
                 applyMixLevels()
                 scheduleSave()
             }
-            override fun onPlaybackStateChanged(playbackState: Int) { scheduleSave(); publishDiagnostics() }
+            override fun onPlaybackStateChanged(playbackState: Int) {
+                if (playbackState == Player.STATE_ENDED) stackCoordinator.onPrimaryEnded()
+                scheduleSave(); publishDiagnostics()
+            }
             override fun onPlaybackParametersChanged(playbackParameters: androidx.media3.common.PlaybackParameters) {
                 stackCoordinator.onMainSpeedChanged()
                 scheduleSave()

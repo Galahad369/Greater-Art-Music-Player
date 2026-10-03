@@ -10,8 +10,10 @@ class StackPlaybackTest {
         "/Download/$index.mp3", "$index.mp3", duration, 100, 1, MediaKind.AUDIO,
     )
 
-    @Test fun longestTrackDefinesMasterDuration() {
-        assertEquals(4000L, stackDuration(listOf(StackSlot(file(1, 1000)), StackSlot(file(2, 4000)))))
+    @Test fun primaryTrackDefinesTheLoopBoundaryEvenWhenACompanionIsLonger() {
+        val slots = listOf(StackSlot(file(1, 1000)), StackSlot(file(2, 4000)))
+        assertEquals(1000L, stackDuration(slots))
+        assertEquals(4000L, stackDuration(slots, slots[1].file.path))
         assertEquals(0L, stackDuration(emptyList()))
     }
 

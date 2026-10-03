@@ -42,6 +42,7 @@ data class UserPreferences(
     val backgroundDim: Float = 0.35f,
         val backgroundScaleMode: BackgroundScaleMode = BackgroundScaleMode.CROP,
         val playlists: List<LocalPlaylist> = emptyList(),
+    val savedStacks: List<SavedStack> = emptyList(),
     val activePlaylistId: String? = null,
     val seekOffsetMs: Long = 5_000L,
     val appFont: AppFont = AppFont.SYSTEM,
@@ -125,6 +126,7 @@ class AppPreferences(private val context: Context) {
         val backgroundDim = floatPreferencesKey("background_dim")
                 val backgroundScaleMode = stringPreferencesKey("background_scale_mode")
                 val playlists = stringPreferencesKey("playlists")
+        val savedStacks = stringPreferencesKey("saved_stacks_v1")
         val activePlaylistId = stringPreferencesKey("active_playlist_id")
         val seekOffsetMs = longPreferencesKey("seek_offset_ms")
         val appFont = stringPreferencesKey("app_font")
@@ -192,6 +194,7 @@ class AppPreferences(private val context: Context) {
                             BackgroundScaleMode.CROP,
                         ),
                         playlists = decodePlaylists(prefs[Keys.playlists].orEmpty()),
+            savedStacks = SavedStackCodec.decode(prefs[Keys.savedStacks].orEmpty()),
             activePlaylistId = prefs[Keys.activePlaylistId],
             seekOffsetMs = prefs[Keys.seekOffsetMs] ?: 5_000L,
             appFont = effectiveFont,
@@ -221,7 +224,7 @@ class AppPreferences(private val context: Context) {
     // document grants, diagnostics or joke toggle cross a backup boundary.
     private val backupStrings = listOf(Keys.graphOptions, Keys.sortMode, Keys.customOrder, Keys.libraryRowSize,
         Keys.themeMode, Keys.colorTheme, Keys.floatingWindowMode, Keys.appLanguage, Keys.appFont,
-        Keys.playlists, Keys.activePlaylistId, Keys.excludedFolders, Keys.favouritePaths)
+        Keys.playlists, Keys.savedStacks, Keys.activePlaylistId, Keys.excludedFolders, Keys.favouritePaths)
     private val backupBooleans = listOf(Keys.showThumbnails, Keys.showFileDetails,
         Keys.resumePlayback, Keys.autoPictureInPicture,
         Keys.editableQueue, Keys.showSleepControl, Keys.showAbRepeat, Keys.extendedSearch,
@@ -401,6 +404,16 @@ class AppPreferences(private val context: Context) {
 
     suspend fun renamePlaylist(id: String, name: String) = updatePlaylists { playlists ->
         playlists.map { if (it.id == id) it.copy(name = name.trim()) else it }
+    }
+
+    suspend fun saveStack(stack: SavedStack) = edit { prefs ->
+        val current = SavedStackCodec.decode(prefs[Keys.savedStacks].orEmpty())
+        prefs[Keys.savedStacks] = SavedStackCodec.encode(current.filterNot { it.id == stack.id } + stack)
+    }
+
+    suspend fun deleteStack(id: String) = edit { prefs ->
+        prefs[Keys.savedStacks] = SavedStackCodec.encode(
+            SavedStackCodec.decode(prefs[Keys.savedStacks].orEmpty()).filterNot { it.id == id })
     }
 
     suspend fun deletePlaylist(id: String) {

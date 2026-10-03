@@ -4,11 +4,11 @@ Greater Art is a native Kotlin/Jetpack Compose player for local music and video.
 
 ## Current release
 
-- Version: **1.13.20**
-- Version code: **109**
+- Verified release: **1.15.43**, code **173** (see HANDOFF.md for artifact hash).
+- Current source: **1.15.48**, code **178** — verification pending; not a released APK.
 - Application ID: `com.local.listentomusic`
-- APK: `releases/GreaterArt-1.13.20.apk`
-- APK SHA-256: `99b33938b216c5b40d6c14dc4145fdcc1138b3a94f440c5843ca0b36a34973ce`
+- APK: `releases/GreaterArt-1.15.43.apk`
+- APK SHA-256: `77e37b747f4122f289c936bc1f06e156575b102398fbc24f7ea4daab4b96cb61`
 - Signing certificate SHA-256: `9e28eb45b3b171c3ea47d7da942d28d88b16538885e392a6971a80906d612fbf`
 - v1.13.20 keeps detached Mini hidden over Settings and other in-app pages while preserving Library's dock and Android Home's detached presentation.
 - v1.13.19 guards delayed session restore from replacing a newly selected song, moves final playback saving off the main thread, fits detached Mini to the media aspect without an opaque edge, and keeps theme updates from restoring its background. Metal highlights are now static and the audio cover no longer pulses continuously; long Now Playing titles make one restrained reveal. No media quality limit or new permission was added.

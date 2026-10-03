@@ -25,7 +25,10 @@ data class StackSession(
     val active: Boolean get() = slots.isNotEmpty()
 }
 
-internal fun stackDuration(slots: List<StackSlot>): Long = slots.maxOfOrNull { it.file.durationMs.coerceAtLeast(0L) } ?: 0L
+internal fun stackDuration(slots: List<StackSlot>, primaryPath: String? = slots.firstOrNull()?.file?.path): Long =
+    slots.firstOrNull { it.file.path == primaryPath }?.let {
+        (it.resolvedDurationMs.takeIf { duration -> duration > 0L } ?: it.file.durationMs).coerceAtLeast(0L)
+    } ?: 0L
 internal fun canAddStackTrack(slots: List<StackSlot>, file: MediaFile): Boolean =
     slots.size < StackPlayback.MAX_TRACKS && slots.none { it.file.path == file.path }
 

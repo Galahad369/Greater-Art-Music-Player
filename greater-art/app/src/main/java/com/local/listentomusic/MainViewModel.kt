@@ -759,16 +759,26 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     fun createSelectionPlaylist(name: String, paths: List<String>) = updatePreference {
         if (name.isNotBlank()) preferences.setActivePlaylist(preferences.createPlaylistWithPaths(name.take(60), paths))
     }
-    fun saveStackAsPlaylist(name: String, keyword: String, paths: List<String>) {
-        val clean = paths.distinct()
+    fun saveStack(name: String, keyword: String, slots: List<com.local.listentomusic.playback.StackSlot>, primary: String?, loop: Boolean) {
+        val clean = slots.distinctBy { it.file.path }.take(com.local.listentomusic.playback.StackPlayback.MAX_TRACKS)
         if (clean.isEmpty()) return
         val cleanKeyword = keyword.trim().take(80)
         val resolvedName = stackPlaylistName(name, cleanKeyword, clean.size)
         viewModelScope.launch {
-            val id = preferences.createPlaylistWithPaths(resolvedName, clean, stackKeyword = cleanKeyword)
-            // Saving Stack intentionally does not switch the active Library playlist. Surface
-            // success through the existing global Undo snackbar so the action is observable.
-            offerUndo("Saved \"$resolvedName\"") { preferences.deletePlaylist(id) }
+            val id = java.util.UUID.randomUUID().toString()
+            preferences.saveStack(com.local.listentomusic.data.SavedStack(id, resolvedName,
+                clean.map { com.local.listentomusic.data.SavedStackTrack(it.file.path, it.volume, it.muted, it.solo) },
+                primary?.takeIf { path -> clean.any { it.file.path == path } } ?: clean.first().file.path,
+                loop, cleanKeyword))
+            offerUndo("Saved \"$resolvedName\"") { preferences.deleteStack(id) }
+        }
+    }
+
+    fun deleteStack(id: String) {
+        viewModelScope.launch {
+            val old = preferences.current().savedStacks.firstOrNull { it.id == id } ?: return@launch
+            preferences.deleteStack(id)
+            offerUndo("Stack removed") { preferences.saveStack(old) }
         }
     }
     fun addToPlaylist(id: String, path: String) = updatePreference { preferences.addToPlaylist(id, path) }

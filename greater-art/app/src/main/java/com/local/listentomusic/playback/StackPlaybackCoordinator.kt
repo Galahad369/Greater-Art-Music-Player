@@ -142,7 +142,7 @@ internal class StackPlaybackCoordinator(
         return if (live > 0L && live != C.TIME_UNSET) live else file.durationMs.coerceAtLeast(0L)
     }
 
-    private fun sessionDuration(): Long = slots.maxOfOrNull { knownDuration(it.file) } ?: 0L
+    private fun sessionDuration(): Long = slots.firstOrNull { it.file.path == primaryPath }?.let { knownDuration(it.file) } ?: 0L
 
     private fun clampToSession(value: Long): Long {
         val duration = sessionDuration()
@@ -167,7 +167,7 @@ internal class StackPlaybackCoordinator(
         anchorMs = 0L
         anchorTimeMs = SystemClock.elapsedRealtime()
         clockSpeed = main.playbackParameters.speed
-        loopEnabled = false
+        loopEnabled = true
         internalMainChange = true
         try {
             main.repeatMode = Player.REPEAT_MODE_OFF
@@ -333,6 +333,10 @@ internal class StackPlaybackCoordinator(
 
     fun onMainIsPlayingChanged(isPlaying: Boolean) {
         if (!active || !playing) return
+        if (!isPlaying && main.playbackState == Player.STATE_ENDED && !internalMainChange) {
+            onPrimaryEnded()
+            return
+        }
         val now = position()
         if (!isPlaying) {
             voices.toList().forEach { safePlayer { it.player.pause() } }
@@ -402,6 +406,11 @@ internal class StackPlaybackCoordinator(
         publish()
     }
 
+    fun onPrimaryEnded() {
+        if (!active || !playing || internalMainChange) return
+        if (loopEnabled) seek(0L) else pause()
+    }
+
     fun stop(clearMain: Boolean) {
         if (!active) return
         ticker?.cancel(); ticker = null
@@ -453,15 +462,6 @@ internal class StackPlaybackCoordinator(
                         publish()
                     }
                     continue
-                }
-                val currentPrimary = slots.firstOrNull { it.file.path == primaryPath }?.file
-                val primaryDuration = currentPrimary?.let(::knownDuration) ?: 0L
-                if (playing && primaryDuration > 0L && now >= primaryDuration) {
-                    val nextVisual = slots.asSequence()
-                        .filter { it.file.path != primaryPath && it.error == null }
-                        .filter { knownDuration(it.file) <= 0L || knownDuration(it.file) > now }
-                        .maxByOrNull { knownDuration(it.file) }
-                    if (nextVisual == null || !setPrimary(nextVisual.file.path)) pause()
                 }
                 if (playing && main.isPlaying &&
                     SystemClock.elapsedRealtime() - lastCorrectionMs >= STACK_CORRECTION_INTERVAL_MS) {

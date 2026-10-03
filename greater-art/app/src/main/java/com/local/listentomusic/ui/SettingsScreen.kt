@@ -88,6 +88,7 @@ fun SettingsScreen(
     appName: String,
     preferences: UserPreferences,
     playback: PlaybackUiState,
+    dockInset: androidx.compose.ui.unit.Dp = 0.dp,
     onBack: () -> Unit,
     onRowSize: (LibraryRowSize) -> Unit,
     onThemeMode: (ThemeMode) -> Unit,
@@ -178,7 +179,7 @@ fun SettingsScreen(
             )
         },
     ) { padding ->
-        LazyColumn(Modifier.padding(padding).inspectElement("SETTINGS_LIST", "Scrollable preference controls"), contentPadding = PaddingValues(bottom = GaSpacing.xxl)) {
+        LazyColumn(Modifier.padding(padding).inspectElement("SETTINGS_LIST", "Scrollable preference controls"), contentPadding = PaddingValues(bottom = GaSpacing.xxl + dockInset)) {
             item(key = "section_lang_appearance") {
                 SectionTitle(uiText(language, "Language & appearance", "語言與外觀"))
                 ChoiceSetting(
