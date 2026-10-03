@@ -9,18 +9,28 @@ This file describes the **current repository state only**. Historical session no
 **Signing certificate SHA-256:** `9e28eb45b3b171c3ea47d7da942d28d88b16538885e392a6971a80906d612fbf`
 **Build date:** `2026-10-02`
 **Test device:** `GreaterArt_A55_API36 (A55, API 36, Android 17)`
-**Current source:** `1.15.53/code183`, **SOURCE_ONLY**, on `grok/1.15.53-stack-audio-align`. Latest verified artifact remains 1.15.52. Mainline identities 1.15.48–1.15.50 are consumed; never reuse them. Historical verification claims below describe prior sessions, not current alignment verification.
+**Current source:** `1.15.54/code184`, **SOURCE_ONLY**, on `grok/1.15.53-stack-audio-align` (branch name retains its initial identity). Latest verified artifact remains 1.15.52. Mainline identities 1.15.48–1.15.50 and side-branch 1.15.53 are consumed; never reuse them. Historical verification claims below describe prior sessions, not current alignment verification.
 
 ## Repository state
 
-### October 3 — 1.15.53 offline Stack sound alignment (Grok proposal; Codex implementation)
+### October 4 — 1.15.54 offline Stack sound alignment (Grok proposal; Codex implementation)
 
-- PR #105 was closed unmerged; its head `5963a72` is an empty Initial plan commit. It did not contain the aligner claimed in the incoming handoff. No placeholder/empty implementation was merged. The existing convergence branch contains documentation only; 1.15.53/code183 is the next executable identity.
+- PR #105 was closed unmerged; its head `5963a72` is an empty Initial plan commit. It did not contain the aligner claimed in the incoming handoff. No placeholder/empty implementation was merged. During testing, main merged PR #109 recording an earlier consumed 1.15.53 identity. This branch advances forward to 1.15.54/code184, preserving both histories; no 1.15.53 APK was released here.
 - Credit Grok for the signed-offset / 20ms envelope / correlation proposal. Implemented separate bounded MediaExtractor/MediaCodec analysis, first 90 seconds, ±15-second lag search, overlap-normalized correlation with log-energy compression and ambiguity rejection. Correlation >=0.35 and distinct-peak margin >=0.025 required; uncertain matches keep existing offsets unchanged. This is structural timing, not phase-perfect vocals or automatic time-stretch/tempo warping.
 - Cache: app-private `stack-align-v1`, identity includes canonical source path/actual size/mtime/clip bounds, atomic write, at most 64 small envelope files. One analysis decoder at a time; coroutine cancellation and per-file deadline release codec/extractor. No network/permission/dependency added, no primary quality/FPS/bitrate setting changed.
 - Offset-aware runtime targets cover start/readiness/seek/loop/drift and primary promotion. Negative targets keep companions paused until their start, rather than clamping them into early playback. Promoting an eligible companion rebases all offsets and the master timeline. ±0.1s and Reset affect only changed companions, never re-seek the primary. Saved mixes write five fields, accept legacy four-field tracks, and restore offsets.
 - UI: localized Align by sound, progress/cancel, uncertainty feedback; active Stack only. Apply is guarded against changed primary or track membership. Existing playback controls and mix workflow retained.
-- Preliminary verification: 171 unit tests and lint/build pass; emulator decoder detected exactly +1.00s between differently pitched/gained PCM takes; cache files created, manual −0.1s displayed +0.90s, primary promotion exercised; no app crash/ANR in that run. Final build and compressed-audio test pending; not yet a release artifact.
+- Verification of the implementation: 171 unit tests and lint/build pass; emulator PCM and 1080p/AAC fixtures both yielded exactly +1.00s between different tones/gains; cache entries created; manual −0.1s displayed +0.90s, primary promotion exercised; save/Stop/reopen/start restored +1.00s. No app crash/ANR in that run. The forward version identity must be rebuilt and manifest/signature checked before release. Different real singers/tempo-drift material and six/eight simultaneous takes still require device listening tests.
+
+### October 3 — final PR/branch convergence bookkeeping
+
+- **1.15.52/code182 remains the current VERIFIED source and release.**
+- PR #105 was closed because its Copilot head had no implementation diff; its Grok base only consumed a 1.15.52 version bump without implementing the requested audio-correlation feature.
+- PR #106 became the canonical 1.15.52 Stack loop/late-ready alignment implementation and passed all required repository gates before merge and device verification.
+- A separate recovery commit had already consumed **1.15.53/code183** from an older base. Its useful behavior is superseded by 1.15.52, but the identity itself is spent under VERSION_RULES and may not be reused.
+- Therefore the next executable/source change after verified 1.15.52 must use **1.15.54/code184**.
+- This bookkeeping commit changes no executable source, Gradle configuration, permissions, signing, or APK artifact.
+
 
 ### October 3 — 1.15.52 Stack loop UI fix + late-ready alignment (verified)
 

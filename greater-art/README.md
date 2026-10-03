@@ -4,13 +4,13 @@ Greater Art is a native Kotlin/Jetpack Compose player for local music and video.
 
 ## Current release
 
-Current development source: **1.15.53/code183**, `grok/1.15.53-stack-audio-align` (verification pending). Grok proposed offline Stack sound alignment; Codex implemented it after verifying PR #105 contained no executable changes. Active Stacks can analyse the first 90 seconds of each take, apply confident timeline offsets, nudge by 0.1s and save offsets with the mix. Uncertain/repetitive material stays unchanged. A fixed offset does not correct singers using different tempos.
+Current development source: **1.15.54/code184**, `grok/1.15.53-stack-audio-align` (branch retains its initial name; verification pending). Grok proposed offline Stack sound alignment; Codex implemented it after verifying PR #105 contained no executable changes. Active Stacks can analyse the first 90 seconds of each take, apply confident timeline offsets, nudge by 0.1s and save offsets with the mix. Uncertain/repetitive material stays unchanged. A fixed offset does not correct singers using different tempos.
 
-- Verified release: **1.15.47**, code **177** (see HANDOFF.md for artifact hash).
-- Current source: **1.15.52**, code **182** — SOURCE_ONLY; not a released APK.
+- Verified release: **1.15.52**, code **182** (see HANDOFF.md for artifact hash).
+- Current source: **1.15.54**, code **184** — SOURCE_ONLY; final version rebuild pending.
 - Application ID: `com.local.listentomusic`
-- APK: `releases/GreaterArt-1.15.47.apk`
-- APK SHA-256: `85919929b4b0f65eeb03c2b268fab6ae65da0a9977d9dabd33eec4b82b5833b3`
+- APK: `releases/GreaterArt-1.15.52.apk`
+- APK SHA-256: `65a2e42f1c2b6319417560d0d25adebf1354ac7ab0396da1be746c792faae4da`
 - Signing certificate SHA-256: `9e28eb45b3b171c3ea47d7da942d28d88b16538885e392a6971a80906d612fbf`
 - v1.13.20 keeps detached Mini hidden over Settings and other in-app pages while preserving Library's dock and Android Home's detached presentation.
 - v1.13.19 guards delayed session restore from replacing a newly selected song, moves final playback saving off the main thread, fits detached Mini to the media aspect without an opaque edge, and keeps theme updates from restoring its background. Metal highlights are now static and the audio cover no longer pulses continuously; long Now Playing titles make one restrained reveal. No media quality limit or new permission was added.
