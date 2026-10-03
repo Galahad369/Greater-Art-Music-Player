@@ -8,8 +8,8 @@ This file is the authoritative version policy for Greater Art. If any handoff no
 
 
 Current source: **1.15.55 (code 185)**
-Current release state: **SOURCE_ONLY**
-Latest verified APK: **1.15.54 (code 184)**
+Current release state: **VERIFIED**
+Latest verified APK: **1.15.55 (code 185)**
 Allowed series transition: **1.14.15 -> 1.15.1**
 Allowed consumed transition: **1.15.13 (code 143) -> 1.15.17 (code 147)**
 Allowed consumed transition: **1.15.17 (code 147) -> 1.15.19 (code 149)**
@@ -142,6 +142,6 @@ Previous baseline: 1.13.26 (code 115).
 - 1.15.53 (code 183) — initial alignment branch identity in `00b48bd`, discovered concurrently consumed by main bookkeeping PR #109; never released here. Forward recovery at 1.15.54 preserves both histories without reusing the identity.
 - 1.15.54 (code 184) — Grok-proposed offline sound alignment: cached 20ms envelopes, confidence-gated ±15s correlation, signed per-voice offsets, delayed starts, primary rebasing, saved-mix compatibility and cancellation/progress UI; exact source `c04d12a`, 171 tests/lint/build, signing/version and emulator checks passed. SHA-256 `434d8ffe8118b2c6fc7faf7a481bfca81f78a232cf0600eb9e8fabfda988cd79`. Real varying-singer/tempo-drift and six/eight-track hardware listening tests pending. PR #105 contained no implementation and was not merged.
 
-- 1.15.55 (code 185) — release guard recognizes exact-parent integration merges while retaining source-commit and immutable APK validation; SOURCE_ONLY pending local build.
+- 1.15.55 (code 185) — release guard recognizes exact-parent integration merges while retaining source-commit and immutable APK validation. Exact build source `2f093d3`; 171 app tests, three guard tests, lint/build and emulator saved-Stack/cached-alignment smoke passed. APK SHA-256 `3e1f29142a736315938d4e5f0069bdb0e78da2190cd3da647b51fc618ac24a11`.
 
 **No silent builds. No version reuse. No version skips. No APK overwrite/rename/copy.**
