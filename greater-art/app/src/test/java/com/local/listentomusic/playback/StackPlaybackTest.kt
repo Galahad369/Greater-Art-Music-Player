@@ -90,4 +90,27 @@ class StackPlaybackTest {
         )
         assertEquals(slots, stackSecondarySlots(slots, primaryPath = null))
     }
+
+    @Test fun syncPrefersRateTrimAndSeeksOnlyForLargeDrift() {
+        assertEquals(StackSyncAction.NONE, stackSyncAction(8.0, 10_000L))
+        assertEquals(StackSyncAction.RATE, stackSyncAction(-120.0, 10_000L))
+        assertEquals(StackSyncAction.SEEK, stackSyncAction(600.0, 10_000L))
+        assertEquals(StackSyncAction.RATE, stackSyncAction(600.0, 500L))
+    }
+
+    @Test fun rateTrimSlowsAheadVoicesAndIsBounded() {
+        assertEquals(1f, stackRateTrim(10.0), 1e-6f)
+        assertEquals(0.95f, stackRateTrim(100.0), 1e-6f)
+        assertEquals(1.02f, stackRateTrim(-40.0), 1e-6f)
+        assertEquals(0.95f, stackRateTrim(5_000.0), 1e-6f)
+        assertEquals(1.05f, stackRateTrim(-5_000.0), 1e-6f)
+        assertEquals(1f, stackRateTrim(Double.NaN), 1e-6f)
+    }
+
+    @Test fun seekLeadLearnsFromResidualDrift() {
+        assertEquals(210L, stackNextSeekLead(150L, -100.0))
+        assertEquals(120L, stackNextSeekLead(150L, 50.0))
+        assertEquals(STACK_MAX_SEEK_LEAD_MS, stackNextSeekLead(150L, -1_000.0))
+        assertEquals(0L, stackNextSeekLead(20L, 500.0))
+    }
 }

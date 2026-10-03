@@ -7,6 +7,7 @@ import android.os.SystemClock
 import androidx.media3.common.AudioAttributes
 import androidx.media3.common.C
 import androidx.media3.common.PlaybackException
+import androidx.media3.common.PlaybackParameters
 import androidx.media3.common.Player
 import androidx.media3.exoplayer.DefaultLoadControl
 import androidx.media3.exoplayer.DefaultRenderersFactory
@@ -20,14 +21,39 @@ import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import java.io.File
 
-/** One MediaSession/visual player; up to seven bounded audio-only companions. */
+/**
+ * One MediaSession/visual player; up to seven bounded audio-only companions.
+ *
+ * Sync model (1.15.59):
+ * - Start gate: after start/seek/resume/primary swap/stall, every player is parked and
+ *   released in the same main-looper message once all are READY, so no voice joins late.
+ * - Drift is corrected with a pitch-preserving rate trim (at most ±5%) instead of seeks.
+ *   Seeking a live voice forces a rebuffer that leaves it behind again, which was the
+ *   source of the stutter/echo loop. Seeks remain only for large drift, with a learned lead.
+ */
 internal class StackPlaybackCoordinator(
     private val context: Context,
     private val main: ExoPlayer,
     private val scope: CoroutineScope,
     private val onLevelsChanged: () -> Unit,
 ) {
-    private data class Voice(var file: MediaFile, val player: ExoPlayer)
+    private class Voice(var file: MediaFile, val player: ExoPlayer) {
+        var driftEma = 0.0
+        var hasDrift = false
+        var settleUntilMs = 0L
+        var lastSeekMs = 0L
+        var lastRateMs = 0L
+        var rateTrim = 1f
+        var seekLeadMs = STACK_INITIAL_SEEK_LEAD_MS
+        var measuringSeekResidual = false
+
+        fun resetDrift(nowMs: Long) {
+            driftEma = 0.0
+            hasDrift = false
+            settleUntilMs = nowMs + STACK_SETTLE_MS
+        }
+    }
+
     private val voices = mutableListOf<Voice>()
     private val slots = mutableListOf<StackSlot>()
     private var primaryPath: String? = null
@@ -40,10 +66,12 @@ internal class StackPlaybackCoordinator(
     private var previousShuffle = false
     private var loopEnabled = false
     private var ticker: Job? = null
-    private var lastCorrectionMs = 0L
     private var internalMainChange = false
     private var released = false
+    private var gateDeadlineMs = 0L
+    private var lastPublishMs = 0L
     private val mainHandler = Handler(Looper.getMainLooper())
+    private val gated: Boolean get() = gateDeadlineMs != 0L
     val active: Boolean get() = slots.isNotEmpty()
     val primary: String? get() = primaryPath
     val changingMain: Boolean get() = internalMainChange
@@ -51,7 +79,8 @@ internal class StackPlaybackCoordinator(
         get() = persistedRepeatMode(active, previousRepeat, main.repeatMode)
 
     fun voiceDiagnostics(): String = voices.mapIndexed { index, voice ->
-        "${index + 1}:${voice.player.playbackState}/${voice.player.isPlaying}@${voice.player.currentPosition}ms"
+        "${index + 1}:${voice.player.playbackState}/${voice.player.isPlaying}@${voice.player.currentPosition}ms" +
+            " trim=${voice.rateTrim} drift=${voice.driftEma.toLong()}ms lead=${voice.seekLeadMs}ms"
     }.joinToString(",").ifEmpty { "none" }
 
     private fun valid(file: MediaFile): Boolean {
@@ -77,7 +106,7 @@ internal class StackPlaybackCoordinator(
         var engine: ExoPlayer? = null
         return runCatching {
         ExoPlayer.Builder(context, DefaultRenderersFactory(context).setEnableDecoderFallback(true))
-            .setLoadControl(DefaultLoadControl.Builder().setBufferDurationsMs(1_000, 5_000, 100, 200)
+            .setLoadControl(DefaultLoadControl.Builder().setBufferDurationsMs(1_500, 6_000, 100, 200)
                 .setTargetBufferBytes(2 * 1024 * 1024).setPrioritizeTimeOverSizeThresholds(false).build())
             .setAudioAttributes(AudioAttributes.Builder().setUsage(C.USAGE_MEDIA)
                 .setContentType(C.AUDIO_CONTENT_TYPE_MUSIC).build(), false)
@@ -87,26 +116,12 @@ internal class StackPlaybackCoordinator(
                 engine.trackSelectionParameters = engine.trackSelectionParameters.buildUpon()
                     .setTrackTypeDisabled(C.TRACK_TYPE_VIDEO, true).build()
                 engine.repeatMode = Player.REPEAT_MODE_OFF
+                engine.skipSilenceEnabled = false
                 engine.setMediaItem(file.toMediaItem())
                 engine.addListener(object : Player.Listener {
                     override fun onPlaybackStateChanged(playbackState: Int) {
                         if (playbackState != Player.STATE_READY) return
-                        onMain {
-                            if (released || !active || !playing || !main.isPlaying) return@onMain
-                            val readyVoice = voices.firstOrNull { it.player === engine } ?: return@onMain
-                            val now = voicePosition(readyVoice.file, position())
-                            val duration = knownDuration(readyVoice.file)
-                            if (now < 0L || duration > 0L && now >= duration) {
-                                readyVoice.player.pause()
-                            } else {
-                                val target = boundedSeek(now, duration)
-                                if (kotlin.math.abs(readyVoice.player.currentPosition - target) > STACK_START_ALIGNMENT_MS) {
-                                    readyVoice.player.seekTo(target)
-                                }
-                                readyVoice.player.playbackParameters = main.playbackParameters
-                                readyVoice.player.playWhenReady = true
-                            }
-                        }
+                        onMain { onVoiceReady(engine) }
                     }
 
                     override fun onPlayerError(error: PlaybackException) {
@@ -122,6 +137,7 @@ internal class StackPlaybackCoordinator(
                             if (slots.count { it.error == null } < 2) {
                                 stop(clearMain = false)
                             } else {
+                                if (gated) tryOpenStartGate()
                                 publish()
                                 onLevelsChanged()
                             }
@@ -139,6 +155,146 @@ internal class StackPlaybackCoordinator(
     private fun voicePosition(file: MediaFile, masterMs: Long): Long =
         stackVoiceTarget(masterMs, slots.firstOrNull { it.file.path == file.path }?.offsetMs ?: 0L)
 
+    private fun voiceInWindow(voice: Voice, masterMs: Long): Boolean {
+        val target = voicePosition(voice.file, masterMs)
+        val duration = knownDuration(voice.file)
+        return target >= 0L && (duration <= 0L || target < duration)
+    }
+
+    /** Rate trim is relative to the master's own speed; pitch always follows the master. */
+    private fun applyRate(voice: Voice, trim: Float) {
+        val base = main.playbackParameters
+        val next = PlaybackParameters(base.speed * trim, base.pitch)
+        voice.rateTrim = trim
+        if (voice.player.playbackParameters != next) voice.player.playbackParameters = next
+    }
+
+    /** Park a voice exactly on its target so the gate or entry logic can start it on time. */
+    private fun parkVoice(voice: Voice, masterMs: Long, nowMs: Long, alwaysSeek: Boolean, leadMs: Long = 0L) {
+        val target = boundedSeek(voicePosition(voice.file, masterMs) + leadMs, knownDuration(voice.file))
+        voice.player.playWhenReady = false
+        if (alwaysSeek || kotlin.math.abs(voice.player.currentPosition - target) > STACK_START_ALIGNMENT_MS) {
+            voice.player.seekTo(target)
+        }
+        applyRate(voice, 1f)
+        voice.resetDrift(nowMs)
+    }
+
+    private fun setMainPlayWhenReady(value: Boolean) {
+        if (main.playWhenReady == value) return
+        internalMainChange = true
+        try { main.playWhenReady = value } finally { internalMainChange = false }
+    }
+
+    /** Hold every player until all of them can produce audio at the same instant. */
+    private fun armStartGate() {
+        if (!playing || !active) return
+        gateDeadlineMs = SystemClock.elapsedRealtime() + STACK_START_GATE_TIMEOUT_MS
+        voices.toList().forEach { voice -> safePlayer { voice.player.playWhenReady = false } }
+        setMainPlayWhenReady(false)
+    }
+
+    private fun tryOpenStartGate(force: Boolean = false) {
+        if (!gated || released || !active) return
+        if (!playing) { gateDeadlineMs = 0L; return }
+        val master = position()
+        val joining = voices.filter { voiceInWindow(it, master) }
+        val ready = main.playbackState == Player.STATE_READY &&
+            joining.all { it.player.playbackState == Player.STATE_READY }
+        val expired = SystemClock.elapsedRealtime() >= gateDeadlineMs
+        if (!ready && !force && !expired) return
+        gateDeadlineMs = 0L
+        val nowMs = SystemClock.elapsedRealtime()
+        anchorMs = master
+        anchorTimeMs = nowMs
+        // Late voices (gate timeout) stay parked; the entry logic starts them on time.
+        joining.filter { it.player.playbackState == Player.STATE_READY }.forEach { voice ->
+            safePlayer {
+                applyRate(voice, 1f)
+                voice.resetDrift(nowMs)
+                voice.player.playWhenReady = true
+            }
+        }
+        val primaryDuration = sessionDuration()
+        setMainPlayWhenReady(primaryDuration <= 0L || master < primaryDuration)
+        publish()
+    }
+
+    private fun onVoiceReady(player: ExoPlayer) {
+        if (released || !active) return
+        if (gated) { tryOpenStartGate(); return }
+        if (!playing || !main.isPlaying) return
+        val voice = voices.firstOrNull { it.player === player } ?: return
+        safePlayer { syncVoice(voice, position(), SystemClock.elapsedRealtime()) }
+    }
+
+    /** Single place where a running voice is started, parked, trimmed or (rarely) seeked. */
+    private fun syncVoice(voice: Voice, masterMs: Long, nowMs: Long) {
+        val duration = knownDuration(voice.file)
+        val rawTarget = voicePosition(voice.file, masterMs)
+        if (duration > 0L && rawTarget >= duration) {
+            if (voice.player.playWhenReady) voice.player.pause()
+            return
+        }
+        val current = voice.player.currentPosition
+        if (!voice.player.playWhenReady) {
+            if (voice.player.playbackState != Player.STATE_READY) return
+            val gap = current - rawTarget // > 0: parked ahead, waiting for the master
+            val desired = boundedSeek(rawTarget + voice.seekLeadMs, duration)
+            if (rawTarget >= 0L && kotlin.math.abs(gap) >= STACK_HARD_RESYNC_MS &&
+                kotlin.math.abs(current - desired) >= STACK_HARD_RESYNC_MS
+            ) {
+                voice.player.seekTo(desired)
+                return
+            }
+            if (gap <= STACK_ENTRY_LEAD_MS) {
+                applyRate(voice, 1f)
+                voice.resetDrift(nowMs)
+                voice.player.playWhenReady = true
+            }
+            return
+        }
+        if (rawTarget < 0L) {
+            voice.player.pause()
+            voice.player.seekTo(0L)
+            return
+        }
+        if (!voice.player.isPlaying) {
+            // Buffering: settle time counts from when audio actually flows again.
+            voice.settleUntilMs = nowMs + STACK_SETTLE_MS
+            return
+        }
+        if (nowMs < voice.settleUntilMs) return
+
+        val drift = (current - rawTarget).toDouble()
+        voice.driftEma = if (voice.hasDrift) voice.driftEma * 0.6 + drift * 0.4 else drift
+        voice.hasDrift = true
+        if (voice.measuringSeekResidual) {
+            voice.seekLeadMs = stackNextSeekLead(voice.seekLeadMs, drift)
+            voice.measuringSeekResidual = false
+        }
+        when (stackSyncAction(voice.driftEma, nowMs - voice.lastSeekMs)) {
+            StackSyncAction.SEEK -> {
+                applyRate(voice, 1f)
+                voice.player.seekTo(boundedSeek(rawTarget + voice.seekLeadMs, duration))
+                voice.lastSeekMs = nowMs
+                voice.measuringSeekResidual = true
+                voice.resetDrift(nowMs)
+            }
+            StackSyncAction.RATE -> if (nowMs - voice.lastRateMs >= STACK_RATE_UPDATE_MS) {
+                voice.lastRateMs = nowMs
+                val trim = stackRateTrim(voice.driftEma)
+                if (trim != voice.rateTrim) applyRate(voice, trim)
+            }
+            StackSyncAction.NONE -> {
+                // Hysteresis: only drop the trim once comfortably inside the deadband.
+                if (voice.rateTrim != 1f && kotlin.math.abs(voice.driftEma) <= STACK_SYNC_DEADBAND_MS / 2.0) {
+                    applyRate(voice, 1f)
+                }
+            }
+        }
+    }
+
     fun setOffsets(offsets: Map<String, Long>) {
         if (!active) return
         val changed = mutableSetOf<String>()
@@ -153,12 +309,12 @@ internal class StackPlaybackCoordinator(
             }
         }
         if (changed.isEmpty()) return
-        val now = position()
+        val master = position()
+        val nowMs = SystemClock.elapsedRealtime()
+        // Parked voices are started by the entry logic exactly when the master arrives.
+        val live = playing && !gated && main.isPlaying
         voices.filter { it.file.path in changed }.forEach { voice ->
-            val target = voicePosition(voice.file, now)
-            val duration = knownDuration(voice.file)
-            voice.player.seekTo(boundedSeek(target, duration))
-            voice.player.playWhenReady = playing && main.isPlaying && target >= 0L && (duration <= 0L || target < duration)
+            safePlayer { parkVoice(voice, master, nowMs, alwaysSeek = true, leadMs = if (live) voice.seekLeadMs else 0L) }
         }
         publish()
     }
@@ -200,6 +356,7 @@ internal class StackPlaybackCoordinator(
         try {
             main.repeatMode = Player.REPEAT_MODE_OFF
             main.shuffleModeEnabled = false
+            main.playWhenReady = false
             main.setMediaItem(unique.first().toMediaItem(), 0L)
             main.prepare()
         } catch (_: Exception) {
@@ -207,8 +364,9 @@ internal class StackPlaybackCoordinator(
             return false
         } finally { internalMainChange = false }
         playing = true
-        voices.toList().forEach { it.player.playWhenReady = false }
-        main.playWhenReady = true
+        val nowMs = SystemClock.elapsedRealtime()
+        voices.toList().forEach { voice -> safePlayer { voice.player.playWhenReady = false; voice.resetDrift(nowMs) } }
+        armStartGate()
         onLevelsChanged()
         publish()
         startTicker()
@@ -218,13 +376,14 @@ internal class StackPlaybackCoordinator(
     fun add(file: MediaFile): Boolean {
         if (released || !active || !canAddStackTrack(slots, file) || !valid(file)) return false
         val voice = createVoice(file) ?: return false
-        val now = position()
+        val master = position()
         slots += StackSlot(file)
         voices += voice
-        voice.player.seekTo(boundedSeek(now, knownDuration(file)))
-        voice.player.playWhenReady = playing && main.isPlaying &&
-            (knownDuration(file) <= 0L || now < knownDuration(file))
-        voice.player.playbackParameters = main.playbackParameters
+        // Park slightly ahead; the entry logic starts it the moment the master catches up.
+        voice.player.playWhenReady = false
+        voice.player.seekTo(boundedSeek(master + voice.seekLeadMs, knownDuration(file)))
+        applyRate(voice, 1f)
+        voice.resetDrift(SystemClock.elapsedRealtime())
         onLevelsChanged()
         publish()
         return true
@@ -254,6 +413,7 @@ internal class StackPlaybackCoordinator(
         }
         slots.removeAll { it.file.path == path }
         voices.firstOrNull { it.file.path == path }?.let { voices.remove(it); releaseVoice(it) }
+        if (gated) tryOpenStartGate()
         onLevelsChanged()
         publish()
     }
@@ -268,12 +428,13 @@ internal class StackPlaybackCoordinator(
         if (promotedPosition < 0L) return false // The take has not started yet.
         val targetDuration = knownDuration(target.file)
         if (targetDuration > 0L && promotedPosition >= targetDuration) return false
-        voices.toList().forEach { it.player.pause() }
+        voices.toList().forEach { voice -> safePlayer { voice.player.pause() } }
         internalMainChange = true
         try {
             replacement.player.setMediaItem(old.toMediaItem(), boundedSeek(now, knownDuration(old)))
             replacement.player.prepare()
             replacement.file = old
+            main.playWhenReady = false
             main.setMediaItem(target.file.toMediaItem(), boundedSeek(promotedPosition, knownDuration(target.file)))
             main.prepare()
             primaryPath = path
@@ -282,11 +443,13 @@ internal class StackPlaybackCoordinator(
             anchorMs = promotedPosition
             anchorTimeMs = SystemClock.elapsedRealtime()
             replacement.player.playWhenReady = false
-            main.playWhenReady = playing && (knownDuration(target.file) <= 0L || promotedPosition < knownDuration(target.file))
         } catch (_: Exception) {
             stop(clearMain = false)
             return false
         } finally { internalMainChange = false }
+        val nowMs = SystemClock.elapsedRealtime()
+        voices.toList().forEach { voice -> safePlayer { applyRate(voice, 1f); voice.resetDrift(nowMs) } }
+        if (playing) armStartGate()
         onLevelsChanged()
         publish()
         return true
@@ -304,7 +467,7 @@ internal class StackPlaybackCoordinator(
     }
 
     fun position(): Long {
-        val fallback = if (playing) {
+        val fallback = if (playing && !gated) {
             anchorMs + ((SystemClock.elapsedRealtime() - anchorTimeMs) * clockSpeed).toLong()
         } else anchorMs
         val primaryAvailable = main.currentMediaItem?.mediaId == primaryPath &&
@@ -318,11 +481,10 @@ internal class StackPlaybackCoordinator(
         if (playing) return
         playing = true
         anchorTimeMs = SystemClock.elapsedRealtime()
-        val now = position()
-        voices.toList().forEach { it.player.pause() }
-        internalMainChange = true
-        try { main.playWhenReady = slots.firstOrNull { it.file.path == primaryPath }?.file?.let { knownDuration(it) <= 0L || now < knownDuration(it) } ?: false }
-        finally { internalMainChange = false }
+        val master = position()
+        val nowMs = SystemClock.elapsedRealtime()
+        voices.toList().forEach { voice -> safePlayer { parkVoice(voice, master, nowMs, alwaysSeek = false) } }
+        armStartGate()
         publish()
     }
 
@@ -330,7 +492,8 @@ internal class StackPlaybackCoordinator(
         if (!active) return
         anchorMs = position()
         playing = false
-        voices.toList().forEach { it.player.pause() }
+        gateDeadlineMs = 0L
+        voices.toList().forEach { voice -> safePlayer { voice.player.pause() } }
         internalMainChange = true
         try { main.pause() } finally { internalMainChange = false }
         publish()
@@ -343,28 +506,26 @@ internal class StackPlaybackCoordinator(
         val plan = stackSeekPlan(targetMs, sessionDuration(), primaryEvent)
         anchorMs = plan.positionMs
         anchorTimeMs = SystemClock.elapsedRealtime()
+        val nowMs = SystemClock.elapsedRealtime()
         voices.toList().forEach { voice ->
-            val rawTarget = voicePosition(voice.file, anchorMs)
-            val target = boundedSeek(rawTarget, knownDuration(voice.file))
-            if (!primaryEvent || kotlin.math.abs(voice.player.currentPosition - target) > STACK_START_ALIGNMENT_MS) {
-                voice.player.seekTo(target)
-            }
-            voice.player.playWhenReady = playing && main.isPlaying && rawTarget >= 0L &&
-                (knownDuration(voice.file) <= 0L || rawTarget < knownDuration(voice.file))
+            safePlayer { parkVoice(voice, anchorMs, nowMs, alwaysSeek = !primaryEvent) }
         }
         if (plan.seekPrimary) {
             val primaryDuration = sessionDuration()
             internalMainChange = true
-            try {
-                main.seekTo(boundedSeek(anchorMs, primaryDuration))
-                main.playWhenReady = playing && (primaryDuration <= 0L || anchorMs < primaryDuration)
-            } finally { internalMainChange = false }
+            try { main.seekTo(boundedSeek(anchorMs, primaryDuration)) } finally { internalMainChange = false }
         }
+        if (playing) armStartGate()
         publish()
     }
 
     fun onMainPlayChanged(ready: Boolean) {
         if (!active || internalMainChange) return
+        if (gated) {
+            // Our own gate parks the primary; only an external Play may open it early.
+            if (ready) tryOpenStartGate(force = true)
+            return
+        }
         if (ready) play() else pause()
     }
 
@@ -372,39 +533,28 @@ internal class StackPlaybackCoordinator(
         if (active && !internalMainChange) seekAll(main.currentPosition, primaryEvent = true)
     }
 
+    fun onMainReady() {
+        if (active && gated) tryOpenStartGate()
+    }
+
     fun onMainIsPlayingChanged(isPlaying: Boolean) {
-        if (!active || !playing) return
+        if (!active || !playing || gated) return
         if (!isPlaying && main.playbackState == Player.STATE_ENDED && !internalMainChange) {
             onPrimaryEnded()
             return
         }
-        val now = position()
+        val master = position()
+        val nowMs = SystemClock.elapsedRealtime()
+        anchorMs = master
+        anchorTimeMs = nowMs
         if (!isPlaying) {
-            voices.toList().forEach { safePlayer { it.player.pause() } }
-            anchorMs = now
-            anchorTimeMs = SystemClock.elapsedRealtime()
+            voices.toList().forEach { voice -> safePlayer { voice.player.pause() } }
+            // A primary stall would otherwise let companions race ahead; regroup instead.
+            if (main.playWhenReady && main.playbackState == Player.STATE_BUFFERING) armStartGate()
             publish()
             return
         }
-        voices.toList().forEach { voice ->
-            safePlayer {
-                val voiceNow = voicePosition(voice.file, now)
-                val duration = knownDuration(voice.file)
-                if (voiceNow < 0L || duration > 0L && voiceNow >= duration) {
-                    voice.player.pause()
-                } else {
-                    val target = boundedSeek(voiceNow, duration)
-                    if (kotlin.math.abs(voice.player.currentPosition - target) > STACK_START_ALIGNMENT_MS) {
-                        voice.player.seekTo(target)
-                    }
-                    voice.player.playbackParameters = main.playbackParameters
-                    voice.player.playWhenReady = true
-                }
-            }
-        }
-        anchorMs = now
-        anchorTimeMs = SystemClock.elapsedRealtime()
-        lastCorrectionMs = SystemClock.elapsedRealtime()
+        voices.toList().forEach { voice -> safePlayer { syncVoice(voice, master, nowMs) } }
         publish()
     }
 
@@ -413,7 +563,8 @@ internal class StackPlaybackCoordinator(
         anchorMs = position()
         anchorTimeMs = SystemClock.elapsedRealtime()
         clockSpeed = main.playbackParameters.speed
-        voices.toList().forEach { it.player.playbackParameters = main.playbackParameters }
+        val nowMs = SystemClock.elapsedRealtime()
+        voices.toList().forEach { voice -> safePlayer { applyRate(voice, 1f); voice.resetDrift(nowMs) } }
     }
 
     fun onMainMediaChanged(path: String?) {
@@ -449,7 +600,8 @@ internal class StackPlaybackCoordinator(
     }
 
     fun onPrimaryEnded() {
-        if (!active || !playing || internalMainChange) return
+        // ENDED arrives via both isPlaying and playbackState callbacks; restart once.
+        if (!active || !playing || internalMainChange || gated) return
         if (loopEnabled) seek(0L) else pause()
     }
 
@@ -463,6 +615,7 @@ internal class StackPlaybackCoordinator(
         loopEnabled = false
         primaryPath = null
         anchorMs = 0L
+        gateDeadlineMs = 0L
         dying.forEach(::releaseVoice)
         safePlayer {
             if (clearMain) main.stop()
@@ -493,44 +646,35 @@ internal class StackPlaybackCoordinator(
         ticker?.cancel()
         ticker = scope.launch {
             while (isActive && active) {
-                delay(50L)
-                val now = position()
-                val duration = sessionDuration()
-                if (playing && duration > 0L && now >= duration) {
-                    if (shouldRestartStack(loopEnabled, playing, now, duration)) {
-                        seek(0L)
-                    } else {
-                        pause()
-                        anchorMs = duration
-                        publish()
-                    }
-                    continue
-                }
-                val currentPrimary = slots.firstOrNull { it.file.path == primaryPath }?.file
-                val primaryDuration = currentPrimary?.let(::knownDuration) ?: 0L
-                if (playing && primaryDuration > 0L && now >= primaryDuration) {
-                    val nextVisual = slots.asSequence()
-                        .filter { it.file.path != primaryPath && it.error == null }
-                        .filter { knownDuration(it.file) <= 0L || knownDuration(it.file) > now }
-                        .maxByOrNull { knownDuration(it.file) }
-                    if (nextVisual == null || !setPrimary(nextVisual.file.path)) pause()
-                }
-                if (playing && main.isPlaying) {
-                    val correct = SystemClock.elapsedRealtime() - lastCorrectionMs >= STACK_CORRECTION_INTERVAL_MS
-                    if (correct) lastCorrectionMs = SystemClock.elapsedRealtime()
-                    voices.toList().forEach { voice ->
-                        safePlayer {
-                            val duration = knownDuration(voice.file)
-                            val target = voicePosition(voice.file, now)
-                            if (target < 0L || duration > 0L && target >= duration) voice.player.pause()
-                            else {
-                                if ((!voice.player.playWhenReady || correct) &&
-                                    shouldCorrectStackVoice(voice.player.currentPosition, target)) {
-                                    voice.player.seekTo(boundedSeek(target, duration))
-                                }
-                                if (!voice.player.playWhenReady) voice.player.playWhenReady = true
-                            }
+                delay(STACK_SYNC_TICK_MS)
+                if (gated) {
+                    tryOpenStartGate()
+                } else {
+                    val now = position()
+                    val duration = sessionDuration()
+                    if (playing && duration > 0L && now >= duration) {
+                        if (shouldRestartStack(loopEnabled, playing, now, duration)) {
+                            seek(0L)
+                        } else {
+                            pause()
+                            anchorMs = duration
+                            publish()
                         }
+                        continue
+                    }
+                    val currentPrimary = slots.firstOrNull { it.file.path == primaryPath }?.file
+                    val primaryDuration = currentPrimary?.let(::knownDuration) ?: 0L
+                    if (playing && primaryDuration > 0L && now >= primaryDuration) {
+                        val nextVisual = slots.asSequence()
+                            .filter { it.file.path != primaryPath && it.error == null }
+                            .filter { knownDuration(it.file) <= 0L || knownDuration(it.file) > now }
+                            .maxByOrNull { knownDuration(it.file) }
+                        if (nextVisual == null || !setPrimary(nextVisual.file.path)) pause()
+                    }
+                    if (playing && !gated && main.isPlaying) {
+                        val master = position()
+                        val nowMs = SystemClock.elapsedRealtime()
+                        voices.toList().forEach { voice -> safePlayer { syncVoice(voice, master, nowMs) } }
                     }
                 }
                 // Delayed starts need a fine timer; Compose does not need 20 updates/second.
@@ -538,5 +682,4 @@ internal class StackPlaybackCoordinator(
             }
         }
     }
-    private var lastPublishMs = 0L
 }

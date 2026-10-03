@@ -210,6 +210,7 @@ class PlaybackService : MediaLibraryService() {
             }
             override fun onPlaybackStateChanged(playbackState: Int) {
                 if (playbackState == Player.STATE_ENDED) stackCoordinator.onPrimaryEnded()
+                else if (playbackState == Player.STATE_READY) stackCoordinator.onMainReady()
                 scheduleSave(); publishDiagnostics()
             }
             override fun onPlaybackParametersChanged(playbackParameters: androidx.media3.common.PlaybackParameters) {
