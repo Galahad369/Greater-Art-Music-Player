@@ -7,7 +7,7 @@ This file is the authoritative version policy for Greater Art. If any handoff no
 ## Machine-checkable state
 
 
-Current source: **1.15.61 (code 191)**
+Current source: **1.15.62 (code 192)**
 Current release state: **SOURCE_ONLY**
 Latest verified APK: **1.15.58 (code 188)**
 Allowed series transition: **1.14.15 -> 1.15.1**
@@ -153,5 +153,7 @@ Previous baseline: 1.13.26 (code 115).
 - 1.15.60 (code 190) — Codex review of Opus sync: gate requires a READY primary even after timeout/external Play; companion buffering regroups and re-parks every voice at the frozen primary timeline. Source-only pending full local verification. 1.15.59 consumed on v0 branch; not overwritten.
 
 - 1.15.61 (code 191) — exact shared v0 bot identity accepted by public-author audit; no personal addresses or vendor-wide exceptions. App synchronization behavior remains 1.15.60. SOURCE_ONLY pending final artifact verification.
+
+- 1.15.62 (code 192) — emulator end-seek exposed stale Media3 position overwriting the barrier's requested seek anchor. Gates now preserve the frozen/requested master timeline through asynchronous seek acknowledgement. SOURCE_ONLY pending verification.
 
 **No silent builds. No version reuse. No version skips. No APK overwrite/rename/copy.**

@@ -194,9 +194,9 @@ internal class StackPlaybackCoordinator(
     }
 
     /** Hold every player until all of them can produce audio at the same instant. */
-    private fun armStartGate() {
+    private fun armStartGate(requestedMaster: Long? = null) {
         if (!playing || !active) return
-        val master = position()
+        val master = requestedMaster ?: position()
         anchorMs = master
         anchorTimeMs = SystemClock.elapsedRealtime()
         gateDeadlineMs = SystemClock.elapsedRealtime() + STACK_START_GATE_TIMEOUT_MS
@@ -485,6 +485,9 @@ internal class StackPlaybackCoordinator(
     }
 
     fun position(): Long {
+        // Media3 acknowledges seeks asynchronously; the barrier must retain the
+        // requested timeline, not replace it with a stale pre-seek position.
+        if (gated) return clampToSession(anchorMs)
         val fallback = if (playing && !gated) {
             anchorMs + ((SystemClock.elapsedRealtime() - anchorTimeMs) * clockSpeed).toLong()
         } else anchorMs
@@ -533,7 +536,7 @@ internal class StackPlaybackCoordinator(
             internalMainChange = true
             try { main.seekTo(boundedSeek(anchorMs, primaryDuration)) } finally { internalMainChange = false }
         }
-        if (playing) armStartGate()
+        if (playing) armStartGate(plan.positionMs)
         publish()
     }
 
