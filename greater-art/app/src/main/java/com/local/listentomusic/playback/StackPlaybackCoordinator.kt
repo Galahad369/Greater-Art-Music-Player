@@ -304,21 +304,29 @@ internal class StackPlaybackCoordinator(
         publish()
     }
 
-    fun seek(targetMs: Long) {
+    fun seek(targetMs: Long) = seekAll(targetMs, primaryEvent = false)
+
+    private fun seekAll(targetMs: Long, primaryEvent: Boolean) {
         if (!active) return
-        anchorMs = clampToSession(targetMs)
+        val plan = stackSeekPlan(targetMs, sessionDuration(), primaryEvent)
+        anchorMs = plan.positionMs
         anchorTimeMs = SystemClock.elapsedRealtime()
         voices.toList().forEach { voice ->
-            voice.player.seekTo(boundedSeek(anchorMs, knownDuration(voice.file)))
+            val target = boundedSeek(anchorMs, knownDuration(voice.file))
+            if (!primaryEvent || kotlin.math.abs(voice.player.currentPosition - target) > STACK_START_ALIGNMENT_MS) {
+                voice.player.seekTo(target)
+            }
             voice.player.playWhenReady = playing && main.isPlaying &&
                 (knownDuration(voice.file) <= 0L || anchorMs < knownDuration(voice.file))
         }
-        val primaryDuration = slots.firstOrNull { it.file.path == primaryPath }?.file?.let(::knownDuration) ?: 0L
-        internalMainChange = true
-        try {
-            main.seekTo(boundedSeek(anchorMs, primaryDuration))
-            main.playWhenReady = playing && (primaryDuration <= 0L || anchorMs < primaryDuration)
-        } finally { internalMainChange = false }
+        if (plan.seekPrimary) {
+            val primaryDuration = sessionDuration()
+            internalMainChange = true
+            try {
+                main.seekTo(boundedSeek(anchorMs, primaryDuration))
+                main.playWhenReady = playing && (primaryDuration <= 0L || anchorMs < primaryDuration)
+            } finally { internalMainChange = false }
+        }
         publish()
     }
 
@@ -328,7 +336,7 @@ internal class StackPlaybackCoordinator(
     }
 
     fun onMainSeek() {
-        if (active && !internalMainChange) seek(main.currentPosition)
+        if (active && !internalMainChange) seekAll(main.currentPosition, primaryEvent = true)
     }
 
     fun onMainIsPlayingChanged(isPlaying: Boolean) {

@@ -6,6 +6,13 @@ import org.junit.Assert.*
 import org.junit.Test
 
 class StackPlaybackTest {
+    @Test fun primaryAcknowledgementsCannotCreateSeekFeedback() {
+        val command = stackSeekPlan(1200L, 3000L, primaryEvent = false)
+        assertTrue(command.seekPrimary)
+        val acknowledgements = List(100) { stackSeekPlan(command.positionMs, 3000L, primaryEvent = true) }
+        assertTrue(acknowledgements.all { !it.seekPrimary && it.positionMs == 1200L })
+        assertEquals(3000L, stackSeekPlan(9000L, 3000L, primaryEvent = false).positionMs)
+    }
     private fun file(index: Int, duration: Long = 1000L) = MediaFile(
         "/Download/$index.mp3", "$index.mp3", duration, 100, 1, MediaKind.AUDIO,
     )

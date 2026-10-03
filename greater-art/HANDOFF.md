@@ -4,7 +4,7 @@ This file describes the **current repository state only**. Historical session no
 
 **Project:** `greater-art/` in the repository checkout
 **Current version:** `1.15.43 (code 173)`
-**Current source:** `1.15.49 (code 179)`
+**Current source:** `1.15.50 (code 180)`
 **Release state:** `SOURCE_ONLY`
 **Latest APK:** `releases/GreaterArt-1.15.43.apk` (`26,353,198 bytes`; SHA-256 `77e37b747f4122f289c936bc1f06e156575b102398fbc24f7ea4daab4b96cb61`)
 **Application ID:** `com.local.listentomusic`
@@ -14,6 +14,13 @@ This file describes the **current repository state only**. Historical session no
 **Verification boundary:** Current source is `1.15.47/code177` and is **SOURCE_ONLY**. The latest immutable verified artifact remains `releases/GreaterArt-1.15.43.apk` (SHA-256 `77e37b747f4122f289c936bc1f06e156575b102398fbc24f7ea4daab4b96cb61`). No 1.15.44, 1.15.45, 1.15.46, or 1.15.47 release APK may exist unless built and verified from its exact source under VERSION_RULES; 1.15.44 remains a consumed intermediate source identity.
 
 ## Repository state
+
+### October 3 — 1.15.50 Stack ANR / seek feedback repair (verification pending)
+
+- 1.15.49 compiled, passed 163 tests and lint. Three-second primary / nine-second companion fixtures exposed an ANR while the session repeatedly reported BUFFERING at zero.
+- Android's protected ANR trace showed the app main thread in MediaSession's `setPlaybackState` from `onPositionDiscontinuity`. Code review found `onMainSeek` reissued `main.seekTo` for a primary seek notification. The synchronous `internalMainChange` guard did not cover delayed Media3 acknowledgements, creating seek feedback.
+- Primary events now synchronize companions only. User seeks and whole-mix loop restarts still seek the primary once. Near-aligned companions need no redundant acknowledgement seek. No decoder/media-quality change is used to hide the issue.
+- Regression coverage distinguishes commands from notifications and checks repeated acknowledgements cannot command the primary. Device verification pending; do not distribute 1.15.49 as a verified repair.
 
 ### October 3 — 1.15.49 actual dock/dialog interception fix (verification pending)
 

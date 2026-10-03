@@ -52,6 +52,12 @@ internal fun shouldCorrectStackVoice(voicePositionMs: Long, masterPositionMs: Lo
 internal fun shouldRestartStack(loopEnabled: Boolean, playing: Boolean, positionMs: Long, durationMs: Long): Boolean =
     loopEnabled && playing && durationMs > 0L && positionMs >= durationMs
 
+internal data class StackSeekPlan(val positionMs: Long, val seekPrimary: Boolean)
+
+/** A primary event is an acknowledgement, not a new primary seek command. */
+internal fun stackSeekPlan(positionMs: Long, durationMs: Long, primaryEvent: Boolean): StackSeekPlan =
+    StackSeekPlan(if (durationMs > 0L) positionMs.coerceIn(0L, durationMs) else positionMs.coerceAtLeast(0L), !primaryEvent)
+
 internal fun persistedRepeatMode(stackActive: Boolean, repeatBeforeStack: Int, currentRepeat: Int): Int =
     if (stackActive) repeatBeforeStack else currentRepeat
 
