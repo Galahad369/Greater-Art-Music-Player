@@ -7,7 +7,7 @@ This file is the authoritative version policy for Greater Art. If any handoff no
 ## Machine-checkable state
 
 
-Current source: **1.15.76 (code 206)**
+Current source: **1.15.77 (code 207)**
 Current release state: **SOURCE_ONLY**
 Latest verified APK: **1.15.75 (code 205)**
 Allowed series transition: **1.14.15 -> 1.15.1**
@@ -181,5 +181,7 @@ Previous baseline: 1.13.26 (code 115).
 - 1.15.75 (code 205) — Fit stress-test repair: decorative companion video has its own silent video-only lane following the existing audio clock; it cannot gate/reprepare/stop the six singers. Hidden previews release; failures preserve audio with a warning, never source-quality caps. Add device test for stopped preview/stale lease isolation. DEV avoids Settings Back and settings copy documents Fit capacity. VERIFIED: exact source a24b86e; 193 JVM tests, lint/build, three API 36 device tests, version/signature/zip alignment/privacy checks; six actual takes aligned 5/5. Physical-phone listening and multi-video frame pacing remain unverified.
 
 - 1.15.76 (code 206) — long native Fit stress exposed decoder NO_MEMORY during a surface transition. Release optional preview codecs and retry the same full-quality primary once before normal failure handling; a proven READY demoted audio voice clears its stale video-error marker, and healthy running counts cannot exceed their denominator. Record primary failures privately and add a device recovery regression. SOURCE_ONLY pending exact-source verification; no source-quality cap.
+
+- 1.15.77 (code 207) — final recovery review: coroutine cancellation propagates, and an identity token prevents an old decoder-recovery job from pausing/publishing into a replacement Stack. Extend the device recovery test with restart-during-recovery. 1.15.76 consumed, not released; SOURCE_ONLY pending exact-source build/device verification.
 
 **No silent builds. No version reuse. No version skips. No APK overwrite/rename/copy.**

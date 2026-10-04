@@ -58,6 +58,17 @@ class StackSixTakeTest {
             assertEquals(files[0].path, recovered.primaryPath)
             assertTrue(recovered.slots.all { it.error == null })
             assertTrue(recovered.slots[1].videoUnavailable)
+            instrumentation.runOnMainSync {
+                // Restart while an old recovery timer is pending. Its cancellation
+                // must not become an error or pause the newly requested mix.
+                assertTrue(coordinator.start(files))
+                coordinator.attachVideo(files[1].path, Any(), view)
+                coordinator.onPrimaryError(androidx.media3.common.PlaybackException(
+                    "Synthetic decoder pressure", null, androidx.media3.common.PlaybackException.ERROR_CODE_DECODER_INIT_FAILED))
+                assertTrue(coordinator.start(files))
+            }
+            awaitSix()
+            assertTrue(StackPlayback.state.value.playing)
         } finally {
             instrumentation.runOnMainSync { coordinator.release(); main.release(); scope.cancel() }
         }

@@ -81,6 +81,7 @@ internal class StackPlaybackCoordinator(
     private var released = false
     private var recoveringPrimaryVideo = false
     private var videoRecoveryJob: Job? = null
+    private var videoRecoveryToken: Any? = null
     private val recoveredPrimaryVideos = mutableSetOf<String>()
     private var gateDeadlineMs = 0L
     private var armingGate = false
@@ -725,6 +726,8 @@ internal class StackPlaybackCoordinator(
             if (playing) armStartGate(position())
             publish()
             videoRecoveryJob?.cancel()
+            val recoveryToken = Any()
+            videoRecoveryToken = recoveryToken
             videoRecoveryJob = scope.launch {
                 try {
                     // ExoPlayer releases codec resources asynchronously. Let that
@@ -737,10 +740,22 @@ internal class StackPlaybackCoordinator(
                     try { main.prepare(); main.seekTo(resumeAt) }
                     finally { internalMainChange = false }
                     if (playing) armStartGate(resumeAt)
+                } catch (cancelled: kotlinx.coroutines.CancellationException) {
+                    throw cancelled
                 } catch (failure: Exception) {
-                    com.local.listentomusic.diagnostics.CrashReports.recordRecoverable("stack-video-recovery", failure)
-                    pause()
-                } finally { recoveringPrimaryVideo = false; publish() }
+                    if (videoRecoveryToken === recoveryToken) {
+                        com.local.listentomusic.diagnostics.CrashReports.recordRecoverable("stack-video-recovery", failure)
+                        pause()
+                    }
+                } finally {
+                    // A cancelled old session must never pause/publish into its successor.
+                    if (videoRecoveryToken === recoveryToken) {
+                        videoRecoveryToken = null
+                        videoRecoveryJob = null
+                        recoveringPrimaryVideo = false
+                        publish()
+                    }
+                }
             }
             return
         }
@@ -778,6 +793,7 @@ internal class StackPlaybackCoordinator(
 
     fun stop(clearMain: Boolean) {
         if (!active) return
+        videoRecoveryToken = null
         videoRecoveryJob?.cancel(); videoRecoveryJob = null
         recoveringPrimaryVideo = false
         recoveredPrimaryVideos.clear()

@@ -4,7 +4,7 @@ This file describes the **current repository state only**. Historical session no
 
 **Project:** `greater-art/` in the repository checkout
 **Current version:** `1.15.75 (code 205)`
-**Current source:** `1.15.76 (code 206)`
+**Current source:** `1.15.77 (code 207)`
 **Release state:** `SOURCE_ONLY`
 **Latest APK:** `releases/GreaterArt-1.15.75.apk` (`26,549,909 bytes`; SHA-256 `dc24dd3017492ef7db8c1cab79cfaa8bcc1ff3498f2523e5968a6abc8361b4aa`)
 **Exact APK source:** `a24b86eba9bdaf35156574f48ee948de1b11035c`
@@ -18,6 +18,8 @@ This file describes the **current repository state only**. Historical session no
 ## Repository state
 
 ### October 5 — extended Fit decoder-pressure recovery (source only)
+
+- 1.15.77 review guards recovery cancellation with an identity token: Stop/restart cannot let a stale coroutine catch cancellation as a failure and pause the successor mix. The device regression now includes restart while recovery is pending. Exact-source verification pending; 1.15.76 is consumed but not released.
 
 - Long six-native-video stress after the short passing gates exposed emulator codec `NO_MEMORY` during a surface transition. Main video's failure demoted its file to audio but retained a stale error/mute marker; UI could show 6/5 playing. 1.15.76 releases optional preview lanes, allows asynchronous codec disposal, then retries the unchanged primary once at native quality. User pause/seek intent is preserved; Stop cancels recovery. A demoted voice clears its error only when its exact file reaches READY. Healthy running counts exclude failed slots; primary decoder errors now enter private diagnostics.
 - Added an API 36 regression for retiring optional codecs and recovering all six singers without changing the primary. Exact-source build/device tests pending. 1.15.75 remains a verified predecessor with this newly discovered long-stress limitation, not an assertion that no bugs exist.
