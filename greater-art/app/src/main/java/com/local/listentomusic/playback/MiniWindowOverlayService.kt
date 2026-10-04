@@ -192,6 +192,7 @@ class MiniWindowOverlayService : Service(), LifecycleOwner, ViewModelStoreOwner,
         }
         createChannel()
                 mode = if (PlayerWindowVisibility.libraryShowing.value) PlayerWindowMode.DOCKED else PlayerWindowMode.DETACHED
+                com.local.listentomusic.ui.components.VideoSurfaceOwner.setUnifiedDocked(docked)
                 modeState.value = mode
                 modeSnapshot.value = mode
                 startForeground(2, buildNotification())
@@ -715,6 +716,7 @@ class MiniWindowOverlayService : Service(), LifecycleOwner, ViewModelStoreOwner,
         if (leavingExpanded && target == PlayerWindowMode.DETACHED) detachUntilLibraryHidden = true
         mode = target
         modeSnapshot.value = target
+        com.local.listentomusic.ui.components.VideoSurfaceOwner.setUnifiedDocked(docked)
         com.local.listentomusic.ui.components.VideoSurfaceOwner.setUnifiedExpanded(expanded)
         dragging = false
         crossView?.visibility = View.INVISIBLE
@@ -966,6 +968,7 @@ class MiniWindowOverlayService : Service(), LifecycleOwner, ViewModelStoreOwner,
         if (expandedHostReady) lifecycleRegistry.currentState = Lifecycle.State.DESTROYED
         scope.cancel()
         com.local.listentomusic.ui.components.VideoSurfaceOwner.setUnifiedExpanded(false)
+        com.local.listentomusic.ui.components.VideoSurfaceOwner.setUnifiedDocked(false)
         com.local.listentomusic.ui.components.VideoSurfaceOwner.serviceEvent("stop")
         com.local.listentomusic.ui.components.VideoSurfaceOwner.setSystemOverlayVisible(
             "mini_window_overlay",

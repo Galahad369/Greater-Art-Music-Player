@@ -19,6 +19,7 @@ object VideoSurfaceOwner {
     private var handoffTarget: String? = null
     private val systemOverlayOwners = linkedMapOf<String, String>()
     private var unifiedExpanded = false
+    private var unifiedDocked = false
     private var noOpReconciles = 0
     internal val state = MutableStateFlow(SurfaceLease())
     val expectedOwner: String
@@ -29,6 +30,7 @@ object VideoSurfaceOwner {
             fullscreenActivity = fullscreenActivity,
             systemOverlayOwner = systemOverlayOwners.values.lastOrNull(),
             currentVideoBackground = currentVideoBackground,
+            systemOverlayDocked = unifiedDocked,
         )
     val systemOverlayActive: Boolean get() = systemOverlayOwners.isNotEmpty()
     val fullscreenActivityActive: Boolean get() = fullscreenActivity
@@ -46,6 +48,12 @@ object VideoSurfaceOwner {
         if (unifiedExpanded == value) return
         unifiedExpanded = value
         com.local.listentomusic.playback.PlayerWindowVisibility.expanded(expandedOverlayActive)
+    }
+    fun setUnifiedDocked(value: Boolean) {
+        if (unifiedDocked == value) return
+        unifiedDocked = value
+        log("unifiedDocked=$value expected=$expectedOwner", active.get())
+        reconcile()
     }
     fun setActivityForeground(value: Boolean) {
         if (foreground == value) return

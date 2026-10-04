@@ -7,7 +7,7 @@ This file is the authoritative version policy for Greater Art. If any handoff no
 ## Machine-checkable state
 
 
-Current source: **1.15.73 (code 203)**
+Current source: **1.15.74 (code 204)**
 Current release state: **SOURCE_ONLY**
 Latest verified APK: **1.15.63 (code 193)**
 Allowed series transition: **1.14.15 -> 1.15.1**
@@ -175,5 +175,7 @@ Previous baseline: 1.13.26 (code 115).
 - 1.15.72 (code 202) — user-requested Fit Stack background: responsive aspect-preserving tiles lease the existing Stack companion engines, visible only behind foreground Library/Nodes/Stack; no extra audio/player copies or source-quality caps. Hidden tiles disable their video tracks. Hardware video failure preserves the singer as audio with explicit UI/diagnostics. Add eligibility/layout/identity tests. 1.15.71 passed 188 JVM tests, lint/build, signing/privacy checks and both cache/six-take device tests. SOURCE_ONLY pending new feature verification.
 
 - 1.15.73 (code 203) — repair Compose lint finding: tiled background observes its distinct layout flow without reading StateFlow.value directly in composition. 1.15.72 compiled/assembled and passed 191 JVM tests but lint blocked release. SOURCE_ONLY pending verification.
+
+- 1.15.74 (code 204) — fix verified background ownership defect: unified service registration must distinguish Dock from Detached/Expanded, so a foreground CURRENT_VIDEO surface can render instead of being permanently outranked by a hidden Mini. Dock retains artwork while the primary surface serves the background, not a black empty preview; no duplicate video decode. Add ownership precedence regression. 1.15.73 passed 191 JVM tests, lint/build and both cache/six-take device tests. SOURCE_ONLY pending background/tiles/transition verification.
 
 **No silent builds. No version reuse. No version skips. No APK overwrite/rename/copy.**

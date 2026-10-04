@@ -228,6 +228,10 @@ class CompactPlayerView(context: Context) : FrameLayout(context) {
         if (!expanded) {
             if (isVideo) VideoSurfaceOwner.attach(p, video, overlay = owner == "MINI_WINDOW")
             else VideoSurfaceOwner.detach(video)
+            // One decoded stream has one surface. When CURRENT_VIDEO owns it,
+            // retain artwork in Dock instead of presenting an empty black view.
+            video.visibility = if (isVideo && video.player === p) View.VISIBLE else View.GONE
+            artwork.visibility = if (isVideo && video.player === p) View.GONE else View.VISIBLE
         }
     }
     fun release() {
