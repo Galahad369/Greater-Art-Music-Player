@@ -11,7 +11,7 @@ This file describes the **current repository state only**. Historical session no
 **Signing certificate SHA-256:** `9e28eb45b3b171c3ea47d7da942d28d88b16538885e392a6971a80906d612fbf`
 **Build date:** `2026-10-04`
 **Test device:** `GreaterArt_A55_API36 (A55-sized emulator, API 36, Android 16)`
-**Verification boundary:** Built from exact source commit `HEAD`; `./gradlew testDebugUnitTest lintDebug :app:assembleDebug --offline` passed; `aapt dump badging` confirms package `com.local.listentomusic`, versionName `1.15.64`, versionCode `194`; signed with personal debug keystore; installed on A55/API 36; launch, library scan/load, local audio/video playback, prev/next/seek/pause/resume, playlist/Favorites playback, duplicate queue independence, Stack→Library/playlist transition, queue/Library add-to-list, Library delete three-confirm flow, mini-window/fullscreen/return flows verified; **0 FATAL EXCEPTION** in tested session.
+**Latest predecessor verification evidence (1.15.64/code194):** `./gradlew testDebugUnitTest lintDebug :app:assembleDebug --offline` passed; `aapt dump badging` confirmed package `com.local.listentomusic`, versionName `1.15.64`, versionCode `194`; the build was installed on A55/API 36 and exercised for launch, library scan/load, local audio/video playback, prev/next/seek/pause/resume, playlist/Favorites playback, duplicate queue independence, Stack→Library/playlist transition, queue/Library add-to-list, Library delete three-confirm flow, and mini-window/fullscreen/return flows with **0 FATAL EXCEPTION** in that tested session. This evidence does not verify 1.15.65.
 
 ## Repository state
 
