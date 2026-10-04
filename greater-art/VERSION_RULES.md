@@ -7,7 +7,7 @@ This file is the authoritative version policy for Greater Art. If any handoff no
 ## Machine-checkable state
 
 
-Current source: **1.15.72 (code 202)**
+Current source: **1.15.73 (code 203)**
 Current release state: **SOURCE_ONLY**
 Latest verified APK: **1.15.63 (code 193)**
 Allowed series transition: **1.14.15 -> 1.15.1**
@@ -173,5 +173,7 @@ Previous baseline: 1.13.26 (code 115).
 - 1.15.71 (code 201) — remove Stretch from the enum, picker and all renderers; Crop remains default and legacy saved/imported Stretch becomes Crop, with migration regression coverage. Move the cache-generation guard into load rather than clear (compile error caught on 1.15.70; consumed, never released). SOURCE_ONLY pending verification.
 
 - 1.15.72 (code 202) — user-requested Fit Stack background: responsive aspect-preserving tiles lease the existing Stack companion engines, visible only behind foreground Library/Nodes/Stack; no extra audio/player copies or source-quality caps. Hidden tiles disable their video tracks. Hardware video failure preserves the singer as audio with explicit UI/diagnostics. Add eligibility/layout/identity tests. 1.15.71 passed 188 JVM tests, lint/build, signing/privacy checks and both cache/six-take device tests. SOURCE_ONLY pending new feature verification.
+
+- 1.15.73 (code 203) — repair Compose lint finding: tiled background observes its distinct layout flow without reading StateFlow.value directly in composition. 1.15.72 compiled/assembled and passed 191 JVM tests but lint blocked release. SOURCE_ONLY pending verification.
 
 **No silent builds. No version reuse. No version skips. No APK overwrite/rename/copy.**

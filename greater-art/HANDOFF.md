@@ -4,7 +4,7 @@ This file describes the **current repository state only**. Historical session no
 
 **Project:** `greater-art/` in the repository checkout
 **Current version:** `1.15.63 (code 193)`
-**Current source:** `1.15.72 (code 202)`
+**Current source:** `1.15.73 (code 203)`
 **Release state:** `SOURCE_ONLY`
 **Latest APK:** `releases/GreaterArt-1.15.63.apk` (`26,500,725 bytes`; SHA-256 `718385f181b65c480fc264a1117961a79d3e243de932bba168cd06d30a71f5d2`)
 **1.15.64 verification note:** source was built/smoke-tested and hash `e21994f96f561dc2980eb3c16953acbeed2c42f16651cce65353d592a8a162ba` was recorded, but `releases/GreaterArt-1.15.64.apk` is absent from the current Git tree, so it is not the canonical committed release artifact.
@@ -18,6 +18,7 @@ This file describes the **current repository state only**. Historical session no
 
 ### October 5 — fitted Stack video backgrounds (source only)
 
+- 1.15.72 compiled/assembled and passed 191 JVM tests; lint caught a direct StateFlow.value read in composition. Fixed by observing the layout-only flow at 1.15.73. No 1.15.72 artifact released; final verification pending.
 - User requested simultaneous fitted Stack videos behind Library/Nodes/Stack, not inside Now Playing. CURRENT_VIDEO + Fit + at least two Stack videos leases existing companion engines as aspect-preserving tiles. Crop remains default; no new setting, player/audio copy, resolution/FPS/bitrate limit, or stretch path.
 - Grid maximizes fitted frame area; primary tile keeps the existing surface-owner lease. Companion surfaces use identity-checked leases, disable video tracks on disposal/background/expanded takeover, and retain audio/sync. Do not churn six decoder leases during list flings.
 - Video hardware failure disables only that tile and retries its existing voice as audio, with visible Stack warning and private failure record; never silently degrade source quality or discard a singer for a decorative renderer.

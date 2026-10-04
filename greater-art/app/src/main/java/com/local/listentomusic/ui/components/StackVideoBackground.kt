@@ -47,7 +47,7 @@ internal fun stackTileColumns(count: Int, viewportAspect: Float): Int {
 internal fun rememberStackVideoTiles(): List<StackVideoTile> {
     // Position/drift ticks must not recompose six native views or rebuild their grid.
     val flow = remember { StackPlayback.state.map(::stackVideoTiles).distinctUntilChanged() }
-    val tiles by flow.collectAsStateWithLifecycle(initialValue = stackVideoTiles(StackPlayback.state.value))
+    val tiles by flow.collectAsStateWithLifecycle(initialValue = emptyList())
     return tiles
 }
 
