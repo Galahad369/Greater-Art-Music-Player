@@ -6,8 +6,9 @@ import kotlinx.coroutines.flow.asStateFlow
 internal fun showDetachedPlayer(appVisible: Boolean, expandedVisible: Boolean) =
     !appVisible && !expandedVisible
 
-internal fun showDockedPlayer(appVisible: Boolean, libraryVisible: Boolean, expandedVisible: Boolean, windowFocused: Boolean) =
-    appVisible && libraryVisible && !expandedVisible && windowFocused
+internal fun showDockedPlayer(appVisible: Boolean, libraryVisible: Boolean, expandedVisible: Boolean, windowFocused: Boolean,
+    stackTransportVisible: Boolean = false) =
+    appVisible && libraryVisible && !expandedVisible && windowFocused && !stackTransportVisible
 
 /** Presentation visibility, independent of video-surface readiness during transfer. */
 internal object PlayerWindowVisibility {
@@ -37,6 +38,6 @@ internal object PlayerWindowVisibility {
     }
     private fun publish() {
         detached.value = showDetachedPlayer(appVisible, expandedVisible)
-        docked.value = showDockedPlayer(appVisible, libraryVisible, expandedVisible, windowFocused) && !stackTransportVisible
+        docked.value = showDockedPlayer(appVisible, libraryVisible, expandedVisible, windowFocused, stackTransportVisible)
     }
 }

@@ -109,9 +109,9 @@ class StackAudioAlign(context: Context) {
             try {
                 stream = atomic.startWrite()
                 val output = DataOutputStream(stream.buffered())
-                    output.writeInt(decoded.envelope.size)
-                    decoded.envelope.forEach(output::writeFloat)
-                    decoded.chroma.forEach { frame -> frame.forEach(output::writeFloat) }
+                output.writeInt(decoded.envelope.size)
+                decoded.envelope.forEach(output::writeFloat)
+                decoded.chroma.forEach { frame -> frame.forEach(output::writeFloat) }
                 output.flush()
                 atomic.finishWrite(stream)
                 cache.listFiles()

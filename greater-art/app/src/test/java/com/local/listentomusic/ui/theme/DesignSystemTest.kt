@@ -7,6 +7,16 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class DesignSystemTest {
+    @Test fun everyPaletteOwnsItsContainersAndReadableText() {
+        for (theme in com.local.listentomusic.data.ColorTheme.entries) for (dark in listOf(false, true)) {
+            val scheme = appColorScheme(theme, dark)
+            assertTrue(contrast(scheme.onBackground, scheme.background) >= 4.5f)
+            assertTrue(contrast(scheme.onSecondaryContainer, scheme.secondaryContainer) >= 4.5f)
+            assertTrue(contrast(scheme.onSurface, scheme.surfaceContainerHigh) >= 4.5f)
+            org.junit.Assert.assertEquals(scheme.onSurface, scheme.onBackground)
+            org.junit.Assert.assertEquals(scheme.surfaceVariant, scheme.surfaceContainerHighest)
+        }
+    }
     @Test fun repeatedIconActionsKeepAndroidSafeTouchTargets() {
         assertTrue(GaControl.touchTarget >= 48.dp)
         assertTrue(GaControl.hero >= GaControl.touchTarget)

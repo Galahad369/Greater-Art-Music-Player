@@ -7,7 +7,7 @@ This file is the authoritative version policy for Greater Art. If any handoff no
 ## Machine-checkable state
 
 
-Current source: **1.15.67 (code 197)**
+Current source: **1.15.68 (code 198)**
 Current release state: **SOURCE_ONLY**
 Latest verified APK: **1.15.63 (code 193)**
 Allowed series transition: **1.14.15 -> 1.15.1**
@@ -163,5 +163,7 @@ Previous baseline: 1.13.26 (code 115).
 - 1.15.66 (code 196) — Stack stability refinement: shared Library-family header, exclusive Stack transport, session-owned alignment, controlled-seek versus real-stall recovery, shared/atomic caches, live compositor-derived Ambient gradients, theme container coherence and bounded private failure/exit records. Six-take device regression added. SOURCE_ONLY pending build/device verification; preserves reviewed Grok/Opus algorithms and primary source quality.
 
 - 1.15.67 (code 197) — verification repair: pass the existing overlay lambda directly (Kotlin rejects a variable callable reference); bind alignment results to their originating mix and keep thumbnail disk retention bounded after writes. 1.15.66 consumed on this branch and never released. SOURCE_ONLY pending verification.
+
+- 1.15.68 (code 198) — verification follow-up: lint indentation repaired; Stack rows moved from the fixed Now Playing identity header into its flexible searchable list; all Material container/on-background colors follow the chosen palette; DEV no longer covers Sort/Close; real-media cache corruption/reuse and six-voice drift assertions added. 1.15.67 passed 185 JVM tests and six-take device start/seek/resume/loop, but lint prevented release. SOURCE_ONLY pending final verification.
 
 **No silent builds. No version reuse. No version skips. No APK overwrite/rename/copy.**

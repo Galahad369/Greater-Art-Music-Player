@@ -297,7 +297,7 @@ class WaveformRepository(context: Context) {
         val atomic = android.util.AtomicFile(file)
         val stream = atomic.startWrite()
         try {
-        val output = DataOutputStream(stream.buffered())
+            val output = DataOutputStream(stream.buffered())
             output.writeInt(values.size)
             values.forEach(output::writeFloat)
             output.flush()

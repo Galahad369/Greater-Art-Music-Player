@@ -108,7 +108,11 @@ internal fun DeveloperDiagnostics(
                 overlayAllowed = Build.VERSION.SDK_INT < Build.VERSION_CODES.M || Settings.canDrawOverlays(context)
                 open = true
             },
-            modifier = modifier.align(Alignment.TopEnd).statusBarsPadding().padding(8.dp)
+            // Reserve the inert logo area in Library and the central handle area
+            // in the system player; never cover Sort, Close or Fullscreen.
+            modifier = modifier.align(if (systemOverlay) Alignment.TopCenter else Alignment.TopStart)
+                .then(if (systemOverlay) Modifier else Modifier.statusBarsPadding())
+                .padding(start = if (systemOverlay) 0.dp else 18.dp, top = if (systemOverlay) 2.dp else 16.dp)
                 .inspectElement("DEVELOPER_BUTTON", "Opens local diagnostics and element inspector"),
             shape = RoundedCornerShape(7.dp),
             color = Color.Black.copy(alpha = 0.88f),

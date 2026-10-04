@@ -17,6 +17,33 @@ import java.io.File
 /** Explicit device fixture: six user-supplied takes in Download; never fetches media. */
 @RunWith(AndroidJUnit4::class)
 class StackSixTakeTest {
+    @Test fun localFeatureCacheSurvivesTruncationAndRepositoriesAreShared() = runBlocking {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val sources = File("/sdcard/Download").listFiles().orEmpty().filter {
+            it.isFile && it.extension == "mp4" && it.name.contains("孤独毒毒")
+        }.sortedBy { it.name }.take(2)
+        assumeTrue("Requires two local fixture takes", sources.size == 2)
+        val files = sources.map { MediaFile(it.canonicalPath, it.name, 0, it.length(), it.lastModified(), MediaKind.VIDEO) }
+        assertSame(com.local.listentomusic.data.MediaCaches.thumbnails(context), com.local.listentomusic.data.MediaCaches.thumbnails(context))
+        assertSame(com.local.listentomusic.data.MediaCaches.waveforms(context), com.local.listentomusic.data.MediaCaches.waveforms(context))
+        val aligner = StackAudioAlign(context)
+        val first = aligner.estimate(files[0], files[1])
+        assertTrue("same-arrangement fixture should match", first.confident)
+        val source = sources[0]
+        val identity = "${source.canonicalPath}|${source.length()}|${source.lastModified()}|0|null"
+        val key = java.security.MessageDigest.getInstance("SHA-256").digest(identity.toByteArray())
+            .joinToString("") { "%02x".format(it) }
+        val cached = File(context.cacheDir, "stack-align-v3/$key.bin")
+        assertTrue(cached.length() > 4)
+        // Only generated cache data is corrupted, never the user's media.
+        cached.writeBytes(byteArrayOf(0, 0, 1))
+        val recovered = aligner.estimate(files[0], files[1])
+        assertTrue(recovered.confident)
+        assertEquals(first.offsetMs, recovered.offsetMs)
+        assertTrue(cached.length() > 4)
+        val cachedMatch = aligner.estimate(files[0], files[1])
+        assertEquals(recovered, cachedMatch)
+    }
     @Test fun sixLocalTakesStartSeekResumeAndLoopWithoutLosingVoices() {
         val instrumentation = InstrumentationRegistry.getInstrumentation()
         val context = instrumentation.targetContext
@@ -52,6 +79,7 @@ class StackSixTakeTest {
                 val state = StackPlayback.state.value
                 assertEquals("lost a voice during steady playback", 6, state.runningTracks)
                 assertFalse("unnecessary group gate", state.synchronizing)
+                assertTrue("large uncorrected drift ${state.maxDriftMs}ms", state.maxDriftMs < 200)
                 Thread.sleep(250)
             }
             val duration = StackPlayback.state.value.durationMs

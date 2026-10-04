@@ -6,6 +6,13 @@ import org.junit.Assert.*
 import org.junit.Test
 
 class StackPlaybackTest {
+    @Test fun stackTransportSuppressesOnlyTheDuplicateDock() {
+        assertFalse(showDockedPlayer(true, true, false, true, stackTransportVisible = true))
+        assertTrue(showDockedPlayer(true, true, false, true, stackTransportVisible = false))
+        assertTrue(showDetachedPlayer(false, false))
+        assertFalse(showDetachedPlayer(true, false))
+        assertFalse(showDetachedPlayer(false, true))
+    }
     @Test fun controlledCorrectionDoesNotFreezeTheWholeMix() {
         assertFalse(stackBufferRequiresGate(1300L, 1000L, 2000L))
         assertFalse(stackBufferRequiresGate(1299L, 1000L, 0L))
