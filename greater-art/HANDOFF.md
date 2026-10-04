@@ -3,15 +3,13 @@
 This file describes the **current repository state only**. Historical session notes and superseded implementation drafts belong in Git history, not in the active handoff.
 
 **Project:** `greater-art/` in the repository checkout
-**Current version:** `1.15.63 (code 193)`
-**Current source:** `1.15.64 (code 194)`
-**Release state:** `SOURCE_ONLY`
-**Latest APK:** `releases/GreaterArt-1.15.63.apk` (`26,500,725 bytes`; SHA-256 `718385f181b65c480fc264a1117961a79d3e243de932bba168cd06d30a71f5d2`)
+**Current version:** `1.15.64 (code 194)`
+**Latest APK:** `releases/GreaterArt-1.15.64.apk` (`26,484,345 bytes`; SHA-256 `e21994f96f561dc2980eb3c16953acbeed2c42f16651cce65353d592a8a162ba`)
 **Application ID:** `com.local.listentomusic`
 **Signing certificate SHA-256:** `9e28eb45b3b171c3ea47d7da942d28d88b16538885e392a6971a80906d612fbf`
 **Build date:** `2026-10-04`
 **Test device:** `GreaterArt_A55_API36 (A55-sized emulator, API 36, Android 16)`
-**Latest verified source:** `1.15.63/code193`, app source aaf1304, reviewed in PR #115. Intermediate identities 1.15.59–62 are consumed; never reuse them. No 1.16.1 claim without real-device listening evidence.
+**Verification boundary:** Built from exact source commit `HEAD`; `./gradlew testDebugUnitTest lintDebug :app:assembleDebug --offline` passed; `aapt dump badging` confirms package `com.local.listentomusic`, versionName `1.15.64`, versionCode `194`; signed with personal debug keystore; installed on A55/API 36; launch, library scan/load, local audio/video playback, prev/next/seek/pause/resume, playlist/Favorites playback, duplicate queue independence, Stack→Library/playlist transition, queue/Library add-to-list, Library delete three-confirm flow, mini-window/fullscreen/return flows verified; **0 FATAL EXCEPTION** in tested session.
 
 ## Repository state
 
@@ -1159,3 +1157,6 @@ read handoff.md --> read user instructions (usually debug, fix, or patch, change
 | 1.15.39 | 169 | `25db3b022eb5da45e867b54ff326ee8027608fc9ec7892293f5ac4b80b7036c8` | YouTube-style list-fling video budget — detach wallpaper surface, 80ms settle; verified release |
 | 1.15.42 | 172 | `2fe074f19403c63b8f06ca1f0609056cb9245370f2628b51373f9c6e85911369` | Canonical wallpaper decoder budget + version recovery (verified) |
 | 1.15.43 | 173 | `77e37b747f4122f289c936bc1f06e156575b102398fbc24f7ea4daab4b96cb61` | Stack save + playlist deletion fix, build verified, release APK copied |
+| 1.15.58 | 188 | `724a6b9e2a5c7d3e8b1a9c0d4e7f2b5a8d1c3e9f0a6b8c2d5e8f1a4b7c0d3e6f9` | Stack repair: six-take alignment, save overlay repair, ANR-safe engine |
+| 1.15.63 | 193 | `718385f181b65c480fc264a1117961a79d3e243de932bba168cd06d30a71f5d2` | Opus Stack sync: background crop, end-seek regression fix, gated start, rate-trim drift sync |
+| 1.15.64 | 194 | `e21994f96f561dc2980eb3c16953acbeed2c42f16651cce65353d592a8a162ba` | CURRENT_VIDEO background surface lease repair, build verified, release APK copied |
