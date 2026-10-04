@@ -3,9 +3,10 @@
 This file describes the **current repository state only**. Historical session notes and superseded implementation drafts belong in Git history, not in the active handoff.
 
 **Project:** `greater-art/` in the repository checkout
+**Current version:** `1.15.63 (code 193)`
 **Current source:** `1.15.65 (code 195)`
 **Release state:** `SOURCE_ONLY`
-**Latest committed verified APK:** `releases/GreaterArt-1.15.63.apk` (`26,500,725 bytes`; SHA-256 `718385f181b65c480fc264a1117961a79d3e243de932bba168cd06d30a71f5d2`)
+**Latest APK:** `releases/GreaterArt-1.15.63.apk` (`26,500,725 bytes`; SHA-256 `718385f181b65c480fc264a1117961a79d3e243de932bba168cd06d30a71f5d2`)
 **1.15.64 verification note:** source was built/smoke-tested and hash `e21994f96f561dc2980eb3c16953acbeed2c42f16651cce65353d592a8a162ba` was recorded, but `releases/GreaterArt-1.15.64.apk` is absent from the current Git tree, so it is not the canonical committed release artifact.
 **Application ID:** `com.local.listentomusic`
 **Signing certificate SHA-256:** `9e28eb45b3b171c3ea47d7da942d28d88b16538885e392a6971a80906d612fbf`
