@@ -11,12 +11,14 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.lerp
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.drawBehind
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
 /** Live compositor colors with cached-art fallback; never creates a video decoder. */
 @Composable
-internal fun artworkBackdrop(artwork: Bitmap?, light: Boolean, currentPath: String? = null): Brush {
+internal fun Modifier.ambientBackdrop(artwork: Bitmap?, light: Boolean, currentPath: String? = null): Modifier {
     val video by VideoAmbientColors.state.collectAsStateWithLifecycle()
     val colors by produceState(artworkGradientColors(intArrayOf(), light), artwork, light) {
         value = withContext(Dispatchers.Default) {
@@ -38,10 +40,12 @@ internal fun artworkBackdrop(artwork: Bitmap?, light: Boolean, currentPath: Stri
             artworkGradientColors(video.pixels.toIntArray(), light) else null
     }
     val target = live ?: colors
-    val top by animateColorAsState(target.first(), tween(700), label = "ambient-top")
-    val middle by animateColorAsState(target[target.size / 2], tween(700), label = "ambient-middle")
-    val bottom by animateColorAsState(target.last(), tween(700), label = "ambient-bottom")
-    return remember(top, middle, bottom) { Brush.verticalGradient(listOf(top, middle, bottom)) }
+    val top = animateColorAsState(target.first(), tween(700), label = "ambient-top")
+    val middle = animateColorAsState(target[target.size / 2], tween(700), label = "ambient-middle")
+    val bottom = animateColorAsState(target.last(), tween(700), label = "ambient-bottom")
+    // Read animation state during drawing, not composition: a color fade must not
+    // recompose the queue, controls and native video host on every display frame.
+    return drawBehind { drawRect(Brush.verticalGradient(listOf(top.value, middle.value, bottom.value))) }
 }
 
 internal fun artworkGradientColors(pixels: IntArray, light: Boolean): List<Color> {

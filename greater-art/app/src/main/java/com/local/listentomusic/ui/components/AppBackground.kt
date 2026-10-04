@@ -160,7 +160,7 @@ fun AppBackground(
         videoSurfaceActive && !listScrolling && (attachCustomVideoBackground || usePrimaryVideoBackground)
 
     Box(modifier.fillMaxSize().graphicsLayer()) {
-        val ambient = artworkBackdrop(null,
+        val ambient = Modifier.ambientBackdrop(null,
             androidx.compose.material3.MaterialTheme.colorScheme.background.luminance() > .5f, currentPath)
         val videoFallback = mode == AppBackgroundMode.CUSTOM_VIDEO &&
             (preferences.customBackgroundVideoUri == null || !attachCustomVideoBackground) ||
@@ -168,7 +168,7 @@ fun AppBackground(
             !usePrimaryVideoBackground
         val videoMode = mode == AppBackgroundMode.CUSTOM_VIDEO || mode == AppBackgroundMode.CURRENT_VIDEO
         if (visible && (mode == AppBackgroundMode.DEFAULT || videoFallback || (videoMode && !liveVideoSurface))) {
-            if (mode == AppBackgroundMode.CURRENT_VIDEO) Box(Modifier.fillMaxSize().background(ambient))
+            if (mode == AppBackgroundMode.CURRENT_VIDEO) Box(Modifier.fillMaxSize().then(ambient))
             else DefaultMetalBackground()
         } else if (visible) {
             Box(Modifier.fillMaxSize().background(androidx.compose.material3.MaterialTheme.colorScheme.background))

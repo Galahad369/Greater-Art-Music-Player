@@ -165,6 +165,7 @@ import com.local.listentomusic.model.MediaKind
 import com.local.listentomusic.model.LocalLyrics
 import com.local.listentomusic.sleepTimerOptions
 import com.local.listentomusic.ui.components.LiquidMetalSurface
+import com.local.listentomusic.ui.components.ambientBackdrop
 import com.local.listentomusic.ui.theme.GaControl
 import com.local.listentomusic.ui.theme.GaMotion
 import com.local.listentomusic.ui.theme.GaRadius
@@ -281,13 +282,13 @@ fun NowPlayingScreen(
             if (!queueListState.isScrollInProgress) locateTrigger++
         }
 
-        val backdrop = com.local.listentomusic.ui.components.artworkBackdrop(
+        val backdrop = Modifier.ambientBackdrop(
         artwork, MaterialTheme.colorScheme.background.luminance() > .5f, playback.currentPath,
     )
     BoxWithConstraints(
             modifier = Modifier.fillMaxSize().padding(PaddingValues(horizontal = 0.dp, vertical = contentPadding.calculateTopPadding()))
                 .inspectElement("NOW_PLAYING_SCREEN", "Current artwork or video, queue, timeline, and transport controls")
-                .background(backdrop),
+                .then(backdrop),
         ) {
         val landscape = maxWidth > maxHeight
         val portraitVideoHeight = minOf(maxWidth / playback.videoAspectRatio.coerceIn(0.75f, 2.25f), maxHeight * 0.34f)

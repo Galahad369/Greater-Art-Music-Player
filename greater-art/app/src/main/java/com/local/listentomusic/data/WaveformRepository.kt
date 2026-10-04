@@ -19,6 +19,7 @@ import java.io.DataInputStream
 import java.io.DataOutputStream
 import java.io.File
 import java.security.MessageDigest
+import java.util.concurrent.atomic.AtomicInteger
 import kotlin.coroutines.coroutineContext
 import kotlin.math.abs
 import kotlin.math.max
@@ -56,18 +57,20 @@ class WaveformRepository(context: Context) {
     // The player screen and media-transition warmup may request the same file at
     // once. One decoder prevents duplicate full-file work and codec contention.
     private val decodeMutex = OfflineAnalysisBudget.mutex
+    private val generation = AtomicInteger()
     private val memory = object : LinkedHashMap<String, FloatArray>(32, 0.75f, true) {
         override fun removeEldestEntry(eldest: MutableMap.MutableEntry<String, FloatArray>?) = size > 32
     }
 
     suspend fun load(path: String, size: Long, modified: Long): FloatArray? = withContext(Dispatchers.IO) {
+        val epoch = generation.get()
         val key = MessageDigest.getInstance("SHA-256")
             .digest("$path|$size|$modified|$BINS|$CACHE_VERSION".toByteArray())
             .joinToString("") { "%02x".format(it) }
         val cached = File(directory, "$key.bin")
         synchronized(memory) { memory[key] }?.let { return@withContext it }
         read(cached)?.let {
-            synchronized(memory) { memory[key] = it }
+            synchronized(memory) { if (epoch == generation.get()) memory[key] = it }
             _diagnostics.value = WaveformDiagnostics(WaveformStatus.CACHE_HIT, File(path).name)
             return@withContext it
         }
@@ -97,7 +100,9 @@ class WaveformRepository(context: Context) {
 
     suspend fun clear() = withContext(Dispatchers.IO) {
         decodeMutex.withLock {
-        synchronized(memory) { memory.clear() }
+            // A request that began before Clear must not refill the cleared cache.
+            if (epoch != generation.get()) return@withLock null
+        synchronized(memory) { generation.incrementAndGet(); memory.clear() }
         directory.listFiles()?.forEach { file -> runCatching { file.delete() } }
         _diagnostics.value = WaveformDiagnostics()
         }

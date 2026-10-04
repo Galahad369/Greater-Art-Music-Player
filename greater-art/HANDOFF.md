@@ -4,7 +4,7 @@ This file describes the **current repository state only**. Historical session no
 
 **Project:** `greater-art/` in the repository checkout
 **Current version:** `1.15.63 (code 193)`
-**Current source:** `1.15.69 (code 199)`
+**Current source:** `1.15.70 (code 200)`
 **Release state:** `SOURCE_ONLY`
 **Latest APK:** `releases/GreaterArt-1.15.63.apk` (`26,500,725 bytes`; SHA-256 `718385f181b65c480fc264a1117961a79d3e243de932bba168cd06d30a71f5d2`)
 **1.15.64 verification note:** source was built/smoke-tested and hash `e21994f96f561dc2980eb3c16953acbeed2c42f16651cce65353d592a8a162ba` was recorded, but `releases/GreaterArt-1.15.64.apk` is absent from the current Git tree, so it is not the canonical committed release artifact.
@@ -18,6 +18,7 @@ This file describes the **current repository state only**. Historical session no
 
 ### October 4 — Stack stability refinement (source only)
 
+- 1.15.69 passed 187 JVM tests, lint/assembly and both API 36 device tests. Six actual takes retained all voices across start/pause/seek/resume/loop; final reported position-drift window averaged 47 ms, not an acoustic phase-lock measurement. 1.15.70 removes the caller alignment overriding DEV placement, guards waveform cache clear against late disk-hit refill, and moves ambient color interpolation to drawing so its animation cannot recompose the whole player every frame. Final verification pending.
 - 1.15.66 compile verification caught a Kotlin callable-reference error on an existing lambda. Corrected at 1.15.67; no 1.15.66 APK was released. Alignment results now identify their source mix, and thumbnail retention also runs after writes.
 - 1.15.67 passed 185 JVM tests, assembly and six actual takes on API 36 (start, seek/resume, eight-second uninterrupted six-voice run, primary-boundary loop). Two lint indentation findings repaired at 1.15.68. UI inspection also exposed Stack tracks consuming the fixed Now Playing header: they now occupy the flexible searchable list, preserving fixed controls for eight voices. Palette background/container colors and DEV occlusion are corrected. Final 1.15.68 verification pending.
 - 1.15.68 passed build/lint and 187 JVM tests. Device cache truncation/recovery/reuse passed. The added instantaneous drift assertion caught 203 ms immediately following seek; this is not a valid convergence test for deliberately bounded ±5% rate recovery. 1.15.69 records drift throughout an uninterrupted eight-second window and requires final-window mean under 75 ms with no persistent 200 ms drift. Final test pending; no threshold on source resolution/FPS/bitrate was introduced.

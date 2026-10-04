@@ -582,7 +582,7 @@ fun GreaterArtApp(
                     regions = regions,
                     warning = warning,
                     inspector = inspector,
-                    modifier = Modifier.align(Alignment.TopEnd),
+                    modifier = Modifier,
                 )
             }
             if (settings.jokeAdsEnabled && !jokeDismissed && !isPictureInPicture) {
