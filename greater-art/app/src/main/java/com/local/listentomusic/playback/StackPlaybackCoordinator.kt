@@ -22,7 +22,8 @@ import kotlinx.coroutines.launch
 import java.io.File
 
 /**
- * One MediaSession/visual player; up to seven bounded audio-only companions.
+ * One MediaSession/primary player; up to seven companions. Companion video is
+ * disabled unless its existing player is leased by a visible Fit background tile.
  *
  * Sync model (1.15.59):
  * - Start gate: after start/seek/resume/primary swap/stall, every player is parked and
@@ -48,6 +49,10 @@ internal class StackPlaybackCoordinator(
         var measuringSeekResidual = false
         var bufferingSinceMs = 0L
         var controlledSeekUntilMs = 0L
+        var videoOwner: Any? = null
+        var videoView: androidx.media3.ui.PlayerView? = null
+        var videoUnavailable = false
+        var videoFrames = 0
 
         fun resetDrift(nowMs: Long) {
             driftEma = 0.0
@@ -84,7 +89,8 @@ internal class StackPlaybackCoordinator(
 
     fun voiceDiagnostics(): String = voices.mapIndexed { index, voice ->
         "${index + 1}:${voice.player.playbackState}/${voice.player.isPlaying}@${voice.player.currentPosition}ms" +
-            " trim=${voice.rateTrim} drift=${voice.driftEma.toLong()}ms lead=${voice.seekLeadMs}ms"
+            " trim=${voice.rateTrim} drift=${voice.driftEma.toLong()}ms lead=${voice.seekLeadMs}ms" +
+            " tile=${voice.videoView != null} video=${voice.player.videoSize.width}x${voice.player.videoSize.height} frames=${voice.videoFrames}"
     }.joinToString(",").ifEmpty { "none" }
 
     private fun valid(file: MediaFile): Boolean {
@@ -108,8 +114,40 @@ internal class StackPlaybackCoordinator(
     }
 
     private fun releaseVoice(voice: Voice) {
+        detachVideo(voice)
         safePlayer { voice.player.stop() }
         safePlayer { voice.player.release() }
+    }
+
+    private fun detachVideo(voice: Voice) {
+        voice.videoOwner = null
+        voice.videoView?.let { view -> safePlayer { if (view.player === voice.player) view.player = null } }
+        voice.videoView = null
+        safePlayer {
+            voice.player.trackSelectionParameters = voice.player.trackSelectionParameters.buildUpon()
+                .setTrackTypeDisabled(C.TRACK_TYPE_VIDEO, true).build()
+        }
+    }
+
+    /** Presentation only: never creates another player, reloads the primary or changes quality. */
+    fun attachVideo(path: String, owner: Any, view: androidx.media3.ui.PlayerView?) = onMain {
+        val voice = voices.firstOrNull { it.file.path == path } ?: return@onMain
+        if (view == null) {
+            if (voice.videoOwner === owner) detachVideo(voice)
+        } else if (!released && !voice.videoUnavailable) {
+            if (voice.videoOwner === owner && voice.videoView === view) return@onMain
+            voice.videoView?.let { old -> safePlayer { if (old.player === voice.player) old.player = null } }
+            voice.videoOwner = owner
+            voice.videoView = view
+            safePlayer {
+                view.player = voice.player
+                voice.player.trackSelectionParameters = voice.player.trackSelectionParameters.buildUpon()
+                    .setTrackTypeDisabled(C.TRACK_TYPE_VIDEO, false).build()
+            }
+            // Adding a video renderer may briefly refill its existing audio player.
+            // Use the same readiness barrier, not a new timeline or a second audio copy.
+            if (playing && !gated) armStartGate()
+        }
     }
 
     private fun createVoice(file: MediaFile): Voice? {
@@ -129,6 +167,9 @@ internal class StackPlaybackCoordinator(
                 engine.skipSilenceEnabled = false
                 engine.setMediaItem(file.toMediaItem())
                 engine.addListener(object : Player.Listener {
+                    override fun onRenderedFirstFrame() {
+                        voices.firstOrNull { it.player === engine }?.let { it.videoFrames++ }
+                    }
                     override fun onPlaybackStateChanged(playbackState: Int) {
                         if (playbackState == Player.STATE_BUFFERING) {
                             onMain {
@@ -146,6 +187,22 @@ internal class StackPlaybackCoordinator(
                         onMain {
                             if (released || !active) return@onMain
                             val failed = voices.firstOrNull { it.player === engine } ?: return@onMain
+                            if (failed.videoView != null && !failed.videoUnavailable) {
+                                // Multi-video hardware exhaustion must not kill a singer or
+                                // silently select lower quality. Retain that voice as audio.
+                                failed.videoUnavailable = true
+                                detachVideo(failed)
+                                val index = slots.indexOfFirst { it.file.path == failed.file.path }
+                                if (index >= 0) slots[index] = slots[index].copy(videoUnavailable = true)
+                                com.local.listentomusic.diagnostics.CrashReports.recordRecoverable("stack-video-tile", error)
+                                safePlayer {
+                                    engine.prepare()
+                                    parkVoice(failed, position(), SystemClock.elapsedRealtime(), alwaysSeek = true)
+                                }
+                                if (playing) armStartGate()
+                                publish()
+                                return@onMain
+                            }
                             voices.remove(failed)
                             releaseVoice(failed)
                             val index = slots.indexOfFirst { it.file.path == failed.file.path }
@@ -461,6 +518,9 @@ internal class StackPlaybackCoordinator(
         voices.toList().forEach { voice -> safePlayer { voice.player.pause() } }
         internalMainChange = true
         try {
+            detachVideo(replacement)
+            replacement.videoUnavailable = false
+            replacement.videoFrames = 0
             replacement.player.setMediaItem(old.toMediaItem(), boundedSeek(now, knownDuration(old)))
             replacement.player.prepare()
             replacement.file = old
@@ -469,7 +529,8 @@ internal class StackPlaybackCoordinator(
             main.prepare()
             primaryPath = path
             val rebased = rebaseStackOffsets(slots.map { it.offsetMs }, target.offsetMs)
-            for (i in slots.indices) slots[i] = slots[i].copy(offsetMs = rebased[i])
+            for (i in slots.indices) slots[i] = slots[i].copy(offsetMs = rebased[i],
+                videoUnavailable = if (slots[i].file.path == old.path || slots[i].file.path == path) false else slots[i].videoUnavailable)
             anchorMs = promotedPosition
             anchorTimeMs = SystemClock.elapsedRealtime()
             replacement.player.playWhenReady = false

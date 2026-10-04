@@ -4,7 +4,7 @@ This file describes the **current repository state only**. Historical session no
 
 **Project:** `greater-art/` in the repository checkout
 **Current version:** `1.15.63 (code 193)`
-**Current source:** `1.15.71 (code 201)`
+**Current source:** `1.15.72 (code 202)`
 **Release state:** `SOURCE_ONLY`
 **Latest APK:** `releases/GreaterArt-1.15.63.apk` (`26,500,725 bytes`; SHA-256 `718385f181b65c480fc264a1117961a79d3e243de932bba168cd06d30a71f5d2`)
 **1.15.64 verification note:** source was built/smoke-tested and hash `e21994f96f561dc2980eb3c16953acbeed2c42f16651cce65353d592a8a162ba` was recorded, but `releases/GreaterArt-1.15.64.apk` is absent from the current Git tree, so it is not the canonical committed release artifact.
@@ -15,6 +15,13 @@ This file describes the **current repository state only**. Historical session no
 **Latest predecessor verification evidence (1.15.64/code194):** `./gradlew testDebugUnitTest lintDebug :app:assembleDebug --offline` passed; `aapt dump badging` confirmed package `com.local.listentomusic`, versionName `1.15.64`, versionCode `194`; the build was installed on A55/API 36 and exercised for launch, library scan/load, local audio/video playback, prev/next/seek/pause/resume, playlist/Favorites playback, duplicate queue independence, Stack→Library/playlist transition, queue/Library add-to-list, Library delete three-confirm flow, and mini-window/fullscreen/return flows with **0 FATAL EXCEPTION** in that tested session. This evidence does not verify 1.15.65.
 
 ## Repository state
+
+### October 5 — fitted Stack video backgrounds (source only)
+
+- User requested simultaneous fitted Stack videos behind Library/Nodes/Stack, not inside Now Playing. CURRENT_VIDEO + Fit + at least two Stack videos leases existing companion engines as aspect-preserving tiles. Crop remains default; no new setting, player/audio copy, resolution/FPS/bitrate limit, or stretch path.
+- Grid maximizes fitted frame area; primary tile keeps the existing surface-owner lease. Companion surfaces use identity-checked leases, disable video tracks on disposal/background/expanded takeover, and retain audio/sync. Do not churn six decoder leases during list flings.
+- Video hardware failure disables only that tile and retries its existing voice as audio, with visible Stack warning and private failure record; never silently degrade source quality or discard a singer for a decorative renderer.
+- 1.15.71 exact build/lint/188 JVM tests and both API 36 cache/six-take tests passed; package/code201 and pinned signing verified, privacy audit passed. No 1.15.71 APK promoted; new 1.15.72 feature verification pending.
 
 ### October 4 — Stack stability refinement (source only)
 

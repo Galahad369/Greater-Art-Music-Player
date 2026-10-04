@@ -13,6 +13,8 @@ data class StackSlot(
     val error: String? = null,
     val resolvedDurationMs: Long = 0L,
     val offsetMs: Long = 0L,
+    /** A failed decorative video does not make its audio voice unavailable. */
+    val videoUnavailable: Boolean = false,
 )
 
 data class StackSession(
@@ -156,6 +158,7 @@ object StackPlayback {
     internal var loopCommand: ((Boolean) -> Unit)? = null
     internal var offsetsCommand: ((Map<String, Long>) -> Unit)? = null
     internal var stopCommand: (() -> Unit)? = null
+    internal var videoCommand: ((String, Any, androidx.media3.ui.PlayerView?) -> Unit)? = null
 
     fun start(files: List<MediaFile>): Boolean { transportRevision++; return startCommand?.invoke(files) ?: false }
     fun add(file: MediaFile): Boolean = addCommand?.invoke(file) ?: false
@@ -171,11 +174,15 @@ object StackPlayback {
     fun setOffsets(offsets: Map<String, Long>) { offsetsCommand?.invoke(offsets) }
     fun setOffset(path: String, offsetMs: Long) = setOffsets(mapOf(path to offsetMs))
     fun stop() { transportRevision++; stopCommand?.invoke() }
+    internal fun attachVideo(path: String, owner: Any, view: androidx.media3.ui.PlayerView?) {
+        videoCommand?.invoke(path, owner, view)
+    }
     internal fun publish(session: StackSession) { mutable.value = session }
     internal fun detach() {
         startCommand = null; addCommand = null; removeCommand = null; primaryCommand = null
         volumeCommand = null; muteCommand = null; soloCommand = null
         playCommand = null; pauseCommand = null; seekCommand = null; loopCommand = null; offsetsCommand = null; stopCommand = null
+        videoCommand = null
         mutable.value = StackSession()
     }
 }

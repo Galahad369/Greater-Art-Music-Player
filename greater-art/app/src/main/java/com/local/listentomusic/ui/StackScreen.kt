@@ -231,6 +231,12 @@ fun StackScreen(
             }
             if (alignment.failed) Text(uiText(language, "Could not analyse these files", "無法分析這些檔案"),
                 Modifier.padding(horizontal = 8.dp), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.error)
+            val unavailableVideos = session.slots.count { it.videoUnavailable }
+            if (unavailableVideos > 0) Text(
+                uiText(language, "$unavailableVideos video tiles unavailable · audio continues", "$unavailableVideos 個影片畫面無法顯示 · 聲音繼續播放"),
+                Modifier.padding(horizontal = 8.dp, vertical = 4.dp), style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.error,
+            )
             }
             }
         }
