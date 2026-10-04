@@ -76,6 +76,8 @@ class WaveformRepository(context: Context) {
         }
         decodeMutex.withLock {
             // Another caller may have completed while this one waited.
+            // A request that began before Clear must not refill the cleared cache.
+            if (epoch != generation.get()) return@withLock null
             read(cached)?.let {
                 synchronized(memory) { memory[key] = it }
                 _diagnostics.value = WaveformDiagnostics(WaveformStatus.CACHE_HIT, File(path).name)
@@ -100,11 +102,9 @@ class WaveformRepository(context: Context) {
 
     suspend fun clear() = withContext(Dispatchers.IO) {
         decodeMutex.withLock {
-            // A request that began before Clear must not refill the cleared cache.
-            if (epoch != generation.get()) return@withLock null
-        synchronized(memory) { generation.incrementAndGet(); memory.clear() }
-        directory.listFiles()?.forEach { file -> runCatching { file.delete() } }
-        _diagnostics.value = WaveformDiagnostics()
+            synchronized(memory) { generation.incrementAndGet(); memory.clear() }
+            directory.listFiles()?.forEach { file -> runCatching { file.delete() } }
+            _diagnostics.value = WaveformDiagnostics()
         }
     }
 

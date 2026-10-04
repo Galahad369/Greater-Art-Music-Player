@@ -273,11 +273,10 @@ fun SettingsScreen(
                                     ChoiceSetting(
                                         uiText(language, "Background fit", "背景適配"),
                                         uiText(language, "Choose how custom images and videos fill the screen. Cut to screen size is the default.", "選擇自訂圖片與影片如何填滿螢幕。預設為裁切至螢幕大小。"),
-                                        defaultFirst(BackgroundScaleMode.entries.filter { it != BackgroundScaleMode.STRETCH }, BackgroundScaleMode.CROP),
+                                        defaultFirst(BackgroundScaleMode.entries, BackgroundScaleMode.CROP),
                                         preferences.backgroundScaleMode,
                                         { uiText(language, it.label, when (it) {
                                             BackgroundScaleMode.FIT -> "完整顯示"
-                                            BackgroundScaleMode.STRETCH -> "拉伸"
                                             BackgroundScaleMode.CROP -> "裁切填滿"
                                         }) },
                                         onBackgroundScaleMode,

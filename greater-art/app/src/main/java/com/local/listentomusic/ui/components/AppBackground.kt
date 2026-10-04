@@ -246,7 +246,6 @@ private fun BackgroundImage(source: Uri, scaleMode: BackgroundScaleMode) {
             contentDescription = null,
             contentScale = when (scaleMode) {
                 BackgroundScaleMode.FIT -> ContentScale.Fit
-                BackgroundScaleMode.STRETCH -> ContentScale.Crop
                 BackgroundScaleMode.CROP -> ContentScale.Crop
             },
             modifier = Modifier.fillMaxSize(),
@@ -304,7 +303,6 @@ private fun PrimaryVideoBackground(
                     tag = "BACKGROUND"
                     resizeMode = when (scaleMode) {
                         BackgroundScaleMode.FIT -> AspectRatioFrameLayout.RESIZE_MODE_FIT
-                        BackgroundScaleMode.STRETCH -> AspectRatioFrameLayout.RESIZE_MODE_ZOOM
                         BackgroundScaleMode.CROP -> AspectRatioFrameLayout.RESIZE_MODE_ZOOM
                     }
                     setKeepContentOnPlayerReset(true)
@@ -314,7 +312,6 @@ private fun PrimaryVideoBackground(
         update = { view ->
             view.resizeMode = when (scaleMode) {
                 BackgroundScaleMode.FIT -> AspectRatioFrameLayout.RESIZE_MODE_FIT
-                BackgroundScaleMode.STRETCH -> AspectRatioFrameLayout.RESIZE_MODE_ZOOM
                 BackgroundScaleMode.CROP -> AspectRatioFrameLayout.RESIZE_MODE_ZOOM
             }
             if (surfaceActive) {
@@ -408,7 +405,6 @@ private fun BackgroundVideo(
                     useController = false
                     resizeMode = when (scaleMode) {
                         BackgroundScaleMode.FIT -> AspectRatioFrameLayout.RESIZE_MODE_FIT
-                        BackgroundScaleMode.STRETCH -> AspectRatioFrameLayout.RESIZE_MODE_ZOOM
                         BackgroundScaleMode.CROP -> AspectRatioFrameLayout.RESIZE_MODE_ZOOM
                     }
                     setKeepContentOnPlayerReset(true)
@@ -419,7 +415,6 @@ private fun BackgroundVideo(
         update = { view ->
             view.resizeMode = when (scaleMode) {
                 BackgroundScaleMode.FIT -> AspectRatioFrameLayout.RESIZE_MODE_FIT
-                BackgroundScaleMode.STRETCH -> AspectRatioFrameLayout.RESIZE_MODE_ZOOM
                 BackgroundScaleMode.CROP -> AspectRatioFrameLayout.RESIZE_MODE_ZOOM
             }
             if (surfaceActive) {
