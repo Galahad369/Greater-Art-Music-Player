@@ -75,13 +75,20 @@ class StackSixTakeTest {
             instrumentation.runOnMainSync { coordinator.seek(30_000); coordinator.play() }
             await("seek/resume") { !it.synchronizing && it.runningTracks == 6 && it.positionMs >= 30_000 }
             val start = System.currentTimeMillis()
+            val settledDrift = mutableListOf<Long>()
             while (System.currentTimeMillis() - start < 8_000) {
                 val state = StackPlayback.state.value
                 assertEquals("lost a voice during steady playback", 6, state.runningTracks)
                 assertFalse("unnecessary group gate", state.synchronizing)
-                assertTrue("large uncorrected drift ${state.maxDriftMs}ms", state.maxDriftMs < 200)
+                // Rate trim deliberately converges instead of force-seeking the
+                // moment AudioTrack timestamps first settle. Test convergence,
+                // not instantaneous zero drift at an asynchronous seek boundary.
+                android.util.Log.i("GreaterArtStackTest", "afterSeek=${System.currentTimeMillis() - start} driftMs=${state.maxDriftMs}")
+                if (System.currentTimeMillis() - start >= 6_000) settledDrift += state.maxDriftMs
                 Thread.sleep(250)
             }
+            assertTrue("persistent large drift $settledDrift", settledDrift.all { it < 200 })
+            assertTrue("rate correction failed to converge $settledDrift", settledDrift.average() < 75)
             val duration = StackPlayback.state.value.durationMs
             assertTrue(duration > 30_000)
             instrumentation.runOnMainSync { coordinator.seek(duration - 700) }

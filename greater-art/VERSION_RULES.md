@@ -7,7 +7,7 @@ This file is the authoritative version policy for Greater Art. If any handoff no
 ## Machine-checkable state
 
 
-Current source: **1.15.68 (code 198)**
+Current source: **1.15.69 (code 199)**
 Current release state: **SOURCE_ONLY**
 Latest verified APK: **1.15.63 (code 193)**
 Allowed series transition: **1.14.15 -> 1.15.1**
@@ -165,5 +165,7 @@ Previous baseline: 1.13.26 (code 115).
 - 1.15.67 (code 197) — verification repair: pass the existing overlay lambda directly (Kotlin rejects a variable callable reference); bind alignment results to their originating mix and keep thumbnail disk retention bounded after writes. 1.15.66 consumed on this branch and never released. SOURCE_ONLY pending verification.
 
 - 1.15.68 (code 198) — verification follow-up: lint indentation repaired; Stack rows moved from the fixed Now Playing identity header into its flexible searchable list; all Material container/on-background colors follow the chosen palette; DEV no longer covers Sort/Close; real-media cache corruption/reuse and six-voice drift assertions added. 1.15.67 passed 185 JVM tests and six-take device start/seek/resume/loop, but lint prevented release. SOURCE_ONLY pending final verification.
+
+- 1.15.69 (code 199) — device-test correction: rate trim is a convergent recovery, not instantaneous clock equality after a seek. Record post-seek drift and assert uninterrupted six-voice playback plus final-window convergence (<75 ms mean; no persistent 200 ms drift), retaining corruption recovery. 1.15.68 build/lint/187 JVM tests/cache device test passed; instantaneous post-seek assertion failed at 203 ms. SOURCE_ONLY pending final device convergence test; no acoustic synchronization claim.
 
 **No silent builds. No version reuse. No version skips. No APK overwrite/rename/copy.**
