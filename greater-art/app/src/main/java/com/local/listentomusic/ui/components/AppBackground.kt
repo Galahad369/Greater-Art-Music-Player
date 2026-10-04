@@ -160,13 +160,16 @@ fun AppBackground(
         videoSurfaceActive && !listScrolling && (attachCustomVideoBackground || usePrimaryVideoBackground)
 
     Box(modifier.fillMaxSize().graphicsLayer()) {
+        val ambient = artworkBackdrop(null,
+            androidx.compose.material3.MaterialTheme.colorScheme.background.luminance() > .5f, currentPath)
         val videoFallback = mode == AppBackgroundMode.CUSTOM_VIDEO &&
             (preferences.customBackgroundVideoUri == null || !attachCustomVideoBackground) ||
             mode == AppBackgroundMode.CURRENT_VIDEO &&
             !usePrimaryVideoBackground
         val videoMode = mode == AppBackgroundMode.CUSTOM_VIDEO || mode == AppBackgroundMode.CURRENT_VIDEO
         if (visible && (mode == AppBackgroundMode.DEFAULT || videoFallback || (videoMode && !liveVideoSurface))) {
-            DefaultMetalBackground()
+            if (mode == AppBackgroundMode.CURRENT_VIDEO) Box(Modifier.fillMaxSize().background(ambient))
+            else DefaultMetalBackground()
         } else if (visible) {
             Box(Modifier.fillMaxSize().background(androidx.compose.material3.MaterialTheme.colorScheme.background))
         }
@@ -243,7 +246,7 @@ private fun BackgroundImage(source: Uri, scaleMode: BackgroundScaleMode) {
             contentDescription = null,
             contentScale = when (scaleMode) {
                 BackgroundScaleMode.FIT -> ContentScale.Fit
-                BackgroundScaleMode.STRETCH -> ContentScale.FillBounds
+                BackgroundScaleMode.STRETCH -> ContentScale.Crop
                 BackgroundScaleMode.CROP -> ContentScale.Crop
             },
             modifier = Modifier.fillMaxSize(),
@@ -301,7 +304,7 @@ private fun PrimaryVideoBackground(
                     tag = "BACKGROUND"
                     resizeMode = when (scaleMode) {
                         BackgroundScaleMode.FIT -> AspectRatioFrameLayout.RESIZE_MODE_FIT
-                        BackgroundScaleMode.STRETCH -> AspectRatioFrameLayout.RESIZE_MODE_FILL
+                        BackgroundScaleMode.STRETCH -> AspectRatioFrameLayout.RESIZE_MODE_ZOOM
                         BackgroundScaleMode.CROP -> AspectRatioFrameLayout.RESIZE_MODE_ZOOM
                     }
                     setKeepContentOnPlayerReset(true)
@@ -311,7 +314,7 @@ private fun PrimaryVideoBackground(
         update = { view ->
             view.resizeMode = when (scaleMode) {
                 BackgroundScaleMode.FIT -> AspectRatioFrameLayout.RESIZE_MODE_FIT
-                BackgroundScaleMode.STRETCH -> AspectRatioFrameLayout.RESIZE_MODE_FILL
+                BackgroundScaleMode.STRETCH -> AspectRatioFrameLayout.RESIZE_MODE_ZOOM
                 BackgroundScaleMode.CROP -> AspectRatioFrameLayout.RESIZE_MODE_ZOOM
             }
             if (surfaceActive) {
@@ -405,7 +408,7 @@ private fun BackgroundVideo(
                     useController = false
                     resizeMode = when (scaleMode) {
                         BackgroundScaleMode.FIT -> AspectRatioFrameLayout.RESIZE_MODE_FIT
-                        BackgroundScaleMode.STRETCH -> AspectRatioFrameLayout.RESIZE_MODE_FILL
+                        BackgroundScaleMode.STRETCH -> AspectRatioFrameLayout.RESIZE_MODE_ZOOM
                         BackgroundScaleMode.CROP -> AspectRatioFrameLayout.RESIZE_MODE_ZOOM
                     }
                     setKeepContentOnPlayerReset(true)
@@ -416,7 +419,7 @@ private fun BackgroundVideo(
         update = { view ->
             view.resizeMode = when (scaleMode) {
                 BackgroundScaleMode.FIT -> AspectRatioFrameLayout.RESIZE_MODE_FIT
-                BackgroundScaleMode.STRETCH -> AspectRatioFrameLayout.RESIZE_MODE_FILL
+                BackgroundScaleMode.STRETCH -> AspectRatioFrameLayout.RESIZE_MODE_ZOOM
                 BackgroundScaleMode.CROP -> AspectRatioFrameLayout.RESIZE_MODE_ZOOM
             }
             if (surfaceActive) {

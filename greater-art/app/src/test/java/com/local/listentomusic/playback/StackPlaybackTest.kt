@@ -6,6 +6,13 @@ import org.junit.Assert.*
 import org.junit.Test
 
 class StackPlaybackTest {
+    @Test fun controlledCorrectionDoesNotFreezeTheWholeMix() {
+        assertFalse(stackBufferRequiresGate(1300L, 1000L, 2000L))
+        assertFalse(stackBufferRequiresGate(1299L, 1000L, 0L))
+        assertFalse(stackBufferRequiresGate(5000L, 0L, 0L))
+        assertTrue(stackBufferRequiresGate(2000L, 1000L, 2000L))
+        assertTrue(stackBufferRequiresGate(1300L, 1000L, 0L))
+    }
     @Test fun gateNeverReleasesVoicesBeforePrimaryIsReady() {
         assertFalse(stackStartGateCanOpen(false, true, true))
         assertFalse(stackStartGateCanOpen(false, false, true))

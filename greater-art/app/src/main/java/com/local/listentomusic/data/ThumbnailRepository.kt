@@ -47,6 +47,7 @@ class ThumbnailRepository(private val context: Context) {
     private val locks = Array(64) { Mutex() }
     private val pruned = java.util.concurrent.atomic.AtomicBoolean(false)
     private val recentFailures = ConcurrentHashMap<String, Long>()
+    private val generation = java.util.concurrent.atomic.AtomicInteger()
     private val _stats = MutableStateFlow(ThumbnailStats())
     val stats: StateFlow<ThumbnailStats> = _stats.asStateFlow()
     private val memoryCache = object : LruCache<String, Bitmap>(memoryBudgetKb()) {
@@ -54,6 +55,7 @@ class ThumbnailRepository(private val context: Context) {
     }
 
     suspend fun load(file: MediaFile): Bitmap? = withContext(Dispatchers.IO) {
+        val epoch = generation.get()
         if (pruned.compareAndSet(false, true)) pruneDiskCache()
         val key = cacheKey(file)
         memoryCache.get(key)?.let {
@@ -67,7 +69,7 @@ class ThumbnailRepository(private val context: Context) {
             mutex.withLock {
                 memoryCache.get(key)?.let { return@withLock it }
                 readDisk(key)?.let {
-                    memoryCache.put(key, it)
+                    if (generation.get() == epoch) memoryCache.put(key, it)
                     _stats.update { value -> value.copy(diskHits = value.diskHits + 1) }
                     return@withLock it
                 }
@@ -82,8 +84,10 @@ class ThumbnailRepository(private val context: Context) {
                     }
                     return@withLock null
                 }
-                memoryCache.put(key, generated)
-                writeDisk(key, generated)
+                if (generation.get() == epoch) {
+                    memoryCache.put(key, generated)
+                    writeDisk(key, generated)
+                }
                 recentFailures.remove(key)
                 _stats.update { value -> value.copy(generated = value.generated + 1) }
                 generated
@@ -94,10 +98,16 @@ class ThumbnailRepository(private val context: Context) {
     }
 
     suspend fun clear() = withContext(Dispatchers.IO) {
+        generation.incrementAndGet()
+        // Wait for writers before deleting. A finished decode must not refill a
+        // just-cleared cache or race a partially written file into the next read.
+        locks.forEach { it.lock() }
+        try {
         memoryCache.evictAll()
         recentFailures.clear()
         cacheDirectory.listFiles()?.forEach { it.delete() }
         pruned.set(false)
+        } finally { locks.reversed().forEach { it.unlock() } }
         Unit
     }
 
@@ -113,6 +123,7 @@ class ThumbnailRepository(private val context: Context) {
             context.contentResolver.openInputStream(parsed)?.use { BitmapFactory.decodeStream(it, null, options) }
             if (options.outWidth <= 0 || options.outHeight <= 0) return@runCatching null
             options.inJustDecodeBounds = false
+            options.inSampleSize = 1
             while (maxOf(options.outWidth, options.outHeight) / options.inSampleSize > 768) options.inSampleSize *= 2
             return@runCatching context.contentResolver.openInputStream(parsed)?.use { BitmapFactory.decodeStream(it, null, options) }
         }
@@ -248,21 +259,18 @@ class ThumbnailRepository(private val context: Context) {
 
     private fun writeDisk(key: String, bitmap: Bitmap) {
         val destination = File(cacheDirectory, "$key.webp")
-        val temporary = File(cacheDirectory, "$key.tmp")
-        runCatching {
-            FileOutputStream(temporary).use { output ->
+        val atomic = android.util.AtomicFile(destination)
+        var output: FileOutputStream? = null
+        try {
+            output = atomic.startWrite()
                 val format = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
                     Bitmap.CompressFormat.WEBP_LOSSY
                 } else {
                     Bitmap.CompressFormat.PNG
                 }
                 check(bitmap.compress(format, 92, output))
-            }
-            if (!temporary.renameTo(destination)) {
-                temporary.copyTo(destination, overwrite = true)
-                temporary.delete()
-            }
-        }.onFailure { temporary.delete() }
+            atomic.finishWrite(output)
+        } catch (_: Exception) { output?.let { atomic.failWrite(it) } }
     }
 
     private fun cacheKey(file: MediaFile): String {

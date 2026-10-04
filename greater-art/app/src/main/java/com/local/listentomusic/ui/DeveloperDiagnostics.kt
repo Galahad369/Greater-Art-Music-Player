@@ -76,7 +76,7 @@ internal fun DeveloperDiagnostics(
     val summary = remember(report) {
         report.lineSequence().filter {
             it.startsWith("screen=") || it.startsWith("playing=") ||
-                it.startsWith("playerState=") || it.startsWith("warnings=")
+                it.startsWith("playerState=") || it.startsWith("warnings=") || it.startsWith("failure=") || it.startsWith("exit reason=")
         }.toList()
     }
 

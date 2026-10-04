@@ -55,7 +55,7 @@ class WaveformRepository(context: Context) {
     val diagnostics: StateFlow<WaveformDiagnostics> = _diagnostics.asStateFlow()
     // The player screen and media-transition warmup may request the same file at
     // once. One decoder prevents duplicate full-file work and codec contention.
-    private val decodeMutex = Mutex()
+    private val decodeMutex = OfflineAnalysisBudget.mutex
     private val memory = object : LinkedHashMap<String, FloatArray>(32, 0.75f, true) {
         override fun removeEldestEntry(eldest: MutableMap.MutableEntry<String, FloatArray>?) = size > 32
     }
@@ -96,9 +96,11 @@ class WaveformRepository(context: Context) {
     }
 
     suspend fun clear() = withContext(Dispatchers.IO) {
+        decodeMutex.withLock {
         synchronized(memory) { memory.clear() }
         directory.listFiles()?.forEach { file -> runCatching { file.delete() } }
         _diagnostics.value = WaveformDiagnostics()
+        }
     }
 
     private suspend fun decode(path: String): FloatArray? {
@@ -283,6 +285,7 @@ class WaveformRepository(context: Context) {
 
     private fun read(file: File): FloatArray? = runCatching {
         if (!file.isFile) return null
+        if (file.length() != 4L + BINS * 4L) return null
         DataInputStream(file.inputStream().buffered()).use { input ->
             val count = input.readInt()
             if (count != BINS) return null
@@ -291,15 +294,17 @@ class WaveformRepository(context: Context) {
     }.getOrNull()
 
     private fun write(file: File, values: FloatArray) {
-        val temporary = File(file.parentFile, "${file.name}.tmp")
-        DataOutputStream(temporary.outputStream().buffered()).use { output ->
+        val atomic = android.util.AtomicFile(file)
+        val stream = atomic.startWrite()
+        try {
+        val output = DataOutputStream(stream.buffered())
             output.writeInt(values.size)
             values.forEach(output::writeFloat)
-        }
-        if (!temporary.renameTo(file)) {
-            temporary.copyTo(file, overwrite = true)
-            temporary.delete()
-        }
+            output.flush()
+            atomic.finishWrite(stream)
+        } catch (failure: Exception) { atomic.failWrite(stream); throw failure }
+        directory.listFiles()?.filter { it.extension == "bin" }?.sortedByDescending { it.lastModified() }
+            ?.drop(64)?.forEach { it.delete() }
     }
 
     private companion object {

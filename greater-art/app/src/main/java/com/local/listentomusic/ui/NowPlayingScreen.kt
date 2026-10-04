@@ -282,7 +282,7 @@ fun NowPlayingScreen(
         }
 
         val backdrop = com.local.listentomusic.ui.components.artworkBackdrop(
-        artwork, MaterialTheme.colorScheme.background.luminance() > .5f,
+        artwork, MaterialTheme.colorScheme.background.luminance() > .5f, playback.currentPath,
     )
     BoxWithConstraints(
             modifier = Modifier.fillMaxSize().padding(PaddingValues(horizontal = 0.dp, vertical = contentPadding.calculateTopPadding()))
@@ -1436,7 +1436,7 @@ private fun WaveformTimeline(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun CompactSlider(
+internal fun CompactSlider(
     value: Float,
     onValueChange: (Float) -> Unit,
     onValueChangeFinished: () -> Unit,
@@ -1444,6 +1444,7 @@ private fun CompactSlider(
     enabled: Boolean,
     activeColor: Color,
     inactiveColor: Color,
+    modifier: Modifier = Modifier,
 ) {
     val range = valueRange.endInclusive - valueRange.start
     val interactions = remember { MutableInteractionSource() }
@@ -1466,7 +1467,7 @@ private fun CompactSlider(
         valueRange = valueRange,
         enabled = enabled,
         interactionSource = interactions,
-        modifier = Modifier.fillMaxWidth().height(22.dp).inspectElement("PLAYBACK_TIMELINE", "Drag to seek playback"),
+        modifier = modifier.fillMaxWidth().height(48.dp).inspectElement("PLAYBACK_TIMELINE", "Drag to seek playback"),
         thumb = { _ ->
             // Soft glow and radial-gradient core keep the thumb visible without visual bulk.
             Box(Modifier.size(20.dp).graphicsLayer { scaleX = thumbScale.value; scaleY = thumbScale.value }, contentAlignment = Alignment.Center) {

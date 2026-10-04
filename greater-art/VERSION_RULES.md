@@ -7,7 +7,7 @@ This file is the authoritative version policy for Greater Art. If any handoff no
 ## Machine-checkable state
 
 
-Current source: **1.15.65 (code 195)**
+Current source: **1.15.66 (code 196)**
 Current release state: **SOURCE_ONLY**
 Latest verified APK: **1.15.63 (code 193)**
 Allowed series transition: **1.14.15 -> 1.15.1**
@@ -159,5 +159,7 @@ Previous baseline: 1.13.26 (code 115).
 - 1.15.63 (code 193) — aspect-preserving background policy: legacy saved STRETCH resolves to CROP and the picker offers only Crop/Whole-frame fit. Primary video FIT remains unchanged. Exact app source `aaf1304`; 181 JVM tests, lint and assemble passed; API 36 six-take emulator smoke checks passed; immutable verified APK SHA-256 `718385f181b65c480fc264a1117961a79d3e243de932bba168cd06d30a71f5d2`. State: VERIFIED.
 - 1.15.64 (code 194) — CURRENT_VIDEO background surface-lease repair. Source was built/smoke-tested and a local hash was recorded in HANDOFF, but `releases/GreaterArt-1.15.64.apk` is absent from the current Git tree; under rules 5–7 the canonical repository state therefore remains SOURCE_ONLY and 1.15.63 is the latest committed verified APK.
 - 1.15.65 (code 195) — audit hardening: skip dot-prefixed hidden media/CUE entries (including Android .trashed/.pending and macOS AppleDouble stubs); share one successful Download scan for 15 seconds across Android Auto/Assistant browse/search callbacks with exclusion-set invalidation; narrow overlay addView recovery from Throwable to RuntimeException; untrack/ignore .lh editor-history snapshots. SOURCE_ONLY pending CI/device verification.
+
+- 1.15.66 (code 196) — Stack stability refinement: shared Library-family header, exclusive Stack transport, session-owned alignment, controlled-seek versus real-stall recovery, shared/atomic caches, live compositor-derived Ambient gradients, theme container coherence and bounded private failure/exit records. Six-take device regression added. SOURCE_ONLY pending build/device verification; preserves reviewed Grok/Opus algorithms and primary source quality.
 
 **No silent builds. No version reuse. No version skips. No APK overwrite/rename/copy.**

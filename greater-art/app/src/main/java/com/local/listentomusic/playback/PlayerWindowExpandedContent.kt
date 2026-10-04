@@ -198,12 +198,13 @@ internal fun PlayerWindowExpandedContent(
             }
             if (settings.developerMode) {
                 val engine by PlaybackDiagnostics.report.collectAsState()
+                val failure by com.local.listentomusic.diagnostics.CrashReports.latest.collectAsState()
                 DeveloperDiagnostics(
                     report = "version=${com.local.listentomusic.BuildConfig.VERSION_NAME}\nscreen=NOW_PLAYING\n" +
                         "playing=${playback.isPlaying} playerWindowMode=EXPANDED\n" +
                         "controllerId=${System.identityHashCode(controller)} playerViewId=${System.identityHashCode(videoView)}\n" +
                         "position=${playback.positionMs} duration=${playback.durationMs} queue=${queue.size}\n" +
-                        VideoSurfaceOwner.describe() + "\nAUDIO ENGINE\n" + engine,
+                        VideoSurfaceOwner.describe() + "\nAUDIO ENGINE\n" + engine + "\n" + failure,
                     regions = inspector.regions.values.map { "${it.label}: ${it.detail}" },
                     warning = playback.errorMessage != null,
                     inspector = inspector,

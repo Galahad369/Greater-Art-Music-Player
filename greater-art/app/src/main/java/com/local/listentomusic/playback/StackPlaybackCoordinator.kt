@@ -46,6 +46,8 @@ internal class StackPlaybackCoordinator(
         var rateTrim = 1f
         var seekLeadMs = STACK_INITIAL_SEEK_LEAD_MS
         var measuringSeekResidual = false
+        var bufferingSinceMs = 0L
+        var controlledSeekUntilMs = 0L
 
         fun resetDrift(nowMs: Long) {
             driftEma = 0.0
@@ -71,6 +73,7 @@ internal class StackPlaybackCoordinator(
     private var gateDeadlineMs = 0L
     private var armingGate = false
     private var lastPublishMs = 0L
+    private var lastFailureReportMs = 0L
     private val mainHandler = Handler(Looper.getMainLooper())
     private val gated: Boolean get() = gateDeadlineMs != 0L
     val active: Boolean get() = slots.isNotEmpty()
@@ -95,7 +98,13 @@ internal class StackPlaybackCoordinator(
     }
 
     private fun safePlayer(op: () -> Unit) {
-        runCatching(op)
+        try { op() } catch (failure: Exception) {
+            val now = SystemClock.elapsedRealtime()
+            if (now - lastFailureReportMs > 5_000L) {
+                lastFailureReportMs = now
+                com.local.listentomusic.diagnostics.CrashReports.recordRecoverable("stack-player", failure)
+            }
+        }
     }
 
     private fun releaseVoice(voice: Voice) {
@@ -124,7 +133,8 @@ internal class StackPlaybackCoordinator(
                         if (playbackState == Player.STATE_BUFFERING) {
                             onMain {
                                 val voice = voices.firstOrNull { it.player === engine }
-                                if (active && playing && !gated && voice != null && voiceInWindow(voice, position())) armStartGate()
+                                if (voice != null && voice.bufferingSinceMs == 0L)
+                                    voice.bufferingSinceMs = SystemClock.elapsedRealtime()
                             }
                         }
                         if (playbackState != Player.STATE_READY) return
@@ -240,6 +250,7 @@ internal class StackPlaybackCoordinator(
 
     private fun onVoiceReady(player: ExoPlayer) {
         if (released || !active) return
+        voices.firstOrNull { it.player === player }?.bufferingSinceMs = 0L
         if (gated) { tryOpenStartGate(); return }
         if (!playing || !main.isPlaying) return
         val voice = voices.firstOrNull { it.player === player } ?: return
@@ -294,6 +305,7 @@ internal class StackPlaybackCoordinator(
         when (stackSyncAction(voice.driftEma, nowMs - voice.lastSeekMs)) {
             StackSyncAction.SEEK -> {
                 applyRate(voice, 1f)
+                voice.controlledSeekUntilMs = nowMs + STACK_CONTROLLED_SEEK_GRACE_MS
                 voice.player.seekTo(boundedSeek(rawTarget + voice.seekLeadMs, duration))
                 voice.lastSeekMs = nowMs
                 voice.measuringSeekResidual = true
@@ -660,7 +672,10 @@ internal class StackPlaybackCoordinator(
                 slots[index] = slots[index].copy(resolvedDurationMs = resolved)
             }
         }
-        StackPlayback.publish(StackSession(slots.toList(), primaryPath, position(), sessionDuration(), playing, loopEnabled))
+        val running = (if (main.isPlaying) 1 else 0) + voices.count { it.player.isPlaying }
+        val drift = voices.filter { it.player.isPlaying && it.hasDrift }.maxOfOrNull { kotlin.math.abs(it.driftEma).toLong() } ?: 0L
+        StackPlayback.publish(StackSession(slots.toList(), primaryPath, position(), sessionDuration(), playing, loopEnabled,
+            synchronizing = gated, runningTracks = running, maxDriftMs = drift))
     }
 
     private fun startTicker() {
@@ -695,6 +710,11 @@ internal class StackPlaybackCoordinator(
                     if (playing && !gated && main.isPlaying) {
                         val master = position()
                         val nowMs = SystemClock.elapsedRealtime()
+                        val stalled = voices.any { voice ->
+                            voice.player.playbackState == Player.STATE_BUFFERING && voiceInWindow(voice, master) &&
+                                stackBufferRequiresGate(nowMs, voice.bufferingSinceMs, voice.controlledSeekUntilMs)
+                        }
+                        if (stalled) { armStartGate(master); publish(); continue }
                         voices.toList().forEach { voice -> safePlayer { syncVoice(voice, master, nowMs) } }
                     }
                 }

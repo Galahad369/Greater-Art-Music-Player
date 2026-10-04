@@ -4,7 +4,7 @@ This file describes the **current repository state only**. Historical session no
 
 **Project:** `greater-art/` in the repository checkout
 **Current version:** `1.15.63 (code 193)`
-**Current source:** `1.15.65 (code 195)`
+**Current source:** `1.15.66 (code 196)`
 **Release state:** `SOURCE_ONLY`
 **Latest APK:** `releases/GreaterArt-1.15.63.apk` (`26,500,725 bytes`; SHA-256 `718385f181b65c480fc264a1117961a79d3e243de932bba168cd06d30a71f5d2`)
 **1.15.64 verification note:** source was built/smoke-tested and hash `e21994f96f561dc2980eb3c16953acbeed2c42f16651cce65353d592a8a162ba` was recorded, but `releases/GreaterArt-1.15.64.apk` is absent from the current Git tree, so it is not the canonical committed release artifact.
@@ -15,6 +15,17 @@ This file describes the **current repository state only**. Historical session no
 **Latest predecessor verification evidence (1.15.64/code194):** `./gradlew testDebugUnitTest lintDebug :app:assembleDebug --offline` passed; `aapt dump badging` confirmed package `com.local.listentomusic`, versionName `1.15.64`, versionCode `194`; the build was installed on A55/API 36 and exercised for launch, library scan/load, local audio/video playback, prev/next/seek/pause/resume, playlist/Favorites playback, duplicate queue independence, Stack→Library/playlist transition, queue/Library add-to-list, Library delete three-confirm flow, and mini-window/fullscreen/return flows with **0 FATAL EXCEPTION** in that tested session. This evidence does not verify 1.15.65.
 
 ## Repository state
+
+### October 4 — Stack stability refinement (source only)
+
+- Remote audit found only `main` and no open PRs. Reviewed Grok alignment and Opus/v0 readiness/rate-trim work already merged into main; retained contributor attribution and source-quality policy.
+- Library, Nodes and Stack share one Library top bar. Stack suppresses only the duplicate dock while its own transport is visible; leaving the app still permits Detached. Its timeline is compact, touch-accessible, with actual running-track/readiness status and direct primary-player access.
+- Companion correction seeks no longer immediately pause the whole Stack. Genuine stalls regroup after a short decoder grace interval; controlled correction gets its own bounded recovery interval. Start/seek/loop gates retain the primary timeline.
+- Sound alignment is owned by a playback-session controller, not a disposable pager composition. Navigating away does not cancel it. Stop/restart/seek/primary or membership changes invalidate stale results; user transport changes prevent unwanted automatic resume.
+- ViewModels share thumbnail/waveform repositories. Offline waveform/alignment decoders share a budget separate from primary playback. Cache writes are atomic, malformed/truncated feature files are rejected, and a failed cache write does not discard a successful analysis. Cache-clear waits for thumbnail writers.
+- Ambient gradients sample tiny compositor frames from the existing video surface and smoothly transition between representative colors. No second decoder, video proxy, source-resolution/FPS/bitrate cap or stretch renderer. Artwork remains the fallback. Decorative readback yields during list scrolling.
+- Theme tonal containers inherit the selected palette instead of default Material lavender. Bounded app-private failure stacks and Android process-exit reasons appear in Dev diagnostics; exception messages/media paths are excluded and no network permission is added.
+- Verification pending: build, six actual local takes through start/seek/resume/loop, alignment/cache reuse, three-page layout, overlay/fullscreen recovery. Emulator state is not acoustic/phase-lock proof. Nanosecond alignment and variable-tempo time warping are not claimed.
 
 ### October 4 — 1.15.65 audit hardening (source only)
 

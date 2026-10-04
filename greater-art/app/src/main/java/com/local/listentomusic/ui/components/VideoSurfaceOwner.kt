@@ -34,6 +34,14 @@ object VideoSurfaceOwner {
     val fullscreenActivityActive: Boolean get() = fullscreenActivity
     val expandedOverlayActive: Boolean
         get() = unifiedExpanded || fullscreenActivity || systemOverlayOwners.containsValue("NOW_PLAYING")
+    internal fun ambientSource(): Pair<String, android.view.View>? {
+        if (!foreground && !systemOverlayActive && !fullscreenActivity) return null
+        val view = active.get() ?: return null
+        val player = view.player ?: return null
+        if (!player.isPlaying || player.videoSize.width <= 0) return null
+        val id = player.currentMediaItem?.mediaId ?: return null
+        return view.videoSurfaceView?.let { id to it }
+    }
     fun setUnifiedExpanded(value: Boolean) {
         if (unifiedExpanded == value) return
         unifiedExpanded = value

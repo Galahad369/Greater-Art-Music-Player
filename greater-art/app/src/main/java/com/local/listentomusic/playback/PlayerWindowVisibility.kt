@@ -15,6 +15,7 @@ internal object PlayerWindowVisibility {
     private var libraryVisible = false
     private var expandedVisible = false
     private var windowFocused = true
+    private var stackTransportVisible = false
     private val detached = MutableStateFlow(true)
     private val library = MutableStateFlow(false)
     private val docked = MutableStateFlow(false)
@@ -28,6 +29,7 @@ internal object PlayerWindowVisibility {
     // taps intended for Add/Save/Delete. Focus gates only the dock, not detached.
     fun windowFocus(focused: Boolean) { windowFocused = focused; publish() }
     fun library(visible: Boolean) { libraryVisible = visible; library.value = visible; publish() }
+    fun stackTransport(visible: Boolean) { stackTransportVisible = visible; publish() }
     fun expanded(visible: Boolean) {
         expandedVisible = visible
         expanded.value = visible
@@ -35,6 +37,6 @@ internal object PlayerWindowVisibility {
     }
     private fun publish() {
         detached.value = showDetachedPlayer(appVisible, expandedVisible)
-        docked.value = showDockedPlayer(appVisible, libraryVisible, expandedVisible, windowFocused)
+        docked.value = showDockedPlayer(appVisible, libraryVisible, expandedVisible, windowFocused) && !stackTransportVisible
     }
 }

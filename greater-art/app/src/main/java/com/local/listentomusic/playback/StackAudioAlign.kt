@@ -85,7 +85,7 @@ class StackAudioAlign(context: Context) {
             val cached = runCatching {
                 DataInputStream(target.inputStream().buffered()).use { input ->
                     val n = input.readInt()
-                    require(n in 1..FEATURE_BINS)
+                    require(n in 150..FEATURE_BINS && target.length() == 4L + n * 4L * (1 + CHROMA_SIZE))
                     val envelope = FloatArray(n) {
                         input.readFloat().also { value -> require(value.isFinite() && value >= 0f) }
                     }
@@ -97,25 +97,33 @@ class StackAudioAlign(context: Context) {
                     StackAudioFeatures(envelope, chroma)
                 }
             }.getOrNull()
-            if (cached != null) return@withLock cached
+            if (cached != null) {
+                target.setLastModified(System.currentTimeMillis())
+                return@withLock cached
+            }
 
-            val decoded = decode(file)
+            val decoded = com.local.listentomusic.data.OfflineAnalysisBudget.mutex.withLock { decode(file) }
             coroutineContext.ensureActive()
-            val temporary = File(cache, "$key.tmp")
+            val atomic = android.util.AtomicFile(target)
+            var stream: java.io.FileOutputStream? = null
             try {
-                DataOutputStream(temporary.outputStream().buffered()).use { output ->
+                stream = atomic.startWrite()
+                val output = DataOutputStream(stream.buffered())
                     output.writeInt(decoded.envelope.size)
                     decoded.envelope.forEach(output::writeFloat)
                     decoded.chroma.forEach { frame -> frame.forEach(output::writeFloat) }
-                }
-                if (!temporary.renameTo(target)) temporary.delete()
+                output.flush()
+                atomic.finishWrite(stream)
                 cache.listFiles()
                     ?.filter { it.extension == "bin" }
                     ?.sortedByDescending { it.lastModified() }
                     ?.drop(CACHE_LIMIT)
                     ?.forEach { it.delete() }
+            } catch (_: java.io.IOException) {
+                // A full/evicted cache must not discard a successful alignment.
+                stream?.let { atomic.failWrite(it) }
             } finally {
-                temporary.delete()
+                stream?.let { runCatching { it.close() } }
             }
             decoded
         }
