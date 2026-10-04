@@ -11,7 +11,7 @@ This file describes the **current repository state only**. Historical session no
 **Signing certificate SHA-256:** `9e28eb45b3b171c3ea47d7da942d28d88b16538885e392a6971a80906d612fbf`
 **Build date:** `2026-10-04`
 **Test device:** `GreaterArt_A55_API36 (A55-sized emulator, API 36, Android 16)`
-**Current source:** `1.15.63/code193`, app source aaf1304, reviewed in PR #115. Intermediate identities 1.15.59–62 are consumed; never reuse them. No 1.16.1 claim without real-device listening evidence.
+**Latest verified source:** `1.15.63/code193`, app source aaf1304, reviewed in PR #115. Intermediate identities 1.15.59–62 are consumed; never reuse them. No 1.16.1 claim without real-device listening evidence.
 
 ## Repository state
 
