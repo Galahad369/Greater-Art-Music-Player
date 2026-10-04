@@ -331,7 +331,7 @@ fun GreaterArtApp(
                                                                                     savedStacks = settings.savedStacks,
                                                                                     onSaveStack = viewModel::saveStack,
                                                                                     onDeleteStack = viewModel::deleteStack,
-                                                                                    onOpenPlayer = ::openNowPlayingOverlay,
+                                                                                    onOpenPlayer = openNowPlayingOverlay,
                                                                                 )
                                                                             } else if (page == 2) {
                                                                                 NodesScreen(

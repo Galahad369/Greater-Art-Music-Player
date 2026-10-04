@@ -66,7 +66,9 @@ fun StackScreen(
 ) {
     val session by StackPlayback.state.collectAsStateWithLifecycle()
     val context = LocalContext.current.applicationContext
-    val alignment by StackAlignmentController.state.collectAsStateWithLifecycle()
+    val alignmentState by StackAlignmentController.state.collectAsStateWithLifecycle()
+    val alignment = if (alignmentState.primaryPath == session.primaryPath && alignmentState.paths == session.slots.map { it.file.path })
+        alignmentState else com.local.listentomusic.playback.StackAlignmentProgress()
     val alignProgress = if (alignment.running) "${uiText(language, "Aligning by sound", "正在按聲音對齊")} ${alignment.completed}/${alignment.total}" else null
     var stagedPaths by rememberSaveable { mutableStateOf(emptyList<String>()) }
     val staged = remember(files, stagedPaths) {

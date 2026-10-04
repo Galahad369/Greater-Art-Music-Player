@@ -4,7 +4,7 @@ This file describes the **current repository state only**. Historical session no
 
 **Project:** `greater-art/` in the repository checkout
 **Current version:** `1.15.63 (code 193)`
-**Current source:** `1.15.66 (code 196)`
+**Current source:** `1.15.67 (code 197)`
 **Release state:** `SOURCE_ONLY`
 **Latest APK:** `releases/GreaterArt-1.15.63.apk` (`26,500,725 bytes`; SHA-256 `718385f181b65c480fc264a1117961a79d3e243de932bba168cd06d30a71f5d2`)
 **1.15.64 verification note:** source was built/smoke-tested and hash `e21994f96f561dc2980eb3c16953acbeed2c42f16651cce65353d592a8a162ba` was recorded, but `releases/GreaterArt-1.15.64.apk` is absent from the current Git tree, so it is not the canonical committed release artifact.
@@ -17,6 +17,8 @@ This file describes the **current repository state only**. Historical session no
 ## Repository state
 
 ### October 4 — Stack stability refinement (source only)
+
+- 1.15.66 compile verification caught a Kotlin callable-reference error on an existing lambda. Corrected at 1.15.67; no 1.15.66 APK was released. Alignment results now identify their source mix, and thumbnail retention also runs after writes.
 
 - Remote audit found only `main` and no open PRs. Reviewed Grok alignment and Opus/v0 readiness/rate-trim work already merged into main; retained contributor attribution and source-quality policy.
 - Library, Nodes and Stack share one Library top bar. Stack suppresses only the duplicate dock while its own transport is visible; leaving the app still permits Detached. Its timeline is compact, touch-accessible, with actual running-track/readiness status and direct primary-player access.

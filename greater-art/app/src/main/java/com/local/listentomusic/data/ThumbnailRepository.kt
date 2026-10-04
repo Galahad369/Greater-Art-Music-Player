@@ -90,6 +90,7 @@ class ThumbnailRepository(private val context: Context) {
                 }
                 recentFailures.remove(key)
                 _stats.update { value -> value.copy(generated = value.generated + 1) }
+                if (_stats.value.generated % 32 == 0) pruneDiskCache()
                 generated
             }
         } finally {
@@ -284,7 +285,7 @@ class ThumbnailRepository(private val context: Context) {
 
     private fun pruneDiskCache() {
         runCatching {
-            val files = cacheDirectory.listFiles()?.filter { it.isFile }.orEmpty()
+            val files = cacheDirectory.listFiles()?.filter { it.isFile && it.extension == "webp" }.orEmpty()
                 .sortedByDescending { it.lastModified() }
             var retainedBytes = 0L
             files.forEachIndexed { index, file ->

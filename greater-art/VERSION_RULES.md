@@ -7,7 +7,7 @@ This file is the authoritative version policy for Greater Art. If any handoff no
 ## Machine-checkable state
 
 
-Current source: **1.15.66 (code 196)**
+Current source: **1.15.67 (code 197)**
 Current release state: **SOURCE_ONLY**
 Latest verified APK: **1.15.63 (code 193)**
 Allowed series transition: **1.14.15 -> 1.15.1**
@@ -161,5 +161,7 @@ Previous baseline: 1.13.26 (code 115).
 - 1.15.65 (code 195) — audit hardening: skip dot-prefixed hidden media/CUE entries (including Android .trashed/.pending and macOS AppleDouble stubs); share one successful Download scan for 15 seconds across Android Auto/Assistant browse/search callbacks with exclusion-set invalidation; narrow overlay addView recovery from Throwable to RuntimeException; untrack/ignore .lh editor-history snapshots. SOURCE_ONLY pending CI/device verification.
 
 - 1.15.66 (code 196) — Stack stability refinement: shared Library-family header, exclusive Stack transport, session-owned alignment, controlled-seek versus real-stall recovery, shared/atomic caches, live compositor-derived Ambient gradients, theme container coherence and bounded private failure/exit records. Six-take device regression added. SOURCE_ONLY pending build/device verification; preserves reviewed Grok/Opus algorithms and primary source quality.
+
+- 1.15.67 (code 197) — verification repair: pass the existing overlay lambda directly (Kotlin rejects a variable callable reference); bind alignment results to their originating mix and keep thumbnail disk retention bounded after writes. 1.15.66 consumed on this branch and never released. SOURCE_ONLY pending verification.
 
 **No silent builds. No version reuse. No version skips. No APK overwrite/rename/copy.**
