@@ -7,8 +7,8 @@ This file is the authoritative version policy for Greater Art. If any handoff no
 ## Machine-checkable state
 
 
-Current source: **1.15.63 (code 193)**
-Current release state: **VERIFIED**
+Current source: **1.15.64 (code 194)**
+Current release state: **SOURCE_ONLY**
 Latest verified APK: **1.15.63 (code 193)**
 Allowed series transition: **1.14.15 -> 1.15.1**
 Allowed consumed transition: **1.15.13 (code 143) -> 1.15.17 (code 147)**
@@ -157,5 +157,6 @@ Previous baseline: 1.13.26 (code 115).
 - 1.15.62 (code 192) — emulator end-seek exposed stale Media3 position overwriting the barrier's requested seek anchor. Gates now preserve the frozen/requested master timeline through asynchronous seek acknowledgement. SOURCE_ONLY pending verification.
 
 - 1.15.63 (code 193) — aspect-preserving background policy: legacy saved STRETCH resolves to CROP and the picker offers only Crop/Whole-frame fit. Primary video FIT remains unchanged. Exact app source `aaf1304`; 181 JVM tests, lint and assemble passed; API 36 six-take emulator smoke checks passed; immutable verified APK SHA-256 `718385f181b65c480fc264a1117961a79d3e243de932bba168cd06d30a71f5d2`. State: VERIFIED.
+- 1.15.64 (code 194) — CURRENT_VIDEO background surface-lease repair: register the BACKGROUND PlayerView candidate before claiming background ownership, and relinquish BACKGROUND before detaching during list-fling/hidden states. Prevents expectedOwner from pointing at a missing surface and blanking the app/player background. Adds regression coverage for lease availability. SOURCE_ONLY pending CI/device verification.
 
 **No silent builds. No version reuse. No version skips. No APK overwrite/rename/copy.**

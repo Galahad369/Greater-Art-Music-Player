@@ -65,6 +65,11 @@ internal fun shouldUsePrimaryVideoBackground(
     controllerAvailable: Boolean,
 ): Boolean = visible && allowVideoBackground && isVideo && controllerAvailable
 
+internal fun shouldClaimCurrentVideoBackground(
+    usePrimaryVideoBackground: Boolean,
+    surfaceActive: Boolean,
+): Boolean = usePrimaryVideoBackground && surfaceActive
+
 @Composable
 fun AppBackground(
     preferences: UserPreferences,
@@ -258,10 +263,9 @@ private fun PrimaryVideoBackground(
     // CURRENT_VIDEO is a presentation lease on the real player. There is no secondary
     // ExoPlayer, no duplicate decode, and therefore no decoder-to-decoder drift.
     DisposableEffect(controller) {
-        VideoSurfaceOwner.setCurrentVideoBackgroundActive(true)
         onDispose {
-            // Change expected owner first so reconcile can switch directly to an already
-            // registered Mini/Now Playing surface before this background view detaches.
+            // Relinquish expected ownership before removing the candidate so reconcile can
+            // switch directly to Library/Now Playing without a no-surface interval.
             VideoSurfaceOwner.setCurrentVideoBackgroundActive(false)
             videoView?.let(VideoSurfaceOwner::detach)
         }
@@ -312,8 +316,19 @@ private fun PrimaryVideoBackground(
             }
             if (surfaceActive) {
                 view.visibility = android.view.View.VISIBLE
+                // Register the candidate first. Claiming BACKGROUND before registration can
+                // make expectedOwner point at a missing surface and blank the player.
                 VideoSurfaceOwner.attachBackground(controller, view)
+                VideoSurfaceOwner.setCurrentVideoBackgroundActive(
+                    shouldClaimCurrentVideoBackground(
+                        usePrimaryVideoBackground = true,
+                        surfaceActive = surfaceActive,
+                    ),
+                )
             } else {
+                // During fling/hidden states give ownership back before detaching the
+                // background candidate. This keeps the primary surface continuously owned.
+                VideoSurfaceOwner.setCurrentVideoBackgroundActive(false)
                 VideoSurfaceOwner.detach(view)
                 view.visibility = android.view.View.GONE
             }
