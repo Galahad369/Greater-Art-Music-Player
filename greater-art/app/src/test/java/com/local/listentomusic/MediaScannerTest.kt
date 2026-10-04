@@ -42,6 +42,20 @@ class MediaScannerTest {
     }
 
     @Test
+    fun ignoresTrashedPendingAppleDoubleAndHiddenCueFiles() {
+        Files.write(root.resolve("keep.mp3"), byteArrayOf(1))
+        Files.write(root.resolve("my.song.v2.mp3"), byteArrayOf(2))
+        Files.write(root.resolve(".trashed-1790000000-gone.mp3"), byteArrayOf(3))
+        Files.write(root.resolve(".pending-1790000000-partial.flac"), byteArrayOf(4))
+        Files.write(root.resolve("._keep.mp3"), byteArrayOf(5))
+        Files.write(root.resolve(".hidden-album.cue"), byteArrayOf(6))
+
+        val names = MediaScanner.scanFolder(root.toFile()).map { it.name }.toSet()
+
+        assertEquals(setOf("keep.mp3", "my.song.v2.mp3"), names)
+    }
+
+    @Test
     fun keepsTheRequestedHiResExtensionsDiscoverable() {
         assertTrue(
             setOf("flac", "alac", "ape", "dsf", "dff", "aiff", "opus")

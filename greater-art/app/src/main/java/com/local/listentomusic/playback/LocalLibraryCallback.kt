@@ -1,6 +1,7 @@
 package com.local.listentomusic.playback
 
 import android.content.Context
+import android.os.SystemClock
 import androidx.media3.common.MediaItem
 import androidx.media3.common.MediaMetadata
 import androidx.media3.session.*
@@ -11,16 +12,60 @@ import com.google.common.util.concurrent.Futures
 import com.google.common.util.concurrent.ListenableFuture
 import com.google.common.util.concurrent.SettableFuture
 import com.local.listentomusic.data.*
+import com.local.listentomusic.model.MediaFile
 import com.local.listentomusic.model.MediaKind
 import kotlinx.coroutines.*
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 
 /** Browsers see audio only. Every requested ID resolves through the permitted local index. */
+internal const val LIBRARY_SCAN_CACHE_TTL_MS = 15_000L
+
+internal fun shouldReuseLibraryScanCache(
+    cachedExcluded: Set<String>?,
+    requestedExcluded: Set<String>,
+    cachedAtMs: Long,
+    nowMs: Long,
+): Boolean =
+    cachedExcluded == requestedExcluded &&
+        cachedAtMs > 0L &&
+        nowMs >= cachedAtMs &&
+        nowMs - cachedAtMs < LIBRARY_SCAN_CACHE_TTL_MS
+
 class LocalLibraryCallback(private val context: Context, private val scope: CoroutineScope) : MediaLibrarySession.Callback {
+    private val preferences = AppPreferences(context.applicationContext)
+    private val scanLock = Mutex()
+    private var cachedFiles: List<MediaFile> = emptyList()
+    private var cachedExcluded: Set<String>? = null
+    private var cachedAtMs = 0L
+
     override fun onConnect(session: MediaSession, controller: MediaSession.ControllerInfo): MediaSession.ConnectionResult {
         if (controller.packageName != context.packageName && !controller.isTrusted) return MediaSession.ConnectionResult.reject()
         return super.onConnect(session, controller)
     }
-    private suspend fun files() = (MediaScanner.scan(AppPreferences(context).current().excludedFolders.toSet()) as? ScanResult.Success)?.files.orEmpty()
+    private suspend fun files(): List<MediaFile> {
+        val excluded = preferences.current().excludedFolders.toSet()
+        return scanLock.withLock {
+            val now = SystemClock.elapsedRealtime()
+            if (shouldReuseLibraryScanCache(cachedExcluded, excluded, cachedAtMs, now)) {
+                return@withLock cachedFiles
+            }
+            when (val scanned = MediaScanner.scan(excluded)) {
+                is ScanResult.Success -> {
+                    cachedFiles = scanned.files
+                    cachedExcluded = excluded
+                    cachedAtMs = now
+                    scanned.files
+                }
+                else -> {
+                    cachedFiles = emptyList()
+                    cachedExcluded = null
+                    cachedAtMs = 0L
+                    emptyList()
+                }
+            }
+        }
+    }
     private fun <T> future(block: suspend () -> T): ListenableFuture<T> {
         val result = SettableFuture.create<T>()
         scope.launch { try { result.set(block()) } catch (error: Exception) { result.setException(error) } }

@@ -43,6 +43,13 @@ object MediaScanner {
         ScanResult.Success(scanFolder(folder, excludedFolders))
     }
 
+    /**
+     * Hidden files are never library items. Android can park trashed/in-progress media beside
+     * originals as dot-prefixed files, and macOS can leave AppleDouble "._name" stubs.
+     * Hidden directories are intentionally unchanged.
+     */
+    internal fun isHiddenEntry(file: File): Boolean = file.name.startsWith(".")
+
     /** Pure folder traversal kept separate so recursive discovery can be unit-tested. */
     internal fun scanFolder(folder: File, excludedFolders: Set<String> = emptySet()): List<MediaFile> {
         val excluded = excludedFolders.map { it.replace('\\', '/').trim('/') }.filter { it.isNotBlank() }.toSet()
@@ -55,8 +62,8 @@ object MediaScanner {
                 }
             }
             .onFail { _, _ -> /* Ignore unreadable children and keep the rest of the library. */ }
-            .onEach { if (it.isFile && it.extension.equals("cue", true)) sheets += it }
-            .filter { it.isFile && it.extension.lowercase() in supportedExtensions }
+            .onEach { if (it.isFile && !isHiddenEntry(it) && it.extension.equals("cue", true)) sheets += it }
+            .filter { it.isFile && !isHiddenEntry(it) && it.extension.lowercase() in supportedExtensions }
             // Keep the launch scan fast: do not open or decode every file here.
             // Thumbnails and expensive metadata are loaded from a bounded background cache.
             .map { file ->

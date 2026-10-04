@@ -107,6 +107,9 @@ id_ed25519*
 !**/sprites/**
 /.hermes
 
+# Editor-local history snapshots are workspace state, not project source.
+/.lh/
+
 # Generated build, emulator, and lint output can reveal workstation identities
 *.log
 **/logs/

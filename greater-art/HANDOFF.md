@@ -3,15 +3,29 @@
 This file describes the **current repository state only**. Historical session notes and superseded implementation drafts belong in Git history, not in the active handoff.
 
 **Project:** `greater-art/` in the repository checkout
-**Current version:** `1.15.64 (code 194)`
-**Latest APK:** `releases/GreaterArt-1.15.64.apk` (`26,484,345 bytes`; SHA-256 `e21994f96f561dc2980eb3c16953acbeed2c42f16651cce65353d592a8a162ba`)
+**Current version:** `1.15.63 (code 193)`
+**Current source:** `1.15.65 (code 195)`
+**Release state:** `SOURCE_ONLY`
+**Latest APK:** `releases/GreaterArt-1.15.63.apk` (`26,500,725 bytes`; SHA-256 `718385f181b65c480fc264a1117961a79d3e243de932bba168cd06d30a71f5d2`)
+**1.15.64 verification note:** source was built/smoke-tested and hash `e21994f96f561dc2980eb3c16953acbeed2c42f16651cce65353d592a8a162ba` was recorded, but `releases/GreaterArt-1.15.64.apk` is absent from the current Git tree, so it is not the canonical committed release artifact.
 **Application ID:** `com.local.listentomusic`
 **Signing certificate SHA-256:** `9e28eb45b3b171c3ea47d7da942d28d88b16538885e392a6971a80906d612fbf`
 **Build date:** `2026-10-04`
 **Test device:** `GreaterArt_A55_API36 (A55-sized emulator, API 36, Android 16)`
-**Verification boundary:** Built from exact source commit `HEAD`; `./gradlew testDebugUnitTest lintDebug :app:assembleDebug --offline` passed; `aapt dump badging` confirms package `com.local.listentomusic`, versionName `1.15.64`, versionCode `194`; signed with personal debug keystore; installed on A55/API 36; launch, library scan/load, local audio/video playback, prev/next/seek/pause/resume, playlist/Favorites playback, duplicate queue independence, Stack→Library/playlist transition, queue/Library add-to-list, Library delete three-confirm flow, mini-window/fullscreen/return flows verified; **0 FATAL EXCEPTION** in tested session.
+**Latest predecessor verification evidence (1.15.64/code194):** `./gradlew testDebugUnitTest lintDebug :app:assembleDebug --offline` passed; `aapt dump badging` confirmed package `com.local.listentomusic`, versionName `1.15.64`, versionCode `194`; the build was installed on A55/API 36 and exercised for launch, library scan/load, local audio/video playback, prev/next/seek/pause/resume, playlist/Favorites playback, duplicate queue independence, Stack→Library/playlist transition, queue/Library add-to-list, Library delete three-confirm flow, and mini-window/fullscreen/return flows with **0 FATAL EXCEPTION** in that tested session. This evidence does not verify 1.15.65.
 
 ## Repository state
+
+### October 4 — 1.15.65 audit hardening (source only)
+
+- Media scanner now ignores dot-prefixed files while intentionally leaving hidden directories traversable. This excludes Android `.trashed-*` / `.pending-*`, macOS AppleDouble `._*`, and hidden CUE stubs from library rows.
+- Android Auto/Assistant library callbacks share one successful recursive Download scan for 15 seconds under a Mutex. Concurrent callers coalesce, exclusion-set changes invalidate immediately, and failed scans are never retained.
+- Mini-window overlay `addView` recovery now catches `RuntimeException` rather than `Throwable`, so recoverable OEM/WindowManager failures remain handled without swallowing JVM `Error` conditions such as OOM.
+- `.lh/` VS Code Local History snapshots are removed from the current tree and ignored going forward.
+- Release metadata corrected: the current Git tree does not contain `GreaterArt-1.15.64.apk`; latest committed verified APK remains 1.15.63.
+- No media quality cap, network permission, new dependency, signing change, or release APK.
+- State: **SOURCE_ONLY** at **1.15.65/code195**.
+
 
 ### October 4 — 1.15.64 CURRENT_VIDEO background lease repair (source only)
 

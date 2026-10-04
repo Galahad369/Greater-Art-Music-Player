@@ -220,7 +220,7 @@ class MiniWindowOverlayService : Service(), LifecycleOwner, ViewModelStoreOwner,
         applyModeLayout()
         try {
             root?.let { wm?.addView(it, params!!) }
-        } catch (t: Throwable) {
+        } catch (error: RuntimeException) {
             // Keep the user's Mini preference intact. A temporary OEM overlay failure
             // must not silently rewrite Settings to a different floating mode.
             stopSelf()
@@ -455,7 +455,7 @@ class MiniWindowOverlayService : Service(), LifecycleOwner, ViewModelStoreOwner,
         crossParams = layout
         try {
             crossView?.let { wm?.addView(it, layout) }
-        } catch (t: Throwable) {
+        } catch (error: RuntimeException) {
             // Some OEMs reject a second overlay window. The player is still useful
             // without the drag-to-close target, so keep it alive.
             crossView = null
