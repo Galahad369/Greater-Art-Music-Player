@@ -6,7 +6,7 @@ Use this workflow when the coding agent has a local clone/check-out and can buil
 
 Before editing:
 
-1. Check out `main` and fetch/prune remotes.
+1. Inspect `git status --short --branch`, current HEAD and concurrent builders before any checkout. Preserve unrelated work. Fetch/prune remotes; use current main as the integration baseline, but continue an already-authorized active branch instead of restarting.
 2. Read `greater-art/VERSION_RULES.md` first. It is authoritative for source version, consumed versions, and release state.
 3. Read the top/current-state sections of `greater-art/HANDOFF.md`.
 4. Inspect existing branches and pull requests before starting overlapping work.
@@ -106,7 +106,7 @@ Re-read:
 
 Confirm there is no accidental downgrade, stale duplicate implementation, generated junk, secret/private data, path leakage, debug-only behavior, or unrelated formatting churn.
 
-Prefer rebase merge for a clean linear patch when the repository state permits it.
+Preserve versioned source commits. Use a checked merge commit with an expected-head guard when its tree exactly matches the reviewed branch parent. Do not squash several consumed versions into one unexplained jump. A conflict-resolution implementation requires another PATCH/code under VERSION_RULES.
 
 ## 9. After merge
 
@@ -124,3 +124,13 @@ Prefer rebase merge for a clean linear patch when the repository state permits i
 - Existing useful work should be reviewed, not blindly merged or discarded.
 - Backlog context is not implementation authorization.
 - Diagnostics should describe reality, not hide it.
+
+## October 2026 regression checklist — lessons, not promises
+
+- **One binary writer:** never let agents/build shells write the same APK or version concurrently. Send text/logs to separate `.log` paths, never `app-debug.apk`. Require a valid ZIP, manifest, signature, alignment, size and SHA-256; repeat the hash just before copying/uploading. A zero exit code or `BUILT` message alone is insufficient. If another operation corrupts output, preserve evidence and rebuild the exact SHA in isolation, or recover the exact installed APK only when its build/install provenance is known and reverified. Never relabel another version.
+- **Windows runtime:** set `JAVA_HOME`, `ANDROID_HOME`, `GRADLE_USER_HOME` and `ANDROID_USER_HOME` explicitly. Validate the Java/Python executable, not a Store alias. ADB's `\\.android`/no-device error can be environment misconfiguration, not missing hardware. Use bounded checks; do not busy-loop unchanging CI.
+- **Wallpaper ownership:** service existence is not Detached visibility. Test Docked, Detached, Expanded, fullscreen and app lifecycle separately; hidden Dock must not permanently outrank BACKGROUND. Register before claiming and relinquish before detaching. One primary surface cannot simultaneously show live video in Dock and wallpaper; disclose the artwork fallback rather than adding an unrequested duplicate decoder.
+- **Stack/audio isolation:** test actual local takes and surface-visible multi-video load, not only a coordinator with no video surfaces. Decorative video must never join the audio readiness barrier. Pause/seek/loop gates follow the primary; large drift seeks are bounded, small drift converges by pitch-preserving rate trim. Snapshot position equality is not acoustic synchronization proof.
+- **Cache safety:** malformed/truncated entries regenerate atomically; cancellation and cache-clear epochs must prevent late writes/refills. Shared ViewModels must not instantiate duplicate caches or analysis jobs. Cache failure cannot discard a valid decoded result.
+- **UI evidence:** take screenshots after the transition settles. Reject failed/null-root `uiautomator` dumps rather than using stale XML. Verify flexible lists, fixed controls, palette contrast and Settings Back with DEV enabled. Record software-emulator dropped frames and real-phone testing limitations honestly.
+- **Documentation gate:** update root/app READMEs, active HANDOFF state, VERSION_RULES, landing-page APK link and both films together. Label films as illustrative, not device captures; remove outdated preload and simultaneous-surface claims. Keep source-only failures in history and explain the actual cause/prevention in the handoff.

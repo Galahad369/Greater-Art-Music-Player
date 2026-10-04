@@ -79,6 +79,9 @@ internal class StackPlaybackCoordinator(
     private var ticker: Job? = null
     private var internalMainChange = false
     private var released = false
+    private var recoveringPrimaryVideo = false
+    private var videoRecoveryJob: Job? = null
+    private val recoveredPrimaryVideos = mutableSetOf<String>()
     private var gateDeadlineMs = 0L
     private var armingGate = false
     private var lastPublishMs = 0L
@@ -303,7 +306,7 @@ internal class StackPlaybackCoordinator(
     }
 
     private fun tryOpenStartGate() {
-        if (!gated || armingGate || released || !active) return
+        if (!gated || armingGate || recoveringPrimaryVideo || released || !active) return
         if (!playing) { gateDeadlineMs = 0L; return }
         if (main.playerError != null) { pause(); return }
         if (main.playbackState == Player.STATE_ENDED) {
@@ -335,7 +338,17 @@ internal class StackPlaybackCoordinator(
 
     private fun onVoiceReady(player: ExoPlayer) {
         if (released || !active) return
-        voices.firstOrNull { it.player === player }?.bufferingSinceMs = 0L
+        val readyVoice = voices.firstOrNull { it.player === player } ?: return
+        readyVoice.bufferingSinceMs = 0L
+        // A primary video failure can demote its file to a healthy audio-only voice.
+        // Clear the failure only after that exact file actually reaches READY.
+        val index = slots.indexOfFirst { it.file.path == readyVoice.file.path }
+        if (index >= 0 && slots[index].error != null && player.playerError == null &&
+            player.currentMediaItem?.mediaId == readyVoice.file.path) {
+            slots[index] = slots[index].copy(error = null)
+            onLevelsChanged()
+            publish()
+        }
         if (gated) { tryOpenStartGate(); return }
         if (!playing || !main.isPlaying) return
         val voice = voices.firstOrNull { it.player === player } ?: return
@@ -693,8 +706,44 @@ internal class StackPlaybackCoordinator(
         if (active && !internalMainChange && path != primaryPath) stop(clearMain = false)
     }
 
-    fun onPrimaryError() {
+    fun onPrimaryError(error: PlaybackException? = null) {
         if (!active) return
+        if (error != null) com.local.listentomusic.diagnostics.CrashReports.recordRecoverable("stack-primary", error)
+        val failedPath = primaryPath
+        // Native decoder allocation may fail while several decorative lanes exist.
+        // Release those lanes, then retry the same full-quality primary once; never
+        // reduce quality or incorrectly discard a singer because its video failed.
+        if (error != null && error.errorCode in 4000..4999 && failedPath != null &&
+            voices.any { it.videoPreview != null } && recoveredPrimaryVideos.add(failedPath)) {
+            recoveringPrimaryVideo = true
+            voices.filter { it.videoPreview != null }.forEach { voice ->
+                voice.videoUnavailable = true
+                detachVideo(voice)
+                val tileIndex = slots.indexOfFirst { it.file.path == voice.file.path }
+                if (tileIndex >= 0) slots[tileIndex] = slots[tileIndex].copy(videoUnavailable = true)
+            }
+            if (playing) armStartGate(position())
+            publish()
+            videoRecoveryJob?.cancel()
+            videoRecoveryJob = scope.launch {
+                try {
+                    // ExoPlayer releases codec resources asynchronously. Let that
+                    // finish before requesting the primary's native decoder again.
+                    delay(300L)
+                    if (released || !active || primaryPath != failedPath ||
+                        main.currentMediaItem?.mediaId != failedPath) return@launch
+                    val resumeAt = position()
+                    internalMainChange = true
+                    try { main.prepare(); main.seekTo(resumeAt) }
+                    finally { internalMainChange = false }
+                    if (playing) armStartGate(resumeAt)
+                } catch (failure: Exception) {
+                    com.local.listentomusic.diagnostics.CrashReports.recordRecoverable("stack-video-recovery", failure)
+                    pause()
+                } finally { recoveringPrimaryVideo = false; publish() }
+            }
+            return
+        }
         val index = slots.indexOfFirst { it.file.path == primaryPath }
         if (index >= 0) slots[index] = slots[index].copy(error = "Playback unavailable")
         val replacement = slots.firstOrNull { it.file.path != primaryPath && it.error == null && voices.any { voice -> voice.file.path == it.file.path } }
@@ -729,6 +778,9 @@ internal class StackPlaybackCoordinator(
 
     fun stop(clearMain: Boolean) {
         if (!active) return
+        videoRecoveryJob?.cancel(); videoRecoveryJob = null
+        recoveringPrimaryVideo = false
+        recoveredPrimaryVideos.clear()
         ticker?.cancel(); ticker = null
         val dying = voices.toList()
         voices.clear()
@@ -761,7 +813,9 @@ internal class StackPlaybackCoordinator(
                 slots[index] = slots[index].copy(resolvedDurationMs = resolved)
             }
         }
-        val running = (if (main.isPlaying) 1 else 0) + voices.count { it.player.isPlaying }
+        val healthy = slots.filter { it.error == null }.mapTo(mutableSetOf()) { it.file.path }
+        val running = (if (main.isPlaying && primaryPath in healthy) 1 else 0) +
+            voices.count { it.player.isPlaying && it.file.path in healthy }
         val drift = voices.filter { it.player.isPlaying && it.hasDrift }.maxOfOrNull { kotlin.math.abs(it.driftEma).toLong() } ?: 0L
         StackPlayback.publish(StackSession(slots.toList(), primaryPath, position(), sessionDuration(), playing, loopEnabled,
             synchronizing = gated, runningTracks = running, maxDriftMs = drift))

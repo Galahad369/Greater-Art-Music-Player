@@ -223,7 +223,7 @@ class PlaybackService : MediaLibraryService() {
             }
             override fun onRepeatModeChanged(repeatMode: Int) = scheduleSave()
             override fun onPlayerError(error: PlaybackException) {
-                if (stackCoordinator.active) { stackCoordinator.onPrimaryError(); return }
+                if (stackCoordinator.active) { stackCoordinator.onPrimaryError(error); return }
                 val failedPath = player.currentMediaItem?.mediaId
                 if (!failedPath.isNullOrBlank() && retriedPath != failedPath) {
                     // One retry covers transient decoder/audio-route failures without looping forever.

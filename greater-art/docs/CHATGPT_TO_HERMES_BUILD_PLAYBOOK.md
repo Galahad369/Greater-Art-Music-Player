@@ -64,10 +64,10 @@ Do not silently stash and forget them.
 Do not trust a handoff's claimed branch, PR or version until these commands confirm it.
 The source of truth order is:
 
-1. fetched commit graph and working tree;
-2. `greater-art/app/build.gradle.kts`;
-3. actual APK metadata/signature/hash;
-4. documentation.
+1. fetched commit graph, working tree and authoritative `greater-art/VERSION_RULES.md`;
+2. exact source SHA and matching `greater-art/app/build.gradle.kts`;
+3. independently verified APK metadata/signature/hash;
+4. current handoff/README/HTML metadata (historical notes are not instructions).
 
 ## 2. Review branches without GitHub CLI
 
@@ -100,15 +100,18 @@ If GitHub CLI is missing, do not wait for it: Git can merge and push the same co
 
 ## 3. Assign a new release version before building
 
-If merged source differs from the latest stored APK, increment both `versionName` and
-`versionCode` in `greater-art/app/build.gradle.kts`. Confirm the target filename does
-not exist:
+Read VERSION_RULES before changing identity. Building an already-versioned SOURCE_ONLY
+commit does **not** consume another version. Any new executable repair must consume the
+next PATCH/code in the same commit, then be built from that exact SHA. Confirm the
+target filename does not exist:
 
 ```powershell
 Test-Path greater-art\releases\GreaterArt-<new-version>.apk
 ```
 
-Expected result: `False`. If `True`, choose the next version. Never overwrite it.
+Expected result: `False`. If `True`, inspect provenance and verify the existing artifact.
+Do not invent a new source version just to bypass a bad filename. Preserve invalid
+placeholders outside releases; never overwrite an actual historical release.
 
 ## 4. Build with the pinned Windows toolchain
 
@@ -118,6 +121,7 @@ Run from `greater-art/`:
 $env:JAVA_HOME = 'C:\Program Files\Android\openjdk\jdk-21.0.8'
 $env:ANDROID_HOME = "$env:LOCALAPPDATA\Android\Sdk"
 $env:GRADLE_USER_HOME = Join-Path $env:USERPROFILE '.gradle'
+$env:ANDROID_USER_HOME = Join-Path $env:USERPROFILE '.android'
 & "$env:JAVA_HOME\bin\java.exe" -jar gradle\wrapper\gradle-wrapper.jar testDebugUnitTest lintDebug assembleDebug --offline --no-daemon --max-workers=2
 ```
 
@@ -133,6 +137,26 @@ is empty; do not misreport a cache/network failure as a source-code failure.
 
 The raw build output is
 `app/build/outputs/apk/debug/app-debug.apk`. It is not the release artifact yet.
+
+### October 5 artifact-corruption lesson
+
+The correct 1.15.75 APK installed and passed device tests, but a later operation
+replaced output and a release placeholder with nine bytes (`BUILT -`). A new
+untracked batch helper also appeared. Manifest/signature checks caught the corruption;
+no invalid release was published. The intact installed APK was recovered only because
+the exact build SHA, install time/version and signing provenance were known, then all
+binary checks were repeated. Do not use this as a generic substitute for rebuilding.
+
+- Coordinate **one active writer** in a checkout; pause other builders before packaging.
+- Never redirect `echo`, shell transcripts, curl errors or status text into an APK path.
+- Check `$LASTEXITCODE` immediately after each build/verification command; later successful
+  commands must not hide an earlier failure.
+- Do not trust `BUILT`, filename, file timestamp, Git tag or app version alone. Verify
+  the ZIP, manifest, pinned signature, alignment, byte size and SHA-256.
+- Re-hash the candidate just before copy/upload and confirm the destination hash matches.
+- Preserve an unexpected file instead of deleting it or committing unrelated helpers.
+- If source has changed since the tested build, build/test again; never copy an older
+  installed binary into the new version name.
 
 ## 5. Validate before copying or documenting
 
@@ -221,7 +245,7 @@ one new immutable APK, and version metadata that passes the consistency script.
 ## Prompt to give Hermes
 
 ```text
-Continue in the existing APPs-by-L checkout. Read
+Continue in the existing Greater-Art-Music-Player checkout. Read
 greater-art/docs/CHATGPT_TO_HERMES_BUILD_PLAYBOOK.md completely and follow it as an
 executable recovery procedure. Inspect the fetched graph and dirty state first. Use
 plain Git if gh is unavailable. Preserve all user work and the pinned signing identity.

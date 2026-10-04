@@ -17,6 +17,52 @@ import java.io.File
 /** Explicit device fixture: six user-supplied takes in Download; never fetches media. */
 @RunWith(AndroidJUnit4::class)
 class StackSixTakeTest {
+    @Test fun decoderPressureRetiresTilesAndRetriesTheSamePrimaryWithoutLosingSingers() {
+        val instrumentation = InstrumentationRegistry.getInstrumentation()
+        val context = instrumentation.targetContext
+        val sources = File("/sdcard/Download").listFiles().orEmpty().filter {
+            it.isFile && it.extension == "mp4" && it.name.contains("孤独毒毒")
+        }.sortedBy { it.name }.take(6)
+        assumeTrue("Requires six local fixture takes", sources.size == 6)
+        val files = sources.map { MediaFile(it.canonicalPath, it.name, 0, it.length(), it.lastModified(), MediaKind.VIDEO) }
+        val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
+        lateinit var main: ExoPlayer
+        lateinit var coordinator: StackPlaybackCoordinator
+        lateinit var view: androidx.media3.ui.PlayerView
+        instrumentation.runOnMainSync {
+            main = ExoPlayer.Builder(context).build()
+            coordinator = StackPlaybackCoordinator(context, main, scope) { }
+            assertTrue(coordinator.start(files))
+        }
+        fun awaitSix() {
+            val deadline = System.currentTimeMillis() + 15_000
+            while (System.currentTimeMillis() < deadline) {
+                val state = StackPlayback.state.value
+                if (!state.synchronizing && state.runningTracks == 6) return
+                Thread.sleep(100)
+            }
+            fail("six singers did not recover: ${StackPlayback.state.value}")
+        }
+        try {
+            awaitSix()
+            instrumentation.runOnMainSync {
+                view = androidx.media3.ui.PlayerView(context)
+                coordinator.attachVideo(files[1].path, Any(), view)
+                coordinator.onPrimaryError(androidx.media3.common.PlaybackException(
+                    "Synthetic decoder pressure", null, androidx.media3.common.PlaybackException.ERROR_CODE_DECODER_INIT_FAILED))
+                assertNull("decorative codec must be retired before retry", view.player)
+                assertEquals(files[0].path, StackPlayback.state.value.primaryPath)
+            }
+            awaitSix()
+            val recovered = StackPlayback.state.value
+            assertEquals(files[0].path, recovered.primaryPath)
+            assertTrue(recovered.slots.all { it.error == null })
+            assertTrue(recovered.slots[1].videoUnavailable)
+        } finally {
+            instrumentation.runOnMainSync { coordinator.release(); main.release(); scope.cancel() }
+        }
+    }
+
     @Test fun stoppedDecorativeVideoCannotStopOrRegateSixAudioVoices() {
         val instrumentation = InstrumentationRegistry.getInstrumentation()
         val context = instrumentation.targetContext
