@@ -4,14 +4,26 @@ This file describes the **current repository state only**. Historical session no
 
 **Project:** `greater-art/` in the repository checkout
 **Current version:** `1.15.63 (code 193)`
+**Current source:** `1.15.64 (code 194)`
+**Release state:** `SOURCE_ONLY`
 **Latest APK:** `releases/GreaterArt-1.15.63.apk` (`26,500,725 bytes`; SHA-256 `718385f181b65c480fc264a1117961a79d3e243de932bba168cd06d30a71f5d2`)
 **Application ID:** `com.local.listentomusic`
 **Signing certificate SHA-256:** `9e28eb45b3b171c3ea47d7da942d28d88b16538885e392a6971a80906d612fbf`
 **Build date:** `2026-10-04`
 **Test device:** `GreaterArt_A55_API36 (A55-sized emulator, API 36, Android 16)`
-**Current source:** `1.15.63/code193`, app source aaf1304, reviewed in PR #115. Intermediate identities 1.15.59–62 are consumed; never reuse them. No 1.16.1 claim without real-device listening evidence.
+**Latest verified source:** `1.15.63/code193`, app source aaf1304, reviewed in PR #115. Intermediate identities 1.15.59–62 are consumed; never reuse them. No 1.16.1 claim without real-device listening evidence.
 
 ## Repository state
+
+### October 4 — 1.15.64 CURRENT_VIDEO background lease repair (source only)
+
+- Root cause: `PrimaryVideoBackground` declared `VideoSurfaceOwner.currentVideoBackground=true` before its PlayerView candidate existed, and kept that ownership flag true while list scrolling intentionally detached the background surface.
+- That allowed `expectedOwner=BACKGROUND` with no registered BACKGROUND candidate, which could transiently detach the working Library/Now Playing surface and present a blank/default background.
+- Fix ordering: when activating, register the BACKGROUND candidate first and claim ownership second. When suspending/hiding/disposal, relinquish BACKGROUND ownership first and detach the candidate second.
+- Saved background fit migration is unchanged: legacy STRETCH still resolves to CROP; FIT and CROP semantics remain intact.
+- No primary resolution/FPS/bitrate cap, new decoder, permission, dependency, signing, or release APK.
+- State: **SOURCE_ONLY** at **1.15.64/code194**. Latest verified APK remains **1.15.63/code193**.
+
 
 ### October 4 — Opus synchronization review
 
