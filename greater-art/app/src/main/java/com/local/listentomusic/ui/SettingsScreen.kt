@@ -257,7 +257,7 @@ fun SettingsScreen(
                 SectionTitle(uiText(language, "Background", "背景"))
                 ChoiceSetting(
                     uiText(language, "App background", "應用程式背景"),
-                    uiText(language, "Video wallpaper follows the current track across pages. Audio uses liquid metal. Wallpaper is always muted.", "影片背景會跟隨目前曲目並跨頁播放，純音訊使用液態金屬，背景永遠靜音。"),
+                    uiText(language, "Video wallpaper follows the current track across pages without adding another audio stream. Audio uses liquid metal.", "影片背景會跟隨目前曲目並跨頁播放，不會重複播放聲音。純音訊使用液態金屬。"),
                     defaultFirst(AppBackgroundMode.entries, AppBackgroundMode.CURRENT_VIDEO),
                     preferences.backgroundMode,
                     {
@@ -305,7 +305,7 @@ fun SettingsScreen(
                         language = language,
                     )
                     AppBackgroundMode.CURRENT_VIDEO -> Text(
-                        uiText(language, "When the current track is a video, a muted synchronized copy appears behind the interface. Audio tracks fall back to liquid metal.", "目前曲目為影片時，介面後方會顯示同步的靜音副本；播放純音訊時則回復液態金屬背景。"),
+                        uiText(language, "The playing video fills the background. Fit tiles Stack videos; this needs more device decoder/GPU capacity. Crop is the default. Hidden previews stop; audio keeps playing.", "播放中的影片會顯示在背景。完整顯示會排列疊播影片，需要較多解碼與 GPU 資源。預設為裁切。隱藏的預覽會停止，聲音繼續播放。"),
                         modifier = Modifier.padding(horizontal = GaSpacing.lg, vertical = GaSpacing.sm),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,

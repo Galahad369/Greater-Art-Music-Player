@@ -10,6 +10,15 @@ import org.junit.Assert.*
 import org.junit.Test
 
 class StackVideoBackgroundTest {
+    @Test fun decorativeVideoOnlyRealignsLargeReadyDriftAfterCooldown() {
+        fun realign(video: Long, audio: Long, ready: Boolean = true, since: Long = 5_000) =
+            com.local.listentomusic.playback.shouldRealignStackVideo(video, audio, ready, since)
+        assertFalse(realign(0, 500))
+        assertFalse(realign(0, 2_000, ready = false))
+        assertFalse(realign(0, 2_000, since = 1_000))
+        assertTrue(realign(0, 2_000))
+        assertTrue(realign(4_000, 2_000))
+    }
     @Test fun fitTilingIsExplicitAndNeverRunsBehindHiddenOrBackgroundedActivity() {
         fun active(mode: AppBackgroundMode = AppBackgroundMode.CURRENT_VIDEO, scale: BackgroundScaleMode = BackgroundScaleMode.FIT,
             visible: Boolean = true, foreground: Boolean = true, allowed: Boolean = true, controller: Boolean = true, count: Int = 6) =

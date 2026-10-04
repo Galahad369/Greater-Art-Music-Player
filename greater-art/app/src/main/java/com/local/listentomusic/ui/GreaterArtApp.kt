@@ -583,6 +583,7 @@ fun GreaterArtApp(
                     warning = warning,
                     inspector = inspector,
                     modifier = Modifier,
+                    badgeAlignment = if (screen == Screen.LIBRARY) Alignment.TopStart else Alignment.TopEnd,
                 )
             }
             if (settings.jokeAdsEnabled && !jokeDismissed && !isPictureInPicture) {

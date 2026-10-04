@@ -4,7 +4,7 @@ This file describes the **current repository state only**. Historical session no
 
 **Project:** `greater-art/` in the repository checkout
 **Current version:** `1.15.63 (code 193)`
-**Current source:** `1.15.74 (code 204)`
+**Current source:** `1.15.75 (code 205)`
 **Release state:** `SOURCE_ONLY`
 **Latest APK:** `releases/GreaterArt-1.15.63.apk` (`26,500,725 bytes`; SHA-256 `718385f181b65c480fc264a1117961a79d3e243de932bba168cd06d30a71f5d2`)
 **1.15.64 verification note:** source was built/smoke-tested and hash `e21994f96f561dc2980eb3c16953acbeed2c42f16651cce65353d592a8a162ba` was recorded, but `releases/GreaterArt-1.15.64.apk` is absent from the current Git tree, so it is not the canonical committed release artifact.
@@ -18,6 +18,8 @@ This file describes the **current repository state only**. Historical session no
 
 ### October 5 — fitted Stack video backgrounds (source only)
 
+- 1.15.74 visibly renders the cropped background and all six Fit videos, but emulator stress exposed shared companion video BUFFERING regrouping the audio. 1.15.75 isolates optional companions into silent video-only previews following the existing audio clocks; no duplicate audio, primary reload or quality cap. Hidden previews release, stopped/failed decorative lanes never gate singers. Device isolation regression added. DEV now also avoids Settings Back; final verification pending.
+- Initial 1.15.72 companion-engine lease approach below is superseded by this measured audio/video lane isolation. Primary background still leases the primary surface; only visible optional companion video creates an independent silent preview.
 - Root cause of black CURRENT_VIDEO background: the persistent unified service registered MINI_WINDOW even while Docked/hidden, permanently outranking BACKGROUND. 1.15.74 explicitly declares Dock state so foreground wallpaper wins only over Dock; Detached/Expanded/fullscreen still take precedence. A docked preview shows artwork while its sole primary surface serves wallpaper, not a blank view or duplicate decoder. Final device verification pending.
 - 1.15.73 passed 191 JVM tests, lint/build and both cache/six-take device tests. Not promoted while background ownership remained broken.
 - 1.15.72 compiled/assembled and passed 191 JVM tests; lint caught a direct StateFlow.value read in composition. Fixed by observing the layout-only flow at 1.15.73. No 1.15.72 artifact released; final verification pending.

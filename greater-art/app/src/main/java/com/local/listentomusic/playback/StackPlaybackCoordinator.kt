@@ -23,7 +23,8 @@ import java.io.File
 
 /**
  * One MediaSession/primary player; up to seven companions. Companion video is
- * disabled unless its existing player is leased by a visible Fit background tile.
+ * audio-only. Optional Fit tiles use silent, video-only previews so a decorative
+ * decoder stall cannot pause the audio synchronization group.
  *
  * Sync model (1.15.59):
  * - Start gate: after start/seek/resume/primary swap/stall, every player is parked and
@@ -53,6 +54,9 @@ internal class StackPlaybackCoordinator(
         var videoView: androidx.media3.ui.PlayerView? = null
         var videoUnavailable = false
         var videoFrames = 0
+        var videoPreview: ExoPlayer? = null
+        var lastVideoSyncMs = 0L
+        var lastVideoSeekMs = 0L
 
         fun resetDrift(nowMs: Long) {
             driftEma = 0.0
@@ -90,7 +94,7 @@ internal class StackPlaybackCoordinator(
     fun voiceDiagnostics(): String = voices.mapIndexed { index, voice ->
         "${index + 1}:${voice.player.playbackState}/${voice.player.isPlaying}@${voice.player.currentPosition}ms" +
             " trim=${voice.rateTrim} drift=${voice.driftEma.toLong()}ms lead=${voice.seekLeadMs}ms" +
-            " tile=${voice.videoView != null} video=${voice.player.videoSize.width}x${voice.player.videoSize.height} frames=${voice.videoFrames}"
+            " tile=${voice.videoView != null} video=${voice.videoPreview?.videoSize?.width ?: 0}x${voice.videoPreview?.videoSize?.height ?: 0} frames=${voice.videoFrames}"
     }.joinToString(",").ifEmpty { "none" }
 
     private fun valid(file: MediaFile): Boolean {
@@ -121,32 +125,75 @@ internal class StackPlaybackCoordinator(
 
     private fun detachVideo(voice: Voice) {
         voice.videoOwner = null
-        voice.videoView?.let { view -> safePlayer { if (view.player === voice.player) view.player = null } }
+        voice.videoView?.let { view -> safePlayer { view.player = null } }
         voice.videoView = null
-        safePlayer {
-            voice.player.trackSelectionParameters = voice.player.trackSelectionParameters.buildUpon()
-                .setTrackTypeDisabled(C.TRACK_TYPE_VIDEO, true).build()
-        }
+        val preview = voice.videoPreview
+        voice.videoPreview = null
+        preview?.let { safePlayer { it.release() } }
     }
 
-    /** Presentation only: never creates another player, reloads the primary or changes quality. */
+    private fun failVideo(voice: Voice, failure: Exception) {
+        voice.videoUnavailable = true
+        detachVideo(voice)
+        val index = slots.indexOfFirst { it.file.path == voice.file.path }
+        if (index >= 0) slots[index] = slots[index].copy(videoUnavailable = true)
+        com.local.listentomusic.diagnostics.CrashReports.recordRecoverable("stack-video-tile", failure)
+        publish()
+    }
+
+    /** Presentation only: no duplicate audio, primary reload or quality constraint. */
     fun attachVideo(path: String, owner: Any, view: androidx.media3.ui.PlayerView?) = onMain {
         val voice = voices.firstOrNull { it.file.path == path } ?: return@onMain
         if (view == null) {
             if (voice.videoOwner === owner) detachVideo(voice)
         } else if (!released && !voice.videoUnavailable) {
             if (voice.videoOwner === owner && voice.videoView === view) return@onMain
-            voice.videoView?.let { old -> safePlayer { if (old.player === voice.player) old.player = null } }
+            voice.videoView?.let { old -> safePlayer { old.player = null } }
             voice.videoOwner = owner
             voice.videoView = view
-            safePlayer {
-                view.player = voice.player
-                voice.player.trackSelectionParameters = voice.player.trackSelectionParameters.buildUpon()
-                    .setTrackTypeDisabled(C.TRACK_TYPE_VIDEO, false).build()
+            try {
+                val preview = voice.videoPreview ?: createVideoPreview(voice).also { voice.videoPreview = it }
+                view.player = preview
+            } catch (failure: Exception) {
+                failVideo(voice, failure)
             }
-            // Adding a video renderer may briefly refill its existing audio player.
-            // Use the same readiness barrier, not a new timeline or a second audio copy.
-            if (playing && !gated) armStartGate()
+        }
+    }
+
+    private fun createVideoPreview(voice: Voice): ExoPlayer {
+        val preview = ExoPlayer.Builder(context, DefaultRenderersFactory(context).setEnableDecoderFallback(true))
+            .setLoadControl(DefaultLoadControl.Builder().setBufferDurationsMs(1_500, 6_000, 100, 200)
+                .setTargetBufferBytes(4 * 1024 * 1024).setPrioritizeTimeOverSizeThresholds(true).build())
+            .build()
+        try {
+            preview.trackSelectionParameters = preview.trackSelectionParameters.buildUpon()
+                .setTrackTypeDisabled(C.TRACK_TYPE_AUDIO, true).setTrackTypeDisabled(C.TRACK_TYPE_TEXT, true).build()
+            preview.volume = 0f
+            preview.addListener(object : Player.Listener {
+                override fun onRenderedFirstFrame() { if (voice.videoPreview === preview) voice.videoFrames++ }
+                override fun onPlayerError(error: PlaybackException) {
+                    if (!released && voice.videoPreview === preview) failVideo(voice, error)
+                }
+            })
+            preview.setMediaItem(voice.file.toMediaItem(), voice.player.currentPosition)
+            preview.playbackParameters = voice.player.playbackParameters
+            preview.playWhenReady = voice.player.playWhenReady && playing && !gated
+            preview.prepare()
+            return preview
+        } catch (failure: Exception) { preview.release(); throw failure }
+    }
+
+    private fun syncVideo(voice: Voice, nowMs: Long) {
+        val preview = voice.videoPreview ?: return
+        if (nowMs - voice.lastVideoSyncMs < 250L) return
+        voice.lastVideoSyncMs = nowMs
+        preview.playWhenReady = voice.player.playWhenReady && playing && !gated
+        if (preview.playbackParameters != voice.player.playbackParameters)
+            preview.playbackParameters = voice.player.playbackParameters
+        if (shouldRealignStackVideo(preview.currentPosition, voice.player.currentPosition,
+                preview.playbackState == Player.STATE_READY, nowMs - voice.lastVideoSeekMs)) {
+            voice.lastVideoSeekMs = nowMs
+            preview.seekTo(voice.player.currentPosition)
         }
     }
 
@@ -167,9 +214,6 @@ internal class StackPlaybackCoordinator(
                 engine.skipSilenceEnabled = false
                 engine.setMediaItem(file.toMediaItem())
                 engine.addListener(object : Player.Listener {
-                    override fun onRenderedFirstFrame() {
-                        voices.firstOrNull { it.player === engine }?.let { it.videoFrames++ }
-                    }
                     override fun onPlaybackStateChanged(playbackState: Int) {
                         if (playbackState == Player.STATE_BUFFERING) {
                             onMain {
@@ -187,22 +231,6 @@ internal class StackPlaybackCoordinator(
                         onMain {
                             if (released || !active) return@onMain
                             val failed = voices.firstOrNull { it.player === engine } ?: return@onMain
-                            if (failed.videoView != null && !failed.videoUnavailable) {
-                                // Multi-video hardware exhaustion must not kill a singer or
-                                // silently select lower quality. Retain that voice as audio.
-                                failed.videoUnavailable = true
-                                detachVideo(failed)
-                                val index = slots.indexOfFirst { it.file.path == failed.file.path }
-                                if (index >= 0) slots[index] = slots[index].copy(videoUnavailable = true)
-                                com.local.listentomusic.diagnostics.CrashReports.recordRecoverable("stack-video-tile", error)
-                                safePlayer {
-                                    engine.prepare()
-                                    parkVoice(failed, position(), SystemClock.elapsedRealtime(), alwaysSeek = true)
-                                }
-                                if (playing) armStartGate()
-                                publish()
-                                return@onMain
-                            }
                             voices.remove(failed)
                             releaseVoice(failed)
                             val index = slots.indexOfFirst { it.file.path == failed.file.path }
@@ -780,6 +808,7 @@ internal class StackPlaybackCoordinator(
                     }
                 }
                 // Delayed starts need a fine timer; Compose does not need 20 updates/second.
+                voices.toList().forEach { voice -> safePlayer { syncVideo(voice, SystemClock.elapsedRealtime()) } }
                 if (SystemClock.elapsedRealtime() - lastPublishMs >= 250L) publish()
             }
         }

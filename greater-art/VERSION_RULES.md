@@ -7,7 +7,7 @@ This file is the authoritative version policy for Greater Art. If any handoff no
 ## Machine-checkable state
 
 
-Current source: **1.15.74 (code 204)**
+Current source: **1.15.75 (code 205)**
 Current release state: **SOURCE_ONLY**
 Latest verified APK: **1.15.63 (code 193)**
 Allowed series transition: **1.14.15 -> 1.15.1**
@@ -177,5 +177,7 @@ Previous baseline: 1.13.26 (code 115).
 - 1.15.73 (code 203) — repair Compose lint finding: tiled background observes its distinct layout flow without reading StateFlow.value directly in composition. 1.15.72 compiled/assembled and passed 191 JVM tests but lint blocked release. SOURCE_ONLY pending verification.
 
 - 1.15.74 (code 204) — fix verified background ownership defect: unified service registration must distinguish Dock from Detached/Expanded, so a foreground CURRENT_VIDEO surface can render instead of being permanently outranked by a hidden Mini. Dock retains artwork while the primary surface serves the background, not a black empty preview; no duplicate video decode. Add ownership precedence regression. 1.15.73 passed 191 JVM tests, lint/build and both cache/six-take device tests. SOURCE_ONLY pending background/tiles/transition verification.
+
+- 1.15.75 (code 205) — Fit stress-test repair: decorative companion video has its own silent video-only lane following the existing audio clock; it cannot gate/reprepare/stop the six singers. Hidden previews release; failures preserve audio with a warning, never source-quality caps. Add device test for stopped preview/stale lease isolation. DEV avoids Settings Back and settings copy documents Fit capacity. 1.15.74 background render visually verified; shared audio/video lanes caused regroup churn under emulator multi-video load. SOURCE_ONLY pending final verification.
 
 **No silent builds. No version reuse. No version skips. No APK overwrite/rename/copy.**

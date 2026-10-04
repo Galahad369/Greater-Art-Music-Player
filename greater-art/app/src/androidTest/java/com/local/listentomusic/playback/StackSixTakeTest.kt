@@ -17,6 +17,55 @@ import java.io.File
 /** Explicit device fixture: six user-supplied takes in Download; never fetches media. */
 @RunWith(AndroidJUnit4::class)
 class StackSixTakeTest {
+    @Test fun stoppedDecorativeVideoCannotStopOrRegateSixAudioVoices() {
+        val instrumentation = InstrumentationRegistry.getInstrumentation()
+        val context = instrumentation.targetContext
+        val sources = File("/sdcard/Download").listFiles().orEmpty().filter {
+            it.isFile && it.extension == "mp4" && it.name.contains("孤独毒毒")
+        }.sortedBy { it.name }.take(6)
+        assumeTrue("Requires six local fixture takes", sources.size == 6)
+        val files = sources.map { MediaFile(it.canonicalPath, it.name, 0, it.length(), it.lastModified(), MediaKind.VIDEO) }
+        val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
+        lateinit var main: ExoPlayer
+        lateinit var coordinator: StackPlaybackCoordinator
+        lateinit var view: androidx.media3.ui.PlayerView
+        val owner = Any()
+        instrumentation.runOnMainSync {
+            main = ExoPlayer.Builder(context).build()
+            coordinator = StackPlaybackCoordinator(context, main, scope) { }
+            assertTrue(coordinator.start(files))
+        }
+        try {
+            val deadline = System.currentTimeMillis() + 15_000
+            while (System.currentTimeMillis() < deadline && StackPlayback.state.value.runningTracks != 6) Thread.sleep(100)
+            assertEquals(6, StackPlayback.state.value.runningTracks)
+            instrumentation.runOnMainSync {
+                view = androidx.media3.ui.PlayerView(context)
+                coordinator.attachVideo(files[1].path, owner, view)
+                val preview = view.player!!
+                assertNotSame(main, preview)
+                assertTrue(preview.trackSelectionParameters.disabledTrackTypes.contains(androidx.media3.common.C.TRACK_TYPE_AUDIO))
+                assertFalse(preview.trackSelectionParameters.disabledTrackTypes.contains(androidx.media3.common.C.TRACK_TYPE_VIDEO))
+                // Simulate a stopped/failed visual lane; it must never control a singer.
+                preview.stop()
+                coordinator.attachVideo(files[1].path, Any(), null)
+                assertSame("stale owner detached the new lease", preview, view.player)
+            }
+            repeat(12) {
+                val state = StackPlayback.state.value
+                assertEquals("video stopped an audio voice", 6, state.runningTracks)
+                assertFalse("decorative video incorrectly gated audio", state.synchronizing)
+                Thread.sleep(250)
+            }
+            instrumentation.runOnMainSync {
+                coordinator.attachVideo(files[1].path, owner, null)
+                assertNull(view.player)
+            }
+        } finally {
+            instrumentation.runOnMainSync { coordinator.release(); main.release(); scope.cancel() }
+        }
+    }
+
     @Test fun localFeatureCacheSurvivesTruncationAndRepositoriesAreShared() = runBlocking {
         val context = InstrumentationRegistry.getInstrumentation().targetContext
         val sources = File("/sdcard/Download").listFiles().orEmpty().filter {

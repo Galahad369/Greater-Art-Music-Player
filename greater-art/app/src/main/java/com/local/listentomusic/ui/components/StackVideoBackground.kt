@@ -51,7 +51,7 @@ internal fun rememberStackVideoTiles(): List<StackVideoTile> {
     return tiles
 }
 
-/** All tiles lease existing Stack engines; controls and audio remain session-owned. */
+/** Tiles follow Stack's audio clock; controls/audio never wait for decorative video. */
 @Composable
 internal fun StackVideoBackground(tiles: List<StackVideoTile>, controller: MediaController) {
     BoxWithConstraints(Modifier.fillMaxSize().background(Color.Black)) {

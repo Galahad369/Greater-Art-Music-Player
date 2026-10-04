@@ -108,6 +108,10 @@ internal const val STACK_CONTROLLED_SEEK_GRACE_MS = 1_000L
 internal fun stackBufferRequiresGate(nowMs: Long, bufferingSinceMs: Long, controlledSeekUntilMs: Long): Boolean =
     bufferingSinceMs > 0L && nowMs >= controlledSeekUntilMs && nowMs - bufferingSinceMs >= STACK_BUFFER_GRACE_MS
 
+/** Decorative video follows audio, never the reverse; avoid repeated correction-seek churn. */
+internal fun shouldRealignStackVideo(videoMs: Long, audioMs: Long, ready: Boolean, sinceSeekMs: Long): Boolean =
+    ready && sinceSeekMs >= 5_000L && kotlin.math.abs(videoMs - audioMs) >= 1_500L
+
 internal enum class StackSyncAction { NONE, RATE, SEEK }
 
 /** A companion timeout may degrade the group, but must never run ahead of an unready primary. */

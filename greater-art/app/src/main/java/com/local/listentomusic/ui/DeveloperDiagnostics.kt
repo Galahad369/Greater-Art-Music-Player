@@ -56,6 +56,7 @@ internal fun DeveloperDiagnostics(
     inspector: UiInspectorState,
     modifier: Modifier = Modifier,
     systemOverlay: Boolean = false,
+    badgeAlignment: Alignment = if (systemOverlay) Alignment.TopCenter else Alignment.TopStart,
 ) {
     val context = LocalContext.current
     var overlayAllowed by remember { mutableStateOf(Build.VERSION.SDK_INT < Build.VERSION_CODES.M || Settings.canDrawOverlays(context)) }
@@ -110,9 +111,11 @@ internal fun DeveloperDiagnostics(
             },
             // Reserve the inert logo area in Library and the central handle area
             // in the system player; never cover Sort, Close or Fullscreen.
-            modifier = modifier.align(if (systemOverlay) Alignment.TopCenter else Alignment.TopStart)
+            modifier = modifier.align(badgeAlignment)
                 .then(if (systemOverlay) Modifier else Modifier.statusBarsPadding())
-                .padding(start = if (systemOverlay) 0.dp else 18.dp, top = if (systemOverlay) 2.dp else 16.dp)
+                .padding(start = if (!systemOverlay && badgeAlignment == Alignment.TopStart) 18.dp else 0.dp,
+                    end = if (!systemOverlay && badgeAlignment == Alignment.TopEnd) 18.dp else 0.dp,
+                    top = if (systemOverlay) 2.dp else 16.dp)
                 .inspectElement("DEVELOPER_BUTTON", "Opens local diagnostics and element inspector"),
             shape = RoundedCornerShape(7.dp),
             color = Color.Black.copy(alpha = 0.88f),
