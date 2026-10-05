@@ -4,6 +4,18 @@ import org.junit.Assert.*
 import org.junit.Test
 
 class SurfaceLeaseTest {
+    @Test fun liveBackgroundOutranksOnlyDockedUnifiedServiceNotDetachedExpandedOrFullscreen() {
+        fun owner(foreground: Boolean = true, docked: Boolean = true, nowPlaying: Boolean = false,
+            fullscreen: Boolean = false, pip: Boolean = false) = expectedSurfaceOwner(foreground, nowPlaying, pip,
+            fullscreenActivity = fullscreen, systemOverlayOwner = "MINI_WINDOW", currentVideoBackground = true,
+            systemOverlayDocked = docked)
+        assertEquals("BACKGROUND", owner())
+        assertEquals("MINI_WINDOW", owner(docked = false))
+        assertEquals("MINI_WINDOW", owner(foreground = false))
+        assertEquals("MINI_WINDOW", owner(nowPlaying = true, docked = false))
+        assertEquals("NOW_PLAYING", owner(fullscreen = true))
+        assertEquals("MINI_WINDOW", owner(pip = true))
+    }
     @Test fun overlayVisibilityUsesCanonicalFullscreenState() {
         assertTrue(shouldShowPlayerWindow(
             ready = true,

@@ -267,7 +267,24 @@ internal fun appColorScheme(theme: ColorTheme, dark: Boolean): ColorScheme {
         ColorTheme.ROSE -> rosePalette
         ColorTheme.MONOCHROME -> monochromePalette
     }
-    return if (dark) palette.dark else palette.light
+    val colors = if (dark) palette.dark else palette.light
+    // Material's default secondary containers are lavender even in Forest/Amber.
+    // Derive every control surface from the selected palette instead.
+    return colors.copy(
+        onBackground = colors.onSurface,
+        surfaceContainerLowest = colors.background,
+        surfaceContainerLow = colors.surface,
+        surfaceContainer = androidx.compose.ui.graphics.lerp(colors.surface, colors.surfaceVariant, .3f),
+        surfaceContainerHigh = androidx.compose.ui.graphics.lerp(colors.surface, colors.surfaceVariant, .65f),
+        surfaceContainerHighest = colors.surfaceVariant,
+        surfaceDim = colors.background,
+        surfaceBright = colors.surfaceVariant,
+        secondaryContainer = androidx.compose.ui.graphics.lerp(colors.surfaceVariant, colors.primary, .12f),
+        onSecondaryContainer = colors.onSurface,
+        tertiaryContainer = androidx.compose.ui.graphics.lerp(colors.surfaceVariant, colors.tertiary, .12f),
+        onTertiaryContainer = colors.onSurface,
+        surfaceTint = colors.primary,
+    )
 }
 
 private val RoundedShapes = Shapes(

@@ -134,6 +134,7 @@ class PlaybackService : MediaLibraryService() {
         StackPlayback.loopCommand = stackCoordinator::setLoop
         StackPlayback.offsetsCommand = stackCoordinator::setOffsets
         StackPlayback.stopCommand = { stackCoordinator.stop(clearMain = true) }
+        StackPlayback.videoCommand = stackCoordinator::attachVideo
         ParallelPlayback.addCommand = ::addLayer
         ParallelPlayback.stopCommand = {
             stackCoordinator.stop(clearMain = false)
@@ -222,7 +223,7 @@ class PlaybackService : MediaLibraryService() {
             }
             override fun onRepeatModeChanged(repeatMode: Int) = scheduleSave()
             override fun onPlayerError(error: PlaybackException) {
-                if (stackCoordinator.active) { stackCoordinator.onPrimaryError(); return }
+                if (stackCoordinator.active) { stackCoordinator.onPrimaryError(error); return }
                 val failedPath = player.currentMediaItem?.mediaId
                 if (!failedPath.isNullOrBlank() && retriedPath != failedPath) {
                     // One retry covers transient decoder/audio-route failures without looping forever.

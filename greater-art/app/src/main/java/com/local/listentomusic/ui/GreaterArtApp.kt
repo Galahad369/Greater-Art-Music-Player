@@ -3,6 +3,7 @@ package com.local.listentomusic.ui
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.statusBarsPadding
 
 import android.content.Intent
 import android.graphics.Rect
@@ -211,6 +212,11 @@ fun GreaterArtApp(
     }
 
     val appName = if (settings.silianRail) "PIERCE&PIERCE" else "Greater Art"
+    val stackPage = screen == Screen.LIBRARY && libraryPager.currentPage == 0
+    androidx.compose.runtime.DisposableEffect(stackPage) {
+        com.local.listentomusic.playback.PlayerWindowVisibility.stackTransport(stackPage)
+        onDispose { com.local.listentomusic.playback.PlayerWindowVisibility.stackTransport(false) }
+    }
     GreaterArtTheme(
         themeMode = settings.themeMode,
         colorTheme = settings.colorTheme,
@@ -293,12 +299,15 @@ fun GreaterArtApp(
                     containerColor = Color.Transparent,
                     contentColor = MaterialTheme.colorScheme.onBackground,
                     bottomBar = {
-                        if (playback.hasMedia) {
+                        if (playback.hasMedia && !stackPage) {
                             Spacer(Modifier.fillMaxWidth().height(com.local.listentomusic.model.MiniWindowMetrics.HEIGHT_DP.dp))
                         }
                     },
                 ) { dockPadding ->
                     Column(Modifier.fillMaxSize().padding(dockPadding).consumeWindowInsets(dockPadding)) {
+                        LibraryTopBar(appName, library, settings, playHistory, viewModel::rescan,
+                            viewModel::setPlayHistoryEnabled, viewModel::clearPlayHistory,
+                            viewModel::setSortMode, { screen = Screen.SETTINGS })
                         LibraryFamilyNavigationBar(
                             currentPage = libraryPager.currentPage,
                             pageOffsetFraction = libraryPager.currentPageOffsetFraction,
@@ -322,6 +331,7 @@ fun GreaterArtApp(
                                                                                     savedStacks = settings.savedStacks,
                                                                                     onSaveStack = viewModel::saveStack,
                                                                                     onDeleteStack = viewModel::deleteStack,
+                                                                                    onOpenPlayer = openNowPlayingOverlay,
                                                                                 )
                                                                             } else if (page == 2) {
                                                                                 NodesScreen(
@@ -338,6 +348,7 @@ fun GreaterArtApp(
                                                                             } else {
                                             LibraryScreen(
                         appName = appName,
+                        showTopBar = false,
                         state = library,
                         preferences = settings,
                         playHistory = playHistory,
@@ -505,6 +516,7 @@ fun GreaterArtApp(
                 val thumbnailStats by viewModel.thumbnailStats.collectAsStateWithLifecycle()
                 val waveformDiagnostics by viewModel.waveformDiagnostics.collectAsStateWithLifecycle()
                 val engineReport by com.local.listentomusic.playback.PlaybackDiagnostics.report.collectAsStateWithLifecycle()
+                val localFailures by com.local.listentomusic.diagnostics.CrashReports.latest.collectAsStateWithLifecycle()
                 val stackSession by com.local.listentomusic.playback.StackPlayback.state.collectAsStateWithLifecycle()
                 val windowMode by MiniWindowOverlayService.modeSnapshot.collectAsStateWithLifecycle()
                 val windowIdentities by MiniWindowOverlayService.identities.collectAsStateWithLifecycle()
@@ -527,6 +539,7 @@ fun GreaterArtApp(
                 DeveloperDiagnostics(
                     report = buildString {
                         appendLine("version=${com.local.listentomusic.BuildConfig.VERSION_NAME}")
+                        appendLine(localFailures)
                         // This inspector belongs to MainActivity. A system-player
                         // ownership flag can outlive its visible window and must not
                         // relabel the page the user is actually inspecting.
@@ -569,7 +582,8 @@ fun GreaterArtApp(
                     regions = regions,
                     warning = warning,
                     inspector = inspector,
-                    modifier = Modifier.align(Alignment.TopEnd),
+                    modifier = Modifier,
+                    badgeAlignment = if (screen == Screen.LIBRARY) Alignment.TopStart else Alignment.TopEnd,
                 )
             }
             if (settings.jokeAdsEnabled && !jokeDismissed && !isPictureInPicture) {

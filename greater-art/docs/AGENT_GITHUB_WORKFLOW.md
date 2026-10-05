@@ -90,7 +90,7 @@ Do not merge while required checks are pending or failed unless the user explici
 
 ## 7. Merge strategy
 
-Prefer rebase merge for a clean focused patch when allowed.
+Preserve the reviewed versioned commits. Prefer a merge commit whose tree exactly matches the approved branch parent; VERSION_RULES explicitly permits that pure integration without consuming a new version. Avoid squash/rebase policies that obscure consumed identities. Conflict-resolution code requires a fresh PATCH/code and verification.
 
 Use the expected PR head SHA when merging so GitHub rejects the merge if another actor moved the branch.
 
@@ -104,7 +104,7 @@ When the user's policy requires branch convergence:
 2. Compare every divergent branch with final `main`.
 3. Preserve any unique useful work intentionally.
 4. Close obsolete PRs with a clear reason.
-5. Only after review, align stale branches to final `main` if deletion is unavailable.
+5. Delete only reviewed exact branches after proving their tips are ancestors of final main. If deletion is unavailable, report the permission blocker; do not force-align a divergent branch as a substitute.
 
 Never force-align an unreviewed divergent branch; doing so could erase unique work.
 
@@ -115,6 +115,8 @@ GitHub CI success establishes source health, not physical APK verification.
 Unless the agent can obtain and verify an APK built from the exact final source SHA, keep the source as `SOURCE_ONLY` and preserve the last verified APK entry.
 
 Never manufacture, rename, or relabel an older APK as the current source version.
+
+Before attaching a locally supplied binary, verify the ZIP, package/version/code, pinned certificate, alignment, size and SHA-256 against exact source/build evidence. Text placeholders and build logs are not APKs. Repeat the hash immediately before upload; coordinate with local builders so no actor overwrites the candidate during review.
 
 If a CI artifact is available, it may be downloaded for inspection, but release metadata should change only after the required manifest/signing/install/smoke checks are actually satisfied.
 

@@ -49,7 +49,7 @@ internal fun LibraryFamilyNavigationBar(
         ),
     )
     Surface(
-        modifier = Modifier.fillMaxWidth().statusBarsPadding()
+        modifier = Modifier.fillMaxWidth()
             .inspectElement("LIBRARY_FAMILY_NAV", "Persistent Stack, All songs, Nodes navigation"),
         color = gaChromeColor(),
     ) {

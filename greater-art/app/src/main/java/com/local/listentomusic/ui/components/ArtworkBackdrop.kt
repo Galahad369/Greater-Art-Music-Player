@@ -5,15 +5,21 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.tween
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.lerp
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.drawBehind
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
-/** Cached artwork only: no extra video decoder, frame readback, or work while scrolling. */
+/** Live compositor colors with cached-art fallback; never creates a video decoder. */
 @Composable
-internal fun artworkBackdrop(artwork: Bitmap?, light: Boolean): Brush {
+internal fun Modifier.ambientBackdrop(artwork: Bitmap?, light: Boolean, currentPath: String? = null): Modifier {
+    val video by VideoAmbientColors.state.collectAsStateWithLifecycle()
     val colors by produceState(artworkGradientColors(intArrayOf(), light), artwork, light) {
         value = withContext(Dispatchers.Default) {
             val pixels = runCatching {
@@ -29,7 +35,17 @@ internal fun artworkBackdrop(artwork: Bitmap?, light: Boolean): Brush {
             artworkGradientColors(pixels, light)
         }
     }
-    return remember(colors) { Brush.verticalGradient(colors) }
+    val live = remember(video, currentPath, light) {
+        if (currentPath != null && video.mediaId == currentPath && video.pixels.isNotEmpty())
+            artworkGradientColors(video.pixels.toIntArray(), light) else null
+    }
+    val target = live ?: colors
+    val top = animateColorAsState(target.first(), tween(700), label = "ambient-top")
+    val middle = animateColorAsState(target[target.size / 2], tween(700), label = "ambient-middle")
+    val bottom = animateColorAsState(target.last(), tween(700), label = "ambient-bottom")
+    // Read animation state during drawing, not composition: a color fade must not
+    // recompose the queue, controls and native video host on every display frame.
+    return drawBehind { drawRect(Brush.verticalGradient(listOf(top.value, middle.value, bottom.value))) }
 }
 
 internal fun artworkGradientColors(pixels: IntArray, light: Boolean): List<Color> {
@@ -50,5 +66,15 @@ internal fun artworkGradientColors(pixels: IntArray, light: Boolean): List<Color
         blue = dominant.map { it and 255 }.average().toFloat() / 255f,
     )
     // Conservative tint strengths keep both light and dark foregrounds readable.
-    return listOf(lerp(base, tint, if (light) .14f else .30f), lerp(base, tint, if (light) .05f else .10f))
+    val alternate = colorful.filter { pixel ->
+        val r = ((pixel shr 16) and 255) / 255f
+        val g = ((pixel shr 8) and 255) / 255f
+        val b = (pixel and 255) / 255f
+        kotlin.math.abs(r - tint.red) + kotlin.math.abs(g - tint.green) + kotlin.math.abs(b - tint.blue) > .55f
+    }.ifEmpty { dominant }
+    val second = Color(alternate.map { (it shr 16) and 255 }.average().toFloat() / 255f,
+        alternate.map { (it shr 8) and 255 }.average().toFloat() / 255f,
+        alternate.map { it and 255 }.average().toFloat() / 255f)
+    return listOf(lerp(base, tint, if (light) .18f else .42f),
+        lerp(base, second, if (light) .10f else .24f), base)
 }

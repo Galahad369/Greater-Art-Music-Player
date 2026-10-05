@@ -7,10 +7,15 @@ internal fun expectedSurfaceOwner(
     fullscreenActivity: Boolean = false,
     systemOverlayOwner: String? = null,
     currentVideoBackground: Boolean = false,
+    systemOverlayDocked: Boolean = false,
 ): String = when {
     // A real fullscreen Activity must outrank the hidden overlay service that
     // remains registered for the eventual return transition.
     fullscreenActivity -> "NOW_PLAYING"
+    // The unified service stays alive for Dock/Expanded/Detached. A registered
+    // Dock is not a detached window and must not steal the wallpaper's surface.
+    foreground && !nowPlaying && !pip && systemOverlayDocked &&
+        systemOverlayOwner == "MINI_WINDOW" && currentVideoBackground -> "BACKGROUND"
     systemOverlayOwner != null -> systemOverlayOwner
     pip -> "NOW_PLAYING"
     !foreground -> "MINI_WINDOW"

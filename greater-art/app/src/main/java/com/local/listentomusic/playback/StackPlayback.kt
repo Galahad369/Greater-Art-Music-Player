@@ -13,6 +13,8 @@ data class StackSlot(
     val error: String? = null,
     val resolvedDurationMs: Long = 0L,
     val offsetMs: Long = 0L,
+    /** A failed decorative video does not make its audio voice unavailable. */
+    val videoUnavailable: Boolean = false,
 )
 
 data class StackSession(
@@ -22,6 +24,9 @@ data class StackSession(
     val durationMs: Long = 0L,
     val playing: Boolean = false,
     val loopEnabled: Boolean = false,
+    val synchronizing: Boolean = false,
+    val runningTracks: Int = 0,
+    val maxDriftMs: Long = 0L,
 ) {
     val active: Boolean get() = slots.isNotEmpty()
 }
@@ -96,6 +101,16 @@ internal const val STACK_INITIAL_SEEK_LEAD_MS = 150L
 /** A parked voice starts once the master is this close to its parked position. */
 internal const val STACK_ENTRY_LEAD_MS = 25L
 internal const val STACK_SYNC_TICK_MS = 50L
+internal const val STACK_BUFFER_GRACE_MS = 300L
+internal const val STACK_CONTROLLED_SEEK_GRACE_MS = 1_000L
+
+/** A correction seek is not a new group stall. Give short decoder refills time to finish. */
+internal fun stackBufferRequiresGate(nowMs: Long, bufferingSinceMs: Long, controlledSeekUntilMs: Long): Boolean =
+    bufferingSinceMs > 0L && nowMs >= controlledSeekUntilMs && nowMs - bufferingSinceMs >= STACK_BUFFER_GRACE_MS
+
+/** Decorative video follows audio, never the reverse; avoid repeated correction-seek churn. */
+internal fun shouldRealignStackVideo(videoMs: Long, audioMs: Long, ready: Boolean, sinceSeekMs: Long): Boolean =
+    ready && sinceSeekMs >= 5_000L && kotlin.math.abs(videoMs - audioMs) >= 1_500L
 
 internal enum class StackSyncAction { NONE, RATE, SEEK }
 
@@ -129,6 +144,8 @@ internal fun stackNextSeekLead(currentLeadMs: Long, residualDriftMs: Double): Lo
 
 /** Main-thread commands are attached by the single PlaybackService. */
 object StackPlayback {
+    internal var transportRevision = 0L
+        private set
     const val MAX_TRACKS = 8
     private val mutable = MutableStateFlow(StackSession())
     val state = mutable.asStateFlow()
@@ -145,26 +162,31 @@ object StackPlayback {
     internal var loopCommand: ((Boolean) -> Unit)? = null
     internal var offsetsCommand: ((Map<String, Long>) -> Unit)? = null
     internal var stopCommand: (() -> Unit)? = null
+    internal var videoCommand: ((String, Any, androidx.media3.ui.PlayerView?) -> Unit)? = null
 
-    fun start(files: List<MediaFile>): Boolean = startCommand?.invoke(files) ?: false
+    fun start(files: List<MediaFile>): Boolean { transportRevision++; return startCommand?.invoke(files) ?: false }
     fun add(file: MediaFile): Boolean = addCommand?.invoke(file) ?: false
     fun remove(path: String) { removeCommand?.invoke(path) }
     fun setPrimary(path: String) { primaryCommand?.invoke(path) }
     fun setVolume(path: String, volume: Float) { volumeCommand?.invoke(path, volume) }
     fun toggleMute(path: String) { muteCommand?.invoke(path) }
     fun toggleSolo(path: String) { soloCommand?.invoke(path) }
-    fun play() { playCommand?.invoke() }
-    fun pause() { pauseCommand?.invoke() }
-    fun seek(positionMs: Long) { seekCommand?.invoke(positionMs) }
+    fun play() { transportRevision++; playCommand?.invoke() }
+    fun pause() { transportRevision++; pauseCommand?.invoke() }
+    fun seek(positionMs: Long) { transportRevision++; seekCommand?.invoke(positionMs) }
     fun setLoop(enabled: Boolean) { loopCommand?.invoke(enabled) }
     fun setOffsets(offsets: Map<String, Long>) { offsetsCommand?.invoke(offsets) }
     fun setOffset(path: String, offsetMs: Long) = setOffsets(mapOf(path to offsetMs))
-    fun stop() { stopCommand?.invoke() }
+    fun stop() { transportRevision++; stopCommand?.invoke() }
+    internal fun attachVideo(path: String, owner: Any, view: androidx.media3.ui.PlayerView?) {
+        videoCommand?.invoke(path, owner, view)
+    }
     internal fun publish(session: StackSession) { mutable.value = session }
     internal fun detach() {
         startCommand = null; addCommand = null; removeCommand = null; primaryCommand = null
         volumeCommand = null; muteCommand = null; soloCommand = null
         playCommand = null; pauseCommand = null; seekCommand = null; loopCommand = null; offsetsCommand = null; stopCommand = null
+        videoCommand = null
         mutable.value = StackSession()
     }
 }

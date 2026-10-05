@@ -19,6 +19,7 @@ object VideoSurfaceOwner {
     private var handoffTarget: String? = null
     private val systemOverlayOwners = linkedMapOf<String, String>()
     private var unifiedExpanded = false
+    private var unifiedDocked = false
     private var noOpReconciles = 0
     internal val state = MutableStateFlow(SurfaceLease())
     val expectedOwner: String
@@ -29,15 +30,30 @@ object VideoSurfaceOwner {
             fullscreenActivity = fullscreenActivity,
             systemOverlayOwner = systemOverlayOwners.values.lastOrNull(),
             currentVideoBackground = currentVideoBackground,
+            systemOverlayDocked = unifiedDocked,
         )
     val systemOverlayActive: Boolean get() = systemOverlayOwners.isNotEmpty()
     val fullscreenActivityActive: Boolean get() = fullscreenActivity
     val expandedOverlayActive: Boolean
         get() = unifiedExpanded || fullscreenActivity || systemOverlayOwners.containsValue("NOW_PLAYING")
+    internal fun ambientSource(): Pair<String, android.view.View>? {
+        if (!foreground && !systemOverlayActive && !fullscreenActivity) return null
+        val view = active.get() ?: return null
+        val player = view.player ?: return null
+        if (!player.isPlaying || player.videoSize.width <= 0) return null
+        val id = player.currentMediaItem?.mediaId ?: return null
+        return view.videoSurfaceView?.let { id to it }
+    }
     fun setUnifiedExpanded(value: Boolean) {
         if (unifiedExpanded == value) return
         unifiedExpanded = value
         com.local.listentomusic.playback.PlayerWindowVisibility.expanded(expandedOverlayActive)
+    }
+    fun setUnifiedDocked(value: Boolean) {
+        if (unifiedDocked == value) return
+        unifiedDocked = value
+        log("unifiedDocked=$value expected=$expectedOwner", active.get())
+        reconcile()
     }
     fun setActivityForeground(value: Boolean) {
         if (foreground == value) return

@@ -165,6 +165,7 @@ import com.local.listentomusic.model.MediaKind
 import com.local.listentomusic.model.LocalLyrics
 import com.local.listentomusic.sleepTimerOptions
 import com.local.listentomusic.ui.components.LiquidMetalSurface
+import com.local.listentomusic.ui.components.ambientBackdrop
 import com.local.listentomusic.ui.theme.GaControl
 import com.local.listentomusic.ui.theme.GaMotion
 import com.local.listentomusic.ui.theme.GaRadius
@@ -281,13 +282,13 @@ fun NowPlayingScreen(
             if (!queueListState.isScrollInProgress) locateTrigger++
         }
 
-        val backdrop = com.local.listentomusic.ui.components.artworkBackdrop(
-        artwork, MaterialTheme.colorScheme.background.luminance() > .5f,
+        val backdrop = Modifier.ambientBackdrop(
+        artwork, MaterialTheme.colorScheme.background.luminance() > .5f, playback.currentPath,
     )
     BoxWithConstraints(
             modifier = Modifier.fillMaxSize().padding(PaddingValues(horizontal = 0.dp, vertical = contentPadding.calculateTopPadding()))
                 .inspectElement("NOW_PLAYING_SCREEN", "Current artwork or video, queue, timeline, and transport controls")
-                .background(backdrop),
+                .then(backdrop),
         ) {
         val landscape = maxWidth > maxHeight
         val portraitVideoHeight = minOf(maxWidth / playback.videoAspectRatio.coerceIn(0.75f, 2.25f), maxHeight * 0.34f)
@@ -1040,6 +1041,8 @@ private fun NowPlayingQueue(
         }
     }
     BackHandler(enabled = searchOpen) { onCloseSearch() }
+    val stack by com.local.listentomusic.playback.StackPlayback.state.collectAsState()
+    val stackRows = remember(stack.slots, query) { stack.slots.filter { query.isBlank() || it.file.name.contains(query.trim(), true) } }
     val queueEntries = remember(queue) { com.local.listentomusic.model.queueEntries(queue) }
     val visibleQueue = remember(queueEntries, query) {
         val normalized = query.trim()
@@ -1053,8 +1056,9 @@ private fun NowPlayingQueue(
     }
     val listState = queueListState
     var openActionsKey by rememberSaveable { mutableStateOf<String?>(null) }
-    val visibleIndex = remember(visibleQueue, currentQueueIndex) {
-        visibleQueue.indexOfFirst { it.index == currentQueueIndex }
+    val visibleIndex = remember(visibleQueue, currentQueueIndex, stackRows, stack.primaryPath, stack.active) {
+        if (stack.active) stackRows.indexOfFirst { it.file.path == stack.primaryPath }
+        else visibleQueue.indexOfFirst { it.index == currentQueueIndex }
     }
     LaunchedEffect(currentQueueIndex, visibleIndex) {
         if (visibleIndex >= 0 && !listState.isScrollInProgress) listState.scrollToItem(visibleIndex)
@@ -1099,7 +1103,39 @@ private fun NowPlayingQueue(
             )
             Spacer(Modifier.height(6.dp))
         }
-        if (queue.isEmpty()) {
+        if (stack.active) {
+            // Mix rows share the flexible list budget, never the fixed identity
+            // header. Eight voices must not push seek or transport off screen.
+            LazyColumn(Modifier.fillMaxSize().inspectElement("NOW_PLAYING_STACK_ROWS", "Scrollable simultaneous mix"),
+                state = listState, contentPadding = PaddingValues(vertical = 4.dp)) {
+                items(stackRows, key = { it.file.path }) { slot ->
+                    val primary = slot.file.path == stack.primaryPath
+                    val available = slot.error == null && (slot.resolvedDurationMs <= 0 ||
+                        com.local.listentomusic.playback.stackVoiceTarget(stack.positionMs, slot.offsetMs) < slot.resolvedDurationMs)
+                    Row(Modifier.fillMaxWidth().background(if (primary) MaterialTheme.colorScheme.primaryContainer.copy(alpha = .55f)
+                        else Color.Transparent).clickable(enabled = available && !primary) {
+                            com.local.listentomusic.playback.StackPlayback.setPrimary(slot.file.path)
+                        }.inspectElement("NOW_PLAYING_STACK_SUBROW", "Select primary video: ${slot.file.name}")
+                        .padding(horizontal = 8.dp, vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
+                        QueueThumbnail(slot.file, onLoadThumbnail) { listState.isScrollInProgress }
+                        Spacer(Modifier.width(10.dp))
+                        Column(Modifier.weight(1f)) {
+                            Text(slot.file.name.substringBeforeLast('.'), maxLines = 1, overflow = TextOverflow.Ellipsis,
+                                style = MaterialTheme.typography.bodyMedium, fontWeight = if (primary) FontWeight.SemiBold else FontWeight.Normal)
+                            val status = when {
+                                slot.error != null -> uiText(language, "Playback unavailable", "無法播放")
+                                primary -> uiText(language, "Primary visual", "主要畫面")
+                                slot.muted -> uiText(language, "Muted", "已靜音")
+                                slot.solo -> uiText(language, "Solo", "獨奏")
+                                else -> "${(slot.volume * 100).toInt()}% · " + java.lang.String.format(java.util.Locale.ROOT, "%+.2fs", slot.offsetMs / 1000.0)
+                            }
+                            Text(status, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
+                        if (primary) Box(Modifier.size(7.dp).clip(CircleShape).background(MaterialTheme.colorScheme.primary))
+                    }
+                }
+            }
+        } else if (queue.isEmpty()) {
             Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 Text(
                     uiText(language, "No songs in this list", "這個列表沒有歌曲"),
@@ -1436,7 +1472,7 @@ private fun WaveformTimeline(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun CompactSlider(
+internal fun CompactSlider(
     value: Float,
     onValueChange: (Float) -> Unit,
     onValueChangeFinished: () -> Unit,
@@ -1444,6 +1480,7 @@ private fun CompactSlider(
     enabled: Boolean,
     activeColor: Color,
     inactiveColor: Color,
+    modifier: Modifier = Modifier,
 ) {
     val range = valueRange.endInclusive - valueRange.start
     val interactions = remember { MutableInteractionSource() }
@@ -1466,7 +1503,7 @@ private fun CompactSlider(
         valueRange = valueRange,
         enabled = enabled,
         interactionSource = interactions,
-        modifier = Modifier.fillMaxWidth().height(22.dp).inspectElement("PLAYBACK_TIMELINE", "Drag to seek playback"),
+        modifier = modifier.fillMaxWidth().height(48.dp).inspectElement("PLAYBACK_TIMELINE", "Drag to seek playback"),
         thumb = { _ ->
             // Soft glow and radial-gradient core keep the thumb visible without visual bulk.
             Box(Modifier.size(20.dp).graphicsLayer { scaleX = thumbScale.value; scaleY = thumbScale.value }, contentAlignment = Alignment.Center) {
@@ -1608,10 +1645,6 @@ private fun CurrentMediaHeader(
     headline: Boolean,
     onSearch: () -> Unit,
 ) {
-    val stack by com.local.listentomusic.playback.StackPlayback.state.collectAsState()
-    val secondaryStackSlots = remember(stack.slots, stack.primaryPath) {
-        com.local.listentomusic.playback.stackSecondarySlots(stack.slots, stack.primaryPath)
-    }
     var shareMenuOpen by remember { mutableStateOf(false) }
 
     Column(Modifier.fillMaxWidth()) {
@@ -1667,68 +1700,6 @@ private fun CurrentMediaHeader(
             }
         }
 
-        if (stack.active && secondaryStackSlots.isNotEmpty()) {
-            Spacer(Modifier.height(2.dp))
-            Column(
-                Modifier.fillMaxWidth()
-                    .padding(start = if (headline) 8.dp else 4.dp, end = 4.dp)
-                    .inspectElement("NOW_PLAYING_STACK_ROWS", "${secondaryStackSlots.size} secondary Stack tracks"),
-            ) {
-                secondaryStackSlots.forEach { slot ->
-                    val duration = slot.resolvedDurationMs.takeIf { it > 0L } ?: slot.file.durationMs
-                    val ended = duration > 0L && stack.positionMs >= duration
-                    val enabled = slot.error == null && !ended
-                    val supporting = when {
-                        slot.error != null -> uiText(playback.appLanguage, "Playback unavailable", "無法播放")
-                        ended -> uiText(playback.appLanguage, "Ended", "已播完")
-                        slot.muted -> uiText(playback.appLanguage, "Muted", "已靜音")
-                        slot.solo -> uiText(playback.appLanguage, "Solo", "獨奏")
-                        slot.file.artist.isNotBlank() -> slot.file.artist
-                        else -> uiText(playback.appLanguage, "Stacked track", "疊播歌曲")
-                    }
-                    Row(
-                        modifier = Modifier.fillMaxWidth()
-                            .clip(RoundedCornerShape(9.dp))
-                            .clickable(enabled = enabled) {
-                                com.local.listentomusic.playback.StackPlayback.setPrimary(slot.file.path)
-                            }
-                            .inspectElement(
-                                "NOW_PLAYING_STACK_SUBROW",
-                                if (enabled) "Tap to make primary: ${slot.file.name}" else slot.file.name,
-                            )
-                            .padding(horizontal = 8.dp, vertical = 4.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        Box(
-                            Modifier.width(2.dp).height(28.dp).background(
-                                if (enabled) MaterialTheme.colorScheme.outlineVariant
-                                else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.45f)
-                            )
-                        )
-                        Spacer(Modifier.width(8.dp))
-                        Column(Modifier.weight(1f)) {
-                            Text(
-                                slot.file.name.substringBeforeLast('.'),
-                                style = MaterialTheme.typography.bodySmall,
-                                fontWeight = FontWeight.Medium,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis,
-                                color = if (enabled) MaterialTheme.colorScheme.onSurface
-                                    else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
-                            )
-                            Text(
-                                supporting,
-                                style = MaterialTheme.typography.labelSmall,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis,
-                                color = if (slot.error != null) MaterialTheme.colorScheme.error
-                                    else MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
-                        }
-                    }
-                }
-            }
-        }
     }
 }
 

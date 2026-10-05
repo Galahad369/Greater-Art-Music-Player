@@ -4,13 +4,17 @@ Greater Art is a native Kotlin/Jetpack Compose player for local music and video.
 
 ## Current release
 
-Current verified build: **1.15.63/code193**, app source `aaf1304`. Opus/v0's Stack start barrier and pitch-preserving rate correction replace frequent drift seeks; review fixes keep the primary READY and preserve the requested seek anchor. Six actual 孤独毒毒 takes were exercised on the API 36 emulator. Backgrounds preserve aspect ratio: old Stretch settings resolve to Crop. This is not real-phone acoustic synchronization proof, and fixed offsets do not time-warp different arrangements or tempos.
+Current verified build: **1.15.75/code205**, exact app source `a24b86eba9bdaf35156574f48ee948de1b11035c`. Reviewed Grok sound alignment and Opus/v0's readiness barrier/rate correction are retained. Six actual 孤独毒毒 takes passed start, pause, seek/resume and primary-boundary looping on the A55-sized API 36 emulator; the UI alignment run matched 5/5 companions. This is not real-phone acoustic synchronization proof, and fixed offsets do not time-warp different arrangements or tempos.
 
-- Verified build: **1.15.63**, code **193** (181 app tests, lint/build and six-track emulator smoke checks).
+- Verified build: **1.15.75**, code **205** (193 JVM tests, lint/build and three cache/six-track/video-isolation device tests).
 - Application ID: `com.local.listentomusic`
-- APK: `releases/GreaterArt-1.15.63.apk`
-- APK SHA-256: `718385f181b65c480fc264a1117961a79d3e243de932bba168cd06d30a71f5d2`
+- APK: `releases/GreaterArt-1.15.75.apk`
+- APK SHA-256: `dc24dd3017492ef7db8c1cab79cfaa8bcc1ff3498f2523e5968a6abc8361b4aa`
 - Signing certificate SHA-256: `9e28eb45b3b171c3ea47d7da942d28d88b16538885e392a6971a80906d612fbf`
+- Library, Nodes and Stack share one header. Stack's fixed transport replaces the duplicate dock; Now Playing uses its flexible list for Stack tracks so seek/repeat/previous/play/next/speed remain visible.
+- **Background:** Now-playing video is the default mode, with **Cut to screen size (Crop)** as default scale. **Fit** preserves the whole frame and tiles two or more Stack videos behind the three browsing pages. Stretch is removed; legacy Stretch settings migrate to Crop. Companion tiles are silent video-only previews following the original audio clocks; hiding them releases their decoders, and tile errors do not stop singers. Full-quality multi-video rendering depends on hardware capacity. No source resolution, frame-rate or bitrate caps are added.
+- **Surface boundary:** docked service registration no longer blocks wallpaper ownership. One primary decoder/surface is reused across wallpaper, Now Playing, fullscreen and Mini. While wallpaper owns it, the dock shows artwork rather than an empty black view or another primary decoder.
+- **Ambient/cache/diagnostics:** gradients use representative colors read from the existing video surface; interpolation runs during drawing, not whole-player recomposition. Shared repositories use bounded, atomic disk caches with malformed-file recovery. Private bounded failure records and Android exit reasons are available locally in DEV, without uploading paths or logs.
 - v1.13.20 keeps detached Mini hidden over Settings and other in-app pages while preserving Library's dock and Android Home's detached presentation.
 - v1.13.19 guards delayed session restore from replacing a newly selected song, moves final playback saving off the main thread, fits detached Mini to the media aspect without an opaque edge, and keeps theme updates from restoring its background. Metal highlights are now static and the audio cover no longer pulses continuously; long Now Playing titles make one restrained reveal. No media quality limit or new permission was added.
 - v1.13.10 closes Now Playing directly to detached Mini, adds a reversible control lock and scrolling long-title marquee, keeps single video taps inert, replaces the bulky jump cue with a compact three-chevron animation, and raises the center play/pause control slightly. The 1.13.9 mini-window stroke removal remains in place. No new file-copy cache or media quality cap was added.
@@ -182,7 +186,7 @@ $env:GRADLE_USER_HOME = Join-Path $env:USERPROFILE '.gradle'
 Current release artifact:
 
 ```text
-releases/GreaterArt-1.13.10.apk
+releases/GreaterArt-1.15.75.apk
 ```
 
 Versioned APKs are never overwritten. Builds remain signed by the pinned personal

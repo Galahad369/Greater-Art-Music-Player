@@ -7,9 +7,9 @@ This file is the authoritative version policy for Greater Art. If any handoff no
 ## Machine-checkable state
 
 
-Current source: **1.15.65 (code 195)**
+Current source: **1.15.77 (code 207)**
 Current release state: **SOURCE_ONLY**
-Latest verified APK: **1.15.63 (code 193)**
+Latest verified APK: **1.15.75 (code 205)**
 Allowed series transition: **1.14.15 -> 1.15.1**
 Allowed consumed transition: **1.15.13 (code 143) -> 1.15.17 (code 147)**
 Allowed consumed transition: **1.15.17 (code 147) -> 1.15.19 (code 149)**
@@ -159,5 +159,29 @@ Previous baseline: 1.13.26 (code 115).
 - 1.15.63 (code 193) — aspect-preserving background policy: legacy saved STRETCH resolves to CROP and the picker offers only Crop/Whole-frame fit. Primary video FIT remains unchanged. Exact app source `aaf1304`; 181 JVM tests, lint and assemble passed; API 36 six-take emulator smoke checks passed; immutable verified APK SHA-256 `718385f181b65c480fc264a1117961a79d3e243de932bba168cd06d30a71f5d2`. State: VERIFIED.
 - 1.15.64 (code 194) — CURRENT_VIDEO background surface-lease repair. Source was built/smoke-tested and a local hash was recorded in HANDOFF, but `releases/GreaterArt-1.15.64.apk` is absent from the current Git tree; under rules 5–7 the canonical repository state therefore remains SOURCE_ONLY and 1.15.63 is the latest committed verified APK.
 - 1.15.65 (code 195) — audit hardening: skip dot-prefixed hidden media/CUE entries (including Android .trashed/.pending and macOS AppleDouble stubs); share one successful Download scan for 15 seconds across Android Auto/Assistant browse/search callbacks with exclusion-set invalidation; narrow overlay addView recovery from Throwable to RuntimeException; untrack/ignore .lh editor-history snapshots. SOURCE_ONLY pending CI/device verification.
+
+- 1.15.66 (code 196) — Stack stability refinement: shared Library-family header, exclusive Stack transport, session-owned alignment, controlled-seek versus real-stall recovery, shared/atomic caches, live compositor-derived Ambient gradients, theme container coherence and bounded private failure/exit records. Six-take device regression added. SOURCE_ONLY pending build/device verification; preserves reviewed Grok/Opus algorithms and primary source quality.
+
+- 1.15.67 (code 197) — verification repair: pass the existing overlay lambda directly (Kotlin rejects a variable callable reference); bind alignment results to their originating mix and keep thumbnail disk retention bounded after writes. 1.15.66 consumed on this branch and never released. SOURCE_ONLY pending verification.
+
+- 1.15.68 (code 198) — verification follow-up: lint indentation repaired; Stack rows moved from the fixed Now Playing identity header into its flexible searchable list; all Material container/on-background colors follow the chosen palette; DEV no longer covers Sort/Close; real-media cache corruption/reuse and six-voice drift assertions added. 1.15.67 passed 185 JVM tests and six-take device start/seek/resume/loop, but lint prevented release. SOURCE_ONLY pending final verification.
+
+- 1.15.69 (code 199) — device-test correction: rate trim is a convergent recovery, not instantaneous clock equality after a seek. Record post-seek drift and assert uninterrupted six-voice playback plus final-window convergence (<75 ms mean; no persistent 200 ms drift), retaining corruption recovery. 1.15.68 build/lint/187 JVM tests/cache device test passed; instantaneous post-seek assertion failed at 203 ms. SOURCE_ONLY pending final device convergence test; no acoustic synchronization claim.
+
+- 1.15.70 (code 200) — final refinement: remove overriding DEV alignment, prevent stale waveform disk-hit requests refilling a cleared cache, and animate live Ambient gradients in the draw phase instead of recomposing the video/queue every frame. 1.15.69 passed 187 JVM tests, lint/build and both six-take/cache device tests. SOURCE_ONLY pending exact-source verification.
+
+- 1.15.71 (code 201) — remove Stretch from the enum, picker and all renderers; Crop remains default and legacy saved/imported Stretch becomes Crop, with migration regression coverage. Move the cache-generation guard into load rather than clear (compile error caught on 1.15.70; consumed, never released). SOURCE_ONLY pending verification.
+
+- 1.15.72 (code 202) — user-requested Fit Stack background: responsive aspect-preserving tiles lease the existing Stack companion engines, visible only behind foreground Library/Nodes/Stack; no extra audio/player copies or source-quality caps. Hidden tiles disable their video tracks. Hardware video failure preserves the singer as audio with explicit UI/diagnostics. Add eligibility/layout/identity tests. 1.15.71 passed 188 JVM tests, lint/build, signing/privacy checks and both cache/six-take device tests. SOURCE_ONLY pending new feature verification.
+
+- 1.15.73 (code 203) — repair Compose lint finding: tiled background observes its distinct layout flow without reading StateFlow.value directly in composition. 1.15.72 compiled/assembled and passed 191 JVM tests but lint blocked release. SOURCE_ONLY pending verification.
+
+- 1.15.74 (code 204) — fix verified background ownership defect: unified service registration must distinguish Dock from Detached/Expanded, so a foreground CURRENT_VIDEO surface can render instead of being permanently outranked by a hidden Mini. Dock retains artwork while the primary surface serves the background, not a black empty preview; no duplicate video decode. Add ownership precedence regression. 1.15.73 passed 191 JVM tests, lint/build and both cache/six-take device tests. SOURCE_ONLY pending background/tiles/transition verification.
+
+- 1.15.75 (code 205) — Fit stress-test repair: decorative companion video has its own silent video-only lane following the existing audio clock; it cannot gate/reprepare/stop the six singers. Hidden previews release; failures preserve audio with a warning, never source-quality caps. Add device test for stopped preview/stale lease isolation. DEV avoids Settings Back and settings copy documents Fit capacity. VERIFIED: exact source a24b86e; 193 JVM tests, lint/build, three API 36 device tests, version/signature/zip alignment/privacy checks; six actual takes aligned 5/5. Physical-phone listening and multi-video frame pacing remain unverified.
+
+- 1.15.76 (code 206) — long native Fit stress exposed decoder NO_MEMORY during a surface transition. Release optional preview codecs and retry the same full-quality primary once before normal failure handling; a proven READY demoted audio voice clears its stale video-error marker, and healthy running counts cannot exceed their denominator. Record primary failures privately and add a device recovery regression. SOURCE_ONLY pending exact-source verification; no source-quality cap.
+
+- 1.15.77 (code 207) — final recovery review: coroutine cancellation propagates, and an identity token prevents an old decoder-recovery job from pausing/publishing into a replacement Stack. Extend the device recovery test with restart-during-recovery. 1.15.76 consumed, not released; SOURCE_ONLY pending exact-source build/device verification.
 
 **No silent builds. No version reuse. No version skips. No APK overwrite/rename/copy.**

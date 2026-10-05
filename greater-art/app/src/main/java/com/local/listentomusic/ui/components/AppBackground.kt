@@ -83,6 +83,20 @@ fun AppBackground(
     horizontalPosition: (() -> Float)? = null,
 ) {
     val mode = preferences.backgroundMode
+    val tiles = rememberStackVideoTiles()
+    val lifecycleOwner = LocalLifecycleOwner.current
+    var foreground by remember(lifecycleOwner) {
+        mutableStateOf(lifecycleOwner.lifecycle.currentState.isAtLeast(Lifecycle.State.RESUMED))
+    }
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, _ ->
+            foreground = lifecycleOwner.lifecycle.currentState.isAtLeast(Lifecycle.State.RESUMED)
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+    }
+    val tiledStack = shouldTileStackBackground(mode, preferences.backgroundScaleMode,
+        visible, foreground, allowVideoBackground, controller != null, tiles.size)
     val currentVideoUri = currentPath
         ?.takeIf { isVideo }
         ?.let { Uri.fromFile(File(it)) }
@@ -157,16 +171,19 @@ fun AppBackground(
         }
     }
     val liveVideoSurface =
-        videoSurfaceActive && !listScrolling && (attachCustomVideoBackground || usePrimaryVideoBackground)
+        tiledStack || videoSurfaceActive && !listScrolling && (attachCustomVideoBackground || usePrimaryVideoBackground)
 
     Box(modifier.fillMaxSize().graphicsLayer()) {
+        val ambient = Modifier.ambientBackdrop(null,
+            androidx.compose.material3.MaterialTheme.colorScheme.background.luminance() > .5f, currentPath)
         val videoFallback = mode == AppBackgroundMode.CUSTOM_VIDEO &&
             (preferences.customBackgroundVideoUri == null || !attachCustomVideoBackground) ||
             mode == AppBackgroundMode.CURRENT_VIDEO &&
             !usePrimaryVideoBackground
         val videoMode = mode == AppBackgroundMode.CUSTOM_VIDEO || mode == AppBackgroundMode.CURRENT_VIDEO
         if (visible && (mode == AppBackgroundMode.DEFAULT || videoFallback || (videoMode && !liveVideoSurface))) {
-            DefaultMetalBackground()
+            if (mode == AppBackgroundMode.CURRENT_VIDEO) Box(Modifier.fillMaxSize().then(ambient))
+            else DefaultMetalBackground()
         } else if (visible) {
             Box(Modifier.fillMaxSize().background(androidx.compose.material3.MaterialTheme.colorScheme.background))
         }
@@ -187,7 +204,11 @@ fun AppBackground(
                         )
                     }
             }
-            AppBackgroundMode.CURRENT_VIDEO -> if (usePrimaryVideoBackground && controller != null) {
+            AppBackgroundMode.CURRENT_VIDEO -> if (tiledStack && controller != null) {
+                // Keep these leases stable during a list fling: repeatedly enabling
+                // six video tracks would cause decoder/audio regroup churn.
+                StackVideoBackground(tiles, controller)
+            } else if (usePrimaryVideoBackground && controller != null) {
                 PrimaryVideoBackground(
                     controller = controller,
                     surfaceActive = liveVideoSurface,
@@ -243,7 +264,6 @@ private fun BackgroundImage(source: Uri, scaleMode: BackgroundScaleMode) {
             contentDescription = null,
             contentScale = when (scaleMode) {
                 BackgroundScaleMode.FIT -> ContentScale.Fit
-                BackgroundScaleMode.STRETCH -> ContentScale.FillBounds
                 BackgroundScaleMode.CROP -> ContentScale.Crop
             },
             modifier = Modifier.fillMaxSize(),
@@ -252,7 +272,7 @@ private fun BackgroundImage(source: Uri, scaleMode: BackgroundScaleMode) {
 }
 
 @Composable
-private fun PrimaryVideoBackground(
+internal fun PrimaryVideoBackground(
     controller: MediaController,
     surfaceActive: Boolean,
     scaleMode: BackgroundScaleMode,
@@ -301,7 +321,6 @@ private fun PrimaryVideoBackground(
                     tag = "BACKGROUND"
                     resizeMode = when (scaleMode) {
                         BackgroundScaleMode.FIT -> AspectRatioFrameLayout.RESIZE_MODE_FIT
-                        BackgroundScaleMode.STRETCH -> AspectRatioFrameLayout.RESIZE_MODE_FILL
                         BackgroundScaleMode.CROP -> AspectRatioFrameLayout.RESIZE_MODE_ZOOM
                     }
                     setKeepContentOnPlayerReset(true)
@@ -311,7 +330,6 @@ private fun PrimaryVideoBackground(
         update = { view ->
             view.resizeMode = when (scaleMode) {
                 BackgroundScaleMode.FIT -> AspectRatioFrameLayout.RESIZE_MODE_FIT
-                BackgroundScaleMode.STRETCH -> AspectRatioFrameLayout.RESIZE_MODE_FILL
                 BackgroundScaleMode.CROP -> AspectRatioFrameLayout.RESIZE_MODE_ZOOM
             }
             if (surfaceActive) {
@@ -405,7 +423,6 @@ private fun BackgroundVideo(
                     useController = false
                     resizeMode = when (scaleMode) {
                         BackgroundScaleMode.FIT -> AspectRatioFrameLayout.RESIZE_MODE_FIT
-                        BackgroundScaleMode.STRETCH -> AspectRatioFrameLayout.RESIZE_MODE_FILL
                         BackgroundScaleMode.CROP -> AspectRatioFrameLayout.RESIZE_MODE_ZOOM
                     }
                     setKeepContentOnPlayerReset(true)
@@ -416,7 +433,6 @@ private fun BackgroundVideo(
         update = { view ->
             view.resizeMode = when (scaleMode) {
                 BackgroundScaleMode.FIT -> AspectRatioFrameLayout.RESIZE_MODE_FIT
-                BackgroundScaleMode.STRETCH -> AspectRatioFrameLayout.RESIZE_MODE_FILL
                 BackgroundScaleMode.CROP -> AspectRatioFrameLayout.RESIZE_MODE_ZOOM
             }
             if (surfaceActive) {

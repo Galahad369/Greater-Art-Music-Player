@@ -3,18 +3,67 @@
 This file describes the **current repository state only**. Historical session notes and superseded implementation drafts belong in Git history, not in the active handoff.
 
 **Project:** `greater-art/` in the repository checkout
-**Current version:** `1.15.63 (code 193)`
-**Current source:** `1.15.65 (code 195)`
+**Current version:** `1.15.75 (code 205)`
+**Current source:** `1.15.77 (code 207)`
 **Release state:** `SOURCE_ONLY`
-**Latest APK:** `releases/GreaterArt-1.15.63.apk` (`26,500,725 bytes`; SHA-256 `718385f181b65c480fc264a1117961a79d3e243de932bba168cd06d30a71f5d2`)
+**Latest APK:** `releases/GreaterArt-1.15.75.apk` (`26,549,909 bytes`; SHA-256 `dc24dd3017492ef7db8c1cab79cfaa8bcc1ff3498f2523e5968a6abc8361b4aa`)
+**Exact APK source:** `a24b86eba9bdaf35156574f48ee948de1b11035c`
 **1.15.64 verification note:** source was built/smoke-tested and hash `e21994f96f561dc2980eb3c16953acbeed2c42f16651cce65353d592a8a162ba` was recorded, but `releases/GreaterArt-1.15.64.apk` is absent from the current Git tree, so it is not the canonical committed release artifact.
 **Application ID:** `com.local.listentomusic`
 **Signing certificate SHA-256:** `9e28eb45b3b171c3ea47d7da942d28d88b16538885e392a6971a80906d612fbf`
-**Build date:** `2026-10-04`
+**Build date:** `2026-10-05`
 **Test device:** `GreaterArt_A55_API36 (A55-sized emulator, API 36, Android 16)`
 **Latest predecessor verification evidence (1.15.64/code194):** `./gradlew testDebugUnitTest lintDebug :app:assembleDebug --offline` passed; `aapt dump badging` confirmed package `com.local.listentomusic`, versionName `1.15.64`, versionCode `194`; the build was installed on A55/API 36 and exercised for launch, library scan/load, local audio/video playback, prev/next/seek/pause/resume, playlist/Favorites playback, duplicate queue independence, Stack→Library/playlist transition, queue/Library add-to-list, Library delete three-confirm flow, and mini-window/fullscreen/return flows with **0 FATAL EXCEPTION** in that tested session. This evidence does not verify 1.15.65.
 
 ## Repository state
+
+### October 5 — extended Fit decoder-pressure recovery (source only)
+
+- 1.15.77 review guards recovery cancellation with an identity token: Stop/restart cannot let a stale coroutine catch cancellation as a failure and pause the successor mix. The device regression now includes restart while recovery is pending. Exact-source verification pending; 1.15.76 is consumed but not released.
+
+- Long six-native-video stress after the short passing gates exposed emulator codec `NO_MEMORY` during a surface transition. Main video's failure demoted its file to audio but retained a stale error/mute marker; UI could show 6/5 playing. 1.15.76 releases optional preview lanes, allows asynchronous codec disposal, then retries the unchanged primary once at native quality. User pause/seek intent is preserved; Stop cancels recovery. A demoted voice clears its error only when its exact file reaches READY. Healthy running counts exclude failed slots; primary decoder errors now enter private diagnostics.
+- Added an API 36 regression for retiring optional codecs and recovering all six singers without changing the primary. Exact-source build/device tests pending. 1.15.75 remains a verified predecessor with this newly discovered long-stress limitation, not an assertion that no bugs exist.
+
+### October 5 — 1.15.75 final verification and learned safeguards
+
+- Exact source build: `testDebugUnitTest lintDebug :app:assembleDebug :app:assembleDebugAndroidTest --offline --no-daemon --max-workers=2` passed; **193 JVM tests, zero failures/errors**. All three `StackSixTakeTest` device tests passed in 29.178 seconds: cache truncation/regeneration/reuse, six real local takes across start/pause/seek/resume/primary-boundary loop, and stopped decorative-preview/stale-surface isolation. Final two-second post-seek position-drift window averaged **44.625 ms**; player positions are not acoustic latency measurements.
+- Manual device evidence: CURRENT_VIDEO background visibly renders; Fit renders the six actual videos, alignment reports **5/5**, and playback reports **6/6**. Now Playing exposes all six Stack tracks in its flexible list and all fixed primary controls. Android Home returns to a visible borderless detached Mini. Crash buffer contained no FATAL EXCEPTION during these checks. API 36 emulator uses software AVC decoding and drops frames under six native-video load; physical Samsung listening/frame pacing and eight-video capacity remain unverified.
+- Package/version/code205, pinned certificate and 16-KiB zip alignment pass. No INTERNET/new permission/dependency/signing change; privacy/history audit and PR Android/version/dependency/CodeQL/security checks pass at the source head. New release binary is immutable; never use an older artifact to fill a newer filename.
+- **Black wallpaper cause/prevention:** the persistent unified service claimed MINI_WINDOW even in Docked mode, outranking BACKGROUND. Declare the presentation state separately from service existence; assert Dock→wallpaper and Detached/Expanded→foreground precedence. Register a destination before claiming its surface, and release ownership before disposing it.
+- **Fit/audio mistake:** enabling optional video tracks inside synchronized audio engines let video buffering regate every singer. Silent video-only preview lanes now follow audio; they never control the audio readiness barrier. Native six-video CPU/GPU demand still exists; don't disguise it with source-quality caps or claim all phones can render eight streams.
+- **Verification mistake:** instantaneous post-seek drift is not a convergence test for bounded rate correction. Measure an uninterrupted settling window and verify all voices stay active. First-frame flags and emulator screenshots do not prove audible/phase-perfect sync.
+- **Artifact interference:** after the correct APK was installed, another local operation replaced build output and a new release placeholder with nine bytes (`BUILT -`). Verification caught it. The intact, previously built/tested APK was recovered from the emulator's installed `base.apk`, its package/signature/alignment rechecked, then copied to the versioned path. The invalid placeholder is retained outside releases at `output/retained-artifacts/GreaterArt-1.15.75-invalid-9-byte-output.apk.txt`; no historical APK was overwritten. Keep build logs separate from binaries, coordinate one writer, and re-hash immediately before publishing. Unrelated untracked `greater-art/build.bat` is preserved, not included in this release commit.
+- Active behavior supersedes historical drafts below: Crop default; Fit alternative; no Stretch; shared top bar; Stack transport suppresses duplicate Dock only while Stack is visible; primary wallpaper reuses one surface, dock artwork is the fallback; optional Fit companion previews are independent silent video lanes. Root/app README, workflow playbooks and both HTML demos are aligned with these boundaries.
+
+### October 5 — fitted Stack video backgrounds (source only)
+
+- 1.15.74 visibly renders the cropped background and all six Fit videos, but emulator stress exposed shared companion video BUFFERING regrouping the audio. 1.15.75 isolates optional companions into silent video-only previews following the existing audio clocks; no duplicate audio, primary reload or quality cap. Hidden previews release, stopped/failed decorative lanes never gate singers. Device isolation regression added. DEV now also avoids Settings Back; final verification pending.
+- Initial 1.15.72 companion-engine lease approach below is superseded by this measured audio/video lane isolation. Primary background still leases the primary surface; only visible optional companion video creates an independent silent preview.
+- Root cause of black CURRENT_VIDEO background: the persistent unified service registered MINI_WINDOW even while Docked/hidden, permanently outranking BACKGROUND. 1.15.74 explicitly declares Dock state so foreground wallpaper wins only over Dock; Detached/Expanded/fullscreen still take precedence. A docked preview shows artwork while its sole primary surface serves wallpaper, not a blank view or duplicate decoder. Final device verification pending.
+- 1.15.73 passed 191 JVM tests, lint/build and both cache/six-take device tests. Not promoted while background ownership remained broken.
+- 1.15.72 compiled/assembled and passed 191 JVM tests; lint caught a direct StateFlow.value read in composition. Fixed by observing the layout-only flow at 1.15.73. No 1.15.72 artifact released; final verification pending.
+- User requested simultaneous fitted Stack videos behind Library/Nodes/Stack, not inside Now Playing. CURRENT_VIDEO + Fit + at least two Stack videos leases existing companion engines as aspect-preserving tiles. Crop remains default; no new setting, player/audio copy, resolution/FPS/bitrate limit, or stretch path.
+- Grid maximizes fitted frame area; primary tile keeps the existing surface-owner lease. Companion surfaces use identity-checked leases, disable video tracks on disposal/background/expanded takeover, and retain audio/sync. Do not churn six decoder leases during list flings.
+- Video hardware failure disables only that tile and retries its existing voice as audio, with visible Stack warning and private failure record; never silently degrade source quality or discard a singer for a decorative renderer.
+- 1.15.71 exact build/lint/188 JVM tests and both API 36 cache/six-take tests passed; package/code201 and pinned signing verified, privacy audit passed. No 1.15.71 APK promoted; new 1.15.72 feature verification pending.
+
+### October 4 — Stack stability refinement (source only)
+
+- 1.15.70 compile check caught a misplaced cache-generation guard; repaired at 1.15.71. Stretch is removed completely from the scale enum/picker/renderers; Crop is first/default, Fit remains, and saved/imported STRETCH/unknown values resolve to Crop. Added migration coverage. No 1.15.70 APK released; final 1.15.71 verification pending.
+- 1.15.69 passed 187 JVM tests, lint/assembly and both API 36 device tests. Six actual takes retained all voices across start/pause/seek/resume/loop; final reported position-drift window averaged 47 ms, not an acoustic phase-lock measurement. 1.15.70 removes the caller alignment overriding DEV placement, guards waveform cache clear against late disk-hit refill, and moves ambient color interpolation to drawing so its animation cannot recompose the whole player every frame. Final verification pending.
+- 1.15.66 compile verification caught a Kotlin callable-reference error on an existing lambda. Corrected at 1.15.67; no 1.15.66 APK was released. Alignment results now identify their source mix, and thumbnail retention also runs after writes.
+- 1.15.67 passed 185 JVM tests, assembly and six actual takes on API 36 (start, seek/resume, eight-second uninterrupted six-voice run, primary-boundary loop). Two lint indentation findings repaired at 1.15.68. UI inspection also exposed Stack tracks consuming the fixed Now Playing header: they now occupy the flexible searchable list, preserving fixed controls for eight voices. Palette background/container colors and DEV occlusion are corrected. Final 1.15.68 verification pending.
+- 1.15.68 passed build/lint and 187 JVM tests. Device cache truncation/recovery/reuse passed. The added instantaneous drift assertion caught 203 ms immediately following seek; this is not a valid convergence test for deliberately bounded ±5% rate recovery. 1.15.69 records drift throughout an uninterrupted eight-second window and requires final-window mean under 75 ms with no persistent 200 ms drift. Final test pending; no threshold on source resolution/FPS/bitrate was introduced.
+- Pre-existing untracked 1.15.64 APK retained outside the release directory in the workspace QA output; not deleted, overwritten or relabeled. Its manifest/code194 and SHA-256 match the predecessor handoff.
+
+- Remote audit found only `main` and no open PRs. Reviewed Grok alignment and Opus/v0 readiness/rate-trim work already merged into main; retained contributor attribution and source-quality policy.
+- Library, Nodes and Stack share one Library top bar. Stack suppresses only the duplicate dock while its own transport is visible; leaving the app still permits Detached. Its timeline is compact, touch-accessible, with actual running-track/readiness status and direct primary-player access.
+- Companion correction seeks no longer immediately pause the whole Stack. Genuine stalls regroup after a short decoder grace interval; controlled correction gets its own bounded recovery interval. Start/seek/loop gates retain the primary timeline.
+- Sound alignment is owned by a playback-session controller, not a disposable pager composition. Navigating away does not cancel it. Stop/restart/seek/primary or membership changes invalidate stale results; user transport changes prevent unwanted automatic resume.
+- ViewModels share thumbnail/waveform repositories. Offline waveform/alignment decoders share a budget separate from primary playback. Cache writes are atomic, malformed/truncated feature files are rejected, and a failed cache write does not discard a successful analysis. Cache-clear waits for thumbnail writers.
+- Ambient gradients sample tiny compositor frames from the existing video surface and smoothly transition between representative colors. No second decoder, video proxy, source-resolution/FPS/bitrate cap or stretch renderer. Artwork remains the fallback. Decorative readback yields during list scrolling.
+- Theme tonal containers inherit the selected palette instead of default Material lavender. Bounded app-private failure stacks and Android process-exit reasons appear in Dev diagnostics; exception messages/media paths are excluded and no network permission is added.
+- Verification pending: build, six actual local takes through start/seek/resume/loop, alignment/cache reuse, three-page layout, overlay/fullscreen recovery. Emulator state is not acoustic/phase-lock proof. Nanosecond alignment and variable-tempo time warping are not claimed.
 
 ### October 4 — 1.15.65 audit hardening (source only)
 

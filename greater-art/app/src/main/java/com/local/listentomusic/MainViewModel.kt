@@ -137,8 +137,8 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         waveformAheadJob?.cancel()
     }
     private val preferences = AppPreferences(application)
-    private val thumbnailRepository = ThumbnailRepository(application)
-    private val waveformRepository = WaveformRepository(application)
+    private val thumbnailRepository = com.local.listentomusic.data.MediaCaches.thumbnails(application)
+    private val waveformRepository = com.local.listentomusic.data.MediaCaches.waveforms(application)
     val thumbnailStats = thumbnailRepository.stats
     val waveformDiagnostics = waveformRepository.diagnostics
     private var userPreferences = UserPreferences()

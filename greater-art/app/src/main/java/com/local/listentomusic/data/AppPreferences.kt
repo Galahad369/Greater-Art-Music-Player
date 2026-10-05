@@ -78,10 +78,13 @@ enum class AppLanguage(val label: String) {
 }
 enum class AppBackgroundMode { DEFAULT, CUSTOM_IMAGE, CUSTOM_VIDEO, CURRENT_VIDEO }
 enum class BackgroundScaleMode(val label: String) {
-    FIT("Fit"),
-    STRETCH("Stretch"),
     CROP("Cut to screen size"),
+    FIT("Fit"),
 }
+
+/** Old STRETCH values and unknown imports safely migrate to aspect-preserving Crop. */
+internal fun backgroundScaleModeFromStorage(value: String?): BackgroundScaleMode =
+    BackgroundScaleMode.entries.firstOrNull { it.name == value } ?: BackgroundScaleMode.CROP
 enum class AppFont(val label: String) {
     SYSTEM("System"), SANS_SERIF("Sans serif"), SERIF("Serif"), MONOSPACE("Monospace"),
     CURSIVE("Cursive"), INTER("Inter"), NUNITO("Nunito"), OSWALD("Oswald"),
@@ -189,10 +192,7 @@ class AppPreferences(private val context: Context) {
             customBackgroundImageUri = prefs[Keys.customBackgroundImageUri],
             customBackgroundVideoUri = prefs[Keys.customBackgroundVideoUri],
             backgroundDim = (prefs[Keys.backgroundDim] ?: 0.35f).coerceIn(0.25f, 0.85f),
-                        backgroundScaleMode = enumValueOrDefault(
-                            prefs[Keys.backgroundScaleMode],
-                            BackgroundScaleMode.CROP,
-                        ).let { if (it == BackgroundScaleMode.STRETCH) BackgroundScaleMode.CROP else it },
+                        backgroundScaleMode = backgroundScaleModeFromStorage(prefs[Keys.backgroundScaleMode]),
                         playlists = decodePlaylists(prefs[Keys.playlists].orEmpty()),
             savedStacks = SavedStackCodec.decode(prefs[Keys.savedStacks].orEmpty()),
             activePlaylistId = prefs[Keys.activePlaylistId],

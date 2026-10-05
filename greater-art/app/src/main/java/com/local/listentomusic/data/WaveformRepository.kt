@@ -19,6 +19,7 @@ import java.io.DataInputStream
 import java.io.DataOutputStream
 import java.io.File
 import java.security.MessageDigest
+import java.util.concurrent.atomic.AtomicInteger
 import kotlin.coroutines.coroutineContext
 import kotlin.math.abs
 import kotlin.math.max
@@ -55,24 +56,28 @@ class WaveformRepository(context: Context) {
     val diagnostics: StateFlow<WaveformDiagnostics> = _diagnostics.asStateFlow()
     // The player screen and media-transition warmup may request the same file at
     // once. One decoder prevents duplicate full-file work and codec contention.
-    private val decodeMutex = Mutex()
+    private val decodeMutex = OfflineAnalysisBudget.mutex
+    private val generation = AtomicInteger()
     private val memory = object : LinkedHashMap<String, FloatArray>(32, 0.75f, true) {
         override fun removeEldestEntry(eldest: MutableMap.MutableEntry<String, FloatArray>?) = size > 32
     }
 
     suspend fun load(path: String, size: Long, modified: Long): FloatArray? = withContext(Dispatchers.IO) {
+        val epoch = generation.get()
         val key = MessageDigest.getInstance("SHA-256")
             .digest("$path|$size|$modified|$BINS|$CACHE_VERSION".toByteArray())
             .joinToString("") { "%02x".format(it) }
         val cached = File(directory, "$key.bin")
         synchronized(memory) { memory[key] }?.let { return@withContext it }
         read(cached)?.let {
-            synchronized(memory) { memory[key] = it }
+            synchronized(memory) { if (epoch == generation.get()) memory[key] = it }
             _diagnostics.value = WaveformDiagnostics(WaveformStatus.CACHE_HIT, File(path).name)
             return@withContext it
         }
         decodeMutex.withLock {
             // Another caller may have completed while this one waited.
+            // A request that began before Clear must not refill the cleared cache.
+            if (epoch != generation.get()) return@withLock null
             read(cached)?.let {
                 synchronized(memory) { memory[key] = it }
                 _diagnostics.value = WaveformDiagnostics(WaveformStatus.CACHE_HIT, File(path).name)
@@ -96,9 +101,11 @@ class WaveformRepository(context: Context) {
     }
 
     suspend fun clear() = withContext(Dispatchers.IO) {
-        synchronized(memory) { memory.clear() }
-        directory.listFiles()?.forEach { file -> runCatching { file.delete() } }
-        _diagnostics.value = WaveformDiagnostics()
+        decodeMutex.withLock {
+            synchronized(memory) { generation.incrementAndGet(); memory.clear() }
+            directory.listFiles()?.forEach { file -> runCatching { file.delete() } }
+            _diagnostics.value = WaveformDiagnostics()
+        }
     }
 
     private suspend fun decode(path: String): FloatArray? {
@@ -283,6 +290,7 @@ class WaveformRepository(context: Context) {
 
     private fun read(file: File): FloatArray? = runCatching {
         if (!file.isFile) return null
+        if (file.length() != 4L + BINS * 4L) return null
         DataInputStream(file.inputStream().buffered()).use { input ->
             val count = input.readInt()
             if (count != BINS) return null
@@ -291,15 +299,17 @@ class WaveformRepository(context: Context) {
     }.getOrNull()
 
     private fun write(file: File, values: FloatArray) {
-        val temporary = File(file.parentFile, "${file.name}.tmp")
-        DataOutputStream(temporary.outputStream().buffered()).use { output ->
+        val atomic = android.util.AtomicFile(file)
+        val stream = atomic.startWrite()
+        try {
+            val output = DataOutputStream(stream.buffered())
             output.writeInt(values.size)
             values.forEach(output::writeFloat)
-        }
-        if (!temporary.renameTo(file)) {
-            temporary.copyTo(file, overwrite = true)
-            temporary.delete()
-        }
+            output.flush()
+            atomic.finishWrite(stream)
+        } catch (failure: Exception) { atomic.failWrite(stream); throw failure }
+        directory.listFiles()?.filter { it.extension == "bin" }?.sortedByDescending { it.lastModified() }
+            ?.drop(64)?.forEach { it.delete() }
     }
 
     private companion object {
