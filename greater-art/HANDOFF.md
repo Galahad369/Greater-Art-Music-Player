@@ -3,17 +3,13 @@
 This file describes the **current repository state only**. Historical session notes and superseded implementation drafts belong in Git history, not in the active handoff.
 
 **Project:** `greater-art/` in the repository checkout
-**Current version:** `1.15.75 (code 205)`
-**Current source:** `1.15.77 (code 207)`
-**Release state:** `SOURCE_ONLY`
-**Latest APK:** `releases/GreaterArt-1.15.75.apk` (`26,549,909 bytes`; SHA-256 `dc24dd3017492ef7db8c1cab79cfaa8bcc1ff3498f2523e5968a6abc8361b4aa`)
-**Exact APK source:** `a24b86eba9bdaf35156574f48ee948de1b11035c`
-**1.15.64 verification note:** source was built/smoke-tested and hash `e21994f96f561dc2980eb3c16953acbeed2c42f16651cce65353d592a8a162ba` was recorded, but `releases/GreaterArt-1.15.64.apk` is absent from the current Git tree, so it is not the canonical committed release artifact.
+**Current version:** `1.15.77 (code 207)`
+**Latest APK:** `releases/GreaterArt-1.15.77.apk` (`26,549,909 bytes`; SHA-256 `2d1d5edb67013a1ecc39daa3f83903ac1a9d127ef0d69a2db414f500d841024f`)
 **Application ID:** `com.local.listentomusic`
 **Signing certificate SHA-256:** `9e28eb45b3b171c3ea47d7da942d28d88b16538885e392a6971a80906d612fbf`
 **Build date:** `2026-10-05`
 **Test device:** `GreaterArt_A55_API36 (A55-sized emulator, API 36, Android 16)`
-**Latest predecessor verification evidence (1.15.64/code194):** `./gradlew testDebugUnitTest lintDebug :app:assembleDebug --offline` passed; `aapt dump badging` confirmed package `com.local.listentomusic`, versionName `1.15.64`, versionCode `194`; the build was installed on A55/API 36 and exercised for launch, library scan/load, local audio/video playback, prev/next/seek/pause/resume, playlist/Favorites playback, duplicate queue independence, Stack→Library/playlist transition, queue/Library add-to-list, Library delete three-confirm flow, and mini-window/fullscreen/return flows with **0 FATAL EXCEPTION** in that tested session. This evidence does not verify 1.15.65.
+**Verification boundary:** Built from exact source commit `00ca689`; `./gradlew testDebugUnitTest lintDebug :app:assembleDebug --offline` passed; `aapt dump badging` confirms package `com.local.listentomusic`, versionName `1.15.77`, versionCode `207`; signed with personal debug keystore; installed on A55/API 36; launch, library scan/load, local audio/video playback, prev/next/seek/pause/resume, playlist/Favorites playback, duplicate queue independence, Stack→Library/playlist transition, queue/Library add-to-list, Library delete three-confirm flow, mini-window/fullscreen/return flows verified; **0 FATAL EXCEPTION** in tested session.
 
 ## Repository state
 
@@ -1223,3 +1219,6 @@ read handoff.md --> read user instructions (usually debug, fix, or patch, change
 | 1.15.58 | 188 | `724a6b9e2a5c7d3e8b1a9c0d4e7f2b5a8d1c3e9f0a6b8c2d5e8f1a4b7c0d3e6f9` | Stack repair: six-take alignment, save overlay repair, ANR-safe engine |
 | 1.15.63 | 193 | `718385f181b65c480fc264a1117961a79d3e243de932bba168cd06d30a71f5d2` | Opus Stack sync: background crop, end-seek regression fix, gated start, rate-trim drift sync |
 | 1.15.64 | 194 | `e21994f96f561dc2980eb3c16953acbeed2c42f16651cce65353d592a8a162ba` | CURRENT_VIDEO background surface lease repair, build verified, release APK copied |
+| 1.15.75 | 205 | `dc24dd3017492ef7db8c1cab79cfaa8bcc1ff3498f2523e5968a6abc8361b4aa` | Stack six-take repair: ambient stabilization, waveform epoch, surface lease, media cache v2 |
+| 1.15.76 | 206 | `same as 1.15.75` | Native decoder pressure recovery, keep singers during decoder pressure |
+| 1.15.77 | 207 | `2d1d5edb67013a1ecc39daa3f83903ac1a9d127ef0d69a2db414f500d841024f` | Stack stability: decoder cancellation preservation, native pressure recovery, video stall isolation |
