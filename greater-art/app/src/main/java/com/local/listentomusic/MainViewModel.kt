@@ -521,6 +521,9 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     fun endTemporaryDoubleSpeed() =
         com.local.listentomusic.playback.TemporaryPlaybackSpeed.end()
 
+    fun lockTemporaryDoubleSpeed(): Boolean =
+        com.local.listentomusic.playback.TemporaryPlaybackSpeed.lock()
+
     fun setPlaybackCycle(mode: Int, random: Boolean) {
         if (com.local.listentomusic.playback.StackPlayback.state.value.active) return
         _controller.value?.let {

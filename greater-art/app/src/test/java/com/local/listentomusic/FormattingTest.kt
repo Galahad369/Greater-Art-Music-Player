@@ -83,4 +83,19 @@ class FormattingTest {
         assertFalse(com.local.listentomusic.ui.sideDoubleTapSeeks(null, 1_200L, left, 1_000L))
         assertFalse(com.local.listentomusic.ui.sideDoubleTapSeeks(left, 1_000L, left, 1_000L))
     }
+
+    @Test fun heldDoubleSpeedLocksOnlyAfterDeliberateDownwardPull() {
+        assertFalse(com.local.listentomusic.ui.shouldLockHeldDoubleSpeed(71f, 72f))
+        assertTrue(com.local.listentomusic.ui.shouldLockHeldDoubleSpeed(72f, 72f))
+        assertTrue(com.local.listentomusic.ui.shouldLockHeldDoubleSpeed(120f, 72f))
+        assertFalse(com.local.listentomusic.ui.shouldLockHeldDoubleSpeed(-120f, 72f))
+        assertFalse(com.local.listentomusic.ui.shouldLockHeldDoubleSpeed(120f, 0f))
+    }
+
+    @Test fun twoXSpeedIsRecognizedForHoldToUnlock() {
+        assertTrue(com.local.listentomusic.ui.isDoubleSpeed(2f))
+        assertTrue(com.local.listentomusic.ui.isDoubleSpeed(2.005f))
+        assertFalse(com.local.listentomusic.ui.isDoubleSpeed(1.98f))
+        assertFalse(com.local.listentomusic.ui.isDoubleSpeed(2.5f))
+    }
 }

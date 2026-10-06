@@ -79,6 +79,7 @@ class FullscreenVideoActivity : ComponentActivity() {
                     onRemoveQueueItem = viewModel::removeQueueItem,
                     onBeginTemporaryDoubleSpeed = viewModel::beginTemporaryDoubleSpeed,
                     onEndTemporaryDoubleSpeed = viewModel::endTemporaryDoubleSpeed,
+                    onLockTemporaryDoubleSpeed = viewModel::lockTemporaryDoubleSpeed,
                     isFavourite = playback.currentPath in settings.favouritePaths,
                     onToggleFavourite = viewModel::toggleFavourite,
                     onShareCurrentMedia = {},

@@ -30,7 +30,6 @@ import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.gestures.calculatePan
 import androidx.compose.foundation.gestures.calculateZoom
 import androidx.compose.foundation.gestures.detectTapGestures
-import androidx.compose.foundation.gestures.detectVerticalDragGestures
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -181,6 +180,10 @@ import kotlin.math.roundToInt
 
 internal val playbackSpeeds = listOf(0.25f, 0.5f, 0.75f, 1f, 1.25f, 1.5f, 1.75f, 2f, 2.5f, 3f)
 internal const val HOLD_2X_ACTIVATION_MS = 700L
+internal const val HOLD_2X_LOCK_DISTANCE_DP = 72f
+internal fun shouldLockHeldDoubleSpeed(dragAfterHoldPx: Float, thresholdPx: Float): Boolean =
+    thresholdPx > 0f && dragAfterHoldPx >= thresholdPx
+internal fun isDoubleSpeed(speed: Float): Boolean = kotlin.math.abs(speed - 2f) <= 0.01f
 private val LocalSystemPlayer = androidx.compose.runtime.compositionLocalOf { false }
 @Composable private fun playerStatusInsets() = if (LocalSystemPlayer.current) WindowInsets(0) else WindowInsets.statusBars
 @Composable private fun playerNavigationInsets() = if (LocalSystemPlayer.current) WindowInsets(0) else WindowInsets.navigationBars
@@ -248,6 +251,7 @@ fun NowPlayingScreen(
     onRemoveQueueItem: (Int) -> Unit,
     onBeginTemporaryDoubleSpeed: () -> Boolean,
     onEndTemporaryDoubleSpeed: () -> Unit,
+    onLockTemporaryDoubleSpeed: () -> Boolean,
     isFavourite: Boolean,
     onToggleFavourite: (String) -> Unit,
     onShareCurrentMedia: () -> Unit,
@@ -339,8 +343,10 @@ fun NowPlayingScreen(
                     onSeek = onSeek,
                     seekOffsetMs = seekOffsetMs,
                     onSeekBy = onSeekBy,
+                    onSpeed = onSpeed,
                     onBeginTemporaryDoubleSpeed = onBeginTemporaryDoubleSpeed,
                     onEndTemporaryDoubleSpeed = onEndTemporaryDoubleSpeed,
+                    onLockTemporaryDoubleSpeed = onLockTemporaryDoubleSpeed,
                     modifier = if (immersiveVideo) {
                         Modifier.fillMaxSize()
                     } else {
@@ -463,8 +469,10 @@ private fun VideoPlayerStage(
     onSeek: (Long) -> Unit,
     seekOffsetMs: Long = 5_000L,
     onSeekBy: (Long) -> Unit,
+    onSpeed: (Float) -> Unit,
     onBeginTemporaryDoubleSpeed: () -> Boolean,
     onEndTemporaryDoubleSpeed: () -> Unit,
+    onLockTemporaryDoubleSpeed: () -> Boolean,
     modifier: Modifier,
     onLocateCurrent: (() -> Unit)? = null,
 ) {
@@ -481,7 +489,9 @@ private fun VideoPlayerStage(
     } else targetPosition
     val currentPlayback by androidx.compose.runtime.rememberUpdatedState(playback)
     val haptics = LocalHapticFeedback.current
+    val lockThresholdPx = with(LocalDensity.current) { HOLD_2X_LOCK_DISTANCE_DP.dp.toPx() }
     var temporaryDoubleSpeed by remember { mutableStateOf(false) }
+    var unlockDoubleSpeedArmed by remember { mutableStateOf(false) }
 
     // Zoom state for fullscreen pinch-to-zoom
     var videoScale by remember { mutableFloatStateOf(1f) }
@@ -558,50 +568,106 @@ private fun VideoPlayerStage(
                     } while (event.changes.any { it.pressed })
                 }
             }
-        }.pointerInput(Unit) {
-            detectVerticalDragGestures(onVerticalDrag = { change, amount ->
-                if (abs(amount) > 4f) {
-                    controlsVisible = true
-                    change.consume()
-                }
-            })
-        }.pointerInput(seekOffsetMs, playback.currentPath) {
+        }.pointerInput(seekOffsetMs, playback.currentPath, lockThresholdPx) {
             var lastSeekSide: SeekSide? = null
             var lastSeekTapMs = 0L
-            var pressStartedMs = 0L
-            detectTapGestures(
-                onPress = {
-                    pressStartedMs = android.os.SystemClock.uptimeMillis()
-                    coroutineScope {
-                        val activation = launch {
-                            delay(HOLD_2X_ACTIVATION_MS)
-                            if (currentPlayback.isPlaying && onBeginTemporaryDoubleSpeed()) {
-                                temporaryDoubleSpeed = true
-                                haptics.performHapticFeedback(HapticFeedbackType.LongPress)
+            awaitEachGesture {
+                val down = awaitFirstDown(requireUnconsumed = false)
+                val pressStartedMs = android.os.SystemClock.uptimeMillis()
+                val startPosition = down.position
+                val startedAtDoubleSpeed = isDoubleSpeed(currentPlayback.speed)
+                var currentY = startPosition.y
+                var activationY = startPosition.y
+                var maxMovement = 0f
+                var multiTouch = false
+                var holdActivated = false
+                var lockedThisGesture = false
+                var unlockArmed = false
+
+                fun tryLockCurrentHold() {
+                    if (!holdActivated || lockedThisGesture || multiTouch) return
+                    if (!shouldLockHeldDoubleSpeed(currentY - activationY, lockThresholdPx)) return
+                    if (onLockTemporaryDoubleSpeed()) {
+                        lockedThisGesture = true
+                        temporaryDoubleSpeed = false
+                        haptics.performHapticFeedback(HapticFeedbackType.LongPress)
+                    }
+                }
+
+                coroutineScope {
+                    val activation = launch {
+                        delay(HOLD_2X_ACTIVATION_MS)
+                        if (multiTouch) return@launch
+                        if (startedAtDoubleSpeed) {
+                            unlockArmed = true
+                            unlockDoubleSpeedArmed = true
+                            haptics.performHapticFeedback(HapticFeedbackType.LongPress)
+                        } else if (currentPlayback.isPlaying && onBeginTemporaryDoubleSpeed()) {
+                            holdActivated = true
+                            activationY = currentY
+                            temporaryDoubleSpeed = true
+                            haptics.performHapticFeedback(HapticFeedbackType.LongPress)
+                        }
+                    }
+
+                    var anyPressed = true
+                    while (anyPressed) {
+                        val event = awaitPointerEvent()
+                        if (event.changes.size > 1) multiTouch = true
+                        val change = event.changes.firstOrNull { it.id == down.id }
+                        if (change != null) {
+                            currentY = change.position.y
+                            val dx = kotlin.math.abs(change.position.x - startPosition.x)
+                            val dy = kotlin.math.abs(change.position.y - startPosition.y)
+                            maxMovement = maxOf(maxMovement, dx, dy)
+                            if (!multiTouch && dy > 4f) controlsVisible = true
+                            tryLockCurrentHold()
+                            if (!multiTouch && (holdActivated || unlockArmed || dy > viewConfiguration.touchSlop)) {
+                                change.consume()
                             }
                         }
-                        tryAwaitRelease()
-                        activation.cancel()
-                        if (temporaryDoubleSpeed) {
-                            onEndTemporaryDoubleSpeed()
-                            temporaryDoubleSpeed = false
-                        }
+                        anyPressed = event.changes.any { it.pressed }
                     }
-                },
-                // Single taps only arm the pair; seeking requires a second tap on the same side.
-                onTap = seekTap@{ offset ->
+                    activation.cancel()
+                }
+
+                val heldMs = android.os.SystemClock.uptimeMillis() - pressStartedMs
+                unlockDoubleSpeedArmed = false
+
+                if (multiTouch) {
+                    if (holdActivated && !lockedThisGesture) {
+                        onEndTemporaryDoubleSpeed()
+                        temporaryDoubleSpeed = false
+                    }
+                    return@awaitEachGesture
+                }
+
+                if (startedAtDoubleSpeed && unlockArmed) {
+                    onSpeed(1f)
+                    haptics.performHapticFeedback(HapticFeedbackType.LongPress)
+                    lastSeekSide = null
+                    lastSeekTapMs = 0L
+                    return@awaitEachGesture
+                }
+
+                if (holdActivated) {
+                    if (!lockedThisGesture) {
+                        onEndTemporaryDoubleSpeed()
+                        temporaryDoubleSpeed = false
+                    }
+                    lastSeekSide = null
+                    lastSeekTapMs = 0L
+                    return@awaitEachGesture
+                }
+
+                if (heldMs < HOLD_2X_ACTIVATION_MS && maxMovement <= viewConfiguration.touchSlop) {
                     val nowMs = android.os.SystemClock.uptimeMillis()
-                    if (pressStartedMs != 0L && nowMs - pressStartedMs >= HOLD_2X_ACTIVATION_MS) {
-                        lastSeekSide = null
-                        lastSeekTapMs = 0L
-                        return@seekTap
-                    }
-                    val side = seekSideForX(offset.x, size.width.toFloat())
+                    val side = seekSideForX(startPosition.x, size.width.toFloat())
                     if (sideDoubleTapSeeks(side, nowMs, lastSeekSide, lastSeekTapMs)) {
                         val delta = when (side) {
                             SeekSide.LEFT -> -seekOffsetMs
                             SeekSide.RIGHT -> seekOffsetMs
-                            null -> return@seekTap
+                            null -> return@awaitEachGesture
                         }
                         onSeekBy(delta)
                         seekFeedback = delta to nowMs
@@ -611,17 +677,26 @@ private fun VideoPlayerStage(
                         lastSeekSide = side
                         lastSeekTapMs = nowMs
                     }
-                },
-            )
+                } else {
+                    lastSeekSide = null
+                    lastSeekTapMs = 0L
+                }
+            }
         })
+        val speedGestureLabel = when {
+            unlockDoubleSpeedArmed -> uiText(playback.appLanguage, "Release for 1×", "放開回到 1×")
+            temporaryDoubleSpeed -> uiText(playback.appLanguage, "2× · Pull down to lock", "2× · 下拉鎖定")
+            isDoubleSpeed(playback.speed) -> uiText(playback.appLanguage, "2× · Locked", "2× · 已鎖定")
+            else -> null
+        }
         AnimatedVisibility(
-            visible = temporaryDoubleSpeed,
+            visible = speedGestureLabel != null,
             enter = fadeIn(tween(100)),
             exit = fadeOut(tween(120)),
             modifier = Modifier.align(Alignment.TopCenter).padding(top = 18.dp),
         ) {
             Text(
-                "2×",
+                speedGestureLabel.orEmpty(),
                 color = GaVideoOverlay.foreground,
                 style = MaterialTheme.typography.labelLarge,
                 fontWeight = FontWeight.Bold,

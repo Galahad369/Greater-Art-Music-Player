@@ -160,6 +160,15 @@ class PlaybackService : MediaLibraryService() {
                 speedBeforeTemporaryHold = null
             }
         }
+        TemporaryPlaybackSpeed.lockCommand = {
+            val speed = player.playbackParameters.speed
+            if (speedBeforeTemporaryHold == null || speed !in 1.99f..2.01f) false
+            else {
+                speedBeforeTemporaryHold = null
+                scheduleSave()
+                true
+            }
+        }
         audioManager.registerAudioDeviceCallback(audioDeviceCallback, Handler(mainLooper))
         // ponytail: async prefs load; runBlocking here froze main and ANR'd the first play tap.
         serviceScope.launch {
