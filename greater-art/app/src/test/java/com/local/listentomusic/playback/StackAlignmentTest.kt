@@ -80,6 +80,45 @@ class StackAlignmentTest {
         assertEquals(lag * 20.0, result.offsetMs.toDouble(), 10.0)
     }
 
+    @Test fun musicEnvelopeWinsOverMisleadingVocalTiming() {
+        val frames = 1500
+        val musicLag = 40
+        val vocalLag = 9
+        var musicState = 12345
+        val beat = FloatArray(frames) {
+            musicState = musicState * 1103515245 + 12345
+            if ((musicState ushr 16) % 11 == 0) 1f else .03f
+        }
+        var vocalState = 54321
+        val vocal = FloatArray(frames) {
+            vocalState = vocalState * 1103515245 + 12345
+            if ((vocalState ushr 16) % 7 == 0) 1f else .02f
+        }
+
+        val primaryFull = FloatArray(frames) { beat[it] * .35f + vocal[it] * 1.8f }
+        val companionFull = FloatArray(frames + musicLag) { index ->
+            val music = if (index >= musicLag) beat[index - musicLag] * .35f else 0f
+            val voice = if (index >= vocalLag && index - vocalLag < vocal.size) vocal[index - vocalLag] * 1.8f else 0f
+            music + voice
+        }
+        val primaryMusic = beat
+        val companionMusic = FloatArray(frames + musicLag) { index ->
+            if (index >= musicLag) beat[index - musicLag] else 0f
+        }
+        val result = correlateStackFeatures(
+            StackAudioFeatures(primaryFull, Array(frames) { FloatArray(12) }, primaryMusic),
+            StackAudioFeatures(companionFull, Array(frames + musicLag) { FloatArray(12) }, companionMusic),
+        )
+        assertTrue(result.confident)
+        assertEquals(musicLag * 20.0, result.offsetMs.toDouble(), 10.0)
+    }
+
+    @Test fun stereoSideIsUsedOnlyWhenItCarriesMeaningfulProgrammeEnergy() {
+        assertTrue(stackPreferStereoSideSignal(fullPower = 100.0, sidePower = 2.0, stereo = true))
+        assertFalse(stackPreferStereoSideSignal(fullPower = 100.0, sidePower = .5, stereo = true))
+        assertFalse(stackPreferStereoSideSignal(fullPower = 100.0, sidePower = 50.0, stereo = false))
+    }
+
     @Test fun onsetNoveltyIsHalfWaveRectified() {
         val novelty = stackOnsetNovelty(doubleArrayOf(0.0, 1.0, 0.5, 2.0))
         assertArrayEquals(doubleArrayOf(0.0, 1.0, 0.0, 1.5), novelty, 1e-9)

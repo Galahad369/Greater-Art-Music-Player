@@ -7,7 +7,7 @@ This file is the authoritative version policy for Greater Art. If any handoff no
 ## Machine-checkable state
 
 
-Current source: **1.15.78 (code 208)**
+Current source: **1.15.79 (code 209)**
 Current release state: **SOURCE_ONLY**
 Latest verified APK: **1.15.77 (code 207)**
 Allowed series transition: **1.14.15 -> 1.15.1**
@@ -185,5 +185,7 @@ Previous baseline: 1.13.26 (code 115).
 - 1.15.77 (code 207) — final recovery review: coroutine cancellation propagates, and an identity token prevents an old decoder-recovery job from pausing/publishing into a replacement Stack. Extend the device recovery test with restart-during-recovery. 1.15.76 consumed, not released. VERIFIED: exact app source `bc1c645`; release APK `GreaterArt-1.15.77.apk`; SHA-256 `2d1d5edb67013a1ecc39daa3f83903ac1a9d127ef0d69a2db414f500d841024f`; HANDOFF records full offline test/lint/assemble, package/version/signature and API 36 smoke verification.
 
 - 1.15.78 (code 208) — remote-branch convergence: forward-port the only unmerged Copilot/Grok idea from empty PR #120. Stack loop-off stays Repeat while loop-on uses RepeatOne in Stack and Now Playing; playback/loop semantics, drift/alignment, source quality and permissions are unchanged. Add a pure JVM assertion for the icon-state contract. SOURCE_ONLY pending CI/device verification.
+
+- 1.15.79 (code 209) — music-first Stack alignment: treat vocals as interference rather than the alignment target. Stereo analysis now prefers an L-R side fingerprint when it contains meaningful programme energy, suppressing center-panned vocals before rhythm/onset and chroma correlation; mono/near-mono files retain the full-mix fallback. Fusion weights favor backing-track onsets over raw loudness, UI says Align music, and deterministic tests cover misleading vocal timing plus side-signal selection. SOURCE_ONLY pending exact-source CI/device/listening verification.
 
 **No silent builds. No version reuse. No version skips. No APK overwrite/rename/copy.**

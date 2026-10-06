@@ -27,11 +27,12 @@ import kotlin.math.sqrt
 
 /**
  * Separate, bounded analysis decoder. Never changes the real player's tracks or source.
- * v2 stores both the existing 20 ms energy envelope and a lightweight 12-bin chroma
- * fingerprint so different vocal timbres can still align on shared harmonic structure.
+ * v4 keeps the full-mix 20 ms envelope for fallback, but builds the active alignment
+ * envelope/chroma from stereo L-R side information when it is strong enough. Center-panned
+ * vocals are therefore de-emphasized and the shared accompaniment becomes the preferred anchor.
  */
 class StackAudioAlign(context: Context) {
-    private val cache = File(context.applicationContext.cacheDir, "stack-align-v3")
+    private val cache = File(context.applicationContext.cacheDir, "stack-align-v4")
 
     companion object {
         private val mutex = Mutex()
@@ -85,8 +86,11 @@ class StackAudioAlign(context: Context) {
             val cached = runCatching {
                 DataInputStream(target.inputStream().buffered()).use { input ->
                     val n = input.readInt()
-                    require(n in 150..FEATURE_BINS && target.length() == 4L + n * 4L * (1 + CHROMA_SIZE))
+                    require(n in 150..FEATURE_BINS && target.length() == 4L + n * 4L * (2 + CHROMA_SIZE))
                     val envelope = FloatArray(n) {
+                        input.readFloat().also { value -> require(value.isFinite() && value >= 0f) }
+                    }
+                    val musicEnvelope = FloatArray(n) {
                         input.readFloat().also { value -> require(value.isFinite() && value >= 0f) }
                     }
                     val chroma = Array(n) {
@@ -94,7 +98,7 @@ class StackAudioAlign(context: Context) {
                             input.readFloat().also { value -> require(value.isFinite() && value >= 0f && value <= 1.1f) }
                         }
                     }
-                    StackAudioFeatures(envelope, chroma)
+                    StackAudioFeatures(envelope, chroma, musicEnvelope)
                 }
             }.getOrNull()
             if (cached != null) {
@@ -111,6 +115,7 @@ class StackAudioAlign(context: Context) {
                 val output = DataOutputStream(stream.buffered())
                 output.writeInt(decoded.envelope.size)
                 decoded.envelope.forEach(output::writeFloat)
+                decoded.musicEnvelope.forEach(output::writeFloat)
                 decoded.chroma.forEach { frame -> frame.forEach(output::writeFloat) }
                 output.flush()
                 atomic.finishWrite(stream)
@@ -133,9 +138,12 @@ class StackAudioAlign(context: Context) {
         val extractor = MediaExtractor()
         var codec: MediaCodec? = null
         val energy = FloatArray(FEATURE_BINS)
+        val sideEnergy = FloatArray(FEATURE_BINS)
         val counts = IntArray(FEATURE_BINS)
-        val chromaSamples = FloatArray(FEATURE_BINS * CHROMA_SAMPLES)
+        val monoChromaSamples = FloatArray(FEATURE_BINS * CHROMA_SAMPLES)
+        val sideChromaSamples = FloatArray(FEATURE_BINS * CHROMA_SAMPLES)
         val chromaCounts = IntArray(FEATURE_BINS * CHROMA_SAMPLES)
+        var sawStereo = false
         var rate = 44100
         var channels = 1
         var encoding = AudioFormat.ENCODING_PCM_16BIT
@@ -149,30 +157,40 @@ class StackAudioAlign(context: Context) {
             while (buffer.remaining() >= channels * bytes) {
                 var squared = 0.0
                 var mono = 0.0
-                repeat(channels) {
+                var left = 0.0
+                var right = 0.0
+                repeat(channels) { channel ->
                     val value = if (bytes == 4) buffer.float.toDouble() else buffer.short / 32768.0
                     if (value.isFinite()) {
                         mono += value
                         squared += value * value
+                        if (channel == 0) left = value
+                        if (channel == 1) right = value
                     }
                 }
                 mono /= channels
+                val side = if (channels >= 2) {
+                    sawStereo = true
+                    (left - right) * 0.5
+                } else 0.0
                 val time = pts + frame++ * 1_000_000L / rate
                 val bin = ((time - startUs) / 20_000L).toInt()
                 if (time >= startUs && time < endUs && bin in energy.indices) {
                     energy[bin] += (squared / channels).toFloat()
+                    sideEnergy[bin] += (side * side).toFloat()
                     counts[bin]++
 
-                    // Uniformly sample each 20 ms frame at 64 points. The resulting
-                    // effective 3.2 kHz stream is sufficient for C3..B4 pitch classes.
+                    // Keep both mono and stereo-side analysis streams until we know whether
+                    // L-R contains enough real programme energy to be a stable music anchor.
                     val withinBinUs = (time - startUs) % 20_000L
                     val slot = ((withinBinUs * CHROMA_SAMPLES) / 20_000L)
                         .toInt()
                         .coerceIn(0, CHROMA_SAMPLES - 1)
                     val index = bin * CHROMA_SAMPLES + slot
-                    // Average, rather than pick one high-rate sample: reduce aliasing
-                    // from vocal harmonics before this analysis-only downsampling.
-                    chromaSamples[index] += mono.toFloat()
+                    // Average, rather than pick one high-rate sample, before the
+                    // analysis-only downsampling.
+                    monoChromaSamples[index] += mono.toFloat()
+                    sideChromaSamples[index] += side.toFloat()
                     chromaCounts[index]++
                 }
             }
@@ -190,14 +208,14 @@ class StackAudioAlign(context: Context) {
             require(encoding == AudioFormat.ENCODING_PCM_16BIT || encoding == AudioFormat.ENCODING_PCM_FLOAT)
         }
 
-        fun chromaFrame(bin: Int): FloatArray {
+        fun chromaFrame(bin: Int, sourceSamples: FloatArray): FloatArray {
             val base = (bin / CHROMA_WINDOW_BINS * CHROMA_WINDOW_BINS) * CHROMA_SAMPLES
             var populated = 0
             var mean = 0.0
             for (slot in 0 until CHROMA_WINDOW_SAMPLES) {
                 if (base + slot < chromaCounts.size && chromaCounts[base + slot] > 0) {
                     populated++
-                    mean += chromaSamples[base + slot] / chromaCounts[base + slot]
+                    mean += sourceSamples[base + slot] / chromaCounts[base + slot]
                 }
             }
             if (populated < CHROMA_WINDOW_SAMPLES / 2) return FloatArray(CHROMA_SIZE)
@@ -210,7 +228,7 @@ class StackAudioAlign(context: Context) {
                 var q2 = 0.0
                 for (slot in 0 until CHROMA_WINDOW_SAMPLES) {
                     val sample = if (base + slot < chromaCounts.size && chromaCounts[base + slot] > 0) {
-                        (chromaSamples[base + slot] / chromaCounts[base + slot] - mean) * chromaWindow[slot]
+                        (sourceSamples[base + slot] / chromaCounts[base + slot] - mean) * chromaWindow[slot]
                     } else {
                         0.0
                     }
@@ -301,12 +319,21 @@ class StackAudioAlign(context: Context) {
             val envelope = FloatArray(n) {
                 if (counts[it] > 0) sqrt(energy[it] / counts[it]) else 0f
             }
+            val fullPower = energy.take(n).sumOf { it.toDouble() }
+            val stereoSidePower = sideEnergy.take(n).sumOf { it.toDouble() }
+            val preferSide = stackPreferStereoSideSignal(fullPower, stereoSidePower, sawStereo)
+            val musicEnvelope = if (preferSide) {
+                FloatArray(n) { if (counts[it] > 0) sqrt(sideEnergy[it] / counts[it]) else 0f }
+            } else {
+                envelope
+            }
+            val analysisSamples = if (preferSide) sideChromaSamples else monoChromaSamples
             val windows = Array((n + CHROMA_WINDOW_BINS - 1) / CHROMA_WINDOW_BINS) {
                 coroutineContext.ensureActive()
-                chromaFrame(it * CHROMA_WINDOW_BINS)
+                chromaFrame(it * CHROMA_WINDOW_BINS, analysisSamples)
             }
             val chroma = Array(n) { windows[it / CHROMA_WINDOW_BINS] }
-            return StackAudioFeatures(envelope, chroma)
+            return StackAudioFeatures(envelope, chroma, musicEnvelope)
         } finally {
             codec?.let {
                 runCatching { it.stop() }

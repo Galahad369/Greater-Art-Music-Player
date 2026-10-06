@@ -12,6 +12,7 @@ data class StackAlignment(val offsetMs: Long, val correlation: Double, val confi
 internal data class StackAudioFeatures(
     val envelope: FloatArray,
     val chroma: Array<FloatArray>,
+    val musicEnvelope: FloatArray = envelope,
 )
 
 private fun energyCorrelation(a: DoubleArray, b: DoubleArray, lag: Int): Double {
@@ -44,8 +45,8 @@ private fun harmonicCorrelation(primary: StackAudioFeatures, companion: StackAud
     val end = minOf(aCount, bCount - lag)
     if (end - start < 75) return -1.0
 
-    val maxA = primary.envelope.maxOrNull()?.coerceAtLeast(0f) ?: 0f
-    val maxB = companion.envelope.maxOrNull()?.coerceAtLeast(0f) ?: 0f
+    val maxA = primary.musicEnvelope.maxOrNull()?.coerceAtLeast(0f) ?: 0f
+    val maxB = companion.musicEnvelope.maxOrNull()?.coerceAtLeast(0f) ?: 0f
     if (maxA <= 1e-6f || maxB <= 1e-6f) return -1.0
     val gateA = maxA * 0.06f
     val gateB = maxB * 0.06f
@@ -56,7 +57,7 @@ private fun harmonicCorrelation(primary: StackAudioFeatures, companion: StackAud
     // frame (~80 ms) while still evaluating every lag at 20 ms resolution.
     for (i in start until end step 4) {
         val j = i + lag
-        if (primary.envelope[i] < gateA || companion.envelope[j] < gateB) continue
+        if (primary.musicEnvelope[i] < gateA || companion.musicEnvelope[j] < gateB) continue
         val a = primary.chroma[i]
         val b = companion.chroma[j]
         if (a.size < 12 || b.size < 12) continue
@@ -111,10 +112,10 @@ internal fun correlateStackFeatures(primary: StackAudioFeatures, companion: Stac
     if (minOf(primary.envelope.size, companion.envelope.size) < 150) {
         return StackAlignment(0, 0.0, false)
     }
-    val a = DoubleArray(primary.envelope.size) { ln(1.0 + primary.envelope[it].coerceAtLeast(0f) * 100.0) }
-    val b = DoubleArray(companion.envelope.size) { ln(1.0 + companion.envelope[it].coerceAtLeast(0f) * 100.0) }
-    // Onset novelty (rising log-energy) peaks on drum hits and note attacks that every take
-    // shares through the backing track, while sustained vocal loudness differs per singer.
+    val a = DoubleArray(primary.musicEnvelope.size) { ln(1.0 + primary.musicEnvelope[it].coerceAtLeast(0f) * 100.0) }
+    val b = DoubleArray(companion.musicEnvelope.size) { ln(1.0 + companion.musicEnvelope[it].coerceAtLeast(0f) * 100.0) }
+    // The decoder supplies an accompaniment-biased envelope when stereo side information
+    // is usable. Onset novelty then follows backing-track rhythm instead of vocal phrasing.
     val onsetA = stackOnsetNovelty(a)
     val onsetB = stackOnsetNovelty(b)
     val limit = minOf(750, minOf(a.size, b.size) / 3)
@@ -158,10 +159,13 @@ internal fun stackOnsetNovelty(logEnvelope: DoubleArray): DoubleArray =
 
 internal fun stackFusedScore(energy: Double, onset: Double, harmonic: Double): Double = when {
     harmonic < 0.0 && onset < 0.0 -> energy
-    harmonic < 0.0 -> energy.coerceAtLeast(0.0) * 0.55 + onset.coerceAtLeast(0.0) * 0.45
+    harmonic < 0.0 -> energy.coerceAtLeast(0.0) * 0.35 + onset.coerceAtLeast(0.0) * 0.65
     energy < 0.0 && onset < 0.0 -> harmonic * 0.72
-    else -> energy.coerceAtLeast(0.0) * 0.25 + onset.coerceAtLeast(0.0) * 0.20 + harmonic.coerceAtLeast(0.0) * 0.55
+    else -> energy.coerceAtLeast(0.0) * 0.15 + onset.coerceAtLeast(0.0) * 0.30 + harmonic.coerceAtLeast(0.0) * 0.55
 }
+
+internal fun stackPreferStereoSideSignal(fullPower: Double, sidePower: Double, stereo: Boolean): Boolean =
+    stereo && fullPower > 1e-8 && sidePower.isFinite() && sidePower / fullPower >= 0.015
 
 /**
  * Parabolic interpolation around the winning lag for sub-frame (< 20 ms) precision.
