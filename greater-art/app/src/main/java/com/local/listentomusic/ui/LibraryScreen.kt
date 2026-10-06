@@ -75,8 +75,8 @@ import androidx.compose.animation.animateColorAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
@@ -117,6 +117,7 @@ import com.local.listentomusic.ui.theme.GaSpacing
 import com.local.listentomusic.ui.theme.gaChromeColor
 import kotlin.math.abs
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.flow.first
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -419,6 +420,7 @@ fun LibraryScreen(
                                 dragEnabled = !favouritesActive && selected.isEmpty() && activePlaylist?.rule == null && state.query.isBlank() && (activePlaylist != null || state.sortMode == SortMode.CUSTOM),
                                 onMove = onMoveItem,
                                 onLoadThumbnail = onLoadThumbnail,
+                                isScrolling = { listState.isScrollInProgress },
                                 rowSize = preferences.libraryRowSize,
                                 showThumbnails = preferences.showThumbnails,
                                 showFileDetails = preferences.showFileDetails,
@@ -663,6 +665,7 @@ private fun MediaFileRow(
     dragEnabled: Boolean,
     onMove: (Int, Int) -> Unit,
     onLoadThumbnail: suspend (MediaFile) -> Bitmap?,
+    isScrolling: () -> Boolean,
     rowSize: LibraryRowSize,
     showThumbnails: Boolean,
     showFileDetails: Boolean,
@@ -675,8 +678,21 @@ private fun MediaFileRow(
     moreDescription: String,
 ) {
     var accumulatedDrag by remember(index, file.path) { mutableFloatStateOf(0f) }
-    val thumbnail by produceState<Bitmap?>(null, file.path, "${file.sizeBytes}:${file.modifiedMs}:$showThumbnails:${file.coverUri}") {
-        value = if (showThumbnails) onLoadThumbnail(file) else null
+    var thumbnail by remember(file.path, file.sizeBytes, file.modifiedMs, file.coverUri, showThumbnails) {
+        mutableStateOf<Bitmap?>(null)
+    }
+    val currentIsScrolling by rememberUpdatedState(isScrolling)
+    LaunchedEffect(file.path, file.sizeBytes, file.modifiedMs, file.coverUri, showThumbnails) {
+        if (!showThumbnails) {
+            thumbnail = null
+            return@LaunchedEffect
+        }
+        if (thumbnail != null) return@LaunchedEffect
+        // Match Now Playing/Stack: rows created during a fling stay as cheap
+        // placeholders. Disk reads and video-frame extraction resume once scrolling
+        // settles, so thumbnail work cannot compete with Compose/video presentation.
+        snapshotFlow { currentIsScrolling() }.first { !it }
+        thumbnail = onLoadThumbnail(file)
     }
     val pressSource = remember { MutableInteractionSource() }
     val pressed by pressSource.collectIsPressedAsState()

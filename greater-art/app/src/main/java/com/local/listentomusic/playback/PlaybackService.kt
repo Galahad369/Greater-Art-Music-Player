@@ -209,7 +209,7 @@ class PlaybackService : MediaLibraryService() {
                         val item = com.local.listentomusic.model.MediaFile(path, file.name, 0, file.length(), file.lastModified(),
                             if (file.extension.lowercase() in MediaScanner.videoExtensions) com.local.listentomusic.model.MediaKind.VIDEO else com.local.listentomusic.model.MediaKind.AUDIO, sourcePath = file.path,
                             coverUri = preferences.current().localOverrides[path]?.coverUri.orEmpty())
-                        widgetArtwork = com.local.listentomusic.data.ThumbnailRepository(this@PlaybackService).load(item)
+                        widgetArtwork = com.local.listentomusic.data.MediaCaches.thumbnails(applicationContext).load(item)
                         PlaybackWidget.update(this@PlaybackService, player.mediaMetadata.title?.toString() ?: "Greater Art", player.isPlaying, widgetArtwork)
                     }
                 }
