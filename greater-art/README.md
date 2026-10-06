@@ -186,7 +186,7 @@ $env:GRADLE_USER_HOME = Join-Path $env:USERPROFILE '.gradle'
 Current release artifact:
 
 ```text
-releases/GreaterArt-1.15.75.apk
+releases/GreaterArt-1.15.77.apk
 ```
 
 Versioned APKs are never overwritten. Builds remain signed by the pinned personal
