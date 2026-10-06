@@ -158,6 +158,7 @@ import androidx.media3.ui.AspectRatioFrameLayout
 import androidx.media3.ui.PlayerView
 import com.local.listentomusic.PlaybackUiState
 import com.local.listentomusic.playback.stackTransportUsesLoopIcon
+import com.local.listentomusic.playback.stackTransportUsesRepeatOneIcon
 import com.local.listentomusic.SleepTimerState
 import com.local.listentomusic.data.AppLanguage
 import com.local.listentomusic.model.MediaFile
@@ -1577,6 +1578,7 @@ private fun PlayerBottomControls(
                         val stackLoopOn = stackLoop && playback.repeatMode == Player.REPEAT_MODE_ALL
                         Icon(
                             when {
+                                stackTransportUsesRepeatOneIcon(playback.stackCount, stackLoopOn) -> Icons.Rounded.RepeatOne
                                 stackLoop -> Icons.Rounded.Repeat
                                 playback.shuffleEnabled -> Icons.Rounded.Shuffle
                                 playback.repeatMode == Player.REPEAT_MODE_ONE -> Icons.Rounded.RepeatOne

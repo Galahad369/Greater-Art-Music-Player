@@ -77,8 +77,12 @@ internal fun persistedRepeatMode(stackActive: Boolean, repeatBeforeStack: Int, c
 internal fun stackSecondarySlots(slots: List<StackSlot>, primaryPath: String?): List<StackSlot> =
     slots.filterNot { it.file.path == primaryPath }
 
-/** Stack transport uses the loop glyph, never shuffle / repeat-one / playlist-repeat. */
+/** Stack transport uses dedicated Stack loop state instead of shuffle / playlist-repeat semantics. */
 internal fun stackTransportUsesLoopIcon(stackCount: Int): Boolean = stackCount > 0
+
+/** Active Stack looping uses RepeatOne as the visual on-state; off remains the plain Repeat glyph. */
+internal fun stackTransportUsesRepeatOneIcon(stackCount: Int, loopEnabled: Boolean): Boolean =
+    stackCount > 0 && loopEnabled
 
 internal const val STACK_START_ALIGNMENT_MS = 30L
 internal const val STACK_DRIFT_CORRECTION_MS = 100L
