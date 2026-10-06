@@ -569,9 +569,11 @@ private fun VideoPlayerStage(
                 }
             }
         }.pointerInput(seekOffsetMs, playback.currentPath, lockThresholdPx) {
-            var lastSeekSide: SeekSide? = null
-            var lastSeekTapMs = 0L
-            awaitEachGesture {
+            coroutineScope {
+                val timerScope = this
+                var lastSeekSide: SeekSide? = null
+                var lastSeekTapMs = 0L
+                awaitEachGesture {
                 val down = awaitFirstDown(requireUnconsumed = false)
                 val pressStartedMs = android.os.SystemClock.uptimeMillis()
                 val startPosition = down.position
@@ -594,9 +596,8 @@ private fun VideoPlayerStage(
                     }
                 }
 
-                coroutineScope {
-                    val activation = launch {
-                        delay(HOLD_2X_ACTIVATION_MS)
+                val activation = timerScope.launch {
+                    delay(HOLD_2X_ACTIVATION_MS)
                         if (multiTouch) return@launch
                         if (startedAtDoubleSpeed) {
                             unlockArmed = true
@@ -628,8 +629,7 @@ private fun VideoPlayerStage(
                         }
                         anyPressed = event.changes.any { it.pressed }
                     }
-                    activation.cancel()
-                }
+                activation.cancel()
 
                 val heldMs = android.os.SystemClock.uptimeMillis() - pressStartedMs
                 unlockDoubleSpeedArmed = false
@@ -680,6 +680,7 @@ private fun VideoPlayerStage(
                 } else {
                     lastSeekSide = null
                     lastSeekTapMs = 0L
+                }
                 }
             }
         })

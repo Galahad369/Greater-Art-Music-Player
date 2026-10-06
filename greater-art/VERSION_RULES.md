@@ -7,7 +7,7 @@ This file is the authoritative version policy for Greater Art. If any handoff no
 ## Machine-checkable state
 
 
-Current source: **1.15.80 (code 210)**
+Current source: **1.15.81 (code 211)**
 Current release state: **SOURCE_ONLY**
 Latest verified APK: **1.15.77 (code 207)**
 Allowed series transition: **1.14.15 -> 1.15.1**
@@ -189,5 +189,7 @@ Previous baseline: 1.13.26 (code 115).
 - 1.15.79 (code 209) — music-first Stack alignment: treat vocals as interference rather than the alignment target. Stereo analysis now prefers an L-R side fingerprint when it contains meaningful programme energy, suppressing center-panned vocals before rhythm/onset and chroma correlation; mono/near-mono files retain the full-mix fallback. Fusion weights favor backing-track onsets over raw loudness, UI says Align music, and deterministic tests cover misleading vocal timing plus side-signal selection. SOURCE_ONLY pending exact-source CI/device/listening verification.
 
 - 1.15.80 (code 210) — Now Playing hold-speed lock: the existing 700 ms hold still gives temporary 2×; while holding, a deliberate 72 dp downward pull commits 2× so it remains after release. Holding again while at 2× arms “Release for 1×” and release returns playback to 1×. The unified one-finger detector preserves side double-tap seeking and fullscreen pinch isolation; locked 2× uses the normal speed persistence path rather than a hidden mode. SOURCE_ONLY pending exact-source CI/device gesture verification.
+
+- 1.15.81 (code 211) — compile repair for the 1.15.80 hold-speed gesture: move the 700 ms timer coroutine outside Compose's restricted AwaitPointerEventScope while keeping pointer events inside that scope. No gesture semantics changed; 1.15.80 was consumed by the failed exact-source build and is not released. SOURCE_ONLY pending CI/device gesture verification.
 
 **No silent builds. No version reuse. No version skips. No APK overwrite/rename/copy.**
