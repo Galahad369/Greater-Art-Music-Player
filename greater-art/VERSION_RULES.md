@@ -7,7 +7,7 @@ This file is the authoritative version policy for Greater Art. If any handoff no
 ## Machine-checkable state
 
 
-Current source: **1.15.83 (code 213)**
+Current source: **1.15.84 (code 214)**
 Current release state: **SOURCE_ONLY**
 Latest verified APK: **1.15.77 (code 207)**
 Allowed series transition: **1.14.15 -> 1.15.1**
@@ -195,5 +195,7 @@ Previous baseline: 1.13.26 (code 115).
 - 1.15.82 (code 212) — harden true immersive fullscreen: when fullscreen is active, reassert edge-to-edge system-bar hiding after window-focus returns and whenever Android reports status/navigation bars visible, preventing the player from remaining in the half-fullscreen state with a persistent top strip. FullscreenVideoActivity also reapplies immersive bars on create, resume, and focus regain. Android can still reserve the OS edge gesture for a deliberate notification-shade reveal on personal devices, but Greater Art no longer stays stranded with system bars visible afterward. SOURCE_ONLY pending exact-source CI/device verification.
 
 - 1.15.83 (code 213) — scroll/cache audit: Library rows now defer fresh thumbnail disk/frame work while their LazyColumn is actively scrolling, matching the existing Now Playing/Stack fling budget, and PlaybackService widget artwork reuses the process-wide MediaCaches thumbnail repository instead of allocating an isolated cache/decoder budget. No playback resolution, bitrate, Stack sync, permissions, or media-source behavior changes. SOURCE_ONLY pending CI/device fast-fling verification.
+
+- 1.15.84 (code 214) — Stack Align Music v5 fine pass: retain the vocal-resistant 20 ms side/onset/chroma coarse matcher, then refine only a bounded ±30 ms neighborhood using a normalized ~3.2 kHz attack fingerprint from the same offline decode. Up to six separated transient-rich anchors must reach a three-anchor/≈4 ms consensus or the coarse offset remains unchanged. Cache namespace advances to stack-align-v5, fine-cache retention is capped at 24 files, and the stale corruption instrumentation test now targets the active cache. This is millisecond-level initial music alignment, not a nanosecond/phase-lock claim and not variable-tempo warping. SOURCE_ONLY pending exact-head CI/device/listening verification.
 
 **No silent builds. No version reuse. No version skips. No APK overwrite/rename/copy.**

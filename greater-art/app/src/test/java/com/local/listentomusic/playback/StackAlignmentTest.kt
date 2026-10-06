@@ -142,6 +142,55 @@ class StackAlignmentTest {
         ).confident)
     }
 
+    @Test fun fineMusicRefinementRecoversOffsetInsideCoarseTwentyMsBin() {
+        val rate = 3_200
+        val frames = rate * 12
+        val trueLagSamples = 43 // 13.4375 ms: intentionally not on the 20 ms coarse grid.
+        val primary = FloatArray(frames)
+        var state = 17
+        var index = 300
+        while (index < frames - 300) {
+            state = state * 1103515245 + 12345
+            index += 180 + ((state ushr 16) and 255)
+            if (index >= frames - 8) break
+            primary[index] = 1f
+            primary[index + 1] = .72f
+            primary[index + 2] = .35f
+        }
+        val companion = FloatArray(frames + trueLagSamples + 100)
+        for (i in primary.indices) companion[i + trueLagSamples] = primary[i] * .61f
+        // Singer-specific interference: unrelated attacks that should not move a multi-anchor consensus.
+        for (i in 700 until companion.size step 1_731) companion[i] += .35f
+
+        val result = stackRefineMusicOffset(
+            coarse = StackAlignment(offsetMs = 20L, correlation = .82, confident = true),
+            primaryFine = primary,
+            companionFine = companion,
+            sampleRateHz = rate,
+        )
+        assertEquals(13L, result.offsetMs)
+        assertTrue(result.confident)
+    }
+
+    @Test fun fineMusicRefinementFallsBackWhenEvidenceIsWeak() {
+        val coarse = StackAlignment(offsetMs = 420L, correlation = .67, confident = true)
+        val result = stackRefineMusicOffset(
+            coarse = coarse,
+            primaryFine = FloatArray(12_000),
+            companionFine = FloatArray(12_000),
+            sampleRateHz = 3_200,
+        )
+        assertEquals(coarse, result)
+    }
+
+    @Test fun fineTransientSignalIsBoundedAndHighlightsAttack() {
+        val source = FloatArray(200) { if (it < 80) .1f else if (it < 120) .7f else .1f }
+        val transient = stackFineTransientSignal(source)
+        assertEquals(source.size, transient.size)
+        assertTrue(transient.all { it in 0f..1.0001f })
+        assertTrue(transient.slice(80..95).maxOrNull()!! > transient.take(60).maxOrNull()!!)
+    }
+
     @Test fun promotionPreservesRelativeMusicalPositionsAndNegativeDelay() {
         assertEquals(listOf(-1000L, 0L, -1500L), rebaseStackOffsets(listOf(0L, 1000L, -500L), 1000L))
         assertEquals(-400L, stackVoiceTarget(100L, -500L))
