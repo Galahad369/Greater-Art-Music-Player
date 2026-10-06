@@ -139,7 +139,7 @@ class StackSixTakeTest {
         val identity = "${source.canonicalPath}|${source.length()}|${source.lastModified()}|0|null"
         val key = java.security.MessageDigest.getInstance("SHA-256").digest(identity.toByteArray())
             .joinToString("") { "%02x".format(it) }
-        val cached = File(context.cacheDir, "stack-align-v3/$key.bin")
+        val cached = File(context.cacheDir, "stack-align-v5/$key.bin")
         assertTrue(cached.length() > 4)
         // Only generated cache data is corrupted, never the user's media.
         cached.writeBytes(byteArrayOf(0, 0, 1))

@@ -13,6 +13,9 @@ internal data class StackAudioFeatures(
     val envelope: FloatArray,
     val chroma: Array<FloatArray>,
     val musicEnvelope: FloatArray = envelope,
+    /** Vocal-resistant transient fingerprint sampled much finer than the 20 ms coarse grid. */
+    val fineSignal: FloatArray = FloatArray(0),
+    val fineSampleRateHz: Int = 3_200,
 )
 
 private fun energyCorrelation(a: DoubleArray, b: DoubleArray, lag: Int): Double {
@@ -149,7 +152,14 @@ internal fun correlateStackFeatures(primary: StackAudioFeatures, companion: Stac
     val confident = best >= .40 && evidence && best - alternative >= .025 && kotlin.math.abs(bestLag) < limit
     if (!confident) return StackAlignment(0L, best.coerceAtLeast(0.0), false)
     val refined = stackRefinePeak(scores, bestLag + limit)
-    return StackAlignment(kotlin.math.round((bestLag + refined) * 20.0).toLong(), best.coerceAtLeast(0.0), true)
+    val coarse = StackAlignment(kotlin.math.round((bestLag + refined) * 20.0).toLong(), best.coerceAtLeast(0.0), true)
+    return stackRefineMusicOffset(
+        coarse = coarse,
+        primaryFine = primary.fineSignal,
+        companionFine = companion.fineSignal,
+        sampleRateHz = primary.fineSampleRateHz.takeIf { it == companion.fineSampleRateHz } ?: 0,
+        checkActive = checkActive,
+    )
 }
 
 internal fun stackOnsetNovelty(logEnvelope: DoubleArray): DoubleArray =
@@ -181,6 +191,172 @@ internal fun stackRefinePeak(scores: DoubleArray, peakIndex: Int): Double {
     if (curvature >= -1e-9) return 0.0
     val shift = 0.5 * (left - right) / curvature
     return if (shift.isFinite()) shift.coerceIn(-0.5, 0.5) else 0.0
+}
+
+
+internal const val STACK_FINE_SEARCH_MS = 30
+internal const val STACK_FINE_WINDOW_MS = 650
+internal const val STACK_FINE_MAX_ANCHORS = 6
+internal const val STACK_FINE_MIN_ANCHORS = 3
+internal const val STACK_FINE_CONSENSUS_MS = 4
+
+/**
+ * Build an attack-weighted signal for fine alignment. A fast envelope minus a slower
+ * baseline suppresses sustained voice/notes and emphasizes shared backing-track attacks.
+ * The output is peak-normalized so gain/mastering differences do not affect thresholds.
+ */
+internal fun stackFineTransientSignal(samples: FloatArray): FloatArray {
+    if (samples.isEmpty()) return samples
+    val out = FloatArray(samples.size)
+    var fast = 0.0
+    var slow = 0.0
+    var peak = 0.0
+    for (i in samples.indices) {
+        val magnitude = kotlin.math.abs(samples[i].toDouble()).coerceAtMost(4.0)
+        fast += (magnitude - fast) * 0.35
+        slow += (magnitude - slow) * 0.035
+        val transient = (fast - slow).coerceAtLeast(0.0)
+        out[i] = transient.toFloat()
+        if (transient > peak) peak = transient
+    }
+    if (peak > 1e-8) {
+        val scale = (1.0 / peak).toFloat()
+        for (i in out.indices) out[i] *= scale
+    }
+    return out
+}
+
+private fun stackFineWindowCorrelation(
+    primary: FloatArray,
+    companion: FloatArray,
+    start: Int,
+    lag: Int,
+    window: Int,
+): Double {
+    val companionStart = start + lag
+    if (start < 0 || companionStart < 0 ||
+        start + window > primary.size || companionStart + window > companion.size
+    ) return -1.0
+
+    var x = 0.0
+    var y = 0.0
+    var xx = 0.0
+    var yy = 0.0
+    var xy = 0.0
+    for (k in 0 until window) {
+        val av = primary[start + k].toDouble()
+        val bv = companion[companionStart + k].toDouble()
+        x += av
+        y += bv
+        xx += av * av
+        yy += bv * bv
+        xy += av * bv
+    }
+    val variance = (xx - x * x / window) * (yy - y * y / window)
+    return if (variance > 1e-10) (xy - x * y / window) / sqrt(variance) else -1.0
+}
+
+/**
+ * Second-stage alignment around a confident coarse result.
+ *
+ * The 20 ms matcher finds the arrangement. This searches only ±30 ms at the cached
+ * fine-signal rate, using up to six separated transient-rich anchors. A fine result is
+ * accepted only when at least three anchors agree within ~4 ms; otherwise the coarse
+ * result is returned unchanged. This makes refinement fail-safe rather than mandatory.
+ */
+internal fun stackRefineMusicOffset(
+    coarse: StackAlignment,
+    primaryFine: FloatArray,
+    companionFine: FloatArray,
+    sampleRateHz: Int,
+    checkActive: () -> Unit = {},
+): StackAlignment {
+    if (!coarse.confident || sampleRateHz !in 1_000..8_000) return coarse
+    if (minOf(primaryFine.size, companionFine.size) < sampleRateHz * 3) return coarse
+
+    val radius = maxOf(1, sampleRateHz * STACK_FINE_SEARCH_MS / 1_000)
+    val window = maxOf(256, sampleRateHz * STACK_FINE_WINDOW_MS / 1_000)
+    val coarseLag = kotlin.math.round(coarse.offsetMs * sampleRateHz / 1_000.0).toInt()
+    val minLag = coarseLag - radius
+    val maxLag = coarseLag + radius
+    val minStart = maxOf(0, -minLag)
+    val maxStart = minOf(primaryFine.size - window, companionFine.size - window - maxLag)
+    if (maxStart <= minStart) return coarse
+
+    val step = maxOf(window / 2, 1)
+    val scored = ArrayList<Pair<Int, Double>>()
+    var start = minStart
+    while (start <= maxStart) {
+        var pa = 0.0
+        var pb = 0.0
+        val companionStart = start + coarseLag
+        if (companionStart >= 0 && companionStart + window <= companionFine.size) {
+            for (k in 0 until window) {
+                val a = primaryFine[start + k].toDouble()
+                val b = companionFine[companionStart + k].toDouble()
+                pa += a * a
+                pb += b * b
+            }
+            val joint = sqrt(pa * pb)
+            if (joint > 1e-6) scored += start to joint
+        }
+        start += step
+    }
+    if (scored.size < STACK_FINE_MIN_ANCHORS) return coarse
+
+    val separation = window * 2
+    val anchors = ArrayList<Int>(STACK_FINE_MAX_ANCHORS)
+    for ((candidate, _) in scored.sortedByDescending { it.second }) {
+        if (anchors.all { kotlin.math.abs(it - candidate) >= separation }) {
+            anchors += candidate
+            if (anchors.size == STACK_FINE_MAX_ANCHORS) break
+        }
+    }
+    if (anchors.size < STACK_FINE_MIN_ANCHORS) return coarse
+
+    data class Candidate(val anchor: Int, val lag: Int, val score: Double)
+    val candidates = ArrayList<Candidate>(anchors.size)
+    for ((anchorIndex, anchor) in anchors.withIndex()) {
+        if (anchorIndex % 2 == 0) checkActive()
+        var bestLag = coarseLag
+        var bestScore = -1.0
+        for (lag in minLag..maxLag) {
+            val score = stackFineWindowCorrelation(primaryFine, companionFine, anchor, lag, window)
+            if (score > bestScore) {
+                bestScore = score
+                bestLag = lag
+            }
+        }
+        if (bestScore >= 0.18) candidates += Candidate(anchor, bestLag, bestScore)
+    }
+    if (candidates.size < STACK_FINE_MIN_ANCHORS) return coarse
+
+    val sortedLags = candidates.map { it.lag }.sorted()
+    val medianLag = sortedLags[sortedLags.size / 2]
+    val tolerance = maxOf(2, sampleRateHz * STACK_FINE_CONSENSUS_MS / 1_000)
+    val inliers = candidates.filter { kotlin.math.abs(it.lag - medianLag) <= tolerance }
+    if (inliers.size < STACK_FINE_MIN_ANCHORS || inliers.size * 3 < candidates.size * 2) return coarse
+
+    var bestLag = medianLag
+    var bestScore = -1.0
+    val consensusMin = maxOf(minLag, medianLag - tolerance)
+    val consensusMax = minOf(maxLag, medianLag + tolerance)
+    for (lag in consensusMin..consensusMax) {
+        var total = 0.0
+        for (candidate in inliers) {
+            total += stackFineWindowCorrelation(primaryFine, companionFine, candidate.anchor, lag, window)
+        }
+        val score = total / inliers.size
+        if (score > bestScore) {
+            bestScore = score
+            bestLag = lag
+        }
+    }
+    if (bestScore < 0.20) return coarse
+
+    val refinedMs = kotlin.math.round(bestLag * 1_000.0 / sampleRateHz).toLong()
+    if (kotlin.math.abs(refinedMs - coarse.offsetMs) > STACK_FINE_SEARCH_MS) return coarse
+    return coarse.copy(offsetMs = refinedMs)
 }
 
 internal fun stackVoiceTarget(masterMs: Long, offsetMs: Long): Long =
