@@ -7,8 +7,8 @@ This file is the authoritative version policy for Greater Art. If any handoff no
 ## Machine-checkable state
 
 
-Current source: **1.15.77 (code 207)**
-Current release state: **VERIFIED**
+Current source: **1.15.78 (code 208)**
+Current release state: **SOURCE_ONLY**
 Latest verified APK: **1.15.77 (code 207)**
 Allowed series transition: **1.14.15 -> 1.15.1**
 Allowed consumed transition: **1.15.13 (code 143) -> 1.15.17 (code 147)**
@@ -183,5 +183,7 @@ Previous baseline: 1.13.26 (code 115).
 - 1.15.76 (code 206) — long native Fit stress exposed decoder NO_MEMORY during a surface transition. Release optional preview codecs and retry the same full-quality primary once before normal failure handling; a proven READY demoted audio voice clears its stale video-error marker, and healthy running counts cannot exceed their denominator. Record primary failures privately and add a device recovery regression. SOURCE_ONLY pending exact-source verification; no source-quality cap.
 
 - 1.15.77 (code 207) — final recovery review: coroutine cancellation propagates, and an identity token prevents an old decoder-recovery job from pausing/publishing into a replacement Stack. Extend the device recovery test with restart-during-recovery. 1.15.76 consumed, not released. VERIFIED: exact app source `bc1c645`; release APK `GreaterArt-1.15.77.apk`; SHA-256 `2d1d5edb67013a1ecc39daa3f83903ac1a9d127ef0d69a2db414f500d841024f`; HANDOFF records full offline test/lint/assemble, package/version/signature and API 36 smoke verification.
+
+- 1.15.78 (code 208) — remote-branch convergence: forward-port the only unmerged Copilot/Grok idea from empty PR #120. Stack loop-off stays Repeat while loop-on uses RepeatOne in Stack and Now Playing; playback/loop semantics, drift/alignment, source quality and permissions are unchanged. Add a pure JVM assertion for the icon-state contract. SOURCE_ONLY pending CI/device verification.
 
 **No silent builds. No version reuse. No version skips. No APK overwrite/rename/copy.**

@@ -21,6 +21,7 @@ import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.Pause
 import androidx.compose.material.icons.rounded.PlayArrow
 import androidx.compose.material.icons.rounded.Repeat
+import androidx.compose.material.icons.rounded.RepeatOne
 import androidx.compose.material.icons.rounded.Save
 import androidx.compose.material.icons.rounded.FolderOpen
 import androidx.compose.material.icons.rounded.Delete
@@ -377,7 +378,7 @@ fun StackScreen(
                                     .inspectElement("STACK_LOOP_BUTTON", if (session.loopEnabled) "Stack loop on" else "Stack loop off"),
                             ) {
                                 Icon(
-                                    Icons.Rounded.Repeat,
+                                    if (session.loopEnabled) Icons.Rounded.RepeatOne else Icons.Rounded.Repeat,
                                     uiText(language, "Loop whole Stack", "循環整個疊播"),
                                     Modifier.size(26.dp),
                                     tint = if (session.loopEnabled) MaterialTheme.colorScheme.secondary

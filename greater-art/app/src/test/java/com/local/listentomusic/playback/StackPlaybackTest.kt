@@ -89,6 +89,9 @@ class StackPlaybackTest {
         assertTrue(STACK_LOOP_DEFAULT)
         assertTrue(stackTransportUsesLoopIcon(2))
         assertFalse(stackTransportUsesLoopIcon(0))
+        assertTrue(stackTransportUsesRepeatOneIcon(2, loopEnabled = true))
+        assertFalse(stackTransportUsesRepeatOneIcon(2, loopEnabled = false))
+        assertFalse(stackTransportUsesRepeatOneIcon(0, loopEnabled = true))
     }
 
     @Test fun stackLoopRestartsOnlyAtSessionEnd() {
