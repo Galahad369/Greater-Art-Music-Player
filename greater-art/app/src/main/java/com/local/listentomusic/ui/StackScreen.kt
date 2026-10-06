@@ -70,7 +70,7 @@ fun StackScreen(
     val alignmentState by StackAlignmentController.state.collectAsStateWithLifecycle()
     val alignment = if (alignmentState.primaryPath == session.primaryPath && alignmentState.paths == session.slots.map { it.file.path })
         alignmentState else com.local.listentomusic.playback.StackAlignmentProgress()
-    val alignProgress = if (alignment.running) "${uiText(language, "Aligning by sound", "正在按聲音對齊")} ${alignment.completed}/${alignment.total}" else null
+    val alignProgress = if (alignment.running) "${uiText(language, "Aligning music", "正在對齊音樂")} ${alignment.completed}/${alignment.total}" else null
     var stagedPaths by rememberSaveable { mutableStateOf(emptyList<String>()) }
     val staged = remember(files, stagedPaths) {
         stagedPaths.mapNotNull { path -> files.firstOrNull { it.path == path } }
@@ -202,12 +202,12 @@ fun StackScreen(
                     TextButton(onClick = StackAlignmentController::cancel) { Text(uiText(language, "Cancel", "取消")) }
                 } else {
                     TextButton(
-                        modifier = Modifier.inspectElement("STACK_ALIGN_SOUND_BUTTON", "Offline arrangement alignment; uncertain matches are unchanged"),
+                        modifier = Modifier.inspectElement("STACK_ALIGN_SOUND_BUTTON", "Offline backing-track alignment; vocals are de-emphasized; uncertain matches are unchanged"),
                         onClick = { StackAlignmentController.start(context) },
                     ) {
                         Icon(Icons.Rounded.GraphicEq, null)
                         Spacer(Modifier.width(6.dp))
-                        Text(uiText(language, "Align by sound", "按聲音對齊"))
+                        Text(uiText(language, "Align music", "對齊音樂"))
                     }
                 }
                 if (!alignment.running) {
