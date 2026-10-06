@@ -98,4 +98,12 @@ class FormattingTest {
         assertFalse(com.local.listentomusic.ui.isDoubleSpeed(1.98f))
         assertFalse(com.local.listentomusic.ui.isDoubleSpeed(2.5f))
     }
+
+    @Test fun immersiveFullscreenRehidesAnyVisibleSystemBar() {
+        assertTrue(com.local.listentomusic.ui.shouldRehideImmersiveBars(true, true, false))
+        assertTrue(com.local.listentomusic.ui.shouldRehideImmersiveBars(true, false, true))
+        assertTrue(com.local.listentomusic.ui.shouldRehideImmersiveBars(true, true, true))
+        assertFalse(com.local.listentomusic.ui.shouldRehideImmersiveBars(true, false, false))
+        assertFalse(com.local.listentomusic.ui.shouldRehideImmersiveBars(false, true, true))
+    }
 }

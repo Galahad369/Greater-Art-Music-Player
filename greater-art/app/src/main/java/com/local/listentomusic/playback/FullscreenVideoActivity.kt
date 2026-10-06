@@ -10,6 +10,8 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.unit.dp
 import androidx.core.view.WindowCompat
+import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.WindowInsetsControllerCompat
 import androidx.lifecycle.lifecycleScope
 import com.local.listentomusic.MainActivity
 import com.local.listentomusic.MainViewModel
@@ -31,7 +33,7 @@ class FullscreenVideoActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         viewModel.useSessionPresentationOnly()
-        WindowCompat.setDecorFitsSystemWindows(window, false)
+        enforceImmersiveSystemBars()
         setContent {
             val playback by viewModel.playback.collectAsState()
             val queue by viewModel.queue.collectAsState()
@@ -94,6 +96,7 @@ class FullscreenVideoActivity : ComponentActivity() {
 
     override fun onResume() {
         super.onResume()
+        enforceImmersiveSystemBars()
         // Fullscreen is a real Activity, not a system overlay. Track it explicitly so
         // a transient ON_PAUSE (shade/dialog/OEM transition) cannot hand the primary
         // surface back to the hidden Mini Window while this Activity still owns video.
@@ -101,6 +104,11 @@ class FullscreenVideoActivity : ComponentActivity() {
         VideoSurfaceOwner.setActivityForeground(true)
         VideoSurfaceOwner.setPresentation(nowPlayingVisible = true, pictureInPicture = false)
         completeFullscreenHandoff()
+    }
+
+    override fun onWindowFocusChanged(hasFocus: Boolean) {
+        super.onWindowFocusChanged(hasFocus)
+        if (hasFocus) enforceImmersiveSystemBars()
     }
 
     override fun onPause() {
@@ -119,6 +127,14 @@ class FullscreenVideoActivity : ComponentActivity() {
         // recreation is the only case where ownership should intentionally survive.
         if (!isChangingConfigurations) dispatchReturn()
         super.onDestroy()
+    }
+
+    private fun enforceImmersiveSystemBars() {
+        WindowCompat.setDecorFitsSystemWindows(window, false)
+        WindowCompat.getInsetsController(window, window.decorView).apply {
+            systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+            hide(WindowInsetsCompat.Type.systemBars())
+        }
     }
 
     /** Clear the service's fullscreen suppression before Android tears this Activity down. */

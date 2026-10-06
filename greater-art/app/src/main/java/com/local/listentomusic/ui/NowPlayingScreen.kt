@@ -148,6 +148,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
+import androidx.core.view.ViewCompat
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
@@ -2021,23 +2022,57 @@ internal fun VideoSurface(
     }
 }
 
+internal fun shouldRehideImmersiveBars(
+    fullscreen: Boolean,
+    statusBarsVisible: Boolean,
+    navigationBarsVisible: Boolean,
+): Boolean = fullscreen && (statusBarsVisible || navigationBarsVisible)
+
 @Composable
 private fun FullscreenEffect(enabled: Boolean, forceLandscape: Boolean = false) {
     val activity = LocalContext.current.findActivity() ?: return
     val systemDark = MaterialTheme.colorScheme.background.luminance() < 0.5f
     DisposableEffect(activity, enabled, systemDark, forceLandscape) {
-        val insets = WindowCompat.getInsetsController(activity.window, activity.window.decorView)
+        val window = activity.window
+        val decorView = window.decorView
+        val insets = WindowCompat.getInsetsController(window, decorView)
+
+        fun enforceImmersiveBars() {
+            WindowCompat.setDecorFitsSystemWindows(window, false)
+            insets.systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+            insets.hide(WindowInsetsCompat.Type.systemBars())
+        }
+
+        val focusListener = android.view.ViewTreeObserver.OnWindowFocusChangeListener { hasFocus ->
+            if (enabled && hasFocus) enforceImmersiveBars()
+        }
+
         if (enabled) {
             activity.requestedOrientation = if (forceLandscape) ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE
                 else ActivityInfo.SCREEN_ORIENTATION_FULL_SENSOR
-            insets.systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
-            insets.hide(WindowInsetsCompat.Type.systemBars())
+            enforceImmersiveBars()
+            decorView.viewTreeObserver.addOnWindowFocusChangeListener(focusListener)
+            ViewCompat.setOnApplyWindowInsetsListener(decorView) { view, applied ->
+                val statusVisible = applied.isVisible(WindowInsetsCompat.Type.statusBars())
+                val navigationVisible = applied.isVisible(WindowInsetsCompat.Type.navigationBars())
+                if (shouldRehideImmersiveBars(true, statusVisible, navigationVisible)) {
+                    view.post {
+                        if (activity.hasWindowFocus()) enforceImmersiveBars()
+                    }
+                }
+                applied
+            }
         } else {
             insets.isAppearanceLightStatusBars = !systemDark
             insets.isAppearanceLightNavigationBars = !systemDark
         }
+
         onDispose {
             if (enabled) {
+                if (decorView.viewTreeObserver.isAlive) {
+                    decorView.viewTreeObserver.removeOnWindowFocusChangeListener(focusListener)
+                }
+                ViewCompat.setOnApplyWindowInsetsListener(decorView, null)
                 activity.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
                 insets.show(WindowInsetsCompat.Type.systemBars())
             }
