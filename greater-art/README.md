@@ -4,12 +4,12 @@ Greater Art is a native Kotlin/Jetpack Compose player for local music and video.
 
 ## Current release
 
-Current verified build: **1.15.75/code205**, exact app source `a24b86eba9bdaf35156574f48ee948de1b11035c`. Reviewed Grok sound alignment and Opus/v0's readiness barrier/rate correction are retained. Six actual 孤独毒毒 takes passed start, pause, seek/resume and primary-boundary looping on the A55-sized API 36 emulator; the UI alignment run matched 5/5 companions. This is not real-phone acoustic synchronization proof, and fixed offsets do not time-warp different arrangements or tempos.
+Current verified build: **1.15.77/code207**, exact app source `bc1c645a3be77a0b64c4c0c523b85ccd242e292d`. It preserves the reviewed Stack alignment/readiness work and adds guarded decoder-pressure recovery so stale recovery coroutines cannot pause or publish into a replacement Stack. The API 36 verification boundary in HANDOFF covers build/lint/tests, package/version/signature checks, local media playback, Stack transitions, Mini/fullscreen/return flows and zero fatal exceptions in the tested session. This is not real-phone acoustic synchronization proof, and fixed offsets do not time-warp different arrangements or tempos.
 
-- Verified build: **1.15.75**, code **205** (193 JVM tests, lint/build and three cache/six-track/video-isolation device tests).
+- Verified build: **1.15.77**, code **207**.
 - Application ID: `com.local.listentomusic`
-- APK: `releases/GreaterArt-1.15.75.apk`
-- APK SHA-256: `dc24dd3017492ef7db8c1cab79cfaa8bcc1ff3498f2523e5968a6abc8361b4aa`
+- APK: `releases/GreaterArt-1.15.77.apk`
+- APK SHA-256: `2d1d5edb67013a1ecc39daa3f83903ac1a9d127ef0d69a2db414f500d841024f`
 - Signing certificate SHA-256: `9e28eb45b3b171c3ea47d7da942d28d88b16538885e392a6971a80906d612fbf`
 - Library, Nodes and Stack share one header. Stack's fixed transport replaces the duplicate dock; Now Playing uses its flexible list for Stack tracks so seek/repeat/previous/play/next/speed remain visible.
 - **Background:** Now-playing video is the default mode, with **Cut to screen size (Crop)** as default scale. **Fit** preserves the whole frame and tiles two or more Stack videos behind the three browsing pages. Stretch is removed; legacy Stretch settings migrate to Crop. Companion tiles are silent video-only previews following the original audio clocks; hiding them releases their decoders, and tile errors do not stop singers. Full-quality multi-video rendering depends on hardware capacity. No source resolution, frame-rate or bitrate caps are added.
