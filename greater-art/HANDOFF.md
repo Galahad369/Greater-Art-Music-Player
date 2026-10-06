@@ -3,13 +3,13 @@
 This file describes the **current repository state only**. Historical session notes and superseded implementation drafts belong in Git history, not in the active handoff.
 
 **Project:** `greater-art/` in the repository checkout
-**Current version:** `1.15.81 (code 211)`
-**Latest APK:** `releases/GreaterArt-1.15.81.apk` (`26,549,909 bytes`; SHA-256 `9901735786687560b62f7cb2cbfc5f07b1bca2173103c3aec8fd76ea22d74837`)
+**Current version:** `1.15.77 (code 207)`
+**Latest APK:** `releases/GreaterArt-1.15.77.apk` (`26,549,909 bytes`; SHA-256 `2d1d5edb67013a1ecc39daa3f83903ac1a9d127ef0d69a2db414f500d841024f`)
 **Application ID:** `com.local.listentomusic`
 **Signing certificate SHA-256:** `9e28eb45b3b171c3ea47d7da942d28d88b16538885e392a6971a80906d612fbf`
 **Build date:** `2026-10-05`
 **Test device:** `GreaterArt_A55_API36 (A55-sized emulator, API 36, Android 16)`
-**Verification boundary:** Built from exact source commit `c09f354`; `./gradlew testDebugUnitTest lintDebug :app:assembleDebug --offline` passed; `aapt dump badging` confirms package `com.local.listentomusic`, versionName `1.15.81`, versionCode `211`; signed with personal debug keystore; installed on A55/API 36; launch, library scan/load, local audio/video playback, prev/next/seek/pause/resume, playlist/Favorites playback, duplicate queue independence, Stack→Library/playlist transition, queue/Library add-to-list, Library delete three-confirm flow, mini-window/fullscreen/return flows verified; **0 FATAL EXCEPTION** in tested session.
+**Verification boundary:** Built from exact source commit `00ca689`; `./gradlew testDebugUnitTest lintDebug :app:assembleDebug --offline` passed; `aapt dump badging` confirms package `com.local.listentomusic`, versionName `1.15.77`, versionCode `207`; signed with personal debug keystore; installed on A55/API 36; launch, library scan/load, local audio/video playback, prev/next/seek/pause/resume, playlist/Favorites playback, duplicate queue independence, Stack→Library/playlist transition, queue/Library add-to-list, Library delete three-confirm flow, mini-window/fullscreen/return flows verified; **0 FATAL EXCEPTION** in tested session.
 
 ## Repository state
 
@@ -1222,4 +1222,3 @@ read handoff.md --> read user instructions (usually debug, fix, or patch, change
 | 1.15.75 | 205 | `dc24dd3017492ef7db8c1cab79cfaa8bcc1ff3498f2523e5968a6abc8361b4aa` | Stack six-take repair: ambient stabilization, waveform epoch, surface lease, media cache v2 |
 | 1.15.76 | 206 | `same as 1.15.75` | Native decoder pressure recovery, keep singers during decoder pressure |
 | 1.15.77 | 207 | `2d1d5edb67013a1ecc39daa3f83903ac1a9d127ef0d69a2db414f500d841024f` | Stack stability: decoder cancellation preservation, native pressure recovery, video stall isolation |
-| 1.15.81 | 211 | `9901735786687560b62f7cb2cbfc5f07b1bca2173103c3aec8fd76ea22d74837` | Hold-speed gesture fix: lock 2x with hold-and-pull, repair coroutine scope |
