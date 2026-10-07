@@ -354,8 +354,10 @@ fun GreaterArtApp(
                         wallpaperDimColor = libraryWallpaperDimColor,
                         wallpaperPan = wallpaperPan,
                         backgroundScaleMode = settings.backgroundScaleMode,
-                        modifier = Modifier
-                            .fillMaxSize()
+                        // Keep the reveal/pure-wallpaper gesture surface full-screen.
+                        // Only the translated foreground respects the Mini Window dock.
+                        modifier = Modifier.fillMaxSize(),
+                        foregroundModifier = Modifier
                             .padding(dockPadding)
                             .consumeWindowInsets(dockPadding),
                     ) {

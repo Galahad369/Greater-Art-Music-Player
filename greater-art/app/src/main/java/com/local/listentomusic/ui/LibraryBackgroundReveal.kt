@@ -163,6 +163,7 @@ internal fun LibraryFamilyWithBackgroundReveal(
     wallpaperPan: WallpaperPanState,
     backgroundScaleMode: BackgroundScaleMode,
     modifier: Modifier = Modifier,
+    foregroundModifier: Modifier = Modifier,
     content: @Composable ColumnScope.() -> Unit,
 ) {
     BoxWithConstraints(
@@ -303,7 +304,7 @@ internal fun LibraryFamilyWithBackgroundReveal(
                     contentColor = MaterialTheme.colorScheme.onBackground,
                     tonalElevation = 0.dp,
                 ) {
-                    Column(Modifier.fillMaxSize()) {
+                    Column(Modifier.fillMaxSize().then(foregroundModifier)) {
                         Column(Modifier.fillMaxWidth().weight(1f), content = content)
                     }
                 }

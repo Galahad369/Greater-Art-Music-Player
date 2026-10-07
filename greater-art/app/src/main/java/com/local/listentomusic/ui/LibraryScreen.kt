@@ -116,6 +116,7 @@ import com.local.listentomusic.ui.theme.GaRadius
 import com.local.listentomusic.ui.theme.GaSpacing
 import com.local.listentomusic.ui.theme.gaChromeColor
 import kotlin.math.abs
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.flow.first
 
@@ -158,6 +159,7 @@ fun LibraryScreen(
     showTopBar: Boolean = true,
 ) {
     val language = preferences.appLanguage
+    val thumbnailBrush = rememberThumbnailBrush()
     val activePlaylist = preferences.playlists.firstOrNull { it.id == preferences.activePlaylistId }
     val favouritesActive = preferences.activePlaylistId == com.local.listentomusic.data.FAVOURITES_PLAYLIST_ID
     var playlistMenuOpen by remember { mutableStateOf(false) }
@@ -425,6 +427,7 @@ fun LibraryScreen(
                                 onMove = onMoveItem,
                                 onLoadThumbnail = onLoadThumbnail,
                                 isScrolling = { listState.isScrollInProgress },
+                                thumbnailBrush = thumbnailBrush,
                                 rowSize = preferences.libraryRowSize,
                                 showThumbnails = preferences.showThumbnails,
                                 showFileDetails = preferences.showFileDetails,
@@ -655,6 +658,15 @@ private fun CreatePlaylistDialog(
     )
 }
 
+internal const val LIBRARY_THUMBNAIL_SETTLE_BASE_MS = 36L
+internal const val LIBRARY_THUMBNAIL_SETTLE_STEP_MS = 12L
+internal const val LIBRARY_THUMBNAIL_SETTLE_SLOTS = 8
+
+internal fun libraryThumbnailPostScrollDelayMs(path: String): Long {
+    val slot = (path.hashCode() and Int.MAX_VALUE) % LIBRARY_THUMBNAIL_SETTLE_SLOTS
+    return LIBRARY_THUMBNAIL_SETTLE_BASE_MS + slot * LIBRARY_THUMBNAIL_SETTLE_STEP_MS
+}
+
 @Composable
 private fun MediaFileRow(
     file: MediaFile,
@@ -666,6 +678,7 @@ private fun MediaFileRow(
     onMove: (Int, Int) -> Unit,
     onLoadThumbnail: suspend (MediaFile) -> Bitmap?,
     isScrolling: () -> Boolean,
+    thumbnailBrush: Brush,
     rowSize: LibraryRowSize,
     showThumbnails: Boolean,
     showFileDetails: Boolean,
@@ -688,10 +701,15 @@ private fun MediaFileRow(
             return@LaunchedEffect
         }
         if (thumbnail != null) return@LaunchedEffect
-        // Match Now Playing/Stack: rows created during a fling stay as cheap
-        // placeholders. Disk reads and video-frame extraction resume once scrolling
-        // settles, so thumbnail work cannot compete with Compose/video presentation.
-        snapshotFlow { currentIsScrolling() }.first { !it }
+        // Rows created during a fling stay as cheap placeholders. Once scrolling
+        // stops, stagger their wake-up over a short deterministic window instead of
+        // releasing every visible row into the cache/decoder queues on the same frame.
+        if (currentIsScrolling()) {
+            do {
+                snapshotFlow { currentIsScrolling() }.first { !it }
+                delay(libraryThumbnailPostScrollDelayMs(file.path))
+            } while (currentIsScrolling())
+        }
         thumbnail = onLoadThumbnail(file)
     }
     val pressSource = remember { MutableInteractionSource() }
@@ -799,7 +817,7 @@ private fun MediaFileRow(
                 }
             }
             if (showThumbnails) {
-                MediaThumbnail(file, thumbnail, rowSize)
+                MediaThumbnail(file, thumbnail, rowSize, thumbnailBrush)
                 Spacer(Modifier.width(rowSize.textSpacing))
             }
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.Center) {
@@ -839,19 +857,22 @@ private fun MediaFileRow(
     }
 }
 
-// Hoisted so the brush is not reallocated for every row during scrolling.
-private val thumbnailBrush @androidx.compose.runtime.Composable get() =
-    Brush.linearGradient(listOf(MaterialTheme.colorScheme.surfaceVariant, MaterialTheme.colorScheme.primaryContainer))
+@Composable
+private fun rememberThumbnailBrush(): Brush {
+    val surface = MaterialTheme.colorScheme.surfaceVariant
+    val accent = MaterialTheme.colorScheme.primaryContainer
+    return remember(surface, accent) { Brush.linearGradient(listOf(surface, accent)) }
+}
 
 internal fun libraryThumbnailSizeDp(@Suppress("UNUSED_PARAMETER") rowSize: LibraryRowSize): Pair<Int, Int> =
     MiniWindowMetrics.WIDTH_DP to MiniWindowMetrics.HEIGHT_DP
 
 @Composable
-private fun MediaThumbnail(file: MediaFile, bitmap: Bitmap?, rowSize: LibraryRowSize) {
+private fun MediaThumbnail(file: MediaFile, bitmap: Bitmap?, rowSize: LibraryRowSize, brush: Brush) {
     val shape = androidx.compose.ui.graphics.RectangleShape
     val (widthDp, heightDp) = libraryThumbnailSizeDp(rowSize)
     Box(
-        Modifier.size(widthDp.dp, heightDp.dp).clip(shape).background(thumbnailBrush),
+        Modifier.size(widthDp.dp, heightDp.dp).clip(shape).background(brush),
         contentAlignment = Alignment.Center,
     ) {
         if (bitmap != null) {
