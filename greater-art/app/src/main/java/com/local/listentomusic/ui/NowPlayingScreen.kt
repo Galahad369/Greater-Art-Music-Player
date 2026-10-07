@@ -22,6 +22,7 @@ import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.basicMarquee
@@ -170,7 +171,6 @@ import com.local.listentomusic.model.MediaFile
 import com.local.listentomusic.model.MediaKind
 import com.local.listentomusic.model.LocalLyrics
 import com.local.listentomusic.sleepTimerOptions
-import com.local.listentomusic.ui.components.LiquidMetalSurface
 import com.local.listentomusic.ui.components.ambientBackdrop
 import com.local.listentomusic.ui.theme.GaControl
 import com.local.listentomusic.ui.theme.GaMotion
@@ -188,8 +188,19 @@ internal val playbackSpeeds = listOf(0.25f, 0.5f, 0.75f, 1f, 1.25f, 1.5f, 1.75f,
 internal const val HOLD_2X_ACTIVATION_MS = 700L
 internal const val HOLD_2X_LOCK_DISTANCE_DP = 72f
 internal const val NOW_PLAYING_AMBIENT_BOTTOM_BLEND = 0.62f
-internal const val NOW_PLAYING_AMBIENT_PANEL_ALPHA = 0.74f
-internal const val NOW_PLAYING_AMBIENT_ROW_ALPHA = 0.58f
+internal const val NOW_PLAYING_AMBIENT_PANEL_ALPHA = 0.58f
+internal const val NOW_PLAYING_AMBIENT_ROW_ALPHA = 0.42f
+internal const val NOW_PLAYING_AMBIENT_OUTLINE_ALPHA = 0.34f
+internal const val NOW_PLAYING_ART_STAGE_ALPHA = 0.32f
+
+internal fun nowPlayingMetadataLine(file: MediaFile?): String =
+    file?.let {
+        listOf(it.artist.trim(), it.album.trim())
+            .filter(String::isNotBlank)
+            .distinct()
+            .joinToString(" · ")
+    }.orEmpty()
+
 internal fun shouldLockHeldDoubleSpeed(dragAfterHoldPx: Float, thresholdPx: Float): Boolean =
     thresholdPx > 0f && dragAfterHoldPx >= thresholdPx
 internal fun isDoubleSpeed(speed: Float): Boolean = kotlin.math.abs(speed - 2f) <= 0.01f
@@ -848,10 +859,21 @@ private fun AudioPlayer(
             .windowInsetsPadding(playerNavigationInsets()),
     ) {
         val artSize = minOf(maxWidth * 0.72f, maxHeight * 0.30f)
+        val artworkShape = if (blackDiscMode) CircleShape else RoundedCornerShape(GaRadius.panel)
         var seekFeedback by remember { mutableStateOf(0L to 0L) }
         Column(Modifier.fillMaxSize(), horizontalAlignment = Alignment.CenterHorizontally) {
-        LiquidMetalSurface(
-            modifier = Modifier.padding(vertical = 4.dp).size(artSize)
+        Box(
+            modifier = Modifier
+                .padding(vertical = 6.dp)
+                .size(artSize)
+                .shadow(4.dp, artworkShape, clip = false)
+                .clip(artworkShape)
+                .background(MaterialTheme.colorScheme.surface.copy(alpha = NOW_PLAYING_ART_STAGE_ALPHA))
+                .border(
+                    1.dp,
+                    MaterialTheme.colorScheme.outlineVariant.copy(alpha = NOW_PLAYING_AMBIENT_OUTLINE_ALPHA),
+                    artworkShape,
+                )
                 .pointerInput(seekOffsetMs, playback.currentPath) {
                     var lastSeekSide: SeekSide? = null
                     var lastSeekTapMs = 0L
@@ -876,7 +898,6 @@ private fun AudioPlayer(
                         },
                     )
                 },
-            shape = if (blackDiscMode) CircleShape else RoundedCornerShape(22.dp),
             contentAlignment = Alignment.Center,
         ) {
             if (blackDiscMode) {
@@ -892,7 +913,8 @@ private fun AudioPlayer(
                     bitmap = artwork.asImageBitmap(),
                     contentDescription = uiText(language, "Album artwork", "專輯封面"),
                     contentScale = ContentScale.Crop,
-                    modifier = Modifier.fillMaxSize().padding(2.dp).clip(RoundedCornerShape(20.dp)),
+                    modifier = Modifier.fillMaxSize().padding(2.dp)
+                        .clip(if (blackDiscMode) CircleShape else RoundedCornerShape(GaRadius.chrome)),
                 )
             } else {
                 Icon(
@@ -911,6 +933,9 @@ private fun AudioPlayer(
         ) {
             CurrentMediaHeader(
                 playback = playback,
+                mediaFile = queue.getOrNull(playback.currentQueueIndex)
+                    ?.takeIf { it.path == playback.currentPath }
+                    ?: queue.firstOrNull { it.path == playback.currentPath },
                 isFavourite = isFavourite,
                 onToggleFavourite = onToggleFavourite,
                 onShareCurrentMedia = onShareCurrentMedia,
@@ -1045,12 +1070,23 @@ private fun SecondaryControls(
             .padding(start = 12.dp, end = 12.dp, top = 0.dp, bottom = 0.dp),
         horizontalAlignment = Alignment.Start,
     ) {
-        Box(Modifier.fillMaxWidth()
-            .shadow(7.dp, RoundedCornerShape(bottomStart = 5.dp, bottomEnd = 5.dp))
-            .background(MaterialTheme.colorScheme.surface.copy(alpha = NOW_PLAYING_AMBIENT_PANEL_ALPHA))
-            .padding(top = 7.dp, bottom = 5.dp)) {
+        val chromeShape = RoundedCornerShape(GaRadius.chrome)
+        Box(
+            Modifier.fillMaxWidth()
+                .clip(chromeShape)
+                .background(MaterialTheme.colorScheme.surface.copy(alpha = NOW_PLAYING_AMBIENT_PANEL_ALPHA))
+                .border(
+                    1.dp,
+                    MaterialTheme.colorScheme.outlineVariant.copy(alpha = NOW_PLAYING_AMBIENT_OUTLINE_ALPHA),
+                    chromeShape,
+                )
+                .padding(horizontal = 8.dp, vertical = 7.dp),
+        ) {
         CurrentMediaHeader(
             playback = playback,
+            mediaFile = queue.getOrNull(playback.currentQueueIndex)
+                ?.takeIf { it.path == playback.currentPath }
+                ?: queue.firstOrNull { it.path == playback.currentPath },
             isFavourite = isFavourite,
             onToggleFavourite = onToggleFavourite,
             onShareCurrentMedia = onShareCurrentMedia,
@@ -1086,10 +1122,17 @@ private fun SecondaryControls(
                     queueListState = queueListState,
                     locateTrigger = locateTrigger,
                 )
-                Column(Modifier.fillMaxWidth()
-            .shadow(9.dp, RoundedCornerShape(topStart = 6.dp, topEnd = 6.dp))
-            .background(MaterialTheme.colorScheme.surface.copy(alpha = NOW_PLAYING_AMBIENT_PANEL_ALPHA))
-            .padding(top = 3.dp)) {
+        Column(
+            Modifier.fillMaxWidth()
+                .clip(chromeShape)
+                .background(MaterialTheme.colorScheme.surface.copy(alpha = NOW_PLAYING_AMBIENT_PANEL_ALPHA))
+                .border(
+                    1.dp,
+                    MaterialTheme.colorScheme.outlineVariant.copy(alpha = NOW_PLAYING_AMBIENT_OUTLINE_ALPHA),
+                    chromeShape,
+                )
+                .padding(horizontal = 8.dp, vertical = 4.dp),
+        ) {
             Timeline(playback, onSeek)
             PlayerBottomControls(playback, onRepeat, onPrevious, onTogglePlay, onNext, onSpeed)
         }
@@ -1236,7 +1279,8 @@ private fun NowPlayingQueue(
             LazyColumn(
                 modifier = Modifier.fillMaxSize().inspectElement("NOW_PLAYING_QUEUE_LIST", "Scrollable playback queue"),
                 state = listState,
-                contentPadding = PaddingValues(vertical = 4.dp),
+                contentPadding = PaddingValues(vertical = 6.dp),
+                verticalArrangement = Arrangement.spacedBy(4.dp),
             ) {
                 items(visibleQueue, key = { entry -> entry.stableKey }, contentType = { "queue-song" }) { entry ->
                     val index = entry.index
@@ -1252,8 +1296,15 @@ private fun NowPlayingQueue(
                     val actionSize = 48.dp
                     val actionWidth = actionSize
                     val actionWidthPx = with(density) { actionWidth.toPx() }
+                    val rowShape = RoundedCornerShape(GaRadius.control)
                     Box(
-                        Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp))
+                        Modifier.fillMaxWidth().clip(rowShape)
+                            .border(
+                                1.dp,
+                                if (selected) MaterialTheme.colorScheme.secondary.copy(alpha = 0.42f)
+                                else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.14f),
+                                rowShape,
+                            )
                             .inspectElement("NOW_PLAYING_QUEUE_ROW", file.name),
                     ) {
                         IconButton(
@@ -1282,13 +1333,13 @@ private fun NowPlayingQueue(
                             modifier = Modifier.fillMaxWidth()
                                 .graphicsLayer { translationX = -actionWidthPx * revealProgress }
                                 .background(
-                                    if (selected) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.72f)
+                                    if (selected) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.66f)
                                     else MaterialTheme.colorScheme.surface.copy(alpha = NOW_PLAYING_AMBIENT_ROW_ALPHA),
                                 )
                                 .clickable {
                                     if (actionsOpen) openActionsKey = null else onPlay(index)
                                 }
-                                .padding(horizontal = 7.dp, vertical = 4.dp),
+                                .padding(horizontal = 8.dp, vertical = 6.dp),
                             verticalAlignment = Alignment.CenterVertically,
                         ) {
                             QueueThumbnail(
@@ -1527,8 +1578,12 @@ private fun WaveformTimeline(
             enabled = hasDuration,
             modifier = Modifier.fillMaxWidth().height(56.dp),
             thumb = {
-                Box(Modifier.width(6.dp).height(36.dp).graphicsLayer { scaleY = thumbScale.value }
-                    .clip(RoundedCornerShape(3.dp)).background(active))
+                Box(
+                    Modifier.width(4.dp).height(28.dp)
+                        .graphicsLayer { scaleY = thumbScale.value }
+                        .clip(RoundedCornerShape(999.dp))
+                        .background(active),
+                )
             },
         track = {
             AnimatedWaveformBars(displayPeaks, fraction, active, inactive, playback.isPlaying, Modifier.fillMaxWidth().height(44.dp))
@@ -1594,30 +1649,23 @@ internal fun CompactSlider(
         interactionSource = interactions,
         modifier = modifier.fillMaxWidth().height(48.dp).inspectElement("PLAYBACK_TIMELINE", "Drag to seek playback"),
         thumb = { _ ->
-            // Soft glow and radial-gradient core keep the thumb visible without visual bulk.
-            Box(Modifier.size(20.dp).graphicsLayer { scaleX = thumbScale.value; scaleY = thumbScale.value }, contentAlignment = Alignment.Center) {
-                Box(Modifier.size(20.dp).clip(CircleShape).background(activeColor.copy(alpha = 0.22f)))
-                Box(
-                    Modifier.size(13.dp).clip(CircleShape).background(
-                        Brush.radialGradient(
-                            listOf(Color.White.copy(alpha = 0.95f), activeColor.copy(alpha = 0.55f))
-                        )
-                    )
-                )
-            }
+            Box(
+                Modifier.size(18.dp)
+                    .graphicsLayer { scaleX = thumbScale.value; scaleY = thumbScale.value }
+                    .clip(CircleShape)
+                    .background(activeColor)
+                    .border(1.dp, MaterialTheme.colorScheme.surface.copy(alpha = 0.55f), CircleShape),
+            )
         },
         track = { _ ->
             Box(
-                Modifier.fillMaxWidth().height(4.dp).clip(RoundedCornerShape(2.dp))
-                    .background(inactiveColor.copy(alpha = 0.4f))
+                Modifier.fillMaxWidth().height(3.dp).clip(RoundedCornerShape(999.dp))
+                    .background(inactiveColor.copy(alpha = 0.34f))
             ) {
                 Box(
-                    Modifier.fillMaxWidth(animatedFraction).fillMaxHeight().clip(RoundedCornerShape(2.dp))
-                        .background(
-                            Brush.horizontalGradient(
-                                listOf(activeColor.copy(alpha = 0.55f), activeColor)
-                            )
-                        )
+                    Modifier.fillMaxWidth(animatedFraction).fillMaxHeight()
+                        .clip(RoundedCornerShape(999.dp))
+                        .background(activeColor),
                 )
             }
         },
@@ -1687,21 +1735,24 @@ private fun PlayerBottomControls(
             modifier = Modifier.size(GaControl.touchTarget).inspectElement("PREVIOUS_BUTTON", "Previous media or restart current")) {
             Icon(Icons.Rounded.SkipPrevious, uiText(playback.appLanguage, "Previous", "上一首"), modifier = Modifier.size(GaControl.prominentIcon))
         }
-        LiquidMetalSurface(
-                    modifier = Modifier.size(GaControl.hero)
-                        .inspectElement("PLAY_PAUSE_BUTTON", if (playback.isPlaying) "Pause" else "Play").clickable(
-                        indication = null,
-                        interactionSource = remember { MutableInteractionSource() },
-                        onClick = onTogglePlay
-                    ),
-            shape = CircleShape,
+        Box(
+            modifier = Modifier.size(GaControl.hero)
+                .clip(CircleShape)
+                .background(accent)
+                .border(1.dp, MaterialTheme.colorScheme.onSecondary.copy(alpha = 0.18f), CircleShape)
+                .inspectElement("PLAY_PAUSE_BUTTON", if (playback.isPlaying) "Pause" else "Play")
+                .clickable(
+                    indication = null,
+                    interactionSource = remember { MutableInteractionSource() },
+                    onClick = onTogglePlay,
+                ),
             contentAlignment = Alignment.Center,
         ) {
             Icon(
                 if (playback.isPlaying) Icons.Rounded.Pause else Icons.Rounded.PlayArrow,
                 if (playback.isPlaying) uiText(playback.appLanguage, "Pause", "暫停") else uiText(playback.appLanguage, "Play", "播放"),
                 modifier = Modifier.size(GaControl.heroIcon),
-                tint = MaterialTheme.colorScheme.onSurface,
+                tint = MaterialTheme.colorScheme.onSecondary,
             )
         }
         IconButton(onClick = onNext, enabled = playback.hasNext, modifier = Modifier.size(GaControl.touchTarget).inspectElement("NEXT_BUTTON", "Next media")) {
@@ -1727,6 +1778,7 @@ private fun PlayerBottomControls(
 @Composable
 private fun CurrentMediaHeader(
     playback: PlaybackUiState,
+    mediaFile: MediaFile?,
     isFavourite: Boolean,
     onToggleFavourite: () -> Unit,
     onShareCurrentMedia: () -> Unit,
@@ -1741,18 +1793,30 @@ private fun CurrentMediaHeader(
         // The primary keeps the ordinary Now Playing header. Stack context is
         // represented only by the compact subordinate rows below it.
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-            Column(Modifier.weight(1f)) {
+            Column(Modifier.weight(1f).padding(end = 4.dp)) {
                 Text(
                     com.local.listentomusic.model.mediaTitle(playback.title, playback.currentPath),
-                    style = if (headline) MaterialTheme.typography.headlineSmall else MaterialTheme.typography.titleMedium,
-                    fontWeight = if (headline) FontWeight.Bold else FontWeight.SemiBold,
+                    style = if (headline) MaterialTheme.typography.titleLarge else MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
                     maxLines = 1,
                     overflow = TextOverflow.Clip,
                     color = MaterialTheme.colorScheme.onSurface,
                     modifier = Modifier.fillMaxWidth().inspectElement("CURRENT_MEDIA_TITLE", playback.title)
-                        .padding(start = if (headline) 0.dp else 2.dp, end = 4.dp)
+                        .padding(start = if (headline) 0.dp else 2.dp)
                         .basicMarquee(iterations = 1, initialDelayMillis = 1_200),
                 )
+                val metadataLine = nowPlayingMetadataLine(mediaFile)
+                if (metadataLine.isNotBlank()) {
+                    Spacer(Modifier.height(2.dp))
+                    Text(
+                        metadataLine,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.fillMaxWidth().padding(start = if (headline) 0.dp else 2.dp),
+                    )
+                }
             }
             IconButton(
                 onClick = onToggleFavourite,
@@ -1804,9 +1868,9 @@ private fun SecondaryControlRow(
     val outline = MaterialTheme.colorScheme.outline
     val activeColor = MaterialTheme.colorScheme.secondary
     val controlColors = ButtonDefaults.buttonColors(
-        containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.92f),
+        containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.46f),
         contentColor = MaterialTheme.colorScheme.onSurface,
-        disabledContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f),
+        disabledContainerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.24f),
         disabledContentColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.55f),
     )
     val sleepLabel = when {
@@ -1912,9 +1976,20 @@ private fun NowPlayingTopBar(
 ) {
     val foreground = if (overlay) GaVideoOverlay.foreground else MaterialTheme.colorScheme.onSurface
     val background = if (overlay) GaVideoOverlay.scrim
-        else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.28f)
+        else MaterialTheme.colorScheme.surface.copy(alpha = NOW_PLAYING_AMBIENT_PANEL_ALPHA)
+    val topBarShape = RoundedCornerShape(GaRadius.chrome)
     Row(
-        modifier = modifier.fillMaxWidth().height(GaControl.hero).background(background)
+        modifier = modifier.fillMaxWidth()
+            .padding(horizontal = 12.dp, vertical = 6.dp)
+            .height(52.dp)
+            .clip(topBarShape)
+            .background(background)
+            .border(
+                1.dp,
+                if (overlay) Color.White.copy(alpha = 0.14f)
+                else MaterialTheme.colorScheme.outlineVariant.copy(alpha = NOW_PLAYING_AMBIENT_OUTLINE_ALPHA),
+                topBarShape,
+            )
             .padding(horizontal = GaSpacing.xs),
         verticalAlignment = Alignment.CenterVertically,
     ) {
