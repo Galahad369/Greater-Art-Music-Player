@@ -80,70 +80,111 @@ internal fun PlayerWindowExpandedContent(
 
     GreaterArtTheme(settings.themeMode, settings.colorTheme, settings.appFont, settings.silianRail) {
         UiInspectorHost(settings.developerMode, inspector) {
-            Surface(color = MaterialTheme.colorScheme.background,
-                contentColor = MaterialTheme.colorScheme.onBackground,
-                shape = RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp)) {
-                Column(Modifier.fillMaxSize()) {
-                    Box(Modifier.fillMaxWidth().weight(1f)) {
-                        NowPlayingScreen(
-                            playback = playback,
-                            artwork = artwork,
-                            queue = queue,
-                            lyrics = lyrics,
-                            showFileDetails = settings.showFileDetails,
-                            editableQueue = settings.editableQueue,
-                            blackDiscMode = settings.blackDiscMode,
-                            language = settings.appLanguage,
-                            controller = controller,
-                            contentPadding = PaddingValues(0.dp),
-                            isPictureInPicture = false,
-                            onVideoBoundsChanged = { _: Rect -> },
-                            onPictureInPicture = onShrink,
-                            onHome = onHome,
-                            onClose = onClose,
-                            onTogglePlay = viewModel::togglePlayPause,
-                            onPrevious = viewModel::previous,
-                            onNext = viewModel::next,
-                            onSeek = viewModel::seekTo,
-                            onSpeed = viewModel::setSpeed,
-                            onRepeat = viewModel::cycleRepeatMode,
-                            onSleepTimer = viewModel::setSleepTimer,
-                            sleepTimer = sleepTimer,
-                            seekOffsetMs = settings.seekOffsetMs,
-                            onSeekBy = viewModel::seekBy,
-                            onPlayQueueItem = viewModel::playQueueItem,
-                            onLoadThumbnail = viewModel::loadThumbnail,
-                            onLoadWaveform = viewModel::loadWaveform,
-                            onMoveQueueItem = viewModel::moveQueueItem,
-                            onRemoveQueueItem = viewModel::removeQueueItem,
-                            onBeginTemporaryDoubleSpeed = viewModel::beginTemporaryDoubleSpeed,
-                            onEndTemporaryDoubleSpeed = viewModel::endTemporaryDoubleSpeed,
-                            onLockTemporaryDoubleSpeed = viewModel::lockTemporaryDoubleSpeed,
-                            isFavourite = playback.currentPath in settings.favouritePaths,
-                            onToggleFavourite = viewModel::toggleFavourite,
-                            onShareCurrentMedia = {
-                                val media = queue.firstOrNull { it.path == playback.currentPath }
-                                    ?: library.files.firstOrNull { it.path == playback.currentPath }
-                                    ?: controller?.currentMediaItem?.let(::mediaFileFromSession)
-                                if (media == null) onShareFailure(uiText(settings.appLanguage,
-                                    "Media unavailable", "媒體不可用"))
-                                else AndroidShare.mediaChooser(viewModel.getApplication(), media,
-                                    uiText(settings.appLanguage, "Share media file", "分享媒體檔案"))
-                                    .onSuccess(onShare).onFailure { onShareFailure(it.message.orEmpty()) }
-                            },
-                            onAddQueueItemToList = { addToListFile = it },
-                            onShareQueue = {
-                                scope.launch {
-                                    AndroidShare.listChooser(viewModel.getApplication(),
-                                        uiText(settings.appLanguage, "Current queue", "目前播放佇列"), queue,
-                                        uiText(settings.appLanguage, "Share current queue", "分享目前播放佇列"))
+            Box(Modifier.fillMaxSize()) {
+                Surface(
+                    modifier = Modifier.fillMaxSize(),
+                    color = MaterialTheme.colorScheme.background,
+                    contentColor = MaterialTheme.colorScheme.onBackground,
+                    shape = RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp),
+                ) {
+                    Column(Modifier.fillMaxSize()) {
+                        Box(Modifier.fillMaxWidth().weight(1f)) {
+                            NowPlayingScreen(
+                                playback = playback,
+                                artwork = artwork,
+                                queue = queue,
+                                lyrics = lyrics,
+                                showFileDetails = settings.showFileDetails,
+                                editableQueue = settings.editableQueue,
+                                blackDiscMode = settings.blackDiscMode,
+                                language = settings.appLanguage,
+                                controller = controller,
+                                contentPadding = PaddingValues(0.dp),
+                                isPictureInPicture = false,
+                                onVideoBoundsChanged = { _: Rect -> },
+                                onPictureInPicture = onShrink,
+                                onHome = onHome,
+                                onClose = onClose,
+                                onTogglePlay = viewModel::togglePlayPause,
+                                onPrevious = viewModel::previous,
+                                onNext = viewModel::next,
+                                onSeek = viewModel::seekTo,
+                                onSpeed = viewModel::setSpeed,
+                                onRepeat = viewModel::cycleRepeatMode,
+                                onSleepTimer = viewModel::setSleepTimer,
+                                sleepTimer = sleepTimer,
+                                seekOffsetMs = settings.seekOffsetMs,
+                                onSeekBy = viewModel::seekBy,
+                                onPlayQueueItem = viewModel::playQueueItem,
+                                onLoadThumbnail = viewModel::loadThumbnail,
+                                onLoadWaveform = viewModel::loadWaveform,
+                                onMoveQueueItem = viewModel::moveQueueItem,
+                                onRemoveQueueItem = viewModel::removeQueueItem,
+                                onBeginTemporaryDoubleSpeed = viewModel::beginTemporaryDoubleSpeed,
+                                onEndTemporaryDoubleSpeed = viewModel::endTemporaryDoubleSpeed,
+                                onLockTemporaryDoubleSpeed = viewModel::lockTemporaryDoubleSpeed,
+                                isFavourite = playback.currentPath in settings.favouritePaths,
+                                onToggleFavourite = viewModel::toggleFavourite,
+                                onShareCurrentMedia = {
+                                    val media = queue.firstOrNull { it.path == playback.currentPath }
+                                        ?: library.files.firstOrNull { it.path == playback.currentPath }
+                                        ?: controller?.currentMediaItem?.let(::mediaFileFromSession)
+                                    if (media == null) onShareFailure(uiText(settings.appLanguage,
+                                        "Media unavailable", "媒體不可用"))
+                                    else AndroidShare.mediaChooser(viewModel.getApplication(), media,
+                                        uiText(settings.appLanguage, "Share media file", "分享媒體檔案"))
                                         .onSuccess(onShare).onFailure { onShareFailure(it.message.orEmpty()) }
-                                }
-                            },
-                            systemOverlay = true,
-                            onFullscreenChanged = { fullscreen = it; onFullscreen(it) },
-                            sharedVideoView = videoView,
-                            onSharedVideoReleased = onVideoReleased,
+                                },
+                                onAddQueueItemToList = { addToListFile = it },
+                                onShareQueue = {
+                                    scope.launch {
+                                        AndroidShare.listChooser(viewModel.getApplication(),
+                                            uiText(settings.appLanguage, "Current queue", "目前播放佇列"), queue,
+                                            uiText(settings.appLanguage, "Share current queue", "分享目前播放佇列"))
+                                            .onSuccess(onShare).onFailure { onShareFailure(it.message.orEmpty()) }
+                                    }
+                                },
+                                systemOverlay = true,
+                                onFullscreenChanged = { fullscreen = it; onFullscreen(it) },
+                                sharedVideoView = videoView,
+                                onSharedVideoReleased = onVideoReleased,
+                            )
+                        }
+                    }
+                }
+
+                // Keep the pull-to-Library gesture on a small dedicated top-center target.
+                // This works in short landscape windows without stealing vertical drags from
+                // the queue, waveform, lyrics or other Now Playing controls.
+                if (!fullscreen) {
+                    Box(
+                        Modifier
+                            .align(Alignment.TopCenter)
+                            .fillMaxWidth(0.52f)
+                            .height(40.dp)
+                            .pointerInput(onPull, onPullEnd, onPullCancel) {
+                                detectVerticalDragGestures(
+                                    onVerticalDrag = { change, dragAmount ->
+                                        change.consume()
+                                        onPull(dragAmount)
+                                    },
+                                    onDragEnd = onPullEnd,
+                                    onDragCancel = onPullCancel,
+                                )
+                            }
+                            .inspectElement(
+                                "EXPANDED_MINI_PULL_HANDLE",
+                                "Pull down to return to Library; landscape-aware",
+                            ),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Box(
+                            Modifier
+                                .size(width = 64.dp, height = 4.dp)
+                                .background(
+                                    MaterialTheme.colorScheme.onSurface.copy(alpha = 0.42f),
+                                    RoundedCornerShape(999.dp),
+                                ),
                         )
                     }
                 }

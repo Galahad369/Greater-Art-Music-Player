@@ -40,9 +40,9 @@ import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
 
 internal const val LIBRARY_BACKGROUND_REVEAL_MIN_DP = 240f
-internal const val LIBRARY_BACKGROUND_REVEAL_VIEWPORT_FRACTION = 0.94f
-internal const val LIBRARY_BACKGROUND_REVEAL_VIEWPORT_CAP_FRACTION = 0.985f
-internal const val LIBRARY_BACKGROUND_REVEAL_SNAP_THRESHOLD = 0.35f
+internal const val LIBRARY_BACKGROUND_REVEAL_VIEWPORT_FRACTION = 1f
+internal const val LIBRARY_BACKGROUND_REVEAL_VIEWPORT_CAP_FRACTION = 1f
+internal const val LIBRARY_BACKGROUND_REVEAL_SNAP_THRESHOLD = 0.18f
 internal const val LIBRARY_BACKGROUND_LIGHT_SCRIM_ALPHA = 0.94f
 
 internal fun libraryBackgroundRevealTarget(fraction: Float): Float =
@@ -54,18 +54,20 @@ internal fun libraryBackgroundContentAlpha(lightPalette: Boolean): Float =
 internal fun libraryBackgroundRevealOffsetPx(fraction: Float, maxPx: Float): Float =
     fraction.coerceIn(0f, 1f) * maxPx.coerceAtLeast(0f)
 
-internal fun libraryBackgroundRecoveryTarget(totalDragPx: Float, fraction: Float): Float =
-    if (totalDragPx < 0f) 0f else libraryBackgroundRevealTarget(fraction)
-
-internal fun libraryBackgroundRevealMaxPx(viewportHeightPx: Float, minRevealPx: Float): Float {
-    val viewport = viewportHeightPx.coerceAtLeast(0f)
-    if (viewport == 0f) return 0f
-    val preferred = maxOf(
-        minRevealPx.coerceAtLeast(0f),
-        viewport * LIBRARY_BACKGROUND_REVEAL_VIEWPORT_FRACTION,
-    )
-    return preferred.coerceAtMost(viewport * LIBRARY_BACKGROUND_REVEAL_VIEWPORT_CAP_FRACTION)
+internal fun libraryBackgroundRecoveryTarget(totalDragPx: Float, fraction: Float): Float = when {
+    totalDragPx < 0f -> 0f
+    totalDragPx > 0f -> 1f
+    else -> libraryBackgroundRevealTarget(fraction)
 }
+
+internal fun libraryBackgroundFlingTarget(velocityY: Float, fraction: Float): Float = when {
+    velocityY < -1f -> 0f
+    velocityY > 1f -> 1f
+    else -> libraryBackgroundRevealTarget(fraction)
+}
+
+internal fun libraryBackgroundRevealMaxPx(viewportHeightPx: Float, _minRevealPx: Float): Float =
+    viewportHeightPx.coerceAtLeast(0f)
 
 @Stable
 internal class LibraryBackgroundRevealState {
@@ -81,14 +83,20 @@ internal class LibraryBackgroundRevealState {
         return (fraction - before) * maxPx
     }
 
-    internal suspend fun settle(target: Float = libraryBackgroundRevealTarget(fraction)) {
+    internal suspend fun settle(
+        target: Float = libraryBackgroundRevealTarget(fraction),
+        velocityPxPerSecond: Float = 0f,
+        maxPx: Float = 1f,
+    ) {
         animation.snapTo(fraction)
+        val initialVelocity = if (maxPx > 0f) velocityPxPerSecond / maxPx else 0f
         animation.animateTo(
             targetValue = target.coerceIn(0f, 1f),
             animationSpec = spring(
-                stiffness = Spring.StiffnessMediumLow,
+                stiffness = Spring.StiffnessMedium,
                 dampingRatio = Spring.DampingRatioNoBouncy,
             ),
+            initialVelocity = initialVelocity,
         ) {
             fraction = value.coerceIn(0f, 1f)
         }
@@ -158,14 +166,16 @@ internal fun LibraryFamilyWithBackgroundReveal(
 
                 override suspend fun onPreFling(available: Velocity): Velocity {
                     if (reveal.fraction <= 0f) return Velocity.Zero
-                    reveal.settle()
-                    return if (available.y < 0f) Velocity(0f, available.y) else Velocity.Zero
+                    val target = libraryBackgroundFlingTarget(available.y, reveal.fraction)
+                    reveal.settle(target, available.y, maxRevealPx)
+                    return if (available.y != 0f) Velocity(0f, available.y) else Velocity.Zero
                 }
 
                 override suspend fun onPostFling(consumed: Velocity, available: Velocity): Velocity {
                     if (reveal.fraction > 0f || available.y > 0f) {
-                        reveal.settle()
-                        return if (available.y > 0f) Velocity(0f, available.y) else Velocity.Zero
+                        val target = libraryBackgroundFlingTarget(available.y, reveal.fraction)
+                        reveal.settle(target, available.y, maxRevealPx)
+                        return if (available.y != 0f) Velocity(0f, available.y) else Velocity.Zero
                     }
                     return Velocity.Zero
                 }
@@ -231,38 +241,47 @@ internal fun LibraryFamilyWithBackgroundReveal(
                 ) {
                     Column(Modifier.fillMaxSize()) {
                         Column(Modifier.fillMaxWidth().weight(1f), content = content)
+                    }
+                }
 
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(18.dp)
-                                .pointerInput(reveal, maxRevealPx) {
-                                    detectVerticalDragGestures(
-                                        onVerticalDrag = { change, dragAmount ->
-                                            change.consume()
-                                            reveal.dragBy(dragAmount, maxRevealPx)
-                                        },
-                                        onDragEnd = { scope.launch { reveal.settle() } },
-                                        onDragCancel = { scope.launch { reveal.settle() } },
-                                    )
-                                }
-                                .inspectElement(
-                                    "LIBRARY_BACKGROUND_REVEAL_HANDLE",
-                                    "Backup drag handle for undimmed app-background reveal",
-                                ),
-                            contentAlignment = Alignment.Center,
-                        ) {
-                            Box(
-                                Modifier
-                                    .fillMaxWidth(0.11f)
-                                    .height(4.dp)
-                                    .background(
-                                        MaterialTheme.colorScheme.onSurface.copy(alpha = 0.28f),
-                                        RoundedCornerShape(999.dp),
-                                    ),
+                // This grab zone travels with the Library sheet. At full reveal it is
+                // completely outside the clipped viewport, leaving only raw wallpaper.
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.TopCenter)
+                        .fillMaxWidth(0.46f)
+                        .height(38.dp)
+                        .pointerInput(reveal, maxRevealPx) {
+                            var totalDragPx = 0f
+                            detectVerticalDragGestures(
+                                onDragStart = { totalDragPx = 0f },
+                                onVerticalDrag = { change, dragAmount ->
+                                    change.consume()
+                                    totalDragPx += dragAmount
+                                    reveal.dragBy(dragAmount, maxRevealPx)
+                                },
+                                onDragEnd = {
+                                    val target = libraryBackgroundRecoveryTarget(totalDragPx, reveal.fraction)
+                                    scope.launch { reveal.settle(target) }
+                                },
+                                onDragCancel = { scope.launch { reveal.settle() } },
                             )
                         }
-                    }
+                        .inspectElement(
+                            "LIBRARY_BACKGROUND_REVEAL_HANDLE",
+                            "Pull down for full pure wallpaper; handle leaves the viewport",
+                        ),
+                    contentAlignment = Alignment.TopCenter,
+                ) {
+                    Box(
+                        Modifier
+                            .fillMaxWidth(0.24f)
+                            .height(4.dp)
+                            .background(
+                                MaterialTheme.colorScheme.onSurface.copy(alpha = 0.24f),
+                                RoundedCornerShape(999.dp),
+                            ),
+                    )
                 }
             }
         }

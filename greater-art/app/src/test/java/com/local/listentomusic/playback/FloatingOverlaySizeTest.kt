@@ -33,9 +33,22 @@ class FloatingOverlaySizeTest {
         org.junit.Assert.assertFalse(shouldShrinkForSystemReason("assist"))
         org.junit.Assert.assertFalse(shouldShrinkForSystemReason("globalactions"))
     }
-    @Test fun pullDismissThresholdUsesPhysicalDensity() {
-        org.junit.Assert.assertFalse(pullDismissReached(143, 2f))
-        assertTrue(pullDismissReached(144, 2f))
-        org.junit.Assert.assertFalse(pullDismissReached(-1, 1f))
+    @Test fun pullDismissThresholdKeepsPortraitSeventyTwoDpCap() {
+        org.junit.Assert.assertFalse(pullDismissReached(143, 2f, 1200))
+        assertTrue(pullDismissReached(144, 2f, 1200))
+        org.junit.Assert.assertFalse(pullDismissReached(-1, 1f, 1200))
+    }
+
+    @Test fun landscapePullThresholdAdaptsToShortViewport() {
+        // 22% of 360px = 79px, much less than the portrait 144px/72dp threshold.
+        assertEquals(79, expandedPullReturnThresholdPx(360, 2f))
+        org.junit.Assert.assertFalse(pullDismissReached(78, 2f, 360))
+        assertTrue(pullDismissReached(79, 2f, 360))
+        assertEquals(360, expandedPullMaxDistancePx(360))
+    }
+
+    @Test fun tinyLandscapeStillKeepsAUsableMinimumGesture() {
+        assertEquals(64, expandedPullReturnThresholdPx(180, 2f))
+        assertEquals(1, expandedPullMaxDistancePx(0))
     }
 }
