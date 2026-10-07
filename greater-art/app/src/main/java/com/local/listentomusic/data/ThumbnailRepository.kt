@@ -76,6 +76,19 @@ internal fun thumbnailTrimTargetKb(maxSizeKb: Int, level: Int): Int? = when {
     else -> null
 }
 
+internal fun shouldPersistMissingArtwork(
+    kind: MediaKind,
+    coverUri: String,
+    embeddedProbeSucceeded: Boolean,
+    siblingArtworkFound: Boolean,
+): Boolean =
+    kind == MediaKind.AUDIO &&
+        coverUri.isBlank() &&
+        embeddedProbeSucceeded &&
+        !siblingArtworkFound
+
+internal fun thumbnailMissingMarkerName(key: String): String = "$key.missing"
+
 /**
  * Local-only thumbnail pipeline:
  * 1. memory LRU, 2. persistent disk cache, 3. Android system thumbnail API,
@@ -97,7 +110,14 @@ class ThumbnailRepository(private val context: Context) {
     private val locks = Array(64) { Mutex() }
     private val pruned = java.util.concurrent.atomic.AtomicBoolean(false)
     private val recentFailures = ConcurrentHashMap<String, Long>()
+    private val missingWrites = java.util.concurrent.atomic.AtomicInteger()
     private val generation = java.util.concurrent.atomic.AtomicInteger()
+
+    private sealed class GenerationResult {
+        class Ready(val bitmap: Bitmap) : GenerationResult()
+        object MissingArtwork : GenerationResult()
+        object Failed : GenerationResult()
+    }
     private val _stats = MutableStateFlow(ThumbnailStats())
     val stats: StateFlow<ThumbnailStats> = _stats.asStateFlow()
     private val memoryCache = object : LruCache<String, Bitmap>(thumbnailMemoryBudgetKb(maxHeapBytes)) {
@@ -133,25 +153,36 @@ class ThumbnailRepository(private val context: Context) {
                     _stats.update { value -> value.copy(diskHits = value.diskHits + 1) }
                     return@withLock it
                 }
-                if (System.currentTimeMillis() - (recentFailures[key] ?: 0L) < FAILURE_RETRY_MS) return@withLock null
-
-                val generated = decodeWorkers.withPermit { generateGuarded(file) } ?: run {
-                    recentFailures[key] = System.currentTimeMillis()
-                    if (recentFailures.size > 600) recentFailures.clear()
-                    _stats.update { value ->
-                        if (file.kind == MediaKind.AUDIO && File(file.sourcePath).canRead()) value.copy(missingArtwork = value.missingArtwork + 1)
-                        else value.copy(failed = value.failed + 1)
-                    }
+                if (readMissing(key)) {
+                    _stats.update { value -> value.copy(missingArtwork = value.missingArtwork + 1) }
                     return@withLock null
                 }
-                if (generation.get() == epoch) {
-                    memoryCache.put(key, generated)
-                    writeDisk(key, generated)
+                if (System.currentTimeMillis() - (recentFailures[key] ?: 0L) < FAILURE_RETRY_MS) return@withLock null
+
+                when (val generated = decodeWorkers.withPermit { generateGuarded(file) }) {
+                    is GenerationResult.Ready -> {
+                        if (generation.get() == epoch) {
+                            memoryCache.put(key, generated.bitmap)
+                            writeDisk(key, generated.bitmap)
+                        }
+                        recentFailures.remove(key)
+                        _stats.update { value -> value.copy(generated = value.generated + 1) }
+                        if (_stats.value.generated % 32 == 0) pruneScope.launch { pruneDiskCache() }
+                        generated.bitmap
+                    }
+                    GenerationResult.MissingArtwork -> {
+                        if (generation.get() == epoch) writeMissing(key)
+                        recentFailures.remove(key)
+                        _stats.update { value -> value.copy(missingArtwork = value.missingArtwork + 1) }
+                        null
+                    }
+                    GenerationResult.Failed -> {
+                        recentFailures[key] = System.currentTimeMillis()
+                        if (recentFailures.size > 600) recentFailures.clear()
+                        _stats.update { value -> value.copy(failed = value.failed + 1) }
+                        null
+                    }
                 }
-                recentFailures.remove(key)
-                _stats.update { value -> value.copy(generated = value.generated + 1) }
-                if (_stats.value.generated % 32 == 0) pruneScope.launch { pruneDiskCache() }
-                generated
             }
         } finally {
             _stats.update { it.copy(inFlight = (it.inFlight - 1).coerceAtLeast(0)) }
@@ -166,6 +197,7 @@ class ThumbnailRepository(private val context: Context) {
         try {
         memoryCache.evictAll()
         recentFailures.clear()
+        missingWrites.set(0)
         artStamps.clear()
         cacheDirectory.listFiles()?.forEach { it.delete() }
         pruned.set(false)
@@ -174,17 +206,66 @@ class ThumbnailRepository(private val context: Context) {
     }
 
     /** A pathological embedded cover must not take the whole player down. */
-    private fun generateGuarded(file: MediaFile): Bitmap? = try {
+    private fun generateGuarded(file: MediaFile): GenerationResult = try {
         generate(file)
     } catch (_: OutOfMemoryError) {
         // Release our own retained bitmap budget before giving up this request.
         memoryCache.evictAll()
-        null
+        GenerationResult.Failed
     }
 
-    private fun generate(file: MediaFile): Bitmap? = customArtwork(file.coverUri) ?: when (file.kind) {
-        MediaKind.VIDEO -> createVideoThumbnail(file) ?: createIndexedVideoThumbnail(file) ?: createEmbeddedArtwork(file) ?: createSiblingArtwork(file)
-        MediaKind.AUDIO -> createEmbeddedArtwork(file) ?: createSiblingArtwork(file)
+    private fun generate(file: MediaFile): GenerationResult {
+        customArtwork(file.coverUri)?.let { return GenerationResult.Ready(it) }
+        return when (file.kind) {
+            MediaKind.VIDEO -> {
+                val bitmap = createVideoThumbnail(file)
+                    ?: createIndexedVideoThumbnail(file)
+                    ?: createEmbeddedArtwork(file)
+                    ?: createSiblingArtwork(file)
+                bitmap?.let { GenerationResult.Ready(it) } ?: GenerationResult.Failed
+            }
+            MediaKind.AUDIO -> generateAudioArtwork(file)
+        }
+    }
+
+    private fun generateAudioArtwork(file: MediaFile): GenerationResult {
+        var embeddedProbeSucceeded = false
+        var embeddedDecodeFailed = false
+        val retriever = MediaMetadataRetriever()
+        try {
+            retriever.setDataSource(file.sourcePath)
+            embeddedProbeSucceeded = true
+            retriever.embeddedPicture?.let { bytes ->
+                val decoded = decodeSampled(bytes, ARTWORK_SIZE, ARTWORK_SIZE)
+                if (decoded != null) return GenerationResult.Ready(decoded)
+                embeddedDecodeFailed = true
+            }
+        } catch (_: Exception) {
+            embeddedProbeSucceeded = false
+        } finally {
+            runCatching { retriever.release() }
+        }
+
+        val sibling = findSiblingArtwork(File(file.sourcePath))
+        if (sibling != null) {
+            return decodeSampledFile(sibling, ARTWORK_SIZE, ARTWORK_SIZE)
+                ?.let { GenerationResult.Ready(it) }
+                ?: GenerationResult.Failed
+        }
+
+        return if (
+            !embeddedDecodeFailed &&
+            shouldPersistMissingArtwork(
+                kind = file.kind,
+                coverUri = file.coverUri,
+                embeddedProbeSucceeded = embeddedProbeSucceeded,
+                siblingArtworkFound = false,
+            )
+        ) {
+            GenerationResult.MissingArtwork
+        } else {
+            GenerationResult.Failed
+        }
     }
 
     private fun customArtwork(uri: String): Bitmap? = if (uri.isBlank()) null else runCatching {
@@ -351,6 +432,24 @@ class ThumbnailRepository(private val context: Context) {
         }
     }
 
+    private fun readMissing(key: String): Boolean {
+        val marker = File(cacheDirectory, thumbnailMissingMarkerName(key))
+        if (!marker.isFile) return false
+        marker.setLastModified(System.currentTimeMillis())
+        return true
+    }
+
+    private fun writeMissing(key: String) {
+        runCatching {
+            val marker = File(cacheDirectory, thumbnailMissingMarkerName(key))
+            if (!marker.exists()) marker.createNewFile()
+            marker.setLastModified(System.currentTimeMillis())
+            if (missingWrites.incrementAndGet() % 32 == 0) {
+                pruneScope.launch { pruneDiskCache() }
+            }
+        }
+    }
+
     private fun writeDisk(key: String, bitmap: Bitmap) {
         val destination = File(cacheDirectory, "$key.webp")
         val atomic = android.util.AtomicFile(destination)
@@ -364,6 +463,7 @@ class ThumbnailRepository(private val context: Context) {
                 }
                 check(bitmap.compress(format, 92, output))
             atomic.finishWrite(output)
+            File(cacheDirectory, thumbnailMissingMarkerName(key)).delete()
         } catch (_: Exception) { output?.let { atomic.failWrite(it) } }
     }
 
@@ -399,7 +499,7 @@ class ThumbnailRepository(private val context: Context) {
                 // Snapshot mtime once per file; sortedByDescending(selector) otherwise stats the
                 // same FUSE-backed files repeatedly during comparison.
                 val files = cacheDirectory.listFiles()
-                    ?.filter { it.isFile && it.extension == "webp" }
+                    ?.filter { it.isFile && (it.extension == "webp" || it.extension == "missing") }
                     .orEmpty()
                     .map { file -> Triple(file, file.lastModified(), file.length()) }
                     .sortedByDescending { it.second }
