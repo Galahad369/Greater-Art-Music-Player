@@ -7,7 +7,7 @@ This file is the authoritative version policy for Greater Art. If any handoff no
 ## Machine-checkable state
 
 
-Current source: **1.21.9 (code 232)**
+Current source: **1.21.10 (code 233)**
 Current release state: **SOURCE_ONLY**
 Latest verified APK: **1.15.77 (code 207)**
 Allowed series transition: **1.14.15 -> 1.15.1**
@@ -238,5 +238,7 @@ Previous baseline: 1.13.26 (code 115).
 - 1.21.8 (code 231) — thumbnail memory-pressure hardening for fast-scroll stability: retain the existing process-wide memory+disk cache and scroll deferral, but reduce heavy frame/artwork generation to one worker and disk bitmap decode fan-out to two on low-RAM or sub-384 MiB heap devices. The shared RAM LRU now responds to Android trim-memory callbacks (progressive running/UI-hidden trims and full background eviction) while the persistent disk cache remains intact, so memory can be reclaimed without forcing expensive thumbnail regeneration. No playback quality, source format, network, storage permission, or media-file behavior change. SOURCE_ONLY pending exact-head CI and physical fast-fling/OOM verification.
 
 - 1.21.9 (code 232) — restore and smooth pull navigation across Expanded Mini and the Library-family wallpaper reveal. Expanded Mini's previously disconnected pull callbacks now use a larger top-center drag affordance; WindowManager movement is coalesced to one layout update per display frame, clamps against the real viewport instead of MATCH_PARENT, and uses a short-screen adaptive return threshold. Stack / All songs / Nodes can now translate the sheet a full 100% of viewport height on every screen size, leaving the viewport as pure undimmed wallpaper with no dock or residual content; the wallpaper itself remains an invisible recovery surface. Reveal flings follow gesture direction, the open threshold is reduced to 18%, and a larger grab zone travels with the sheet so pull-down and pull-up are easier without contaminating the exposed wallpaper. SOURCE_ONLY pending exact-head CI and portrait/landscape touch verification.
+
+- 1.21.10 (code 233) — sharpen Now Playing while preserving Ambient as the full-screen visual identity. Artwork uses a restrained outlined stage instead of liquid-metal chrome; title hierarchy adds available Artist · Album metadata; portrait video header/timeline and queue rows share one low-shadow translucent surface language with thin outlines; queue spacing/selection is clearer; seek thumbs/tracks lose decorative glow for cleaner geometry; the central play control becomes a stable solid accent while repeat/speed remain secondary. Ambient gradient generation, video surfaces, playback gestures, source quality and transport semantics are unchanged. SOURCE_ONLY pending exact-head CI and physical visual/touch verification.
 
 **No silent builds. No version reuse. No version skips. No APK overwrite/rename/copy.**

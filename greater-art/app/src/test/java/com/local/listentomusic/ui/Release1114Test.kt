@@ -3,6 +3,8 @@ package com.local.listentomusic.ui
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.luminance
 import com.local.listentomusic.data.*
+import com.local.listentomusic.model.MediaFile
+import com.local.listentomusic.model.MediaKind
 import com.local.listentomusic.ui.components.ambientBottomColor
 import com.local.listentomusic.ui.components.artworkGradientColors
 import org.junit.Assert.*
@@ -49,6 +51,25 @@ class Release1114Test {
         assertTrue(NOW_PLAYING_AMBIENT_BOTTOM_BLEND in 0f..1f)
         assertTrue(NOW_PLAYING_AMBIENT_PANEL_ALPHA in 0f..0.99f)
         assertTrue(NOW_PLAYING_AMBIENT_ROW_ALPHA in 0f..NOW_PLAYING_AMBIENT_PANEL_ALPHA)
+        assertTrue(NOW_PLAYING_AMBIENT_OUTLINE_ALPHA in 0f..1f)
+        assertTrue(NOW_PLAYING_ART_STAGE_ALPHA in 0f..NOW_PLAYING_AMBIENT_PANEL_ALPHA)
+    }
+
+    @Test fun nowPlayingMetadataUsesArtistAndAlbumWithoutDuplicateNoise() {
+        fun file(artist: String, album: String) = MediaFile(
+            path = "/tmp/song.mp3",
+            name = "song.mp3",
+            modifiedMs = 0L,
+            sizeBytes = 1L,
+            durationMs = 1L,
+            kind = MediaKind.AUDIO,
+            artist = artist,
+            album = album,
+        )
+        assertEquals("Artist · Album", nowPlayingMetadataLine(file("Artist", "Album")))
+        assertEquals("Artist", nowPlayingMetadataLine(file("Artist", "Artist")))
+        assertEquals("Album", nowPlayingMetadataLine(file("", "Album")))
+        assertEquals("", nowPlayingMetadataLine(null))
     }
 
     @Test fun missingOrTransparentArtUsesNeutralThemeFallback() {
