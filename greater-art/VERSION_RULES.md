@@ -7,11 +7,12 @@ This file is the authoritative version policy for Greater Art. If any handoff no
 ## Machine-checkable state
 
 
-Current source: **1.20.5 (code 223)**
+Current source: **1.21.1 (code 224)**
 Current release state: **SOURCE_ONLY**
 Latest verified APK: **1.15.77 (code 207)**
 Allowed series transition: **1.14.15 -> 1.15.1**
 Allowed series transition: **1.15.89 -> 1.20.2**
+Allowed series transition: **1.20.5 -> 1.21.1**
 Allowed consumed transition: **1.20.2 (code 220) -> 1.20.4 (code 222)**
 Allowed consumed transition: **1.15.13 (code 143) -> 1.15.17 (code 147)**
 Allowed consumed transition: **1.15.17 (code 147) -> 1.15.19 (code 149)**
@@ -219,5 +220,7 @@ Previous baseline: 1.13.26 (code 115).
 - 1.20.4 (code 222) — Library dock video ownership fix: while the dock is visibly presented in Library, CURRENT_VIDEO wallpaper yields the single primary Media3 video surface instead of outranking the dock. The dock therefore renders live video; the wallpaper falls back to its existing ambient/static treatment until the dock is no longer visible, after which CURRENT_VIDEO may reacquire the surface. No second decoder, network, permission, media-quality, or timeline change. SOURCE_ONLY pending exact-head CI/device verification.
 
 - 1.20.5 (code 223) — Library dual-video presentation: 1.20.4 correctly returned the primary Media3 surface to the visible dock, but that made CURRENT_VIDEO wallpaper fall back to ambient. When both are requested, the dock now keeps the primary player surface while CURRENT_VIDEO uses a muted video-only secondary renderer synced to the primary media position, play/pause state, playback speed, repeat mode, scale mode and horizontal crop position. The secondary renderer exists only while the dock prevents the wallpaper from using the primary surface; all other CURRENT_VIDEO states retain the single-decoder lease path. No duplicate audio, network, permission or media-quality change. SOURCE_ONLY pending exact-head CI and physical dual-surface verification.
+
+- 1.21.1 (code 224) — Library-family pure-background reveal, forward-ported from the Grok design after its named branch/PR refs contained no implementation commits. Stack / All songs / Nodes share one pull-down reveal state: downward overscroll at the top expands an empty wallpaper-only band up to 240dp, upward drag collapses it, and release/fling snaps at a 0.35 threshold. A thin backup drag handle sits below the content. The app root is transparent while Library is active; the content region below the reveal keeps a local 94% light-theme surface scrim for readability. Existing BackgroundScaleMode remains unchanged: Crop default, Fit optional, never Stretch/RESIZE_MODE_FILL. No playback, network, permission, Stack alignment, or loop change. SOURCE_ONLY pending exact-head CI and touch/device verification.
 
 **No silent builds. No version reuse. No version skips. No APK overwrite/rename/copy.**
