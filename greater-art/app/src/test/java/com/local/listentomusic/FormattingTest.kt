@@ -108,6 +108,39 @@ class FormattingTest {
         )
     }
 
+    @Test fun thumbnailWorkersReduceBitmapFanoutOnConstrainedDevices() {
+        val mib = 1024L * 1024L
+        assertEquals(
+            com.local.listentomusic.data.ThumbnailWorkerPolicy(1, 2),
+            com.local.listentomusic.data.thumbnailWorkerPolicy(lowRamDevice = true, maxHeapBytes = 512L * mib),
+        )
+        assertEquals(
+            com.local.listentomusic.data.ThumbnailWorkerPolicy(1, 2),
+            com.local.listentomusic.data.thumbnailWorkerPolicy(lowRamDevice = false, maxHeapBytes = 256L * mib),
+        )
+        assertEquals(
+            com.local.listentomusic.data.ThumbnailWorkerPolicy(2, 3),
+            com.local.listentomusic.data.thumbnailWorkerPolicy(lowRamDevice = false, maxHeapBytes = 512L * mib),
+        )
+    }
+
+    @Test fun thumbnailMemoryPressureTrimsRamWithoutChangingDiskPolicy() {
+        val maxKb = 24_000
+        assertNull(com.local.listentomusic.data.thumbnailTrimTargetKb(maxKb, 5))
+        assertEquals(12_000, com.local.listentomusic.data.thumbnailTrimTargetKb(maxKb, 10))
+        assertEquals(6_000, com.local.listentomusic.data.thumbnailTrimTargetKb(maxKb, 15))
+        assertEquals(12_000, com.local.listentomusic.data.thumbnailTrimTargetKb(maxKb, 20))
+        assertEquals(0, com.local.listentomusic.data.thumbnailTrimTargetKb(maxKb, 40))
+        assertEquals(0, com.local.listentomusic.data.thumbnailTrimTargetKb(maxKb, 80))
+    }
+
+    @Test fun thumbnailRamBudgetRemainsBoundedByHeap() {
+        val mib = 1024L * 1024L
+        assertEquals(8_192, com.local.listentomusic.data.thumbnailMemoryBudgetKb(64L * mib))
+        assertEquals(32_768, com.local.listentomusic.data.thumbnailMemoryBudgetKb(384L * mib))
+        assertEquals(65_536, com.local.listentomusic.data.thumbnailMemoryBudgetKb(2L * 1024L * mib))
+    }
+
     @Test fun immersiveFullscreenRehidesAnyVisibleSystemBar() {
         assertTrue(com.local.listentomusic.ui.shouldRehideImmersiveBars(true, true, false))
         assertTrue(com.local.listentomusic.ui.shouldRehideImmersiveBars(true, false, true))
