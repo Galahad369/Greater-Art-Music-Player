@@ -11,7 +11,10 @@ import android.util.Size
 import androidx.core.graphics.scale
 import com.local.listentomusic.model.MediaFile
 import com.local.listentomusic.model.MediaKind
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.sync.withPermit
@@ -35,6 +38,18 @@ data class ThumbnailStats(
     val inFlight: Int = 0,
 )
 
+internal fun thumbnailDigestHex(bytes: ByteArray): String {
+    val chars = CharArray(bytes.size * 2)
+    for (i in bytes.indices) {
+        val value = bytes[i].toInt() and 0xFF
+        chars[i * 2] = THUMBNAIL_HEX_DIGITS[value ushr 4]
+        chars[i * 2 + 1] = THUMBNAIL_HEX_DIGITS[value and 0x0F]
+    }
+    return String(chars)
+}
+
+private const val THUMBNAIL_HEX_DIGITS = "0123456789abcdef"
+
 /**
  * Local-only thumbnail pipeline:
  * 1. memory LRU, 2. persistent disk cache, 3. Android system thumbnail API,
@@ -44,6 +59,12 @@ class ThumbnailRepository(private val context: Context) {
     private val cacheDirectory = File(context.cacheDir, "media_thumbnails").apply { mkdirs() }
     // Bound expensive frame/artwork decoding even when several visible rows request it.
     private val decodeWorkers = kotlinx.coroutines.sync.Semaphore(2)
+    // Disk bitmap decodes also allocate native/Java bitmap memory; keep fling fan-out bounded.
+    private val diskWorkers = kotlinx.coroutines.sync.Semaphore(3)
+    private val pruneScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+    private val pruning = java.util.concurrent.atomic.AtomicBoolean(false)
+    private data class ArtStamp(val value: Long, val atMs: Long)
+    private val artStamps = ConcurrentHashMap<String, ArtStamp>()
     private val locks = Array(64) { Mutex() }
     private val pruned = java.util.concurrent.atomic.AtomicBoolean(false)
     private val recentFailures = ConcurrentHashMap<String, Long>()
@@ -56,7 +77,7 @@ class ThumbnailRepository(private val context: Context) {
 
     suspend fun load(file: MediaFile): Bitmap? = withContext(Dispatchers.IO) {
         val epoch = generation.get()
-        if (pruned.compareAndSet(false, true)) pruneDiskCache()
+        if (pruned.compareAndSet(false, true)) pruneScope.launch { pruneDiskCache() }
         val key = cacheKey(file)
         memoryCache.get(key)?.let {
             _stats.update { value -> value.copy(memoryHits = value.memoryHits + 1) }
@@ -68,14 +89,14 @@ class ThumbnailRepository(private val context: Context) {
         try {
             mutex.withLock {
                 memoryCache.get(key)?.let { return@withLock it }
-                readDisk(key)?.let {
+                diskWorkers.withPermit { readDisk(key) }?.let {
                     if (generation.get() == epoch) memoryCache.put(key, it)
                     _stats.update { value -> value.copy(diskHits = value.diskHits + 1) }
                     return@withLock it
                 }
                 if (System.currentTimeMillis() - (recentFailures[key] ?: 0L) < FAILURE_RETRY_MS) return@withLock null
 
-                val generated = decodeWorkers.withPermit { generate(file) } ?: run {
+                val generated = decodeWorkers.withPermit { generateGuarded(file) } ?: run {
                     recentFailures[key] = System.currentTimeMillis()
                     if (recentFailures.size > 600) recentFailures.clear()
                     _stats.update { value ->
@@ -90,7 +111,7 @@ class ThumbnailRepository(private val context: Context) {
                 }
                 recentFailures.remove(key)
                 _stats.update { value -> value.copy(generated = value.generated + 1) }
-                if (_stats.value.generated % 32 == 0) pruneDiskCache()
+                if (_stats.value.generated % 32 == 0) pruneScope.launch { pruneDiskCache() }
                 generated
             }
         } finally {
@@ -106,10 +127,20 @@ class ThumbnailRepository(private val context: Context) {
         try {
         memoryCache.evictAll()
         recentFailures.clear()
+        artStamps.clear()
         cacheDirectory.listFiles()?.forEach { it.delete() }
         pruned.set(false)
         } finally { locks.reversed().forEach { it.unlock() } }
         Unit
+    }
+
+    /** A pathological embedded cover must not take the whole player down. */
+    private fun generateGuarded(file: MediaFile): Bitmap? = try {
+        generate(file)
+    } catch (_: OutOfMemoryError) {
+        // Release our own retained bitmap budget before giving up this request.
+        memoryCache.evictAll()
+        null
     }
 
     private fun generate(file: MediaFile): Bitmap? = customArtwork(file.coverUri) ?: when (file.kind) {
@@ -276,22 +307,51 @@ class ThumbnailRepository(private val context: Context) {
 
     private fun cacheKey(file: MediaFile): String {
         val source = File(file.sourcePath)
-        val artStamp = findSiblingArtwork(source)?.lastModified() ?: 0L
+        val artStamp = siblingArtStamp(source)
         val fingerprint = "${file.sourcePath}|${source.length()}|${source.lastModified()}|$artStamp|${file.coverUri}"
-        return MessageDigest.getInstance("SHA-256")
-            .digest(fingerprint.toByteArray(Charsets.UTF_8))
-            .joinToString("") { "%02x".format(it) }
+        return thumbnailDigestHex(
+            MessageDigest.getInstance("SHA-256").digest(fingerprint.toByteArray(Charsets.UTF_8)),
+        )
+    }
+
+    /**
+     * cacheKey() is evaluated before the memory lookup, so probing every possible sibling
+     * artwork filename on every row defeats the cheap-memory-hit path. Cache only the
+     * derived stamp for a short interval; cache clear/restart always forces a fresh probe.
+     */
+    private fun siblingArtStamp(source: File): Long {
+        val now = System.currentTimeMillis()
+        artStamps[source.path]?.let { cached ->
+            if (now - cached.atMs < ART_STAMP_TTL_MS) return cached.value
+        }
+        val stamp = findSiblingArtwork(source)?.lastModified() ?: 0L
+        if (artStamps.size > ART_STAMP_CACHE_LIMIT) artStamps.clear()
+        artStamps[source.path] = ArtStamp(stamp, now)
+        return stamp
     }
 
     private fun pruneDiskCache() {
-        runCatching {
-            val files = cacheDirectory.listFiles()?.filter { it.isFile && it.extension == "webp" }.orEmpty()
-                .sortedByDescending { it.lastModified() }
-            var retainedBytes = 0L
-            files.forEachIndexed { index, file ->
-                retainedBytes += file.length()
-                if (index >= MAX_DISK_FILES || retainedBytes > MAX_DISK_BYTES) file.delete()
+        if (!pruning.compareAndSet(false, true)) return
+        try {
+            runCatching {
+                // Snapshot mtime once per file; sortedByDescending(selector) otherwise stats the
+                // same FUSE-backed files repeatedly during comparison.
+                val files = cacheDirectory.listFiles()
+                    ?.filter { it.isFile && it.extension == "webp" }
+                    .orEmpty()
+                    .map { file -> Triple(file, file.lastModified(), file.length()) }
+                    .sortedByDescending { it.second }
+
+                var retainedBytes = 0L
+                files.forEachIndexed { index, entry ->
+                    retainedBytes += entry.third
+                    if (index >= MAX_DISK_FILES || retainedBytes > MAX_DISK_BYTES) {
+                        entry.first.delete()
+                    }
+                }
             }
+        } finally {
+            pruning.set(false)
         }
     }
 
@@ -302,9 +362,11 @@ class ThumbnailRepository(private val context: Context) {
         const val VIDEO_WIDTH = 240
         const val VIDEO_HEIGHT = 135
         const val ARTWORK_SIZE = 256
-        const val MAX_DISK_FILES = 600
+        const val MAX_DISK_FILES = 6_000
         const val MAX_DISK_BYTES = 256L * 1024L * 1024L
         const val FAILURE_RETRY_MS = 30_000L
+        const val ART_STAMP_TTL_MS = 5L * 60L * 1_000L
+        const val ART_STAMP_CACHE_LIMIT = 4_000
         val IMAGE_EXTENSIONS = setOf("jpg", "jpeg", "png", "webp", "bmp")
         val FOLDER_ART_NAMES = setOf("cover", "folder", "front", "album", "artwork")
     }
