@@ -112,6 +112,40 @@ class AppBackgroundSyncTest {
     }
 
     @Test
+    fun currentVideoMirrorKeepsWallpaperVisibleWhenDockOwnsPrimarySurface() {
+        assertTrue(
+            shouldMirrorCurrentVideoBackground(
+                visible = true,
+                allowVideoBackground = true,
+                isVideo = true,
+                controllerAvailable = true,
+                primarySurfaceAvailable = false,
+                primaryFrameReady = true,
+            ),
+        )
+        assertFalse(
+            shouldMirrorCurrentVideoBackground(
+                visible = true,
+                allowVideoBackground = true,
+                isVideo = true,
+                controllerAvailable = true,
+                primarySurfaceAvailable = true,
+                primaryFrameReady = true,
+            ),
+        )
+        assertFalse(
+            shouldMirrorCurrentVideoBackground(
+                visible = true,
+                allowVideoBackground = true,
+                isVideo = true,
+                controllerAvailable = true,
+                primarySurfaceAvailable = false,
+                primaryFrameReady = false,
+            ),
+        )
+    }
+
+    @Test
     fun visibleLibraryDockReservesPrimaryVideoSurfaceFromCurrentVideoWallpaper() {
         assertFalse(
             shouldUsePrimaryVideoBackground(

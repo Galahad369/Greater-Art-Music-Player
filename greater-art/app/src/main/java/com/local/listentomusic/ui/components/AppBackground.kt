@@ -49,7 +49,9 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.isActive
 import java.io.File
+import kotlin.math.abs
 import kotlin.math.max
 
 internal fun shouldAttachVideoBackground(
@@ -70,6 +72,21 @@ internal fun shouldClaimCurrentVideoBackground(
     usePrimaryVideoBackground: Boolean,
     surfaceActive: Boolean,
 ): Boolean = usePrimaryVideoBackground && surfaceActive
+
+internal fun shouldMirrorCurrentVideoBackground(
+    visible: Boolean,
+    allowVideoBackground: Boolean,
+    isVideo: Boolean,
+    controllerAvailable: Boolean,
+    primarySurfaceAvailable: Boolean,
+    primaryFrameReady: Boolean,
+): Boolean =
+    visible &&
+        allowVideoBackground &&
+        isVideo &&
+        controllerAvailable &&
+        !primarySurfaceAvailable &&
+        primaryFrameReady
 
 @Composable
 fun AppBackground(
@@ -162,6 +179,22 @@ fun AppBackground(
                 primarySurfaceAvailable = allowPrimaryVideoBackground,
             )
 
+    // One Media3 player cannot drive two independent PlayerView surfaces reliably.
+    // When Library's dock needs the primary surface, mirror CURRENT_VIDEO through a
+    // muted video-only renderer instead of forcing either visual surface to disappear.
+    val mirrorCurrentVideoBackground =
+        mode == AppBackgroundMode.CURRENT_VIDEO &&
+            currentVideoUri != null &&
+            controller != null &&
+            shouldMirrorCurrentVideoBackground(
+                visible = visible,
+                allowVideoBackground = allowVideoBackground,
+                isVideo = isVideo,
+                controllerAvailable = true,
+                primarySurfaceAvailable = allowPrimaryVideoBackground,
+                primaryFrameReady = primaryFrameReady,
+            )
+
     // During list fling drop only the presentation surface. CURRENT_VIDEO shares the
     // real player, so this cannot create/release a second decoder or a second timeline.
     var videoSurfaceActive by remember { mutableStateOf(true) }
@@ -174,7 +207,9 @@ fun AppBackground(
         }
     }
     val liveVideoSurface =
-        tiledStack || videoSurfaceActive && !listScrolling && (attachCustomVideoBackground || usePrimaryVideoBackground)
+        tiledStack ||
+            mirrorCurrentVideoBackground ||
+            videoSurfaceActive && !listScrolling && (attachCustomVideoBackground || usePrimaryVideoBackground)
 
     Box(modifier.fillMaxSize().graphicsLayer()) {
         val ambient = Modifier.ambientBackdrop(null,
@@ -182,7 +217,8 @@ fun AppBackground(
         val videoFallback = mode == AppBackgroundMode.CUSTOM_VIDEO &&
             (preferences.customBackgroundVideoUri == null || !attachCustomVideoBackground) ||
             mode == AppBackgroundMode.CURRENT_VIDEO &&
-            !usePrimaryVideoBackground
+            !usePrimaryVideoBackground &&
+            !mirrorCurrentVideoBackground
         val videoMode = mode == AppBackgroundMode.CUSTOM_VIDEO || mode == AppBackgroundMode.CURRENT_VIDEO
         if (visible && (mode == AppBackgroundMode.DEFAULT || videoFallback || (videoMode && !liveVideoSurface))) {
             if (mode == AppBackgroundMode.CURRENT_VIDEO) Box(Modifier.fillMaxSize().then(ambient))
@@ -217,6 +253,16 @@ fun AppBackground(
                     surfaceActive = liveVideoSurface,
                     scaleMode = preferences.backgroundScaleMode,
                     horizontalPosition = if (liveVideoSurface) horizontalPosition else null,
+                )
+            } else if (mirrorCurrentVideoBackground && controller != null && currentVideoUri != null) {
+                BackgroundVideo(
+                    source = currentVideoUri,
+                    shouldPlay = visible,
+                    surfaceActive = visible,
+                    scaleMode = preferences.backgroundScaleMode,
+                    syncController = controller,
+                    horizontalPosition = horizontalPosition,
+                    diagnosticLabel = "CURRENT_VIDEO_MIRROR",
                 )
             }
         }
@@ -366,13 +412,17 @@ private fun BackgroundVideo(
     shouldPlay: Boolean,
     surfaceActive: Boolean = true,
     scaleMode: BackgroundScaleMode = BackgroundScaleMode.CROP,
+    syncController: Player? = null,
+    horizontalPosition: (() -> Float)? = null,
+    diagnosticLabel: String = "CUSTOM_VIDEO_BACKGROUND",
 ) {
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
     var lifecycleActive by remember(lifecycleOwner) {
         mutableStateOf(lifecycleOwner.lifecycle.currentState.isAtLeast(Lifecycle.State.STARTED))
     }
-    val backgroundPlayer = remember(source) {
+    var backgroundView by remember { mutableStateOf<PlayerView?>(null) }
+    val backgroundPlayer = remember(source, syncController, diagnosticLabel) {
         val renderersFactory = DefaultRenderersFactory(context.applicationContext)
             .setEnableDecoderFallback(true)
 
@@ -389,13 +439,18 @@ private fun BackgroundVideo(
                     .setPrioritizeTimeOverSizeThresholds(true)
                     .build(),
             ).build().apply {
-                installVideoDiagnostics("CUSTOM_VIDEO_BACKGROUND")
+                installVideoDiagnostics(diagnosticLabel)
                 volume = 0f
-                repeatMode = Player.REPEAT_MODE_ONE
+                repeatMode = if (syncController == null) Player.REPEAT_MODE_ONE else Player.REPEAT_MODE_OFF
                 trackSelectionParameters = trackSelectionParameters.buildUpon()
                     .setTrackTypeDisabled(C.TRACK_TYPE_AUDIO, true)
                     .build()
                 setMediaItem(MediaItem.fromUri(source))
+                syncController?.let { primary ->
+                    seekTo(primary.currentPosition.coerceAtLeast(0L))
+                    playbackParameters = primary.playbackParameters
+                    repeatMode = primary.repeatMode
+                }
                 prepare()
             }
     }
@@ -414,8 +469,49 @@ private fun BackgroundVideo(
     DisposableEffect(backgroundPlayer) {
         onDispose { backgroundPlayer.release() }
     }
-    LaunchedEffect(backgroundPlayer, shouldPlay, lifecycleActive) {
-        backgroundPlayer.playWhenReady = shouldPlay && lifecycleActive
+    LaunchedEffect(backgroundPlayer, syncController, shouldPlay, lifecycleActive) {
+        val primary = syncController
+        if (primary == null) {
+            backgroundPlayer.playWhenReady = shouldPlay && lifecycleActive
+        } else {
+            while (isActive) {
+                val targetPosition = primary.currentPosition.coerceAtLeast(0L)
+                if (abs(backgroundPlayer.currentPosition - targetPosition) > CURRENT_VIDEO_MIRROR_DRIFT_MS) {
+                    backgroundPlayer.seekTo(targetPosition)
+                }
+                if (backgroundPlayer.playbackParameters != primary.playbackParameters) {
+                    backgroundPlayer.playbackParameters = primary.playbackParameters
+                }
+                if (backgroundPlayer.repeatMode != primary.repeatMode) {
+                    backgroundPlayer.repeatMode = primary.repeatMode
+                }
+                backgroundPlayer.playWhenReady =
+                    shouldPlay && lifecycleActive && primary.playWhenReady &&
+                        primary.playbackState != Player.STATE_ENDED
+                delay(CURRENT_VIDEO_MIRROR_SYNC_MS)
+            }
+        }
+    }
+
+    LaunchedEffect(backgroundView, horizontalPosition, scaleMode) {
+        val view = backgroundView ?: return@LaunchedEffect
+        val frame = view.findViewById<android.view.View>(androidx.media3.ui.R.id.exo_content_frame)
+            ?: return@LaunchedEffect
+        fun move(position: Float) {
+            frame.translationX = backgroundCropTranslationX(frame.width, view.width, scaleMode, position)
+        }
+        val layoutListener = android.view.View.OnLayoutChangeListener { _, _, _, _, _, _, _, _, _ ->
+            move(horizontalPosition?.invoke() ?: .5f)
+        }
+        view.addOnLayoutChangeListener(layoutListener)
+        frame.addOnLayoutChangeListener(layoutListener)
+        try {
+            snapshotFlow { horizontalPosition?.invoke() ?: .5f }.collect(::move)
+        } finally {
+            frame.removeOnLayoutChangeListener(layoutListener)
+            view.removeOnLayoutChangeListener(layoutListener)
+            frame.translationX = 0f
+        }
     }
 
     AndroidView(
@@ -430,10 +526,12 @@ private fun BackgroundVideo(
                     }
                     setKeepContentOnPlayerReset(true)
                     player = backgroundPlayer
+                    backgroundView = this
                     visibility = android.view.View.VISIBLE
                 }
         },
         update = { view ->
+            if (backgroundView !== view) backgroundView = view
             view.resizeMode = when (scaleMode) {
                 BackgroundScaleMode.FIT -> AspectRatioFrameLayout.RESIZE_MODE_FIT
                 BackgroundScaleMode.CROP -> AspectRatioFrameLayout.RESIZE_MODE_ZOOM
@@ -481,6 +579,8 @@ private const val WALLPAPER_PLAYBACK_BUFFER_MS = 100
 private const val WALLPAPER_REBUFFER_MS = 200
 private const val WALLPAPER_TARGET_BUFFER_BYTES = 2 * 1024 * 1024
 private const val PRIMARY_VIDEO_HEAD_START_MS = 300L
+private const val CURRENT_VIDEO_MIRROR_SYNC_MS = 200L
+private const val CURRENT_VIDEO_MIRROR_DRIFT_MS = 90L
 /** After fling ends, wait a frame or two before re-attaching the wallpaper surface. */
 private const val VIDEO_SURFACE_SETTLE_MS = 80L
 private const val MAX_BACKGROUND_PIXELS = 1_600
