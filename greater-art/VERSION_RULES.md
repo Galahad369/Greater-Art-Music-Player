@@ -7,7 +7,7 @@ This file is the authoritative version policy for Greater Art. If any handoff no
 ## Machine-checkable state
 
 
-Current source: **1.21.4 (code 227)**
+Current source: **1.21.5 (code 228)**
 Current release state: **SOURCE_ONLY**
 Latest verified APK: **1.15.77 (code 207)**
 Allowed series transition: **1.14.15 -> 1.15.1**
@@ -228,5 +228,7 @@ Previous baseline: 1.13.26 (code 115).
 - 1.21.3 (code 226) — correct the Library-family wallpaper reveal geometry: the first implementation expanded an upper spacer and remeasured the content region while dragging. The reveal is now a fixed full-screen overlay model: AppBackground remains full-screen and unchanged, while the Stack / All songs / Nodes content surface translates downward and is clipped at the viewport. The exposed upper band is an empty transparent hole with no Library scrim, Surface, placeholder, scaling, or redraw layer. Background scaling rules remain authoritative and unchanged: Crop is the default, Fit is available in Settings, Stretch/FillBounds/RESIZE_MODE_FILL is absent. Adds pure translation-bound regression coverage. SOURCE_ONLY pending exact-head CI and touch/device verification.
 
 - 1.21.4 (code 227) — deepen and purify the Stack / All songs / Nodes wallpaper reveal. The maximum pull is now responsive to the usable Library viewport (58%, capped at 72% on constrained windows, with the former 240dp retained as a preferred minimum) instead of stopping at a fixed 240dp. While Library is active AppBackground's own dim layer is forced to zero; the normal configured/default dim and light-theme readability scrim are reproduced only inside the translated Library content layer. The exposed upper band therefore contains only the raw app wallpaper, with no dim, Library title, settings affordance, family navigation, dock chrome, or drag handle; developer diagnostics remain intentionally outside the translated layer. Crop remains the default background scale, Fit remains optional in Settings, and Stretch/FillBounds/RESIZE_MODE_FILL remains absent. SOURCE_ONLY pending exact-head CI and touch/device verification.
+
+- 1.21.5 (code 228) — increase the Stack / All songs / Nodes pull-down wallpaper reveal from 58% to 80% of the usable Library viewport, with a 90% safety cap so a strip of content remains available for collapse gestures. The 240dp preferred minimum, zero-dim raw reveal band, translated Library dim/scrim, and Crop/Fit-only scaling contract remain unchanged. SOURCE_ONLY pending exact-head CI and touch/device verification.
 
 **No silent builds. No version reuse. No version skips. No APK overwrite/rename/copy.**

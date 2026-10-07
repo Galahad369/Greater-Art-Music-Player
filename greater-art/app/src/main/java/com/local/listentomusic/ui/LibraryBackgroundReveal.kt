@@ -40,8 +40,8 @@ import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
 
 internal const val LIBRARY_BACKGROUND_REVEAL_MIN_DP = 240f
-internal const val LIBRARY_BACKGROUND_REVEAL_VIEWPORT_FRACTION = 0.58f
-internal const val LIBRARY_BACKGROUND_REVEAL_VIEWPORT_CAP_FRACTION = 0.72f
+internal const val LIBRARY_BACKGROUND_REVEAL_VIEWPORT_FRACTION = 0.80f
+internal const val LIBRARY_BACKGROUND_REVEAL_VIEWPORT_CAP_FRACTION = 0.90f
 internal const val LIBRARY_BACKGROUND_REVEAL_SNAP_THRESHOLD = 0.35f
 internal const val LIBRARY_BACKGROUND_LIGHT_SCRIM_ALPHA = 0.94f
 
