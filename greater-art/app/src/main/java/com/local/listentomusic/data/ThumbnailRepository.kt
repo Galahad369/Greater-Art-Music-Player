@@ -320,10 +320,33 @@ class ThumbnailRepository(private val context: Context) {
     private fun readDisk(key: String): Bitmap? {
         val cached = File(cacheDirectory, "$key.webp")
         if (!cached.isFile) return null
-        return BitmapFactory.decodeFile(cached.absolutePath)?.also {
+
+        var hitMemoryPressure = false
+        var decoded = try {
+            BitmapFactory.decodeFile(cached.absolutePath)
+        } catch (_: OutOfMemoryError) {
+            hitMemoryPressure = true
+            // A warm disk hit can still allocate a Bitmap while the LRU is near its
+            // limit. Give back retained thumbnails and retry once before treating this
+            // request as a miss. The disk file itself is not corrupt.
+            memoryCache.evictAll()
+            null
+        }
+
+        if (decoded == null && hitMemoryPressure) {
+            decoded = try {
+                BitmapFactory.decodeFile(cached.absolutePath)
+            } catch (_: OutOfMemoryError) {
+                null
+            }
+        }
+
+        return decoded?.also {
             cached.setLastModified(System.currentTimeMillis())
         } ?: run {
-            cached.delete()
+            // Do not destroy a valid persistent cache entry merely because the process
+            // could not allocate its Bitmap under transient memory pressure.
+            if (!hitMemoryPressure) cached.delete()
             null
         }
     }

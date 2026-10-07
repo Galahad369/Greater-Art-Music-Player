@@ -7,7 +7,7 @@ This file is the authoritative version policy for Greater Art. If any handoff no
 ## Machine-checkable state
 
 
-Current source: **1.21.11 (code 234)**
+Current source: **1.21.12 (code 235)**
 Current release state: **SOURCE_ONLY**
 Latest verified APK: **1.15.77 (code 207)**
 Allowed series transition: **1.14.15 -> 1.15.1**
@@ -242,5 +242,7 @@ Previous baseline: 1.13.26 (code 115).
 - 1.21.10 (code 233) — sharpen Now Playing while preserving Ambient as the full-screen visual identity. Artwork uses a restrained outlined stage instead of liquid-metal chrome; title hierarchy adds available Artist · Album metadata; portrait video header/timeline and queue rows share one low-shadow translucent surface language with thin outlines; queue spacing/selection is clearer; seek thumbs/tracks lose decorative glow for cleaner geometry; the central play control becomes a stable solid accent while repeat/speed remain secondary. Ambient gradient generation, video surfaces, playback gestures, source quality and transport semantics are unchanged. SOURCE_ONLY pending exact-head CI and physical visual/touch verification.
 
 - 1.21.11 (code 234) — extend the sharp/low-shadow visual language to Library, Stack and Nodes while keeping each screen's function distinct. Library media rows become outlined ambient cards and every SMALL/MEDIUM/LARGE row now uses the immutable MiniWindowMetrics 103×56dp thumbnail footprint; row size changes only typography/padding. Stack track/current/master controls gain consistent restrained surfaces and state outlines without changing mix or alignment semantics. Nodes keeps an open transparent graph, replacing soft active halos/control slabs with crisp rings and thin outlined chrome. Full pure-wallpaper mode now axis-locks gestures: vertical drag recovers the Library while horizontal drag pans a dedicated wallpaper position without paging Stack/All songs/Nodes. The pan is shared by custom image, custom video, current-video primary and mirror rendering; Crop uses real overflow, Fit uses only legal horizontal slack, and Stretch remains impossible. SOURCE_ONLY pending exact-head CI and physical portrait/landscape gesture/visual verification.
+
+- 1.21.12 (code 235) — post-merge review repair: preserve the original Stack | All songs | Nodes wallpaper motion while the Library sheet is closed by synchronizing WallpaperPanState to the pager only at zero reveal, then freeze framing during pull-down and let pure-wallpaper horizontal gestures own it at full reveal. Also close the remaining thumbnail fast-scroll crash path by containing OutOfMemoryError from warm disk-cache Bitmap decode: evict the RAM thumbnail LRU, retry once, and retain the valid disk cache entry if allocation pressure persists. No playback, Stack alignment, media quality, permission, cache format, or wallpaper scale-mode change. SOURCE_ONLY pending exact-head CI and physical gesture/memory-pressure verification.
 
 **No silent builds. No version reuse. No version skips. No APK overwrite/rename/copy.**

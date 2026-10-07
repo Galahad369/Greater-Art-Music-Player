@@ -159,6 +159,19 @@ fun GreaterArtApp(
     }
     val navigationScope = rememberCoroutineScope()
     val libraryBackgroundReveal = rememberLibraryBackgroundRevealState()
+    // Preserve the original Stack | All songs | Nodes wallpaper motion while the sheet
+    // is closed. As soon as reveal starts, freeze that framing so vertical reveal cannot
+    // move the wallpaper; at full reveal horizontal gestures own WallpaperPanState.
+    androidx.compose.runtime.SideEffect {
+        if (screen == Screen.LIBRARY && shouldSyncWallpaperPanToPager(libraryBackgroundReveal.fraction)) {
+            wallpaperPan.setPosition(
+                libraryPagerBackgroundPosition(
+                    libraryPager.currentPage,
+                    libraryPager.currentPageOffsetFraction,
+                ),
+            )
+        }
+    }
     LaunchedEffect(libraryPager.currentPage) { if (libraryPager.currentPage == 2) viewModel.requestGraph() }
     var editDisplay by remember { mutableStateOf<com.local.listentomusic.model.MediaFile?>(null) }
     var createRule by remember { mutableStateOf(false) }
