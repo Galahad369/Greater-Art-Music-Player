@@ -79,6 +79,9 @@ internal fun wallpaperGestureAxis(totalX: Float, totalY: Float, touchSlop: Float
     return if (abs(totalX) > abs(totalY)) WallpaperGestureAxis.HORIZONTAL else WallpaperGestureAxis.VERTICAL
 }
 
+internal fun shouldSyncWallpaperPanToPager(revealFraction: Float): Boolean =
+    revealFraction <= 0.001f
+
 @Stable
 internal class WallpaperPanState {
     var position by mutableFloatStateOf(0.5f)
@@ -90,7 +93,11 @@ internal class WallpaperPanState {
         position = (position + signedDelta / viewportWidthPx).coerceIn(0f, 1f)
     }
 
-    internal fun center() { position = 0.5f }
+    internal fun setPosition(value: Float) {
+        position = value.coerceIn(0f, 1f)
+    }
+
+    internal fun center() { setPosition(0.5f) }
 }
 
 @Composable

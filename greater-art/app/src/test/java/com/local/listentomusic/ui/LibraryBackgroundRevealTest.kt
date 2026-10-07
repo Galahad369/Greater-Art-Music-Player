@@ -39,6 +39,19 @@ class LibraryBackgroundRevealTest {
     }
 
     @Test
+    fun closedSheetFollowsPagerButAnyRevealFreezesWallpaperFraming() {
+        assertTrue(shouldSyncWallpaperPanToPager(0f))
+        assertTrue(shouldSyncWallpaperPanToPager(0.001f))
+        org.junit.Assert.assertFalse(shouldSyncWallpaperPanToPager(0.002f))
+
+        val state = WallpaperPanState()
+        state.setPosition(-2f)
+        assertEquals(0f, state.position, 0f)
+        state.setPosition(2f)
+        assertEquals(1f, state.position, 0f)
+    }
+
+    @Test
     fun wallpaperPanDirectionMatchesCropAndFitInteraction() {
         val crop = WallpaperPanState()
         crop.dragBy(-100f, 400f, BackgroundScaleMode.CROP)
