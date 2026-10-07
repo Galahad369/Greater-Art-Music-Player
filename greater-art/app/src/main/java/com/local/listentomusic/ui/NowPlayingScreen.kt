@@ -6,9 +6,13 @@ import android.content.ContextWrapper
 import android.content.pm.ActivityInfo
 import android.graphics.Rect
 import android.graphics.Bitmap
+import android.os.Build
 import android.view.ViewGroup
+import android.view.Window
+import android.view.WindowManager
 import android.widget.FrameLayout
 import androidx.activity.compose.BackHandler
+import androidx.annotation.RequiresApi
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.LinearEasing
@@ -136,6 +140,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.layout.boundsInWindow
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalHapticFeedback
@@ -182,6 +187,9 @@ import kotlin.math.roundToInt
 internal val playbackSpeeds = listOf(0.25f, 0.5f, 0.75f, 1f, 1.25f, 1.5f, 1.75f, 2f, 2.5f, 3f)
 internal const val HOLD_2X_ACTIVATION_MS = 700L
 internal const val HOLD_2X_LOCK_DISTANCE_DP = 72f
+internal const val NOW_PLAYING_AMBIENT_BOTTOM_BLEND = 0.62f
+internal const val NOW_PLAYING_AMBIENT_PANEL_ALPHA = 0.74f
+internal const val NOW_PLAYING_AMBIENT_ROW_ALPHA = 0.58f
 internal fun shouldLockHeldDoubleSpeed(dragAfterHoldPx: Float, thresholdPx: Float): Boolean =
     thresholdPx > 0f && dragAfterHoldPx >= thresholdPx
 internal fun isDoubleSpeed(speed: Float): Boolean = kotlin.math.abs(speed - 2f) <= 0.01f
@@ -289,7 +297,10 @@ fun NowPlayingScreen(
         }
 
         val backdrop = Modifier.ambientBackdrop(
-        artwork, MaterialTheme.colorScheme.background.luminance() > .5f, playback.currentPath,
+        artwork,
+        MaterialTheme.colorScheme.background.luminance() > .5f,
+        playback.currentPath,
+        bottomBlend = NOW_PLAYING_AMBIENT_BOTTOM_BLEND,
     )
     BoxWithConstraints(
             modifier = Modifier.fillMaxSize().padding(PaddingValues(horizontal = 0.dp, vertical = contentPadding.calculateTopPadding()))
@@ -1030,13 +1041,13 @@ private fun SecondaryControls(
     Column(
         modifier = modifier
             .windowInsetsPadding(playerNavigationInsets())
-            .background(MaterialTheme.colorScheme.surface)
+            // Keep the same ambient backdrop visible through the lower player region.
             .padding(start = 12.dp, end = 12.dp, top = 0.dp, bottom = 0.dp),
         horizontalAlignment = Alignment.Start,
     ) {
         Box(Modifier.fillMaxWidth()
             .shadow(7.dp, RoundedCornerShape(bottomStart = 5.dp, bottomEnd = 5.dp))
-            .background(MaterialTheme.colorScheme.surface)
+            .background(MaterialTheme.colorScheme.surface.copy(alpha = NOW_PLAYING_AMBIENT_PANEL_ALPHA))
             .padding(top = 7.dp, bottom = 5.dp)) {
         CurrentMediaHeader(
             playback = playback,
@@ -1077,7 +1088,7 @@ private fun SecondaryControls(
                 )
                 Column(Modifier.fillMaxWidth()
             .shadow(9.dp, RoundedCornerShape(topStart = 6.dp, topEnd = 6.dp))
-            .background(MaterialTheme.colorScheme.surface)
+            .background(MaterialTheme.colorScheme.surface.copy(alpha = NOW_PLAYING_AMBIENT_PANEL_ALPHA))
             .padding(top = 3.dp)) {
             Timeline(playback, onSeek)
             PlayerBottomControls(playback, onRepeat, onPrevious, onTogglePlay, onNext, onSpeed)
@@ -1272,7 +1283,7 @@ private fun NowPlayingQueue(
                                 .graphicsLayer { translationX = -actionWidthPx * revealProgress }
                                 .background(
                                     if (selected) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.72f)
-                                    else MaterialTheme.colorScheme.surface,
+                                    else MaterialTheme.colorScheme.surface.copy(alpha = NOW_PLAYING_AMBIENT_ROW_ALPHA),
                                 )
                                 .clickable {
                                     if (actionsOpen) openActionsKey = null else onPlay(index)
@@ -2028,20 +2039,68 @@ internal fun shouldRehideImmersiveBars(
     navigationBarsVisible: Boolean,
 ): Boolean = fullscreen && (statusBarsVisible || navigationBarsVisible)
 
+internal fun immersiveCutoutModeForSdk(sdkInt: Int): Int? = when {
+    sdkInt >= Build.VERSION_CODES.R -> WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_ALWAYS
+    sdkInt >= Build.VERSION_CODES.P -> WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES
+    else -> null
+}
+
+@RequiresApi(Build.VERSION_CODES.P)
+private fun windowCutoutMode(window: Window): Int =
+    window.attributes.layoutInDisplayCutoutMode
+
+@RequiresApi(Build.VERSION_CODES.P)
+private fun setWindowCutoutMode(window: Window, mode: Int) {
+    val attributes = window.attributes
+    if (attributes.layoutInDisplayCutoutMode != mode) {
+        attributes.layoutInDisplayCutoutMode = mode
+        window.attributes = attributes
+    }
+}
+
+/**
+ * Apply one consistent edge-to-edge contract for landscape Now Playing and the
+ * dedicated fullscreen Activity. System edge gestures remain Android-owned, but
+ * the app window itself may render through status/navigation/cutout safe regions.
+ */
+internal fun enforceImmersiveWindow(window: Window) {
+    WindowCompat.setDecorFitsSystemWindows(window, false)
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+        immersiveCutoutModeForSdk(Build.VERSION.SDK_INT)?.let { mode ->
+            setWindowCutoutMode(window, mode)
+        }
+    }
+    WindowCompat.getInsetsController(window, window.decorView).apply {
+        systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+        hide(WindowInsetsCompat.Type.systemBars())
+    }
+}
+
 @Composable
 private fun FullscreenEffect(enabled: Boolean, forceLandscape: Boolean = false) {
     val activity = LocalContext.current.findActivity() ?: return
     val systemDark = MaterialTheme.colorScheme.background.luminance() < 0.5f
+    val orientation = LocalConfiguration.current.orientation
+
+    // MainActivity handles orientation itself via configChanges, so the Activity is not
+    // recreated. Reassert the fullscreen contract after the landscape/portrait relayout
+    // instead of relying only on the original enter-fullscreen call.
+    LaunchedEffect(activity, enabled, orientation) {
+        if (enabled) {
+            enforceImmersiveWindow(activity.window)
+            ViewCompat.requestApplyInsets(activity.window.decorView)
+        }
+    }
+
     DisposableEffect(activity, enabled, systemDark, forceLandscape) {
         val window = activity.window
         val decorView = window.decorView
         val insets = WindowCompat.getInsetsController(window, decorView)
+        val previousCutoutMode = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+            windowCutoutMode(window)
+        } else null
 
-        fun enforceImmersiveBars() {
-            WindowCompat.setDecorFitsSystemWindows(window, false)
-            insets.systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
-            insets.hide(WindowInsetsCompat.Type.systemBars())
-        }
+        fun enforceImmersiveBars() = enforceImmersiveWindow(window)
 
         val focusListener = android.view.ViewTreeObserver.OnWindowFocusChangeListener { hasFocus ->
             if (enabled && hasFocus) enforceImmersiveBars()
@@ -2074,6 +2133,9 @@ private fun FullscreenEffect(enabled: Boolean, forceLandscape: Boolean = false) 
                 }
                 ViewCompat.setOnApplyWindowInsetsListener(decorView, null)
                 activity.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
+                if (previousCutoutMode != null && Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                    setWindowCutoutMode(window, previousCutoutMode)
+                }
                 insets.show(WindowInsetsCompat.Type.systemBars())
             }
             insets.isAppearanceLightStatusBars = !systemDark

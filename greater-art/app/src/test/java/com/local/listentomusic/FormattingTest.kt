@@ -106,4 +106,50 @@ class FormattingTest {
         assertFalse(com.local.listentomusic.ui.shouldRehideImmersiveBars(true, false, false))
         assertFalse(com.local.listentomusic.ui.shouldRehideImmersiveBars(false, true, true))
     }
+
+    @Test fun immersiveFullscreenUsesCutoutSpaceWhenAndroidSupportsIt() {
+        assertNull(com.local.listentomusic.ui.immersiveCutoutModeForSdk(27))
+        assertEquals(
+            android.view.WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES,
+            com.local.listentomusic.ui.immersiveCutoutModeForSdk(28),
+        )
+        assertEquals(
+            android.view.WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_ALWAYS,
+            com.local.listentomusic.ui.immersiveCutoutModeForSdk(30),
+        )
+    }
+
+    @Test fun landscapeVideoNowPlayingUsesImmersiveOverlayInsets() {
+        assertTrue(com.local.listentomusic.playback.expandedPlayerUsesImmersiveWindow(
+            expanded = true, explicitFullscreen = false, video = true, landscape = true,
+        ))
+        assertTrue(com.local.listentomusic.playback.expandedPlayerUsesImmersiveWindow(
+            expanded = true, explicitFullscreen = true, video = true, landscape = false,
+        ))
+        assertFalse(com.local.listentomusic.playback.expandedPlayerUsesImmersiveWindow(
+            expanded = true, explicitFullscreen = false, video = true, landscape = false,
+        ))
+        assertFalse(com.local.listentomusic.playback.expandedPlayerUsesImmersiveWindow(
+            expanded = true, explicitFullscreen = false, video = false, landscape = true,
+        ))
+        assertFalse(com.local.listentomusic.playback.expandedPlayerUsesImmersiveWindow(
+            expanded = false, explicitFullscreen = true, video = true, landscape = true,
+        ))
+    }
+
+    @Test fun landscapeNowPlayingCutoutModeTracksImmersiveState() {
+        assertNull(com.local.listentomusic.playback.expandedPlayerCutoutMode(27, immersive = true))
+        assertEquals(
+            android.view.WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES,
+            com.local.listentomusic.playback.expandedPlayerCutoutMode(28, immersive = true),
+        )
+        assertEquals(
+            android.view.WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_ALWAYS,
+            com.local.listentomusic.playback.expandedPlayerCutoutMode(30, immersive = true),
+        )
+        assertEquals(
+            android.view.WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_DEFAULT,
+            com.local.listentomusic.playback.expandedPlayerCutoutMode(30, immersive = false),
+        )
+    }
 }

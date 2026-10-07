@@ -18,7 +18,12 @@ import kotlinx.coroutines.withContext
 
 /** Live compositor colors with cached-art fallback; never creates a video decoder. */
 @Composable
-internal fun Modifier.ambientBackdrop(artwork: Bitmap?, light: Boolean, currentPath: String? = null): Modifier {
+internal fun Modifier.ambientBackdrop(
+    artwork: Bitmap?,
+    light: Boolean,
+    currentPath: String? = null,
+    bottomBlend: Float = 0f,
+): Modifier {
     val video by VideoAmbientColors.state.collectAsStateWithLifecycle()
     val colors by produceState(artworkGradientColors(intArrayOf(), light), artwork, light) {
         value = withContext(Dispatchers.Default) {
@@ -42,10 +47,22 @@ internal fun Modifier.ambientBackdrop(artwork: Bitmap?, light: Boolean, currentP
     val target = live ?: colors
     val top = animateColorAsState(target.first(), tween(700), label = "ambient-top")
     val middle = animateColorAsState(target[target.size / 2], tween(700), label = "ambient-middle")
-    val bottom = animateColorAsState(target.last(), tween(700), label = "ambient-bottom")
+    val bottom = animateColorAsState(
+        ambientBottomColor(target, bottomBlend),
+        tween(700),
+        label = "ambient-bottom",
+    )
     // Read animation state during drawing, not composition: a color fade must not
     // recompose the queue, controls and native video host on every display frame.
     return drawBehind { drawRect(Brush.verticalGradient(listOf(top.value, middle.value, bottom.value))) }
+}
+
+internal fun ambientBottomColor(colors: List<Color>, bottomBlend: Float): Color {
+    if (colors.isEmpty()) return Color.Transparent
+    val base = colors.last()
+    if (colors.size < 2 || bottomBlend <= 0f) return base
+    val middle = colors[colors.size / 2]
+    return lerp(base, middle, bottomBlend.coerceIn(0f, 1f))
 }
 
 internal fun artworkGradientColors(pixels: IntArray, light: Boolean): List<Color> {
