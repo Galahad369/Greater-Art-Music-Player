@@ -154,6 +154,7 @@ fun GreaterArtApp(
         }
     }
     val navigationScope = rememberCoroutineScope()
+    val libraryBackgroundReveal = rememberLibraryBackgroundRevealState()
     LaunchedEffect(libraryPager.currentPage) { if (libraryPager.currentPage == 2) viewModel.requestGraph() }
     var editDisplay by remember { mutableStateOf<com.local.listentomusic.model.MediaFile?>(null) }
     var createRule by remember { mutableStateOf(false) }
@@ -266,11 +267,13 @@ fun GreaterArtApp(
             )
             Surface(
                 modifier = Modifier.fillMaxSize(),
-                // A light palette needs an opaque-enough base over black/custom media.
-                // Dark mode keeps the liquid-metal wallpaper fully visible.
-                color = if (lightPalette) {
-                    MaterialTheme.colorScheme.background.copy(alpha = 0.94f)
-                } else Color.Transparent,
+                // Library must stay transparent so its pull-down reveal can expose the
+                // real AppBackground. Non-Library screens retain the light-palette wash.
+                color = when {
+                    screen == Screen.LIBRARY -> Color.Transparent
+                    lightPalette -> MaterialTheme.colorScheme.background.copy(alpha = 0.94f)
+                    else -> Color.Transparent
+                },
                 contentColor = MaterialTheme.colorScheme.onBackground,
             ) {
             // Surface propagates its full-screen minimum constraints. Transient
@@ -310,7 +313,14 @@ fun GreaterArtApp(
                         }
                     },
                 ) { dockPadding ->
-                    Column(Modifier.fillMaxSize().padding(dockPadding).consumeWindowInsets(dockPadding)) {
+                    LibraryFamilyWithBackgroundReveal(
+                        reveal = libraryBackgroundReveal,
+                        lightPalette = lightPalette,
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(dockPadding)
+                            .consumeWindowInsets(dockPadding),
+                    ) {
                         LibraryTopBar(appName, library, settings, playHistory, viewModel::rescan,
                             viewModel::setPlayHistoryEnabled, viewModel::clearPlayHistory,
                             viewModel::setSortMode, { screen = Screen.SETTINGS })
