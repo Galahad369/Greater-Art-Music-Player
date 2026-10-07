@@ -1,6 +1,8 @@
 package com.local.listentomusic.ui
 
+import com.local.listentomusic.data.BackgroundScaleMode
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -27,6 +29,25 @@ class LibraryBackgroundRevealTest {
         assertEquals(1f, libraryBackgroundFlingTarget(20f, 0.05f), 0f)
         assertEquals(0f, libraryBackgroundFlingTarget(0f, 0.10f), 0f)
         assertEquals(1f, libraryBackgroundFlingTarget(0f, 0.50f), 0f)
+    }
+
+    @Test
+    fun wallpaperGestureLocksToTheDominantAxisAfterTouchSlop() {
+        assertNull(wallpaperGestureAxis(2f, 3f, 8f))
+        assertEquals(WallpaperGestureAxis.HORIZONTAL, wallpaperGestureAxis(12f, 4f, 8f))
+        assertEquals(WallpaperGestureAxis.VERTICAL, wallpaperGestureAxis(4f, -12f, 8f))
+    }
+
+    @Test
+    fun wallpaperPanDirectionMatchesCropAndFitInteraction() {
+        val crop = WallpaperPanState()
+        crop.dragBy(-100f, 400f, BackgroundScaleMode.CROP)
+        assertEquals(0.75f, crop.position, 0.001f)
+        crop.center()
+        assertEquals(0.5f, crop.position, 0f)
+        val fit = WallpaperPanState()
+        fit.dragBy(-100f, 400f, BackgroundScaleMode.FIT)
+        assertEquals(0.25f, fit.position, 0.001f)
     }
 
     @Test

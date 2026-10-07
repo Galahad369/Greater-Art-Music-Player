@@ -36,8 +36,12 @@ class AppBackgroundSyncTest {
     }
 
     @Test
-    fun noCropPanWithoutOverflowOrInOtherScaleModes() {
-        assertEquals(0f, backgroundCropTranslationX(900, 1080, BackgroundScaleMode.CROP, 1f), 0f)
+    fun cropAndFitPanUseOnlyLegalHorizontalSpace() {
+        assertEquals(0f, backgroundPanTranslationX(900, 1080, BackgroundScaleMode.CROP, 1f), 0f)
+        assertEquals(-90f, backgroundPanTranslationX(900, 1080, BackgroundScaleMode.FIT, 0f), 0f)
+        assertEquals(0f, backgroundPanTranslationX(900, 1080, BackgroundScaleMode.FIT, .5f), 0f)
+        assertEquals(90f, backgroundPanTranslationX(900, 1080, BackgroundScaleMode.FIT, 1f), 0f)
+        assertEquals(0f, backgroundPanTranslationX(1600, 1080, BackgroundScaleMode.FIT, 1f), 0f)
         assertEquals(0f, backgroundCropTranslationX(1600, 1080, BackgroundScaleMode.FIT, 1f), 0f)
     }
 

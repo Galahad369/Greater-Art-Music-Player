@@ -18,6 +18,7 @@ import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.BiasAlignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -231,7 +232,7 @@ fun AppBackground(
             AppBackgroundMode.DEFAULT -> Unit
             AppBackgroundMode.CUSTOM_IMAGE -> preferences.customBackgroundImageUri
                 ?.let(Uri::parse)
-                ?.let { BackgroundImage(it, preferences.backgroundScaleMode) }
+                ?.let { BackgroundImage(it, preferences.backgroundScaleMode, horizontalPosition) }
             AppBackgroundMode.CUSTOM_VIDEO -> if (attachCustomVideoBackground) {
                 preferences.customBackgroundVideoUri
                     ?.let(Uri::parse)
@@ -241,6 +242,7 @@ fun AppBackground(
                             shouldPlay = liveVideoSurface,
                             surfaceActive = liveVideoSurface,
                             scaleMode = preferences.backgroundScaleMode,
+                            horizontalPosition = horizontalPosition,
                         )
                     }
             }
@@ -300,7 +302,7 @@ private fun DefaultMetalBackground() {
 }
 
 @Composable
-private fun BackgroundImage(source: Uri, scaleMode: BackgroundScaleMode) {
+private fun BackgroundImage(source: Uri, scaleMode: BackgroundScaleMode, horizontalPosition: (() -> Float)?) {
     val context = LocalContext.current
     val bitmap by produceState<Bitmap?>(initialValue = null, key1 = source) {
         // Do not leave the previous image visible if replacement decoding fails.
@@ -317,6 +319,10 @@ private fun BackgroundImage(source: Uri, scaleMode: BackgroundScaleMode) {
                 BackgroundScaleMode.FIT -> ContentScale.Fit
                 BackgroundScaleMode.CROP -> ContentScale.Crop
             },
+            alignment = BiasAlignment(
+                horizontalBias = ((horizontalPosition?.invoke() ?: 0.5f).coerceIn(0f, 1f) * 2f) - 1f,
+                verticalBias = 0f,
+            ),
             modifier = Modifier.fillMaxSize(),
         )
     }
@@ -347,7 +353,7 @@ internal fun PrimaryVideoBackground(
         val frame = view.findViewById<android.view.View>(androidx.media3.ui.R.id.exo_content_frame)
             ?: return@LaunchedEffect
         fun move(position: Float) {
-            frame.translationX = backgroundCropTranslationX(frame.width, view.width, scaleMode, position)
+            frame.translationX = backgroundPanTranslationX(frame.width, view.width, scaleMode, position)
         }
         val layoutListener = android.view.View.OnLayoutChangeListener { _, _, _, _, _, _, _, _, _ ->
             move(horizontalPosition?.invoke() ?: .5f)
@@ -500,7 +506,7 @@ private fun BackgroundVideo(
         val frame = view.findViewById<android.view.View>(androidx.media3.ui.R.id.exo_content_frame)
             ?: return@LaunchedEffect
         fun move(position: Float) {
-            frame.translationX = backgroundCropTranslationX(frame.width, view.width, scaleMode, position)
+            frame.translationX = backgroundPanTranslationX(frame.width, view.width, scaleMode, position)
         }
         val layoutListener = android.view.View.OnLayoutChangeListener { _, _, _, _, _, _, _, _, _ ->
             move(horizontalPosition?.invoke() ?: .5f)
@@ -550,17 +556,27 @@ private fun BackgroundVideo(
     )
 }
 
-/** PlayerView centers its enlarged ZOOM content frame; shift only within valid overflow. */
-internal fun backgroundCropTranslationX(
+internal fun backgroundPanTranslationX(
     contentWidth: Int,
     viewportWidth: Int,
     scaleMode: BackgroundScaleMode,
     horizontalPosition: Float,
 ): Float {
-    if (scaleMode != BackgroundScaleMode.CROP) return 0f
-    val overflow = (contentWidth - viewportWidth).coerceAtLeast(0)
-    return overflow * (.5f - horizontalPosition.coerceIn(0f, 1f))
+    val position = horizontalPosition.coerceIn(0f, 1f)
+    return when (scaleMode) {
+        BackgroundScaleMode.CROP -> (contentWidth - viewportWidth).coerceAtLeast(0) * (0.5f - position)
+        BackgroundScaleMode.FIT -> (viewportWidth - contentWidth).coerceAtLeast(0) * (position - 0.5f)
+    }
 }
+
+internal fun backgroundCropTranslationX(
+    contentWidth: Int,
+    viewportWidth: Int,
+    scaleMode: BackgroundScaleMode,
+    horizontalPosition: Float,
+): Float = if (scaleMode == BackgroundScaleMode.CROP) {
+    backgroundPanTranslationX(contentWidth, viewportWidth, scaleMode, horizontalPosition)
+} else 0f
 
 private fun decodeSampledBitmap(
     resolver: android.content.ContentResolver,

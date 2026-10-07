@@ -146,12 +146,16 @@ fun GreaterArtApp(
     val graph by viewModel.graph.collectAsStateWithLifecycle()
     val graphLoading by viewModel.graphLoading.collectAsStateWithLifecycle()
     val graphError by viewModel.graphError.collectAsStateWithLifecycle()
-    val backgroundHorizontalPosition = androidx.compose.runtime.remember(libraryPager, screen) {
-        {
-            if (screen == Screen.LIBRARY) {
-                libraryPagerBackgroundPosition(libraryPager.currentPage, libraryPager.currentPageOffsetFraction)
-            } else .5f
-        }
+    val wallpaperPan = rememberWallpaperPanState()
+    val wallpaperSourceKey = when (settings.backgroundMode) {
+        AppBackgroundMode.DEFAULT -> "default"
+        AppBackgroundMode.CUSTOM_IMAGE -> "image:${settings.customBackgroundImageUri.orEmpty()}"
+        AppBackgroundMode.CUSTOM_VIDEO -> "video:${settings.customBackgroundVideoUri.orEmpty()}"
+        AppBackgroundMode.CURRENT_VIDEO -> "current:${playback.currentPath.orEmpty()}"
+    }
+    LaunchedEffect(wallpaperSourceKey) { wallpaperPan.center() }
+    val backgroundHorizontalPosition = androidx.compose.runtime.remember(wallpaperPan, screen) {
+        { if (screen == Screen.LIBRARY) wallpaperPan.position else 0.5f }
     }
     val navigationScope = rememberCoroutineScope()
     val libraryBackgroundReveal = rememberLibraryBackgroundRevealState()
@@ -335,6 +339,8 @@ fun GreaterArtApp(
                         lightPalette = lightPalette,
                         wallpaperDimAlpha = libraryWallpaperDimAlpha,
                         wallpaperDimColor = libraryWallpaperDimColor,
+                        wallpaperPan = wallpaperPan,
+                        backgroundScaleMode = settings.backgroundScaleMode,
                         modifier = Modifier
                             .fillMaxSize()
                             .padding(dockPadding)

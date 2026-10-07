@@ -32,6 +32,7 @@ import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -48,6 +49,7 @@ import com.local.listentomusic.playback.StackRecommendationReason
 import com.local.listentomusic.playback.StackSlot
 import com.local.listentomusic.playback.recommendStackTracks
 import com.local.listentomusic.ui.components.LiquidMetalSurface
+import com.local.listentomusic.ui.theme.GaRadius
 import com.local.listentomusic.ui.theme.gaChromeColor
 import com.local.listentomusic.ui.theme.gaDividerColor
 
@@ -245,7 +247,8 @@ fun StackScreen(
             Modifier.fillMaxWidth().weight(1f)
                 .inspectElement("STACK_TRACK_LIST", "Up to eight simultaneous tracks plus current playback context"),
             state = trackListState,
-            contentPadding = PaddingValues(bottom = 12.dp),
+            contentPadding = PaddingValues(top = 4.dp, bottom = 12.dp),
+            verticalArrangement = Arrangement.spacedBy(2.dp),
         ) {
             if (nowPlayingFile != null && !nowPlayingRepresented) {
                 item(key = "stack-now-playing-context:${nowPlayingFile.path}") {
@@ -333,8 +336,12 @@ fun StackScreen(
         error?.let { Text(it, Modifier.padding(horizontal = 16.dp), color = MaterialTheme.colorScheme.error) }
 
         Column(
-            Modifier.fillMaxWidth().background(gaChromeColor())
-                .padding(horizontal = 16.dp, vertical = 8.dp)
+            Modifier.fillMaxWidth()
+                .padding(horizontal = 10.dp, vertical = 6.dp)
+                .clip(RoundedCornerShape(GaRadius.chrome))
+                .background(gaChromeColor())
+                .border(1.dp, gaDividerColor(), RoundedCornerShape(GaRadius.chrome))
+                .padding(horizontal = 12.dp, vertical = 6.dp)
                 .inspectElement("STACK_MASTER_CONTROLS", "Shared seek and play/pause"),
         ) {
             val duration = if (session.active) session.durationMs else com.local.listentomusic.playback.stackDuration(displayed,
@@ -533,11 +540,15 @@ private fun StackNowPlayingRow(
     onAdd: () -> Unit,
 ) {
     Surface(
-        color = MaterialTheme.colorScheme.primaryContainer,
-        modifier = Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 5.dp)
+        color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.58f),
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 10.dp, vertical = 2.dp)
             .inspectElement("STACK_NOW_PLAYING_CONTEXT", file.name),
-        shape = RoundedCornerShape(12.dp),
-        border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.primary),
+        shape = RoundedCornerShape(GaRadius.control),
+        border = androidx.compose.foundation.BorderStroke(
+            1.dp,
+            MaterialTheme.colorScheme.primary.copy(alpha = 0.46f),
+        ),
+        tonalElevation = 0.dp,
     ) {
         Row(
             Modifier.fillMaxWidth().heightIn(min = 68.dp).padding(horizontal = 12.dp, vertical = 8.dp),
@@ -578,11 +589,29 @@ private fun StackTrackRow(
     onRemove: () -> Unit,
 ) {
     val path = slot.file.path
-    val rowColor = if (isNowPlaying) MaterialTheme.colorScheme.primaryContainer else Color.Transparent
-    Column(Modifier.fillMaxWidth().background(rowColor)) {
+    val rowColor = when {
+        isNowPlaying -> MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.62f)
+        slot.solo -> MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.44f)
+        slot.muted -> MaterialTheme.colorScheme.surface.copy(alpha = 0.28f)
+        else -> MaterialTheme.colorScheme.surface.copy(alpha = 0.42f)
+    }
+    val outline = when {
+        slot.error != null -> MaterialTheme.colorScheme.error.copy(alpha = 0.66f)
+        isPrimary || isNowPlaying -> MaterialTheme.colorScheme.secondary.copy(alpha = 0.48f)
+        slot.solo -> MaterialTheme.colorScheme.secondary.copy(alpha = 0.40f)
+        else -> MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.16f)
+    }
+    Surface(
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 10.dp, vertical = 2.dp),
+        shape = RoundedCornerShape(GaRadius.control),
+        color = rowColor,
+        border = androidx.compose.foundation.BorderStroke(1.dp, outline),
+        tonalElevation = 0.dp,
+    ) {
+    Column(Modifier.fillMaxWidth()) {
         Row(
             Modifier.fillMaxWidth().heightIn(min = 72.dp).clickable(onClick = onToggleExpanded)
-                .inspectElement("STACK_TRACK_ROW", slot.file.name).padding(horizontal = 14.dp, vertical = 8.dp),
+                .inspectElement("STACK_TRACK_ROW", slot.file.name).padding(horizontal = 12.dp, vertical = 8.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             QueueThumbnail(slot.file, onLoadThumbnail, isScrolling)
@@ -653,7 +682,7 @@ private fun StackTrackRow(
                 }
             }
         }
-        HorizontalDivider(color = gaDividerColor())
+    }
     }
 }
 

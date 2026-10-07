@@ -225,12 +225,12 @@ fun LibraryScreen(
                 animationSpec = androidx.compose.animation.core.tween(GaMotion.standardMs),
                 label = "library-filter-glow",
             )
-            LiquidMetalSurface(
+            Box(
                 modifier = Modifier.fillMaxWidth().padding(horizontal = GaSpacing.lg, vertical = GaSpacing.sm)
+                    .clip(RoundedCornerShape(GaRadius.chrome))
+                    .background(gaChromeColor())
                     .border(1.dp, searchGlow, RoundedCornerShape(GaRadius.chrome))
-                    .inspectElement("LIBRARY_FILTER", "Animated local filename search and clear control"),
-                shape = RoundedCornerShape(GaRadius.chrome),
-                baseColor = gaChromeColor(),
+                    .inspectElement("LIBRARY_FILTER", "Sharp local filename search and clear control"),
             ) {
                 OutlinedTextField(
                     value = state.query,
@@ -404,7 +404,11 @@ fun LibraryScreen(
                     LazyColumn(
                         state = listState,
                         modifier = Modifier.fillMaxSize().inspectElement("LIBRARY_LIST", "Virtualized ordered media rows"),
-            contentPadding = PaddingValues(bottom = if (currentPath == null) 2.dp else 56.dp),
+                        contentPadding = PaddingValues(
+                            top = 4.dp,
+                            bottom = if (currentPath == null) 4.dp else 60.dp,
+                        ),
+                        verticalArrangement = Arrangement.spacedBy(2.dp),
                     ) {
                         itemsIndexed(
                             state.files,
@@ -441,11 +445,7 @@ fun LibraryScreen(
                                 },
                                 moreDescription = uiText(language, "Actions", "操作"),
                             )
-                            HorizontalDivider(
-                                Modifier.padding(start = 26.dp + if (preferences.showThumbnails)
-                                    preferences.libraryRowSize.thumbnailWidth + preferences.libraryRowSize.textSpacing else 0.dp),
-                                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.55f),
-                            )
+                            // Spacing between outlined cards replaces full-width dividers.
                         }
                     }
                 }
@@ -697,13 +697,13 @@ private fun MediaFileRow(
     val pressSource = remember { MutableInteractionSource() }
     val pressed by pressSource.collectIsPressedAsState()
     val rowColor by animateColorAsState(
-        if (isCurrent || isSelected) MaterialTheme.colorScheme.primaryContainer
-        else Color.Transparent,
+        if (isCurrent || isSelected) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.66f)
+        else MaterialTheme.colorScheme.surface.copy(alpha = 0.42f),
         animationSpec = androidx.compose.animation.core.tween(190),
         label = "library-row-active",
     )
     val tapOffset by animateFloatAsState(
-        if (pressed) 4f else 0f,
+        if (pressed) 2.5f else 0f,
         animationSpec = androidx.compose.animation.core.tween(120),
         label = "library-row-press",
     )
@@ -734,8 +734,17 @@ private fun MediaFileRow(
     val deleteActionSize = 48.dp
     val actionWidth = addActionSize + deleteActionSize
     val actionWidthPx = with(density) { actionWidth.toPx() }
+    val rowShape = RoundedCornerShape(GaRadius.control)
+    val rowOutline = if (isCurrent || isSelected) {
+        MaterialTheme.colorScheme.secondary.copy(alpha = 0.46f)
+    } else {
+        MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.16f)
+    }
     Box(
-        Modifier.fillMaxWidth().clip(androidx.compose.ui.graphics.RectangleShape)
+        Modifier.fillMaxWidth()
+            .padding(horizontal = 8.dp, vertical = 2.dp)
+            .clip(rowShape)
+            .border(1.dp, rowOutline, rowShape)
             .inspectElement("LIBRARY_MEDIA_ROW", file.name),
     ) {
         Row(
@@ -834,14 +843,15 @@ private fun MediaFileRow(
 private val thumbnailBrush @androidx.compose.runtime.Composable get() =
     Brush.linearGradient(listOf(MaterialTheme.colorScheme.surfaceVariant, MaterialTheme.colorScheme.primaryContainer))
 
+internal fun libraryThumbnailSizeDp(@Suppress("UNUSED_PARAMETER") rowSize: LibraryRowSize): Pair<Int, Int> =
+    MiniWindowMetrics.WIDTH_DP to MiniWindowMetrics.HEIGHT_DP
+
 @Composable
 private fun MediaThumbnail(file: MediaFile, bitmap: Bitmap?, rowSize: LibraryRowSize) {
     val shape = androidx.compose.ui.graphics.RectangleShape
-    val density = LocalDensity.current
-    val width = if (rowSize == LibraryRowSize.SMALL) with(density) { MiniWindowMetrics.widthPx(this.density).toDp() } else rowSize.thumbnailWidth
-    val height = if (rowSize == LibraryRowSize.SMALL) with(density) { MiniWindowMetrics.heightPx(this.density).toDp() } else rowSize.thumbnailHeight
+    val (widthDp, heightDp) = libraryThumbnailSizeDp(rowSize)
     Box(
-        Modifier.size(width, height).clip(shape).background(thumbnailBrush),
+        Modifier.size(widthDp.dp, heightDp.dp).clip(shape).background(thumbnailBrush),
         contentAlignment = Alignment.Center,
     ) {
         if (bitmap != null) {
@@ -898,8 +908,6 @@ private fun shareBatchMessage(language: AppLanguage, count: Int, size: String): 
     AppLanguage.ENGLISH -> "$count files • $size. Receiving apps may reject a very large batch."
 }
 
-private val LibraryRowSize.thumbnailWidth get() = when (this) { LibraryRowSize.SMALL -> MiniWindowMetrics.WIDTH_DP.dp; LibraryRowSize.MEDIUM -> 120.dp; LibraryRowSize.LARGE -> 148.dp }
-private val LibraryRowSize.thumbnailHeight get() = when (this) { LibraryRowSize.SMALL -> MiniWindowMetrics.HEIGHT_DP.dp; LibraryRowSize.MEDIUM -> 70.dp; LibraryRowSize.LARGE -> 92.dp }
 private val LibraryRowSize.verticalPadding get() = when (this) { LibraryRowSize.SMALL -> 2.75.dp; LibraryRowSize.MEDIUM -> 6.dp; LibraryRowSize.LARGE -> 8.dp }
 private val LibraryRowSize.textSpacing get() = when (this) { LibraryRowSize.SMALL -> 10.dp; LibraryRowSize.MEDIUM -> 12.dp; LibraryRowSize.LARGE -> 14.dp }
 private val LibraryRowSize.accentHeight get() = when (this) { LibraryRowSize.SMALL -> 34.dp; LibraryRowSize.MEDIUM -> 46.dp; LibraryRowSize.LARGE -> 58.dp }
