@@ -6,7 +6,10 @@ import android.content.ContextWrapper
 import android.content.pm.ActivityInfo
 import android.graphics.Rect
 import android.graphics.Bitmap
+import android.os.Build
 import android.view.ViewGroup
+import android.view.Window
+import android.view.WindowManager
 import android.widget.FrameLayout
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
@@ -136,6 +139,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.layout.boundsInWindow
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalHapticFeedback
@@ -2028,20 +2032,57 @@ internal fun shouldRehideImmersiveBars(
     navigationBarsVisible: Boolean,
 ): Boolean = fullscreen && (statusBarsVisible || navigationBarsVisible)
 
+internal fun immersiveCutoutModeForSdk(sdkInt: Int): Int? = when {
+    sdkInt >= Build.VERSION_CODES.R -> WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_ALWAYS
+    sdkInt >= Build.VERSION_CODES.P -> WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES
+    else -> null
+}
+
+/**
+ * Apply one consistent edge-to-edge contract for landscape Now Playing and the
+ * dedicated fullscreen Activity. System edge gestures remain Android-owned, but
+ * the app window itself may render through status/navigation/cutout safe regions.
+ */
+internal fun enforceImmersiveWindow(window: Window) {
+    WindowCompat.setDecorFitsSystemWindows(window, false)
+    immersiveCutoutModeForSdk(Build.VERSION.SDK_INT)?.let { mode ->
+        val attributes = window.attributes
+        if (attributes.layoutInDisplayCutoutMode != mode) {
+            attributes.layoutInDisplayCutoutMode = mode
+            window.attributes = attributes
+        }
+    }
+    WindowCompat.getInsetsController(window, window.decorView).apply {
+        systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+        hide(WindowInsetsCompat.Type.systemBars())
+    }
+}
+
 @Composable
 private fun FullscreenEffect(enabled: Boolean, forceLandscape: Boolean = false) {
     val activity = LocalContext.current.findActivity() ?: return
     val systemDark = MaterialTheme.colorScheme.background.luminance() < 0.5f
+    val orientation = LocalConfiguration.current.orientation
+
+    // MainActivity handles orientation itself via configChanges, so the Activity is not
+    // recreated. Reassert the fullscreen contract after the landscape/portrait relayout
+    // instead of relying only on the original enter-fullscreen call.
+    LaunchedEffect(activity, enabled, orientation) {
+        if (enabled) {
+            enforceImmersiveWindow(activity.window)
+            ViewCompat.requestApplyInsets(activity.window.decorView)
+        }
+    }
+
     DisposableEffect(activity, enabled, systemDark, forceLandscape) {
         val window = activity.window
         val decorView = window.decorView
         val insets = WindowCompat.getInsetsController(window, decorView)
+        val previousCutoutMode = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+            window.attributes.layoutInDisplayCutoutMode
+        } else null
 
-        fun enforceImmersiveBars() {
-            WindowCompat.setDecorFitsSystemWindows(window, false)
-            insets.systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
-            insets.hide(WindowInsetsCompat.Type.systemBars())
-        }
+        fun enforceImmersiveBars() = enforceImmersiveWindow(window)
 
         val focusListener = android.view.ViewTreeObserver.OnWindowFocusChangeListener { hasFocus ->
             if (enabled && hasFocus) enforceImmersiveBars()
@@ -2074,6 +2115,11 @@ private fun FullscreenEffect(enabled: Boolean, forceLandscape: Boolean = false) 
                 }
                 ViewCompat.setOnApplyWindowInsetsListener(decorView, null)
                 activity.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
+                previousCutoutMode?.let { mode ->
+                    val attributes = window.attributes
+                    attributes.layoutInDisplayCutoutMode = mode
+                    window.attributes = attributes
+                }
                 insets.show(WindowInsetsCompat.Type.systemBars())
             }
             insets.isAppearanceLightStatusBars = !systemDark

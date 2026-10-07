@@ -1,6 +1,7 @@
 package com.local.listentomusic.playback
 
 import android.content.Intent
+import android.content.res.Configuration
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -9,13 +10,12 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.unit.dp
-import androidx.core.view.WindowCompat
-import androidx.core.view.WindowInsetsCompat
-import androidx.core.view.WindowInsetsControllerCompat
+import androidx.core.view.ViewCompat
 import androidx.lifecycle.lifecycleScope
 import com.local.listentomusic.MainActivity
 import com.local.listentomusic.MainViewModel
 import com.local.listentomusic.ui.NowPlayingScreen
+import com.local.listentomusic.ui.enforceImmersiveWindow
 import com.local.listentomusic.ui.components.VideoSurfaceOwner
 import com.local.listentomusic.ui.theme.GreaterArtTheme
 import kotlinx.coroutines.Job
@@ -111,6 +111,17 @@ class FullscreenVideoActivity : ComponentActivity() {
         if (hasFocus) enforceImmersiveSystemBars()
     }
 
+    override fun onConfigurationChanged(newConfig: Configuration) {
+        super.onConfigurationChanged(newConfig)
+        // This Activity handles orientation/configuration changes without recreation.
+        // Re-apply after the new landscape geometry has been attached so OEM window
+        // managers cannot leave a status-bar/cutout strip reserved on the rotated edge.
+        window.decorView.post {
+            enforceImmersiveSystemBars()
+            ViewCompat.requestApplyInsets(window.decorView)
+        }
+    }
+
     override fun onPause() {
         VideoSurfaceOwner.setActivityForeground(false)
         super.onPause()
@@ -130,11 +141,7 @@ class FullscreenVideoActivity : ComponentActivity() {
     }
 
     private fun enforceImmersiveSystemBars() {
-        WindowCompat.setDecorFitsSystemWindows(window, false)
-        WindowCompat.getInsetsController(window, window.decorView).apply {
-            systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
-            hide(WindowInsetsCompat.Type.systemBars())
-        }
+        enforceImmersiveWindow(window)
     }
 
     /** Clear the service's fullscreen suppression before Android tears this Activity down. */

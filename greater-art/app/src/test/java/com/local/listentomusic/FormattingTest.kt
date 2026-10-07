@@ -106,4 +106,16 @@ class FormattingTest {
         assertFalse(com.local.listentomusic.ui.shouldRehideImmersiveBars(true, false, false))
         assertFalse(com.local.listentomusic.ui.shouldRehideImmersiveBars(false, true, true))
     }
+
+    @Test fun immersiveFullscreenUsesCutoutSpaceWhenAndroidSupportsIt() {
+        assertNull(com.local.listentomusic.ui.immersiveCutoutModeForSdk(27))
+        assertEquals(
+            android.view.WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES,
+            com.local.listentomusic.ui.immersiveCutoutModeForSdk(28),
+        )
+        assertEquals(
+            android.view.WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_ALWAYS,
+            com.local.listentomusic.ui.immersiveCutoutModeForSdk(30),
+        )
+    }
 }
