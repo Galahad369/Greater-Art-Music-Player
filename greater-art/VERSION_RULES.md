@@ -7,7 +7,7 @@ This file is the authoritative version policy for Greater Art. If any handoff no
 ## Machine-checkable state
 
 
-Current source: **1.15.88 (code 218)**
+Current source: **1.15.89 (code 219)**
 Current release state: **SOURCE_ONLY**
 Latest verified APK: **1.15.77 (code 207)**
 Allowed series transition: **1.14.15 -> 1.15.1**
@@ -205,5 +205,7 @@ Previous baseline: 1.13.26 (code 115).
 - 1.15.87 (code 217) — finish landscape cutout coverage for the WindowManager-hosted Now Playing surface: immersive horizontal video now sets the overlay window's layoutInDisplayCutoutMode to ALWAYS on API 30+ or SHORT_EDGES on API 28–29, matching the Activity fullscreen policy instead of relying only on fit-inset removal. Portrait/audio/docked/detached states restore DEFAULT cutout behavior. Adds pure API-level regression coverage. 1.15.86 remains the consumed intermediate overlay-inset fix. SOURCE_ONLY pending exact-head CI and physical cutout-device verification.
 
 - 1.15.88 (code 218) — lint-safe API-28 cutout access repair after 1.15.87's exact-head Android gate failed NewApi lint on direct layoutInDisplayCutoutMode reads/writes. The window cutout field access is now isolated behind @RequiresApi(P) helpers and every call is guarded by Build.VERSION.SDK_INT >= P; immersive semantics are unchanged. 1.15.87 is consumed by the failed lint build and is not released. SOURCE_ONLY pending exact-head CI and physical landscape/cutout verification.
+
+- 1.15.89 (code 219) — Now Playing ambient continuity: the ambient gradient now retains a restrained artwork/video tint through the bottom of Now Playing instead of fading completely back to the neutral theme base. Lower portrait-video chrome no longer paints an opaque surface over the backdrop: its container is transparent, header/timeline panels use a 74% theme-surface layer, and normal queue rows use 58% surface while selected rows keep the existing translucent primary container. This applies the same ambient treatment across upper and lower Now Playing without sacrificing control/text contrast or changing the global app-background behavior. SOURCE_ONLY pending exact-head CI and visual verification.
 
 **No silent builds. No version reuse. No version skips. No APK overwrite/rename/copy.**

@@ -187,6 +187,9 @@ import kotlin.math.roundToInt
 internal val playbackSpeeds = listOf(0.25f, 0.5f, 0.75f, 1f, 1.25f, 1.5f, 1.75f, 2f, 2.5f, 3f)
 internal const val HOLD_2X_ACTIVATION_MS = 700L
 internal const val HOLD_2X_LOCK_DISTANCE_DP = 72f
+internal const val NOW_PLAYING_AMBIENT_BOTTOM_BLEND = 0.62f
+internal const val NOW_PLAYING_AMBIENT_PANEL_ALPHA = 0.74f
+internal const val NOW_PLAYING_AMBIENT_ROW_ALPHA = 0.58f
 internal fun shouldLockHeldDoubleSpeed(dragAfterHoldPx: Float, thresholdPx: Float): Boolean =
     thresholdPx > 0f && dragAfterHoldPx >= thresholdPx
 internal fun isDoubleSpeed(speed: Float): Boolean = kotlin.math.abs(speed - 2f) <= 0.01f
@@ -294,7 +297,10 @@ fun NowPlayingScreen(
         }
 
         val backdrop = Modifier.ambientBackdrop(
-        artwork, MaterialTheme.colorScheme.background.luminance() > .5f, playback.currentPath,
+        artwork,
+        MaterialTheme.colorScheme.background.luminance() > .5f,
+        playback.currentPath,
+        bottomBlend = NOW_PLAYING_AMBIENT_BOTTOM_BLEND,
     )
     BoxWithConstraints(
             modifier = Modifier.fillMaxSize().padding(PaddingValues(horizontal = 0.dp, vertical = contentPadding.calculateTopPadding()))
@@ -1035,13 +1041,13 @@ private fun SecondaryControls(
     Column(
         modifier = modifier
             .windowInsetsPadding(playerNavigationInsets())
-            .background(MaterialTheme.colorScheme.surface)
+            // Keep the same ambient backdrop visible through the lower player region.
             .padding(start = 12.dp, end = 12.dp, top = 0.dp, bottom = 0.dp),
         horizontalAlignment = Alignment.Start,
     ) {
         Box(Modifier.fillMaxWidth()
             .shadow(7.dp, RoundedCornerShape(bottomStart = 5.dp, bottomEnd = 5.dp))
-            .background(MaterialTheme.colorScheme.surface)
+            .background(MaterialTheme.colorScheme.surface.copy(alpha = NOW_PLAYING_AMBIENT_PANEL_ALPHA))
             .padding(top = 7.dp, bottom = 5.dp)) {
         CurrentMediaHeader(
             playback = playback,
@@ -1082,7 +1088,7 @@ private fun SecondaryControls(
                 )
                 Column(Modifier.fillMaxWidth()
             .shadow(9.dp, RoundedCornerShape(topStart = 6.dp, topEnd = 6.dp))
-            .background(MaterialTheme.colorScheme.surface)
+            .background(MaterialTheme.colorScheme.surface.copy(alpha = NOW_PLAYING_AMBIENT_PANEL_ALPHA))
             .padding(top = 3.dp)) {
             Timeline(playback, onSeek)
             PlayerBottomControls(playback, onRepeat, onPrevious, onTogglePlay, onNext, onSpeed)
@@ -1277,7 +1283,7 @@ private fun NowPlayingQueue(
                                 .graphicsLayer { translationX = -actionWidthPx * revealProgress }
                                 .background(
                                     if (selected) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.72f)
-                                    else MaterialTheme.colorScheme.surface,
+                                    else MaterialTheme.colorScheme.surface.copy(alpha = NOW_PLAYING_AMBIENT_ROW_ALPHA),
                                 )
                                 .clickable {
                                     if (actionsOpen) openActionsKey = null else onPlay(index)
