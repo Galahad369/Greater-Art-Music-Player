@@ -64,6 +64,7 @@ import com.local.listentomusic.R
 import com.local.listentomusic.MainViewModel
 import com.local.listentomusic.MainActivity
 import com.local.listentomusic.ui.ShareProxyActivity
+import com.local.listentomusic.ui.immersiveCutoutModeForSdk
 import com.local.listentomusic.model.MiniWindowMetrics
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -82,6 +83,12 @@ internal fun expandedPlayerUsesImmersiveWindow(
     video: Boolean,
     landscape: Boolean,
 ): Boolean = expanded && (explicitFullscreen || (video && landscape))
+
+internal fun expandedPlayerCutoutMode(sdkInt: Int, immersive: Boolean): Int? = when {
+    sdkInt < Build.VERSION_CODES.P -> null
+    immersive -> immersiveCutoutModeForSdk(sdkInt)
+    else -> WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_DEFAULT
+}
 
 // One floating window. Compact presentation is native Android; Compose is created
 // only when the user expands it, keeping song-start on the proven lightweight path.
@@ -801,6 +808,11 @@ class MiniWindowOverlayService : Service(), LifecycleOwner, ViewModelStoreOwner,
         if (expanded) {
             layout.x = 0
             layout.y = 0
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                expandedPlayerCutoutMode(Build.VERSION.SDK_INT, immersiveExpanded)?.let {
+                    layout.layoutInDisplayCutoutMode = it
+                }
+            }
             if (Build.VERSION.SDK_INT >= 30) {
                 layout.setFitInsetsTypes(
                     if (immersiveExpanded) 0
@@ -814,6 +826,10 @@ class MiniWindowOverlayService : Service(), LifecycleOwner, ViewModelStoreOwner,
         } else if (docked) {
             layout.x = 0
             layout.y = 0
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                layout.layoutInDisplayCutoutMode =
+                    WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_DEFAULT
+            }
             if (Build.VERSION.SDK_INT >= 30) {
                 layout.setFitInsetsTypes(WindowInsets.Type.navigationBars())
                 layout.setFitInsetsSides(WindowInsets.Side.BOTTOM)
@@ -822,6 +838,10 @@ class MiniWindowOverlayService : Service(), LifecycleOwner, ViewModelStoreOwner,
             val saved = getSharedPreferences(POSITION_PREFS, MODE_PRIVATE)
             layout.x = saved.getInt(POSITION_X, dp(12))
             layout.y = saved.getInt(POSITION_Y, dp(300))
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                layout.layoutInDisplayCutoutMode =
+                    WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_DEFAULT
+            }
             if (Build.VERSION.SDK_INT >= 30) {
                 layout.setFitInsetsTypes(WindowInsets.Type.statusBars())
                 layout.setFitInsetsSides(WindowInsets.Side.TOP)

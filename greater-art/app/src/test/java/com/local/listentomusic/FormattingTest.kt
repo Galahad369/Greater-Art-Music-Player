@@ -136,4 +136,20 @@ class FormattingTest {
             expanded = false, explicitFullscreen = true, video = true, landscape = true,
         ))
     }
+
+    @Test fun landscapeNowPlayingCutoutModeTracksImmersiveState() {
+        assertNull(com.local.listentomusic.playback.expandedPlayerCutoutMode(27, immersive = true))
+        assertEquals(
+            android.view.WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES,
+            com.local.listentomusic.playback.expandedPlayerCutoutMode(28, immersive = true),
+        )
+        assertEquals(
+            android.view.WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_ALWAYS,
+            com.local.listentomusic.playback.expandedPlayerCutoutMode(30, immersive = true),
+        )
+        assertEquals(
+            android.view.WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_DEFAULT,
+            com.local.listentomusic.playback.expandedPlayerCutoutMode(30, immersive = false),
+        )
+    }
 }
