@@ -7,7 +7,7 @@ This file is the authoritative version policy for Greater Art. If any handoff no
 ## Machine-checkable state
 
 
-Current source: **1.21.1 (code 224)**
+Current source: **1.21.2 (code 225)**
 Current release state: **SOURCE_ONLY**
 Latest verified APK: **1.15.77 (code 207)**
 Allowed series transition: **1.14.15 -> 1.15.1**
@@ -222,5 +222,7 @@ Previous baseline: 1.13.26 (code 115).
 - 1.20.5 (code 223) — Library dual-video presentation: 1.20.4 correctly returned the primary Media3 surface to the visible dock, but that made CURRENT_VIDEO wallpaper fall back to ambient. When both are requested, the dock now keeps the primary player surface while CURRENT_VIDEO uses a muted video-only secondary renderer synced to the primary media position, play/pause state, playback speed, repeat mode, scale mode and horizontal crop position. The secondary renderer exists only while the dock prevents the wallpaper from using the primary surface; all other CURRENT_VIDEO states retain the single-decoder lease path. No duplicate audio, network, permission or media-quality change. SOURCE_ONLY pending exact-head CI and physical dual-surface verification.
 
 - 1.21.1 (code 224) — Library-family pure-background reveal, forward-ported from the Grok design after its named branch/PR refs contained no implementation commits. Stack / All songs / Nodes share one pull-down reveal state: downward overscroll at the top expands an empty wallpaper-only band up to 240dp, upward drag collapses it, and release/fling snaps at a 0.35 threshold. A thin backup drag handle sits below the content. The app root is transparent while Library is active; the content region below the reveal keeps a local 94% light-theme surface scrim for readability. Existing BackgroundScaleMode remains unchanged: Crop default, Fit optional, never Stretch/RESIZE_MODE_FILL. No playback, network, permission, Stack alignment, or loop change. SOURCE_ONLY pending exact-head CI and touch/device verification.
+
+- 1.21.2 (code 225) — compile repair for the Library background reveal after 1.21.1 exact-head Android CI caught an invalid explicit import of ColumnScope.weight. The reveal behavior, 240dp geometry, 0.35 snap threshold, pure wallpaper band, and Crop/Fit-only background policy are unchanged. 1.21.1 remains consumed by the failed compile and is not released. SOURCE_ONLY pending exact-head CI and touch/device verification.
 
 **No silent builds. No version reuse. No version skips. No APK overwrite/rename/copy.**
