@@ -14,6 +14,14 @@ class LibraryBackgroundRevealTest {
     }
 
     @Test
+    fun upwardWallpaperDragAlwaysChoosesCollapse() {
+        assertEquals(0f, libraryBackgroundRecoveryTarget(-1f, 0.95f), 0f)
+        assertEquals(0f, libraryBackgroundRecoveryTarget(-200f, 0.80f), 0f)
+        assertEquals(1f, libraryBackgroundRecoveryTarget(1f, 0.80f), 0f)
+        assertEquals(0f, libraryBackgroundRecoveryTarget(1f, 0.20f), 0f)
+    }
+
+    @Test
     fun revealTranslatesContentWithoutResizingBackground() {
         assertEquals(0f, libraryBackgroundRevealOffsetPx(0f, 1000f), 0f)
         assertEquals(500f, libraryBackgroundRevealOffsetPx(0.5f, 1000f), 0f)

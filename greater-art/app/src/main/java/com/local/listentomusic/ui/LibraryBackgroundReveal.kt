@@ -54,6 +54,9 @@ internal fun libraryBackgroundContentAlpha(lightPalette: Boolean): Float =
 internal fun libraryBackgroundRevealOffsetPx(fraction: Float, maxPx: Float): Float =
     fraction.coerceIn(0f, 1f) * maxPx.coerceAtLeast(0f)
 
+internal fun libraryBackgroundRecoveryTarget(totalDragPx: Float, fraction: Float): Float =
+    if (totalDragPx < 0f) 0f else libraryBackgroundRevealTarget(fraction)
+
 internal fun libraryBackgroundRevealMaxPx(viewportHeightPx: Float, minRevealPx: Float): Float {
     val viewport = viewportHeightPx.coerceAtLeast(0f)
     if (viewport == 0f) return 0f
@@ -78,10 +81,10 @@ internal class LibraryBackgroundRevealState {
         return (fraction - before) * maxPx
     }
 
-    internal suspend fun settle() {
+    internal suspend fun settle(target: Float = libraryBackgroundRevealTarget(fraction)) {
         animation.snapTo(fraction)
         animation.animateTo(
-            targetValue = libraryBackgroundRevealTarget(fraction),
+            targetValue = target.coerceIn(0f, 1f),
             animationSpec = spring(
                 stiffness = Spring.StiffnessMediumLow,
                 dampingRatio = Spring.DampingRatioNoBouncy,
@@ -181,12 +184,18 @@ internal fun LibraryFamilyWithBackgroundReveal(
                     .fillMaxWidth()
                     .height(revealHeight)
                     .pointerInput(reveal, maxRevealPx) {
+                        var totalDragPx = 0f
                         detectVerticalDragGestures(
+                            onDragStart = { totalDragPx = 0f },
                             onVerticalDrag = { change, dragAmount ->
                                 change.consume()
+                                totalDragPx += dragAmount
                                 reveal.dragBy(dragAmount, maxRevealPx)
                             },
-                            onDragEnd = { scope.launch { reveal.settle() } },
+                            onDragEnd = {
+                                val target = libraryBackgroundRecoveryTarget(totalDragPx, reveal.fraction)
+                                scope.launch { reveal.settle(target) }
+                            },
                             onDragCancel = { scope.launch { reveal.settle() } },
                         )
                     }

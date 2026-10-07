@@ -7,7 +7,7 @@ This file is the authoritative version policy for Greater Art. If any handoff no
 ## Machine-checkable state
 
 
-Current source: **1.21.6 (code 229)**
+Current source: **1.21.7 (code 230)**
 Current release state: **SOURCE_ONLY**
 Latest verified APK: **1.15.77 (code 207)**
 Allowed series transition: **1.14.15 -> 1.15.1**
@@ -232,5 +232,7 @@ Previous baseline: 1.13.26 (code 115).
 - 1.21.5 (code 228) — increase the Stack / All songs / Nodes pull-down wallpaper reveal from 58% to 80% of the usable Library viewport, with a 90% safety cap so a strip of content remains available for collapse gestures. The 240dp preferred minimum, zero-dim raw reveal band, translated Library dim/scrim, and Crop/Fit-only scaling contract remain unchanged. SOURCE_ONLY pending exact-head CI and touch/device verification.
 
 - 1.21.6 (code 229) — extend the Library-family reveal to 94% of the usable viewport (98.5% safety cap) and make the exposed wallpaper itself an active vertical drag surface, so users can pull upward anywhere on the raw wallpaper to recover the translated Library sheet instead of becoming stranded with only a tiny content edge. While any reveal is active, PlayerWindowVisibility explicitly suppresses the docked mini player; collapse restores it automatically. The exposed area remains raw zero-dim wallpaper with no Library chrome. Crop default, Fit optional, Stretch prohibited. SOURCE_ONLY pending exact-head CI and touch/device verification.
+
+- 1.21.7 (code 230) — make wallpaper recovery directional instead of threshold-hostile: an upward drag that starts on the exposed wallpaper now settles the reveal closed on release, even when the sheet was still above the normal 0.35 snap threshold. Downward/non-upward release keeps the standard snap rule. This prevents the near-full 94% reveal from snapping back open and trapping the user after a short recovery gesture. SOURCE_ONLY pending exact-head CI and touch/device verification.
 
 **No silent builds. No version reuse. No version skips. No APK overwrite/rename/copy.**
