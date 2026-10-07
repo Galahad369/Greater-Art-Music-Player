@@ -137,10 +137,13 @@ import androidx.compose.material.icons.automirrored.rounded.ArrowForward
 import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.layout.boundsInWindow
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
@@ -204,6 +207,18 @@ internal fun nowPlayingMetadataLine(file: MediaFile?): String =
 internal fun shouldLockHeldDoubleSpeed(dragAfterHoldPx: Float, thresholdPx: Float): Boolean =
     thresholdPx > 0f && dragAfterHoldPx >= thresholdPx
 internal fun isDoubleSpeed(speed: Float): Boolean = kotlin.math.abs(speed - 2f) <= 0.01f
+
+internal fun playerLockLocalOffset(
+    rootBounds: androidx.compose.ui.geometry.Rect?,
+    anchorBounds: androidx.compose.ui.geometry.Rect?,
+): IntOffset? {
+    if (rootBounds == null || anchorBounds == null) return null
+    return IntOffset(
+        (anchorBounds.left - rootBounds.left).roundToInt(),
+        (anchorBounds.top - rootBounds.top).roundToInt(),
+    )
+}
+
 private val LocalSystemPlayer = androidx.compose.runtime.compositionLocalOf { false }
 @Composable private fun playerStatusInsets() = if (LocalSystemPlayer.current) WindowInsets(0) else WindowInsets.statusBars
 @Composable private fun playerNavigationInsets() = if (LocalSystemPlayer.current) WindowInsets(0) else WindowInsets.navigationBars
@@ -307,6 +322,8 @@ fun NowPlayingScreen(
             if (!queueListState.isScrollInProgress) locateTrigger++
         }
 
+        var playerRootBounds by remember { mutableStateOf<androidx.compose.ui.geometry.Rect?>(null) }
+
         val backdrop = Modifier.ambientBackdrop(
         artwork,
         MaterialTheme.colorScheme.background.luminance() > .5f,
@@ -314,13 +331,20 @@ fun NowPlayingScreen(
         bottomBlend = NOW_PLAYING_AMBIENT_BOTTOM_BLEND,
     )
     BoxWithConstraints(
-            modifier = Modifier.fillMaxSize().padding(PaddingValues(horizontal = 0.dp, vertical = contentPadding.calculateTopPadding()))
+            modifier = Modifier.fillMaxSize()
+                .padding(PaddingValues(horizontal = 0.dp, vertical = contentPadding.calculateTopPadding()))
+                .onGloballyPositioned { playerRootBounds = it.boundsInWindow() }
                 .inspectElement("NOW_PLAYING_SCREEN", "Current artwork or video, queue, timeline, and transport controls")
                 .then(backdrop),
         ) {
         val landscape = maxWidth > maxHeight
         val portraitVideoHeight = minOf(maxWidth / playback.videoAspectRatio.coerceIn(0.75f, 2.25f), maxHeight * 0.34f)
         val immersiveVideo = playback.isVideo && (fullscreen || landscape)
+        var lockAnchorBounds by remember(playback.isVideo, immersiveVideo) {
+            mutableStateOf<androidx.compose.ui.geometry.Rect?>(null)
+        }
+        val reportLockAnchor: (androidx.compose.ui.geometry.Rect) -> Unit = { lockAnchorBounds = it }
+
         FullscreenEffect(enabled = fullscreen || (playback.isVideo && landscape),
             forceLandscape = forceLandscapeFullscreen)
         BackHandler(enabled = fullscreen) { fullscreen = false }
@@ -347,6 +371,7 @@ fun NowPlayingScreen(
                                         onFullscreen = { fullscreen = true },
                                         onClose = onClose,
                                         onLocateCurrent = onLocateCurrent,
+                                        onLockAnchorBoundsChanged = reportLockAnchor,
                                     )
                                 }
                                 VideoPlayerStage(
@@ -370,6 +395,7 @@ fun NowPlayingScreen(
                     onBeginTemporaryDoubleSpeed = onBeginTemporaryDoubleSpeed,
                     onEndTemporaryDoubleSpeed = onEndTemporaryDoubleSpeed,
                     onLockTemporaryDoubleSpeed = onLockTemporaryDoubleSpeed,
+                    onLockAnchorBoundsChanged = reportLockAnchor,
                     modifier = if (immersiveVideo) {
                         Modifier.fillMaxSize()
                     } else {
@@ -442,6 +468,7 @@ fun NowPlayingScreen(
                             queueListState = queueListState,
                             locateTrigger = locateTrigger,
                             onLocateCurrent = onLocateCurrent,
+                            onLockAnchorBoundsChanged = reportLockAnchor,
                         )
         }
         }
@@ -452,23 +479,25 @@ fun NowPlayingScreen(
                 }
             })
         }
-        IconButton(
-            onClick = { controlsLocked = !controlsLocked },
-            modifier = Modifier.align(Alignment.TopEnd).windowInsetsPadding(playerStatusInsets())
-                .padding(
-                    top = if (playback.isVideo) (GaControl.hero - GaControl.touchTarget) / 2f else 0.dp,
-                    end = GaSpacing.xs + GaControl.touchTarget + GaControl.touchTarget,
+        playerLockLocalOffset(playerRootBounds, lockAnchorBounds)?.let { lockOffset ->
+            IconButton(
+                onClick = { controlsLocked = !controlsLocked },
+                modifier = Modifier
+                    .offset { lockOffset }
+                    .size(GaControl.touchTarget)
+                    .inspectElement(
+                        "PLAYER_LOCK_BUTTON",
+                        if (controlsLocked) "Unlock Now Playing controls" else "Lock Now Playing controls",
+                    ),
+            ) {
+                Icon(
+                    if (controlsLocked) Icons.Rounded.Lock else Icons.Rounded.LockOpen,
+                    uiText(language, if (controlsLocked) "Unlock player controls" else "Lock player controls",
+                        if (controlsLocked) "解鎖播放器控制" else "鎖定播放器控制"),
+                    tint = if (playback.isVideo && immersiveVideo) Color.White else MaterialTheme.colorScheme.onSurface,
+                    modifier = Modifier.size(30.dp),
                 )
-                .size(GaControl.touchTarget)
-                .inspectElement("PLAYER_LOCK_BUTTON", if (controlsLocked) "Unlock Now Playing controls" else "Lock Now Playing controls"),
-        ) {
-            Icon(
-                if (controlsLocked) Icons.Rounded.Lock else Icons.Rounded.LockOpen,
-                uiText(language, if (controlsLocked) "Unlock player controls" else "Lock player controls",
-                    if (controlsLocked) "解鎖播放器控制" else "鎖定播放器控制"),
-                tint = if (playback.isVideo && immersiveVideo) Color.White else MaterialTheme.colorScheme.onSurface,
-                modifier = Modifier.size(30.dp),
-            )
+            }
         }
     }
 }
@@ -496,6 +525,7 @@ private fun VideoPlayerStage(
     onBeginTemporaryDoubleSpeed: () -> Boolean,
     onEndTemporaryDoubleSpeed: () -> Unit,
     onLockTemporaryDoubleSpeed: () -> Boolean,
+    onLockAnchorBoundsChanged: (androidx.compose.ui.geometry.Rect) -> Unit,
     modifier: Modifier,
     onLocateCurrent: (() -> Unit)? = null,
 ) {
@@ -519,6 +549,7 @@ private fun VideoPlayerStage(
     // Zoom state for fullscreen pinch-to-zoom
     var videoScale by remember { mutableFloatStateOf(1f) }
     var videoOffset by remember { mutableStateOf(Offset.Zero) }
+    var lastViewportSize by remember { mutableStateOf(IntSize.Zero) }
 
     LaunchedEffect(controlsVisible, playback.isPlaying, playback.currentPath) {
         if (controlsVisible && playback.isPlaying) {
@@ -529,6 +560,7 @@ private fun VideoPlayerStage(
 
     // Reset zoom when exiting immersive mode
     LaunchedEffect(immersive) {
+        controlsVisible = true
         if (!immersive) {
             videoScale = 1f
             videoOffset = Offset.Zero
@@ -536,7 +568,14 @@ private fun VideoPlayerStage(
     }
 
     Box(
-        modifier = modifier.inspectElement("VIDEO_STAGE", "Side double-tap seeks; pinch to zoom in fullscreen")
+        modifier = modifier
+            .onSizeChanged { size ->
+                if (size != lastViewportSize) {
+                    lastViewportSize = size
+                    controlsVisible = true
+                }
+            }
+            .inspectElement("VIDEO_STAGE", "Side double-tap seeks; pinch to zoom in fullscreen")
             .background(Color.Black),
         contentAlignment = Alignment.Center,
     ) {
@@ -747,6 +786,7 @@ private fun VideoPlayerStage(
                                         overlay = true,
                                         fullscreen = true,
                                         onLocateCurrent = onLocateCurrent,
+                                        onLockAnchorBoundsChanged = onLockAnchorBoundsChanged,
                                         modifier = Modifier.align(Alignment.TopCenter)
                                             .windowInsetsPadding(playerStatusInsets()),
                                     )
@@ -844,6 +884,7 @@ private fun AudioPlayer(
     queueListState: androidx.compose.foundation.lazy.LazyListState,
     locateTrigger: Int,
     onLocateCurrent: () -> Unit,
+    onLockAnchorBoundsChanged: (androidx.compose.ui.geometry.Rect) -> Unit,
 ) {
     var waveformLoading by remember(playback.currentPath) { mutableStateOf(true) }
     var searchOpen by rememberSaveable { mutableStateOf(false) }
@@ -974,6 +1015,15 @@ private fun AudioPlayer(
             PlayerBottomControls(playback, onRepeat, onPrevious, onTogglePlay, onNext, onSpeed)
         }
         }
+
+        Spacer(
+            Modifier
+                .align(Alignment.TopEnd)
+                .padding(end = GaSpacing.md, top = GaSpacing.xs)
+                .size(GaControl.touchTarget)
+                .onGloballyPositioned { onLockAnchorBoundsChanged(it.boundsInWindow()) }
+                .inspectElement("PLAYER_LOCK_ANCHOR", "Measured audio lock slot"),
+        )
     }
 }
 
@@ -1973,6 +2023,7 @@ private fun NowPlayingTopBar(
     overlay: Boolean = false,
     fullscreen: Boolean = false,
     onLocateCurrent: (() -> Unit)? = null,
+    onLockAnchorBoundsChanged: (androidx.compose.ui.geometry.Rect) -> Unit = {},
 ) {
     val foreground = if (overlay) GaVideoOverlay.foreground else MaterialTheme.colorScheme.onSurface
     val background = if (overlay) GaVideoOverlay.scrim
@@ -2010,9 +2061,15 @@ private fun NowPlayingTopBar(
             }
         }
         Spacer(Modifier.weight(1f))
-        // The lock is drawn above the whole player so it remains usable when
-        // an input-blocking layer protects the rest of Now Playing.
-        Spacer(Modifier.size(GaControl.touchTarget))
+        // The button itself stays above the global input blocker, but its position
+        // comes from this real toolbar slot. Padding/action-count changes therefore
+        // move it automatically instead of requiring another magic offset.
+        Spacer(
+            Modifier
+                .size(GaControl.touchTarget)
+                .onGloballyPositioned { onLockAnchorBoundsChanged(it.boundsInWindow()) }
+                .inspectElement("PLAYER_LOCK_ANCHOR", "Measured video top-bar lock slot"),
+        )
         IconButton(onClick = onFullscreen, modifier = Modifier.size(GaControl.touchTarget).inspectElement("FULLSCREEN_BUTTON", if (fullscreen) "Exit fullscreen" else "Enter fullscreen")) {
             Icon(
                 if (fullscreen) Icons.Rounded.FullscreenExit else Icons.Rounded.Fullscreen,

@@ -55,6 +55,17 @@ class Release1114Test {
         assertTrue(NOW_PLAYING_ART_STAGE_ALPHA in 0f..NOW_PLAYING_AMBIENT_PANEL_ALPHA)
     }
 
+    @Test fun playerLockUsesMeasuredAnchorCoordinatesInsteadOfButtonCountOffsets() {
+        val root = androidx.compose.ui.geometry.Rect(20f, 40f, 420f, 840f)
+        val slot = androidx.compose.ui.geometry.Rect(272f, 58f, 320f, 106f)
+        assertEquals(
+            androidx.compose.ui.unit.IntOffset(252, 18),
+            playerLockLocalOffset(root, slot),
+        )
+        assertNull(playerLockLocalOffset(root, null))
+        assertNull(playerLockLocalOffset(null, slot))
+    }
+
     @Test fun nowPlayingMetadataUsesArtistAndAlbumWithoutDuplicateNoise() {
         fun file(artist: String, album: String) = MediaFile(
             path = "/tmp/song.mp3",

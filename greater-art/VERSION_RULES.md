@@ -7,7 +7,7 @@ This file is the authoritative version policy for Greater Art. If any handoff no
 ## Machine-checkable state
 
 
-Current source: **1.21.12 (code 235)**
+Current source: **1.21.13 (code 236)**
 Current release state: **SOURCE_ONLY**
 Latest verified APK: **1.15.77 (code 207)**
 Allowed series transition: **1.14.15 -> 1.15.1**
@@ -244,5 +244,7 @@ Previous baseline: 1.13.26 (code 115).
 - 1.21.11 (code 234) — extend the sharp/low-shadow visual language to Library, Stack and Nodes while keeping each screen's function distinct. Library media rows become outlined ambient cards and every SMALL/MEDIUM/LARGE row now uses the immutable MiniWindowMetrics 103×56dp thumbnail footprint; row size changes only typography/padding. Stack track/current/master controls gain consistent restrained surfaces and state outlines without changing mix or alignment semantics. Nodes keeps an open transparent graph, replacing soft active halos/control slabs with crisp rings and thin outlined chrome. Full pure-wallpaper mode now axis-locks gestures: vertical drag recovers the Library while horizontal drag pans a dedicated wallpaper position without paging Stack/All songs/Nodes. The pan is shared by custom image, custom video, current-video primary and mirror rendering; Crop uses real overflow, Fit uses only legal horizontal slack, and Stretch remains impossible. SOURCE_ONLY pending exact-head CI and physical portrait/landscape gesture/visual verification.
 
 - 1.21.12 (code 235) — post-merge review repair: preserve the original Stack | All songs | Nodes wallpaper motion while the Library sheet is closed by synchronizing WallpaperPanState to the pager only at zero reveal, then freeze framing during pull-down and let pure-wallpaper horizontal gestures own it at full reveal. Also close the remaining thumbnail fast-scroll crash path by containing OutOfMemoryError from warm disk-cache Bitmap decode: evict the RAM thumbnail LRU, retry once, and retain the valid disk cache entry if allocation pressure persists. No playback, Stack alignment, media quality, permission, cache format, or wallpaper scale-mode change. SOURCE_ONLY pending exact-head CI and physical gesture/memory-pressure verification.
+
+- 1.21.13 (code 236) — make the Now Playing control-lock position structural instead of offset-based. Video top bars expose a measured 48dp lock slot between flexible actions and Fullscreen/Close; the global lock/unlock button is placed from that slot's real window bounds, so toolbar padding/action-count/theme changes cannot displace it. Audio, which intentionally has no top bar, exposes its own explicit safe-area top-right anchor. Mode/orientation changes reset stale anchor state; any actual video-stage resize (rotation, split-screen, inset/cutout or future overlay geometry change) re-exposes controls long enough to measure the new slot; and the lock remains above the input-blocking layer so Unlock always works. Removes the historical '100dp/two buttons from right' positioning assumption. No playback, media quality, gesture semantics, permission or lock behavior change beyond stable placement. SOURCE_ONLY pending exact-head CI and portrait/landscape/audio/video/expanded-Mini verification.
 
 **No silent builds. No version reuse. No version skips. No APK overwrite/rename/copy.**
