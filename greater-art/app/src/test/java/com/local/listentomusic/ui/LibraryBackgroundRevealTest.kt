@@ -24,8 +24,19 @@ class LibraryBackgroundRevealTest {
     }
 
     @Test
+    fun revealUsesMoreOfTheViewportWithoutTakingTheWholeScreen() {
+        assertEquals(580f, libraryBackgroundRevealMaxPx(1000f, 240f), 0f)
+        assertEquals(290f, libraryBackgroundRevealMaxPx(500f, 240f), 0f)
+        assertEquals(216f, libraryBackgroundRevealMaxPx(300f, 240f), 0f)
+        assertEquals(0f, libraryBackgroundRevealMaxPx(0f, 240f), 0f)
+    }
+
+    @Test
     fun revealGeometryAndLightScrimStayBounded() {
-        assertTrue(LIBRARY_BACKGROUND_REVEAL_MAX_DP > 0f)
+        assertTrue(LIBRARY_BACKGROUND_REVEAL_MIN_DP > 0f)
+        assertTrue(LIBRARY_BACKGROUND_REVEAL_VIEWPORT_FRACTION in 0f..1f)
+        assertTrue(LIBRARY_BACKGROUND_REVEAL_VIEWPORT_CAP_FRACTION in 0f..1f)
+        assertTrue(LIBRARY_BACKGROUND_REVEAL_VIEWPORT_CAP_FRACTION >= LIBRARY_BACKGROUND_REVEAL_VIEWPORT_FRACTION)
         assertTrue(LIBRARY_BACKGROUND_REVEAL_SNAP_THRESHOLD in 0f..1f)
         assertEquals(0.94f, libraryBackgroundContentAlpha(lightPalette = true), 0f)
         assertEquals(0f, libraryBackgroundContentAlpha(lightPalette = false), 0f)
