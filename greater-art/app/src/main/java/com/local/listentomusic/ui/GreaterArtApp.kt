@@ -242,6 +242,10 @@ fun GreaterArtApp(
             }
         }
         UiInspectorHost(enabled = settings.developerMode, state = inspector) {
+        val libraryWallpaperDimAlpha =
+            if (settings.backgroundMode == AppBackgroundMode.DEFAULT) 0.08f else settings.backgroundDim
+        val libraryWallpaperDimColor =
+            if (settings.backgroundMode == AppBackgroundMode.DEFAULT && lightPalette) Color.White else Color.Black
         Box(modifier = Modifier.fillMaxSize().inspectElement("APP_VIEWPORT", "Greater Art root viewport")) {
             // The expanded player fully covers MainActivity. Do not leave the independent
             // CURRENT_VIDEO/CUSTOM_VIDEO wallpaper decoder running underneath it: fast queue
@@ -264,6 +268,9 @@ fun GreaterArtApp(
                 allowPrimaryVideoBackground = !dockedPlayerVisible,
                 listScrolling = listScrolling,
                 horizontalPosition = backgroundHorizontalPosition,
+                // Library reveal must expose the raw wallpaper. Its normal dim is
+                // reproduced only inside the translated Library content layer.
+                dimAlphaOverride = if (screen == Screen.LIBRARY) 0f else null,
             )
             Surface(
                 modifier = Modifier.fillMaxSize(),
@@ -316,6 +323,8 @@ fun GreaterArtApp(
                     LibraryFamilyWithBackgroundReveal(
                         reveal = libraryBackgroundReveal,
                         lightPalette = lightPalette,
+                        wallpaperDimAlpha = libraryWallpaperDimAlpha,
+                        wallpaperDimColor = libraryWallpaperDimColor,
                         modifier = Modifier
                             .fillMaxSize()
                             .padding(dockPadding)
@@ -572,7 +581,7 @@ fun GreaterArtApp(
                         appendLine("queue=${queue.size} library=${library.files.size}")
                         appendLine("stack=${stackSession.slots.size} primarySelected=${stackSession.primaryPath != null}")
                         appendLine("libraryPager=${libraryPager.currentPage} offset=${libraryPager.currentPageOffsetFraction} navPosition=${libraryPagerNavigationPosition(libraryPager.currentPage, libraryPager.currentPageOffsetFraction)} backgroundCrop=$backgroundHorizontalPosition")
-                        appendLine("backgroundDim=${settings.backgroundDim} sharedDimLayer=AppBackground")
+                        appendLine("backgroundDim=${settings.backgroundDim} libraryRevealUndimmed=true dimLayer=translatedLibraryContent")
                         appendLine("repeat=${playback.repeatMode} random=${playback.shuffleEnabled}")
                         appendLine("floating=${settings.floatingWindowMode} auto=${settings.autoPictureInPicture}")
                         appendLine("background=${settings.backgroundMode} theme=${settings.themeMode}/${settings.colorTheme}")

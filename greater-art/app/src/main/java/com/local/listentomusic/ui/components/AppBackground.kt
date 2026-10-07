@@ -100,6 +100,7 @@ fun AppBackground(
     allowPrimaryVideoBackground: Boolean = true,
     listScrolling: Boolean = false,
     horizontalPosition: (() -> Float)? = null,
+    dimAlphaOverride: Float? = null,
 ) {
     val mode = preferences.backgroundMode
     val tiles = rememberStackVideoTiles()
@@ -267,7 +268,8 @@ fun AppBackground(
             }
         }
         val isLight = androidx.compose.material3.MaterialTheme.colorScheme.background.luminance() > 0.5f
-        val dim = if (mode == AppBackgroundMode.DEFAULT) 0.08f else preferences.backgroundDim
+        val dim = dimAlphaOverride?.coerceIn(0f, 1f)
+            ?: if (mode == AppBackgroundMode.DEFAULT) 0.08f else preferences.backgroundDim
         val veil = if (mode == AppBackgroundMode.DEFAULT && isLight) Color.White else Color.Black
         Box(Modifier.matchParentSize().background(veil.copy(alpha = dim)))
     }
