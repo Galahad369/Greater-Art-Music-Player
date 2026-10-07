@@ -118,4 +118,22 @@ class FormattingTest {
             com.local.listentomusic.ui.immersiveCutoutModeForSdk(30),
         )
     }
+
+    @Test fun landscapeVideoNowPlayingUsesImmersiveOverlayInsets() {
+        assertTrue(com.local.listentomusic.playback.expandedPlayerUsesImmersiveWindow(
+            expanded = true, explicitFullscreen = false, video = true, landscape = true,
+        ))
+        assertTrue(com.local.listentomusic.playback.expandedPlayerUsesImmersiveWindow(
+            expanded = true, explicitFullscreen = true, video = true, landscape = false,
+        ))
+        assertFalse(com.local.listentomusic.playback.expandedPlayerUsesImmersiveWindow(
+            expanded = true, explicitFullscreen = false, video = true, landscape = false,
+        ))
+        assertFalse(com.local.listentomusic.playback.expandedPlayerUsesImmersiveWindow(
+            expanded = true, explicitFullscreen = false, video = false, landscape = true,
+        ))
+        assertFalse(com.local.listentomusic.playback.expandedPlayerUsesImmersiveWindow(
+            expanded = false, explicitFullscreen = true, video = true, landscape = true,
+        ))
+    }
 }
