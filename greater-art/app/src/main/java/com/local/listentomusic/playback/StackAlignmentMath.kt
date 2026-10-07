@@ -16,6 +16,11 @@ internal data class StackAudioFeatures(
     /** Vocal-resistant transient fingerprint sampled much finer than the 20 ms coarse grid. */
     val fineSignal: FloatArray = FloatArray(0),
     val fineSampleRateHz: Int = 3_200,
+    /**
+     * The same file analysed from the plain mono mix. Present only when [musicEnvelope] was
+     * built from the stereo side signal; otherwise this view already IS the mono view.
+     */
+    val monoView: StackAudioFeatures? = null,
 )
 
 private fun energyCorrelation(a: DoubleArray, b: DoubleArray, lag: Int): Double {
@@ -161,6 +166,49 @@ internal fun correlateStackFeatures(primary: StackAudioFeatures, companion: Stac
         checkActive = checkActive,
     )
 }
+
+/** Side-view and mono-view answers further apart than this are treated as disagreement. */
+internal const val STACK_VIEW_AGREEMENT_MS = 40L
+
+/**
+ * Always compare the two files on the SAME view.
+ *
+ * Each file independently decides whether to use its stereo-side signal as the music anchor. If
+ * only one of them did, correlating one file's side features against the other's mono features
+ * compares different signals and can return a confident but wrong lag. So:
+ *  - both used the side view: trust it only if the mono view independently agrees,
+ *  - only one used it: compare both files as mono,
+ *  - neither: unchanged, see [correlateStackFeatures].
+ */
+internal fun correlateStackFeaturesOnCommonView(
+    primary: StackAudioFeatures,
+    companion: StackAudioFeatures,
+    checkActive: () -> Unit = {},
+): StackAlignment {
+    val primaryMono = primary.monoView
+    val companionMono = companion.monoView
+    return when {
+        primaryMono != null && companionMono != null -> {
+            val side = correlateStackFeatures(primary, companion, checkActive)
+            if (!side.confident) side
+            else stackAgreeOnViews(side, correlateStackFeatures(primaryMono, companionMono, checkActive))
+        }
+        primaryMono != null || companionMono != null ->
+            correlateStackFeatures(primaryMono ?: primary, companionMono ?: companion, checkActive)
+        else -> correlateStackFeatures(primary, companion, checkActive)
+    }
+}
+
+internal fun stackAgreeOnViews(side: StackAlignment, mono: StackAlignment): StackAlignment =
+    if (
+        side.confident &&
+        mono.confident &&
+        kotlin.math.abs(side.offsetMs - mono.offsetMs) <= STACK_VIEW_AGREEMENT_MS
+    ) {
+        side
+    } else {
+        StackAlignment(0L, minOf(side.correlation, mono.correlation), false)
+    }
 
 internal fun stackOnsetNovelty(logEnvelope: DoubleArray): DoubleArray =
     DoubleArray(logEnvelope.size) { index ->
