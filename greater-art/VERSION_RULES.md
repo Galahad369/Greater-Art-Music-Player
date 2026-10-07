@@ -7,7 +7,7 @@ This file is the authoritative version policy for Greater Art. If any handoff no
 ## Machine-checkable state
 
 
-Current source: **1.21.7 (code 230)**
+Current source: **1.21.8 (code 231)**
 Current release state: **SOURCE_ONLY**
 Latest verified APK: **1.15.77 (code 207)**
 Allowed series transition: **1.14.15 -> 1.15.1**
@@ -234,5 +234,7 @@ Previous baseline: 1.13.26 (code 115).
 - 1.21.6 (code 229) — extend the Library-family reveal to 94% of the usable viewport (98.5% safety cap) and make the exposed wallpaper itself an active vertical drag surface, so users can pull upward anywhere on the raw wallpaper to recover the translated Library sheet instead of becoming stranded with only a tiny content edge. While any reveal is active, PlayerWindowVisibility explicitly suppresses the docked mini player; collapse restores it automatically. The exposed area remains raw zero-dim wallpaper with no Library chrome. Crop default, Fit optional, Stretch prohibited. SOURCE_ONLY pending exact-head CI and touch/device verification.
 
 - 1.21.7 (code 230) — make wallpaper recovery directional instead of threshold-hostile: an upward drag that starts on the exposed wallpaper now settles the reveal closed on release, even when the sheet was still above the normal 0.35 snap threshold. Downward/non-upward release keeps the standard snap rule. This prevents the near-full 94% reveal from snapping back open and trapping the user after a short recovery gesture. SOURCE_ONLY pending exact-head CI and touch/device verification.
+
+- 1.21.8 (code 231) — thumbnail memory-pressure hardening for fast-scroll stability: retain the existing process-wide memory+disk cache and scroll deferral, but reduce heavy frame/artwork generation to one worker and disk bitmap decode fan-out to two on low-RAM or sub-384 MiB heap devices. The shared RAM LRU now responds to Android trim-memory callbacks (progressive running/UI-hidden trims and full background eviction) while the persistent disk cache remains intact, so memory can be reclaimed without forcing expensive thumbnail regeneration. No playback quality, source format, network, storage permission, or media-file behavior change. SOURCE_ONLY pending exact-head CI and physical fast-fling/OOM verification.
 
 **No silent builds. No version reuse. No version skips. No APK overwrite/rename/copy.**

@@ -11,6 +11,11 @@ object MediaCaches {
         ?: ThumbnailRepository(context.applicationContext).also { thumbnails = it }
     @Synchronized fun waveforms(context: Context): WaveformRepository = waveforms
         ?: WaveformRepository(context.applicationContext).also { waveforms = it }
+
+    /** Do not instantiate caches just because Android is asking an idle process to trim. */
+    @Synchronized fun trimMemory(level: Int) {
+        thumbnails?.trimMemory(level)
+    }
 }
 
 /** Only offline analysis is serialized; the real Media3 decoder never takes this lock. */

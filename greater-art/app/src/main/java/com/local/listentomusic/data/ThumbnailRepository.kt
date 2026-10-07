@@ -1,5 +1,7 @@
 package com.local.listentomusic.data
 
+import android.app.ActivityManager
+import android.content.ComponentCallbacks2
 import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
@@ -49,6 +51,30 @@ internal fun thumbnailDigestHex(bytes: ByteArray): String {
 }
 
 private const val THUMBNAIL_HEX_DIGITS = "0123456789abcdef"
+private const val THUMBNAIL_CONSTRAINED_HEAP_BYTES = 384L * 1024L * 1024L
+
+internal data class ThumbnailWorkerPolicy(
+    val generationPermits: Int,
+    val diskDecodePermits: Int,
+)
+
+internal fun thumbnailWorkerPolicy(lowRamDevice: Boolean, maxHeapBytes: Long): ThumbnailWorkerPolicy {
+    val constrained = lowRamDevice || maxHeapBytes in 1 until THUMBNAIL_CONSTRAINED_HEAP_BYTES
+    return if (constrained) ThumbnailWorkerPolicy(generationPermits = 1, diskDecodePermits = 2)
+    else ThumbnailWorkerPolicy(generationPermits = 2, diskDecodePermits = 3)
+}
+
+internal fun thumbnailMemoryBudgetKb(maxHeapBytes: Long): Int =
+    (maxHeapBytes / 12L / 1024L).coerceIn(8_192L, 65_536L).toInt()
+
+internal fun thumbnailTrimTargetKb(maxSizeKb: Int, level: Int): Int? = when {
+    maxSizeKb <= 0 -> 0
+    level >= ComponentCallbacks2.TRIM_MEMORY_BACKGROUND -> 0
+    level == ComponentCallbacks2.TRIM_MEMORY_UI_HIDDEN -> (maxSizeKb / 2).coerceAtLeast(1)
+    level >= ComponentCallbacks2.TRIM_MEMORY_RUNNING_CRITICAL -> (maxSizeKb / 4).coerceAtLeast(1)
+    level >= ComponentCallbacks2.TRIM_MEMORY_RUNNING_LOW -> (maxSizeKb / 2).coerceAtLeast(1)
+    else -> null
+}
 
 /**
  * Local-only thumbnail pipeline:
@@ -57,10 +83,13 @@ private const val THUMBNAIL_HEX_DIGITS = "0123456789abcdef"
  */
 class ThumbnailRepository(private val context: Context) {
     private val cacheDirectory = File(context.cacheDir, "media_thumbnails").apply { mkdirs() }
-    // Bound expensive frame/artwork decoding even when several visible rows request it.
-    private val decodeWorkers = kotlinx.coroutines.sync.Semaphore(2)
-    // Disk bitmap decodes also allocate native/Java bitmap memory; keep fling fan-out bounded.
-    private val diskWorkers = kotlinx.coroutines.sync.Semaphore(3)
+    private val maxHeapBytes = Runtime.getRuntime().maxMemory()
+    private val lowRamDevice = context.getSystemService(ActivityManager::class.java)?.isLowRamDevice == true
+    private val workerPolicy = thumbnailWorkerPolicy(lowRamDevice, maxHeapBytes)
+    // Heavy frame/artwork extraction is deliberately single-flight on constrained devices.
+    private val decodeWorkers = kotlinx.coroutines.sync.Semaphore(workerPolicy.generationPermits)
+    // Disk bitmap decodes still allocate bitmap memory, so reduce fan-out under the same policy.
+    private val diskWorkers = kotlinx.coroutines.sync.Semaphore(workerPolicy.diskDecodePermits)
     private val pruneScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private val pruning = java.util.concurrent.atomic.AtomicBoolean(false)
     private data class ArtStamp(val value: Long, val atMs: Long)
@@ -71,8 +100,18 @@ class ThumbnailRepository(private val context: Context) {
     private val generation = java.util.concurrent.atomic.AtomicInteger()
     private val _stats = MutableStateFlow(ThumbnailStats())
     val stats: StateFlow<ThumbnailStats> = _stats.asStateFlow()
-    private val memoryCache = object : LruCache<String, Bitmap>(memoryBudgetKb()) {
+    private val memoryCache = object : LruCache<String, Bitmap>(thumbnailMemoryBudgetKb(maxHeapBytes)) {
         override fun sizeOf(key: String, value: Bitmap): Int = max(1, value.byteCount / 1024)
+    }
+
+    /**
+     * Drop only process-memory thumbnails when Android reports pressure.
+     * The persistent disk cache is intentionally retained so returning rows can reload
+     * cheaply instead of re-running MediaMetadataRetriever / video frame extraction.
+     */
+    fun trimMemory(level: Int) {
+        val targetKb = thumbnailTrimTargetKb(memoryCache.maxSize(), level) ?: return
+        if (targetKb <= 0) memoryCache.evictAll() else memoryCache.trimToSize(targetKb)
     }
 
     suspend fun load(file: MediaFile): Bitmap? = withContext(Dispatchers.IO) {
@@ -354,9 +393,6 @@ class ThumbnailRepository(private val context: Context) {
             pruning.set(false)
         }
     }
-
-    private fun memoryBudgetKb(): Int =
-        (Runtime.getRuntime().maxMemory() / 12L / 1024L).coerceIn(8_192L, 65_536L).toInt()
 
     private companion object {
         const val VIDEO_WIDTH = 240

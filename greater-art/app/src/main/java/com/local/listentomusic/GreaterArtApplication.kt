@@ -8,4 +8,9 @@ class GreaterArtApplication : Application() {
         com.local.listentomusic.diagnostics.CrashReports.install(this)
         com.local.listentomusic.ui.components.VideoAmbientColors.start()
     }
+
+    override fun onTrimMemory(level: Int) {
+        super.onTrimMemory(level)
+        com.local.listentomusic.data.MediaCaches.trimMemory(level)
+    }
 }
