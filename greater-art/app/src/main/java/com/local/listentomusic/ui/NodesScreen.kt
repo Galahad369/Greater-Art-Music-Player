@@ -1,5 +1,6 @@
 package com.local.listentomusic.ui
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.rememberScrollState
@@ -44,6 +45,7 @@ import com.local.listentomusic.graph.GraphOptions
 import com.local.listentomusic.graph.presentGraph
 import com.local.listentomusic.ui.components.GaChromeSurface
 import com.local.listentomusic.ui.theme.GaControl
+import com.local.listentomusic.ui.theme.GaRadius
 import com.local.listentomusic.ui.theme.GaSpacing
 import kotlin.math.*
 
@@ -164,7 +166,12 @@ private fun GraphCanvas(graph: LibraryGraph, currentPath: String?, onPlay: (Stri
             Modifier.fillMaxWidth().padding(horizontal = GaSpacing.lg, vertical = 2.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Surface(shape = RoundedCornerShape(50), color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = .55f)) {
+            Surface(
+                shape = RoundedCornerShape(50),
+                color = MaterialTheme.colorScheme.surface.copy(alpha = .44f),
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = .22f)),
+                tonalElevation = 0.dp,
+            ) {
                 Text(
                     "${graph.nodes.size} nodes · ${presentation.edges.size} links",
                     Modifier.padding(horizontal = 10.dp, vertical = 5.dp),
@@ -276,10 +283,17 @@ private fun GraphCanvas(graph: LibraryGraph, currentPath: String?, onPlay: (Stri
                     val related = focusIndex < 0 || i == focusIndex || i in focusNeighbors || active
                     val importance = if (options.sizeByConnections) presentation.importance[i] else 0f
                     val radius = ((3.5f + importance * 5.5f) * options.nodeSize).dp.toPx()
-                    if (active) drawCircle(color.copy(alpha = .14f), radius + 8.dp.toPx(), p)
+                    if (active) {
+                        drawCircle(
+                            color.copy(alpha = .38f),
+                            radius + 7.dp.toPx(),
+                            p,
+                            style = Stroke(1.1.dp.toPx()),
+                        )
+                    }
                     drawCircle(if (active) color else ink.copy(alpha = if (related) .48f + importance * .4f else .18f), radius, p)
                     if (playing) {
-                        drawCircle(color, radius + 4.dp.toPx(), p, style = Stroke(1.5.dp.toPx()))
+                        drawCircle(color, radius + 4.dp.toPx(), p, style = Stroke(1.8.dp.toPx()))
                         drawPath(Path().apply { moveTo(p.x-2.dp.toPx(), p.y-3.dp.toPx()); lineTo(p.x+3.dp.toPx(),p.y); lineTo(p.x-2.dp.toPx(),p.y+3.dp.toPx()); close() }, onAccent)
                     }
                 }
@@ -428,7 +442,12 @@ private fun GraphControls(options: GraphOptions, onSave: (GraphOptions) -> Unit,
 
 @Composable
 private fun GraphControlSection(title: String, content: @Composable ColumnScope.() -> Unit) {
-    Surface(shape = RoundedCornerShape(14.dp), color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = .46f)) {
+    Surface(
+        shape = RoundedCornerShape(GaRadius.control),
+        color = MaterialTheme.colorScheme.surface.copy(alpha = .44f),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = .24f)),
+        tonalElevation = 0.dp,
+    ) {
         Column(Modifier.fillMaxWidth().padding(14.dp)) {
             Text(title, style = MaterialTheme.typography.titleSmall)
             Spacer(Modifier.height(7.dp))

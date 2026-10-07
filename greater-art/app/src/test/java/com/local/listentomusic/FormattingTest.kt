@@ -56,6 +56,16 @@ class FormattingTest {
         )
     }
 
+    @Test fun everyLibraryRowSizeUsesTheImmutableMiniWindowThumbnailFootprint() {
+        com.local.listentomusic.data.LibraryRowSize.entries.forEach { rowSize ->
+            assertEquals(
+                com.local.listentomusic.model.MiniWindowMetrics.WIDTH_DP to
+                    com.local.listentomusic.model.MiniWindowMetrics.HEIGHT_DP,
+                com.local.listentomusic.ui.libraryThumbnailSizeDp(rowSize),
+            )
+        }
+    }
+
     @Test fun miniWindowUsesVisibleFootprintAndSquareVariant() {
         assertEquals(103, com.local.listentomusic.model.MiniWindowMetrics.widthPx(1f))
         assertEquals(206, com.local.listentomusic.model.MiniWindowMetrics.widthPx(2f))

@@ -4,6 +4,7 @@ import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.spring
 import androidx.compose.foundation.background
+import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.gestures.detectVerticalDragGestures
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -36,7 +37,9 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.Velocity
 import androidx.compose.ui.unit.dp
+import com.local.listentomusic.data.BackgroundScaleMode
 import kotlinx.coroutines.launch
+import kotlin.math.abs
 import kotlin.math.roundToInt
 
 internal const val LIBRARY_BACKGROUND_REVEAL_MIN_DP = 240f
@@ -68,6 +71,30 @@ internal fun libraryBackgroundFlingTarget(velocityY: Float, fraction: Float): Fl
 
 internal fun libraryBackgroundRevealMaxPx(viewportHeightPx: Float, _minRevealPx: Float): Float =
     viewportHeightPx.coerceAtLeast(0f)
+
+internal enum class WallpaperGestureAxis { HORIZONTAL, VERTICAL }
+
+internal fun wallpaperGestureAxis(totalX: Float, totalY: Float, touchSlop: Float): WallpaperGestureAxis? {
+    if (maxOf(abs(totalX), abs(totalY)) < touchSlop.coerceAtLeast(0f)) return null
+    return if (abs(totalX) > abs(totalY)) WallpaperGestureAxis.HORIZONTAL else WallpaperGestureAxis.VERTICAL
+}
+
+@Stable
+internal class WallpaperPanState {
+    var position by mutableFloatStateOf(0.5f)
+        private set
+
+    internal fun dragBy(deltaPx: Float, viewportWidthPx: Float, scaleMode: BackgroundScaleMode) {
+        if (viewportWidthPx <= 0f || deltaPx == 0f) return
+        val signedDelta = if (scaleMode == BackgroundScaleMode.CROP) -deltaPx else deltaPx
+        position = (position + signedDelta / viewportWidthPx).coerceIn(0f, 1f)
+    }
+
+    internal fun center() { position = 0.5f }
+}
+
+@Composable
+internal fun rememberWallpaperPanState(): WallpaperPanState = remember { WallpaperPanState() }
 
 @Stable
 internal class LibraryBackgroundRevealState {
@@ -126,6 +153,8 @@ internal fun LibraryFamilyWithBackgroundReveal(
     lightPalette: Boolean,
     wallpaperDimAlpha: Float,
     wallpaperDimColor: Color,
+    wallpaperPan: WallpaperPanState,
+    backgroundScaleMode: BackgroundScaleMode,
     modifier: Modifier = Modifier,
     content: @Composable ColumnScope.() -> Unit,
 ) {
@@ -136,6 +165,7 @@ internal fun LibraryFamilyWithBackgroundReveal(
     ) {
         val density = LocalDensity.current
         val viewportHeightPx = with(density) { maxHeight.toPx() }
+        val viewportWidthPx = with(density) { maxWidth.toPx() }
         val minRevealPx = with(density) { LIBRARY_BACKGROUND_REVEAL_MIN_DP.dp.toPx() }
         val maxRevealPx = libraryBackgroundRevealMaxPx(viewportHeightPx, minRevealPx)
         val revealOffsetPx = libraryBackgroundRevealOffsetPx(reveal.fraction, maxRevealPx)
@@ -193,20 +223,47 @@ internal fun LibraryFamilyWithBackgroundReveal(
                 Modifier
                     .fillMaxWidth()
                     .height(revealHeight)
-                    .pointerInput(reveal, maxRevealPx) {
-                        var totalDragPx = 0f
-                        detectVerticalDragGestures(
-                            onDragStart = { totalDragPx = 0f },
-                            onVerticalDrag = { change, dragAmount ->
-                                change.consume()
-                                totalDragPx += dragAmount
-                                reveal.dragBy(dragAmount, maxRevealPx)
+                    .pointerInput(reveal, wallpaperPan, maxRevealPx, viewportWidthPx, backgroundScaleMode) {
+                        var totalX = 0f
+                        var totalY = 0f
+                        var axis: WallpaperGestureAxis? = null
+                        var horizontalAllowed = false
+                        detectDragGestures(
+                            onDragStart = {
+                                totalX = 0f; totalY = 0f; axis = null
+                                horizontalAllowed = reveal.fraction >= 0.995f
+                            },
+                            onDrag = { change, dragAmount ->
+                                totalX += dragAmount.x
+                                totalY += dragAmount.y
+                                if (axis == null) {
+                                    axis = if (horizontalAllowed) {
+                                        wallpaperGestureAxis(totalX, totalY, viewConfiguration.touchSlop)
+                                    } else if (abs(totalY) >= viewConfiguration.touchSlop) {
+                                        WallpaperGestureAxis.VERTICAL
+                                    } else null
+                                }
+                                when (axis) {
+                                    WallpaperGestureAxis.HORIZONTAL -> {
+                                        change.consume()
+                                        wallpaperPan.dragBy(dragAmount.x, viewportWidthPx, backgroundScaleMode)
+                                    }
+                                    WallpaperGestureAxis.VERTICAL -> {
+                                        change.consume()
+                                        reveal.dragBy(dragAmount.y, maxRevealPx)
+                                    }
+                                    null -> Unit
+                                }
                             },
                             onDragEnd = {
-                                val target = libraryBackgroundRecoveryTarget(totalDragPx, reveal.fraction)
-                                scope.launch { reveal.settle(target) }
+                                if (axis == WallpaperGestureAxis.VERTICAL) {
+                                    val target = libraryBackgroundRecoveryTarget(totalY, reveal.fraction)
+                                    scope.launch { reveal.settle(target) }
+                                }
                             },
-                            onDragCancel = { scope.launch { reveal.settle() } },
+                            onDragCancel = {
+                                if (axis == WallpaperGestureAxis.VERTICAL) scope.launch { reveal.settle() }
+                            },
                         )
                     }
                     .inspectElement(
