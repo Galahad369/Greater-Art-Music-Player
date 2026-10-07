@@ -64,6 +64,7 @@ import com.local.listentomusic.R
 import com.local.listentomusic.MainViewModel
 import com.local.listentomusic.MainActivity
 import com.local.listentomusic.ui.ShareProxyActivity
+import com.local.listentomusic.ui.immersiveCutoutModeForSdk
 import com.local.listentomusic.model.MiniWindowMetrics
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -75,6 +76,19 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlin.math.abs
+
+internal fun expandedPlayerUsesImmersiveWindow(
+    expanded: Boolean,
+    explicitFullscreen: Boolean,
+    video: Boolean,
+    landscape: Boolean,
+): Boolean = expanded && (explicitFullscreen || (video && landscape))
+
+internal fun expandedPlayerCutoutMode(sdkInt: Int, immersive: Boolean): Int? = when {
+    sdkInt < Build.VERSION_CODES.P -> null
+    immersive -> immersiveCutoutModeForSdk(sdkInt)
+    else -> WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_DEFAULT
+}
 
 // One floating window. Compact presentation is native Android; Compose is created
 // only when the user expands it, keeping song-start on the proven lightweight path.
@@ -532,7 +546,14 @@ class MiniWindowOverlayService : Service(), LifecycleOwner, ViewModelStoreOwner,
         val videoNow = p.currentMediaItem?.mediaMetadata?.mediaType == MediaMetadata.MEDIA_TYPE_VIDEO ||
             path?.substringAfterLast('.').orEmpty().lowercase() in videoExtensions
         val videoChanged = isVideo.value != videoNow
-        if (videoChanged) isVideo.value = videoNow
+        if (videoChanged) {
+            isVideo.value = videoNow
+            if (expanded) {
+                applyModeLayout()
+                updateRootLayout()
+                syncExpandedSystemBars()
+            }
+        }
         if (layoutMayHaveChanged && !videoChanged) updateMiniWindowSize()
         if (artworkMayHaveChanged) updateArtwork(p.mediaMetadata.artworkData)
         sessionHasMedia.value = p.currentMediaItem != null
@@ -676,6 +697,7 @@ class MiniWindowOverlayService : Service(), LifecycleOwner, ViewModelStoreOwner,
         }
         applyModeLayout()
         updateRootLayout()
+        syncExpandedSystemBars()
         if (!docked) savePosition()
     }
 
@@ -740,32 +762,74 @@ class MiniWindowOverlayService : Service(), LifecycleOwner, ViewModelStoreOwner,
         updateVisibility()
     }
 
+    private fun expandedUsesImmersiveWindow(): Boolean =
+        expandedPlayerUsesImmersiveWindow(
+            expanded = expanded,
+            explicitFullscreen = expandedFullscreen,
+            video = isVideo.value,
+            landscape = resources.configuration.orientation == Configuration.ORIENTATION_LANDSCAPE,
+        )
+
+    private fun syncExpandedSystemBars() {
+        if (Build.VERSION.SDK_INT < 30 || !expanded) return
+        val immersive = expandedUsesImmersiveWindow()
+        expandedView?.post {
+            runCatching {
+                if (immersive) expandedView?.windowInsetsController?.hide(WindowInsets.Type.systemBars())
+                else expandedView?.windowInsetsController?.show(WindowInsets.Type.systemBars())
+            }
+        }
+    }
+
     private fun applyModeLayout() {
         val layout = params ?: return
+        val immersiveExpanded = expandedUsesImmersiveWindow()
         layout.width = miniWidthPx()
         layout.height = miniHeightPx()
         layout.gravity = if (docked) Gravity.BOTTOM or Gravity.LEFT else Gravity.TOP or Gravity.LEFT
         layout.flags = if (expanded) {
-            (layout.flags and WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE.inv() and
+            var flags = (layout.flags and WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE.inv() and
                 WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE.inv()) or WindowManager.LayoutParams.FLAG_DIM_BEHIND
+            flags = if (immersiveExpanded) {
+                flags or WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS or
+                    WindowManager.LayoutParams.FLAG_FULLSCREEN
+            } else {
+                flags and WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS.inv() and
+                    WindowManager.LayoutParams.FLAG_FULLSCREEN.inv()
+            }
+            flags
         } else {
             (layout.flags or WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE) and
                 WindowManager.LayoutParams.FLAG_DIM_BEHIND.inv() and
-                WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS.inv()
+                WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS.inv() and
+                WindowManager.LayoutParams.FLAG_FULLSCREEN.inv()
         }
         layout.dimAmount = if (expanded) .14f else 0f
         if (expanded) {
             layout.x = 0
             layout.y = 0
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                expandedPlayerCutoutMode(Build.VERSION.SDK_INT, immersiveExpanded)?.let {
+                    layout.layoutInDisplayCutoutMode = it
+                }
+            }
             if (Build.VERSION.SDK_INT >= 30) {
-                layout.setFitInsetsTypes(if (expandedFullscreen) 0 else WindowInsets.Type.systemBars() or WindowInsets.Type.displayCutout())
-                // Dock and Mini fit only one inset side. Restore all sides for
-                // expanded mode or its content can be clipped on tall phones.
-                layout.setFitInsetsSides(if (expandedFullscreen) 0 else WindowInsets.Side.all())
+                layout.setFitInsetsTypes(
+                    if (immersiveExpanded) 0
+                    else WindowInsets.Type.systemBars() or WindowInsets.Type.displayCutout()
+                )
+                // Horizontal video Now Playing is visually immersive even before the
+                // separate fullscreen Activity is launched. Do not reserve a rotated
+                // status-bar/display-cutout strip around the overlay window.
+                layout.setFitInsetsSides(if (immersiveExpanded) 0 else WindowInsets.Side.all())
             }
         } else if (docked) {
             layout.x = 0
             layout.y = 0
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                layout.layoutInDisplayCutoutMode =
+                    WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_DEFAULT
+            }
             if (Build.VERSION.SDK_INT >= 30) {
                 layout.setFitInsetsTypes(WindowInsets.Type.navigationBars())
                 layout.setFitInsetsSides(WindowInsets.Side.BOTTOM)
@@ -774,6 +838,10 @@ class MiniWindowOverlayService : Service(), LifecycleOwner, ViewModelStoreOwner,
             val saved = getSharedPreferences(POSITION_PREFS, MODE_PRIVATE)
             layout.x = saved.getInt(POSITION_X, dp(12))
             layout.y = saved.getInt(POSITION_Y, dp(300))
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                layout.layoutInDisplayCutoutMode =
+                    WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_DEFAULT
+            }
             if (Build.VERSION.SDK_INT >= 30) {
                 layout.setFitInsetsTypes(WindowInsets.Type.statusBars())
                 layout.setFitInsetsSides(WindowInsets.Side.TOP)
@@ -833,21 +901,9 @@ class MiniWindowOverlayService : Service(), LifecycleOwner, ViewModelStoreOwner,
     private fun updateExpandedFullscreen(value: Boolean) {
         if (!expanded || expandedFullscreen == value) return
         expandedFullscreen = value
-        params?.let { layout ->
-            layout.flags = if (value) layout.flags or WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS or
-                WindowManager.LayoutParams.FLAG_FULLSCREEN
-                else layout.flags and WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS.inv() and
-                    WindowManager.LayoutParams.FLAG_FULLSCREEN.inv()
-            if (Build.VERSION.SDK_INT >= 30) {
-                layout.setFitInsetsTypes(if (value) 0 else WindowInsets.Type.systemBars() or WindowInsets.Type.displayCutout())
-                layout.setFitInsetsSides(if (value) 0 else WindowInsets.Side.all())
-                runCatching {
-                    if (value) expandedView?.windowInsetsController?.hide(WindowInsets.Type.systemBars())
-                    else expandedView?.windowInsetsController?.show(WindowInsets.Type.systemBars())
-                }
-            }
-            updateRootLayout()
-        }
+        applyModeLayout()
+        updateRootLayout()
+        syncExpandedSystemBars()
     }
 
     private fun openLandscapeFullscreen() {
@@ -891,7 +947,7 @@ class MiniWindowOverlayService : Service(), LifecycleOwner, ViewModelStoreOwner,
             interpolator = DecelerateInterpolator()
             addUpdateListener {
                 layout.y = it.animatedValue as Int
-                if (layout.y == 0 && !expandedFullscreen)
+                if (layout.y == 0 && !expandedUsesImmersiveWindow())
                     layout.flags = layout.flags and WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS.inv()
                 updateRootLayout()
             }

@@ -3,6 +3,7 @@ package com.local.listentomusic.ui
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.luminance
 import com.local.listentomusic.data.*
+import com.local.listentomusic.ui.components.ambientBottomColor
 import com.local.listentomusic.ui.components.artworkGradientColors
 import org.junit.Assert.*
 import org.junit.Test
@@ -37,6 +38,17 @@ class Release1114Test {
             dark.forEach { assertTrue("white on $it", 1.05f / (it.luminance() + .05f) >= 4.5f) }
             light.forEach { assertTrue("black on $it", (it.luminance() + .05f) / .05f >= 4.5f) }
         }
+    }
+
+    @Test fun nowPlayingAmbientKeepsArtworkTintAtTheBottom() {
+        val colors = artworkGradientColors(intArrayOf(0xFFFF0000.toInt()), false)
+        val plainBottom = ambientBottomColor(colors, 0f)
+        val extendedBottom = ambientBottomColor(colors, NOW_PLAYING_AMBIENT_BOTTOM_BLEND)
+        assertEquals(colors.last(), plainBottom)
+        assertNotEquals(colors.last(), extendedBottom)
+        assertTrue(NOW_PLAYING_AMBIENT_BOTTOM_BLEND in 0f..1f)
+        assertTrue(NOW_PLAYING_AMBIENT_PANEL_ALPHA in 0f..0.99f)
+        assertTrue(NOW_PLAYING_AMBIENT_ROW_ALPHA in 0f..NOW_PLAYING_AMBIENT_PANEL_ALPHA)
     }
 
     @Test fun missingOrTransparentArtUsesNeutralThemeFallback() {
