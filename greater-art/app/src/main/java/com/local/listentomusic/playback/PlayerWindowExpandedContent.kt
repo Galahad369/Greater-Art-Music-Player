@@ -2,6 +2,7 @@ package com.local.listentomusic.playback
 
 import android.content.Intent
 import android.graphics.Rect
+import android.os.SystemClock
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectVerticalDragGestures
 import androidx.compose.foundation.layout.Box
@@ -28,6 +29,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
 import androidx.media3.ui.PlayerView
 import com.local.listentomusic.MainViewModel
@@ -56,7 +58,7 @@ internal fun PlayerWindowExpandedContent(
     onShrink: () -> Unit,
     onFullscreen: (Boolean) -> Unit,
     onPull: (Float) -> Unit,
-    onPullEnd: () -> Unit,
+    onPullEnd: (totalDragPx: Float, averageVelocityYPxPerSecond: Float) -> Unit,
     onPullCancel: () -> Unit,
     onShare: (Intent) -> Unit,
     onShareFailure: (String) -> Unit,
@@ -68,6 +70,7 @@ internal fun PlayerWindowExpandedContent(
     val controller by viewModel.controller.collectAsState()
     val sleepTimer by viewModel.sleepTimer.collectAsState()
     val inspector = remember { UiInspectorState() }
+    val density = LocalDensity.current.density
     var fullscreen by remember { mutableStateOf(false) }
     var addToListFile by remember { mutableStateOf<com.local.listentomusic.model.MediaFile?>(null) }
     val artwork by produceState<android.graphics.Bitmap?>(null, playback.currentPath,
@@ -162,19 +165,51 @@ internal fun PlayerWindowExpandedContent(
                             .align(Alignment.TopCenter)
                             .fillMaxWidth(0.52f)
                             .height(40.dp)
-                            .pointerInput(onPull, onPullEnd, onPullCancel) {
+                            .pointerInput(onPull, onPullEnd, onPullCancel, density) {
+                                val activationPx = expandedPullActivationPx(density)
+                                var activationTravelPx = 0f
+                                var totalDownwardPx = 0f
+                                var activated = false
+                                var dragStartMs = 0L
                                 detectVerticalDragGestures(
+                                    onDragStart = {
+                                        activationTravelPx = 0f
+                                        totalDownwardPx = 0f
+                                        activated = false
+                                        dragStartMs = SystemClock.uptimeMillis()
+                                    },
                                     onVerticalDrag = { change, dragAmount ->
                                         change.consume()
-                                        onPull(dragAmount)
+                                        totalDownwardPx = (totalDownwardPx + dragAmount).coerceAtLeast(0f)
+                                        if (!activated) {
+                                            activationTravelPx =
+                                                (activationTravelPx + dragAmount).coerceAtLeast(0f)
+                                            if (activationTravelPx >= activationPx) {
+                                                activated = true
+                                                val overflow = activationTravelPx - activationPx
+                                                if (overflow > 0f) onPull(expandedPullResistedDelta(overflow))
+                                            }
+                                        } else {
+                                            onPull(expandedPullResistedDelta(dragAmount))
+                                        }
                                     },
-                                    onDragEnd = onPullEnd,
+                                    onDragEnd = {
+                                        if (activated) {
+                                            val elapsedMs =
+                                                (SystemClock.uptimeMillis() - dragStartMs).coerceAtLeast(1L)
+                                            val averageVelocity =
+                                                totalDownwardPx * 1_000f / elapsedMs.toFloat()
+                                            onPullEnd(totalDownwardPx, averageVelocity)
+                                        } else {
+                                            onPullCancel()
+                                        }
+                                    },
                                     onDragCancel = onPullCancel,
                                 )
                             }
                             .inspectElement(
                                 "EXPANDED_MINI_PULL_HANDLE",
-                                "Pull down to return to Library; landscape-aware",
+                                "Deliberate pull down to return to Library; activation gate + resistance",
                             ),
                         contentAlignment = Alignment.Center,
                     ) {

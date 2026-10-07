@@ -66,6 +66,12 @@ class Release1114Test {
         assertNull(playerLockLocalOffset(null, slot))
     }
 
+    @Test fun nodeDragNeedsMeaningfulNetMovementNotOrdinaryFingerJitter() {
+        assertEquals(20f, nodeDragActivationDistancePx(8f, 20f), 0f)
+        assertEquals(24f, nodeDragActivationDistancePx(16f, 20f), 0f)
+        assertEquals(20f, nodeDragActivationDistancePx(0f, 20f), 0f)
+    }
+
     @Test fun nowPlayingMetadataUsesArtistAndAlbumWithoutDuplicateNoise() {
         fun file(artist: String, album: String) = MediaFile(
             path = "/tmp/song.mp3",

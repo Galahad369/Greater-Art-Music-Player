@@ -33,22 +33,29 @@ class FloatingOverlaySizeTest {
         org.junit.Assert.assertFalse(shouldShrinkForSystemReason("assist"))
         org.junit.Assert.assertFalse(shouldShrinkForSystemReason("globalactions"))
     }
-    @Test fun pullDismissThresholdKeepsPortraitSeventyTwoDpCap() {
-        org.junit.Assert.assertFalse(pullDismissReached(143, 2f, 1200))
-        assertTrue(pullDismissReached(144, 2f, 1200))
+    @Test fun pullDismissThresholdUsesDeliberatePortraitCap() {
+        org.junit.Assert.assertFalse(pullDismissReached(239, 2f, 1200))
+        assertTrue(pullDismissReached(240, 2f, 1200))
         org.junit.Assert.assertFalse(pullDismissReached(-1, 1f, 1200))
     }
 
-    @Test fun landscapePullThresholdAdaptsToShortViewport() {
-        // 22% of 360px = 79px, much less than the portrait 144px/72dp threshold.
-        assertEquals(79, expandedPullReturnThresholdPx(360, 2f))
-        org.junit.Assert.assertFalse(pullDismissReached(78, 2f, 360))
-        assertTrue(pullDismissReached(79, 2f, 360))
+    @Test fun landscapePullThresholdHasAUsableMinimum() {
+        assertEquals(112, expandedPullReturnThresholdPx(360, 2f))
+        org.junit.Assert.assertFalse(pullDismissReached(111, 2f, 360))
+        assertTrue(pullDismissReached(112, 2f, 360))
         assertEquals(360, expandedPullMaxDistancePx(360))
     }
 
-    @Test fun tinyLandscapeStillKeepsAUsableMinimumGesture() {
-        assertEquals(64, expandedPullReturnThresholdPx(180, 2f))
+    @Test fun tinyLandscapeStillKeepsTheFiftySixDpMinimumWhenPossible() {
+        assertEquals(112, expandedPullReturnThresholdPx(180, 2f))
         assertEquals(1, expandedPullMaxDistancePx(0))
+    }
+
+    @Test fun pullActivationResistanceAndFastFlingRequireIntent() {
+        assertEquals(48f, expandedPullActivationPx(2f), 0f)
+        assertEquals(72f, expandedPullResistedDelta(100f), 0.001f)
+        org.junit.Assert.assertFalse(expandedPullFastFlingReached(111f, 4000f, 2f))
+        org.junit.Assert.assertFalse(expandedPullFastFlingReached(112f, 2799f, 2f))
+        assertTrue(expandedPullFastFlingReached(112f, 2800f, 2f))
     }
 }

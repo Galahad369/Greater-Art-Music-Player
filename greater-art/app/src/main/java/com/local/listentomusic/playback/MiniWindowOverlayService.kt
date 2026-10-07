@@ -950,10 +950,14 @@ class MiniWindowOverlayService : Service(), LifecycleOwner, ViewModelStoreOwner,
         }
     }
 
-    private fun finishExpandedPull() {
+    private fun finishExpandedPull(totalDragPx: Float, averageVelocityYPxPerSecond: Float) {
         val position = params?.y ?: return
         val viewportHeightPx = expandedPullViewportHeightPx()
-        if (pullDismissReached(position, resources.displayMetrics.density, viewportHeightPx)) {
+        val density = resources.displayMetrics.density
+        if (
+            pullDismissReached(position, density, viewportHeightPx) ||
+            expandedPullFastFlingReached(totalDragPx, averageVelocityYPxPerSecond, density)
+        ) {
             returnToLibrary()
         } else {
             resetExpandedPull()
