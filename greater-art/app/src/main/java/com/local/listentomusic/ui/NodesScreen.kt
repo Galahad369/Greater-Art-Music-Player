@@ -49,6 +49,9 @@ import com.local.listentomusic.ui.theme.GaRadius
 import com.local.listentomusic.ui.theme.GaSpacing
 import kotlin.math.*
 
+internal fun nodeDragActivationDistancePx(touchSlopPx: Float, minimumPx: Float): Float =
+    max(touchSlopPx.coerceAtLeast(0f) * 1.5f, minimumPx.coerceAtLeast(0f))
+
 /** Nodes is the right-hand page of the persistent Stack | All songs | Nodes navigator. */
 @Composable
 fun NodesScreen(graph: LibraryGraph?, loading: Boolean, error: String?, currentPath: String?,
@@ -211,7 +214,10 @@ private fun GraphCanvas(graph: LibraryGraph, currentPath: String?, onPlay: (Stri
                     //   swipe Nodes <-> All songs from anywhere on the empty map.
                     if (hit != null) down.consume()
 
-                    var travelled = 0f
+                    var netDrag = Offset.Zero
+                    var nodeDragging = false
+                    val nodeDragThresholdPx =
+                        nodeDragActivationDistancePx(viewConfiguration.touchSlop, 20.dp.toPx())
                     var multi = false
                     do {
                         val event = awaitPointerEvent()
@@ -235,10 +241,13 @@ private fun GraphCanvas(graph: LibraryGraph, currentPath: String?, onPlay: (Stri
                             event.changes.forEach { it.consume() }
                         } else if (hit != null) {
                             val delta = event.calculatePan()
-                            travelled += delta.getDistance()
-                            if (travelled > viewConfiguration.touchSlop) {
-                                moved[hit] = position(hit) + delta / scale
+                            netDrag += delta
+                            if (!nodeDragging && netDrag.getDistance() >= nodeDragThresholdPx) {
+                                nodeDragging = true
                                 selected = hit
+                            }
+                            if (nodeDragging) {
+                                moved[hit] = position(hit) + delta / scale
                                 event.changes.forEach { it.consume() }
                             }
                         }
@@ -246,7 +255,7 @@ private fun GraphCanvas(graph: LibraryGraph, currentPath: String?, onPlay: (Stri
                         // The parent HorizontalPager therefore owns horizontal swipes.
                     } while (event.changes.any { it.pressed })
 
-                    if (!multi && travelled <= viewConfiguration.touchSlop && hit != null) {
+                    if (!multi && !nodeDragging && hit != null) {
                         selected = hit
                         onPlayCurrent(graph.nodes[hit].id)
                     }

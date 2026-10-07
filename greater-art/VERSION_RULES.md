@@ -7,7 +7,7 @@ This file is the authoritative version policy for Greater Art. If any handoff no
 ## Machine-checkable state
 
 
-Current source: **1.21.13 (code 236)**
+Current source: **1.21.14 (code 237)**
 Current release state: **SOURCE_ONLY**
 Latest verified APK: **1.15.77 (code 207)**
 Allowed series transition: **1.14.15 -> 1.15.1**
@@ -246,5 +246,7 @@ Previous baseline: 1.13.26 (code 115).
 - 1.21.12 (code 235) — post-merge review repair: preserve the original Stack | All songs | Nodes wallpaper motion while the Library sheet is closed by synchronizing WallpaperPanState to the pager only at zero reveal, then freeze framing during pull-down and let pure-wallpaper horizontal gestures own it at full reveal. Also close the remaining thumbnail fast-scroll crash path by containing OutOfMemoryError from warm disk-cache Bitmap decode: evict the RAM thumbnail LRU, retry once, and retain the valid disk cache entry if allocation pressure persists. No playback, Stack alignment, media quality, permission, cache format, or wallpaper scale-mode change. SOURCE_ONLY pending exact-head CI and physical gesture/memory-pressure verification.
 
 - 1.21.13 (code 236) — make the Now Playing control-lock position structural instead of offset-based. Video top bars expose a measured 48dp lock slot between flexible actions and Fullscreen/Close; the global lock/unlock button is placed from that slot's real window bounds, so toolbar padding/action-count/theme changes cannot displace it. Audio, which intentionally has no top bar, exposes its own explicit safe-area top-right anchor. Mode/orientation changes reset stale anchor state; any actual video-stage resize (rotation, split-screen, inset/cutout or future overlay geometry change) re-exposes controls long enough to measure the new slot; and the lock remains above the input-blocking layer so Unlock always works. Removes the historical '100dp/two buttons from right' positioning assumption. No playback, media quality, gesture semantics, permission or lock behavior change beyond stable placement. SOURCE_ONLY pending exact-head CI and portrait/landscape/audio/video/expanded-Mini verification.
+
+- 1.21.14 (code 237) — harden accidental drag gestures. Expanded Mini / Now Playing pull-down now requires a 24dp downward activation gate before the WindowManager sheet moves, applies 0.72× resisted follow after activation, raises the normal return-to-Library threshold to an adaptive 30% of viewport bounded to 56–120dp, and permits only a deliberate fast downward gesture (≥56dp and ≥1400dp/s average) to shortcut that distance. Small pulls snap back. Nodes no longer begins moving a touched media node after ordinary touch slop or accumulated finger jitter: drag activation uses net displacement with a minimum 20dp gate (or 1.5× platform touch slop, whichever is larger), while sub-threshold shaky touches remain tap-to-play. Empty-canvas pager swipes and two-finger graph zoom are unchanged. SOURCE_ONLY pending exact-head CI and physical touch verification.
 
 **No silent builds. No version reuse. No version skips. No APK overwrite/rename/copy.**
