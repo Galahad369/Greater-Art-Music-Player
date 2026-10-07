@@ -216,6 +216,16 @@ fun GreaterArtApp(
     val stackPage = screen == Screen.LIBRARY && libraryPager.currentPage == 0
     val dockedPlayerVisible by com.local.listentomusic.playback.PlayerWindowVisibility.dockedVisible
         .collectAsStateWithLifecycle()
+    val libraryRevealActive =
+        screen == Screen.LIBRARY && libraryBackgroundReveal.fraction > 0.001f
+    LaunchedEffect(libraryRevealActive) {
+        com.local.listentomusic.playback.PlayerWindowVisibility.libraryBackgroundReveal(libraryRevealActive)
+    }
+    androidx.compose.runtime.DisposableEffect(Unit) {
+        onDispose {
+            com.local.listentomusic.playback.PlayerWindowVisibility.libraryBackgroundReveal(false)
+        }
+    }
     androidx.compose.runtime.DisposableEffect(stackPage) {
         com.local.listentomusic.playback.PlayerWindowVisibility.stackTransport(stackPage)
         onDispose { com.local.listentomusic.playback.PlayerWindowVisibility.stackTransport(false) }

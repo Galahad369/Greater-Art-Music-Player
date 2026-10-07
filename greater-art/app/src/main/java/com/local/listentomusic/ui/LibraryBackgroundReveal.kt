@@ -40,8 +40,8 @@ import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
 
 internal const val LIBRARY_BACKGROUND_REVEAL_MIN_DP = 240f
-internal const val LIBRARY_BACKGROUND_REVEAL_VIEWPORT_FRACTION = 0.80f
-internal const val LIBRARY_BACKGROUND_REVEAL_VIEWPORT_CAP_FRACTION = 0.90f
+internal const val LIBRARY_BACKGROUND_REVEAL_VIEWPORT_FRACTION = 0.94f
+internal const val LIBRARY_BACKGROUND_REVEAL_VIEWPORT_CAP_FRACTION = 0.985f
 internal const val LIBRARY_BACKGROUND_REVEAL_SNAP_THRESHOLD = 0.35f
 internal const val LIBRARY_BACKGROUND_LIGHT_SCRIM_ALPHA = 0.94f
 
@@ -180,9 +180,19 @@ internal fun LibraryFamilyWithBackgroundReveal(
                 Modifier
                     .fillMaxWidth()
                     .height(revealHeight)
+                    .pointerInput(reveal, maxRevealPx) {
+                        detectVerticalDragGestures(
+                            onVerticalDrag = { change, dragAmount ->
+                                change.consume()
+                                reveal.dragBy(dragAmount, maxRevealPx)
+                            },
+                            onDragEnd = { scope.launch { reveal.settle() } },
+                            onDragCancel = { scope.launch { reveal.settle() } },
+                        )
+                    }
                     .inspectElement(
                         "LIBRARY_BACKGROUND_REVEAL",
-                        "Undimmed app-background reveal; no Library chrome is drawn here",
+                        "Undimmed app-background reveal; drag up here to recover the Library sheet",
                     ),
             )
 

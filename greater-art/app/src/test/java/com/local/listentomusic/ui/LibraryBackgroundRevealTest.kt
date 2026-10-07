@@ -25,9 +25,9 @@ class LibraryBackgroundRevealTest {
 
     @Test
     fun revealUsesMoreOfTheViewportWithoutTakingTheWholeScreen() {
-        assertEquals(800f, libraryBackgroundRevealMaxPx(1000f, 240f), 0f)
-        assertEquals(400f, libraryBackgroundRevealMaxPx(500f, 240f), 0f)
-        assertEquals(240f, libraryBackgroundRevealMaxPx(300f, 240f), 0f)
+        assertEquals(940f, libraryBackgroundRevealMaxPx(1000f, 240f), 0f)
+        assertEquals(470f, libraryBackgroundRevealMaxPx(500f, 240f), 0f)
+        assertEquals(282f, libraryBackgroundRevealMaxPx(300f, 240f), 0f)
         assertEquals(0f, libraryBackgroundRevealMaxPx(0f, 240f), 0f)
     }
 

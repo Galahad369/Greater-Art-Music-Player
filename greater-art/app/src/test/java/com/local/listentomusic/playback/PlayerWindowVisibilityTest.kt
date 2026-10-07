@@ -18,6 +18,25 @@ class PlayerWindowVisibilityTest {
         PlayerWindowVisibility.library(false)
         PlayerWindowVisibility.app(false)
     }
+    @Test fun wallpaperRevealHidesDockAndRestoresItAfterCollapse() {
+        PlayerWindowVisibility.app(true)
+        PlayerWindowVisibility.library(true)
+        PlayerWindowVisibility.expanded(false)
+        PlayerWindowVisibility.windowFocus(true)
+        PlayerWindowVisibility.stackTransport(false)
+        PlayerWindowVisibility.libraryBackgroundReveal(false)
+        assertTrue(PlayerWindowVisibility.dockedVisible.value)
+
+        PlayerWindowVisibility.libraryBackgroundReveal(true)
+        assertFalse(PlayerWindowVisibility.dockedVisible.value)
+
+        PlayerWindowVisibility.libraryBackgroundReveal(false)
+        assertTrue(PlayerWindowVisibility.dockedVisible.value)
+
+        PlayerWindowVisibility.library(false)
+        PlayerWindowVisibility.app(false)
+    }
+
     @Test fun detachedOnlyAppearsAfterTheAppAndExpandedPlayerLeave() {
         assertTrue(showDetachedPlayer(false, false))
         assertFalse(showDetachedPlayer(true, false))
