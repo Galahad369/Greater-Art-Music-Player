@@ -42,6 +42,31 @@ class AppBackgroundSyncTest {
     }
 
     @Test
+    fun backgroundRenderPoliciesNeverUseFillStretching() {
+        assertEquals(
+            androidx.compose.ui.layout.ContentScale.Crop,
+            backgroundImageContentScale(BackgroundScaleMode.CROP),
+        )
+        assertEquals(
+            androidx.compose.ui.layout.ContentScale.Fit,
+            backgroundImageContentScale(BackgroundScaleMode.FIT),
+        )
+        assertEquals(
+            androidx.media3.ui.AspectRatioFrameLayout.RESIZE_MODE_ZOOM,
+            backgroundVideoResizeMode(BackgroundScaleMode.CROP),
+        )
+        assertEquals(
+            androidx.media3.ui.AspectRatioFrameLayout.RESIZE_MODE_FIT,
+            backgroundVideoResizeMode(BackgroundScaleMode.FIT),
+        )
+        assertTrue(
+            listOf(BackgroundScaleMode.CROP, BackgroundScaleMode.FIT).all {
+                backgroundVideoResizeMode(it) != androidx.media3.ui.AspectRatioFrameLayout.RESIZE_MODE_FILL
+            },
+        )
+    }
+
+    @Test
     fun onlyAspectPreservingBackgroundModesExistAndLegacyStretchMigratesToCrop() {
         assertEquals(listOf(BackgroundScaleMode.CROP, BackgroundScaleMode.FIT), BackgroundScaleMode.entries.toList())
         assertEquals(BackgroundScaleMode.CROP, backgroundScaleModeFromStorage(null))

@@ -70,6 +70,34 @@ internal fun shouldClaimCurrentVideoBackground(
     surfaceActive: Boolean,
 ): Boolean = usePrimaryVideoBackground && surfaceActive
 
+internal fun backgroundImageContentScale(scaleMode: BackgroundScaleMode): ContentScale = when (scaleMode) {
+    BackgroundScaleMode.FIT -> ContentScale.Fit
+    BackgroundScaleMode.CROP -> ContentScale.Crop
+}
+
+internal fun backgroundVideoResizeMode(scaleMode: BackgroundScaleMode): Int = when (scaleMode) {
+    BackgroundScaleMode.FIT -> AspectRatioFrameLayout.RESIZE_MODE_FIT
+    BackgroundScaleMode.CROP -> AspectRatioFrameLayout.RESIZE_MODE_ZOOM
+}
+
+/**
+ * Background video must never inherit a non-uniform native View transform from a
+ * previous surface/layout owner. Reassert the aspect-preserving Media3 resize policy
+ * and identity X/Y scale whenever the background view is attached or video geometry changes.
+ */
+internal fun enforceAspectPreservingBackgroundScale(
+    view: PlayerView,
+    scaleMode: BackgroundScaleMode,
+) {
+    view.resizeMode = backgroundVideoResizeMode(scaleMode)
+    view.scaleX = 1f
+    view.scaleY = 1f
+    view.videoSurfaceView?.let { surface ->
+        surface.scaleX = 1f
+        surface.scaleY = 1f
+    }
+}
+
 @Composable
 fun AppBackground(
     preferences: UserPreferences,
@@ -262,10 +290,7 @@ private fun BackgroundImage(source: Uri, scaleMode: BackgroundScaleMode) {
         Image(
             bitmap = it.asImageBitmap(),
             contentDescription = null,
-            contentScale = when (scaleMode) {
-                BackgroundScaleMode.FIT -> ContentScale.Fit
-                BackgroundScaleMode.CROP -> ContentScale.Crop
-            },
+            contentScale = backgroundImageContentScale(scaleMode),
             modifier = Modifier.fillMaxSize(),
         )
     }
@@ -288,6 +313,22 @@ internal fun PrimaryVideoBackground(
             // switch directly to Library/Now Playing without a no-surface interval.
             VideoSurfaceOwner.setCurrentVideoBackgroundActive(false)
             videoView?.let(VideoSurfaceOwner::detach)
+        }
+    }
+
+    DisposableEffect(controller, videoView, scaleMode) {
+        val view = videoView
+        if (view == null) {
+            onDispose { }
+        } else {
+            val listener = object : Player.Listener {
+                override fun onVideoSizeChanged(videoSize: androidx.media3.common.VideoSize) {
+                    view.post { enforceAspectPreservingBackgroundScale(view, scaleMode) }
+                }
+            }
+            controller.addListener(listener)
+            view.post { enforceAspectPreservingBackgroundScale(view, scaleMode) }
+            onDispose { controller.removeListener(listener) }
         }
     }
 
@@ -319,19 +360,13 @@ internal fun PrimaryVideoBackground(
                 .apply {
                     useController = false
                     tag = "BACKGROUND"
-                    resizeMode = when (scaleMode) {
-                        BackgroundScaleMode.FIT -> AspectRatioFrameLayout.RESIZE_MODE_FIT
-                        BackgroundScaleMode.CROP -> AspectRatioFrameLayout.RESIZE_MODE_ZOOM
-                    }
+                    enforceAspectPreservingBackgroundScale(this, scaleMode)
                     setKeepContentOnPlayerReset(true)
                     videoView = this
                 }
         },
         update = { view ->
-            view.resizeMode = when (scaleMode) {
-                BackgroundScaleMode.FIT -> AspectRatioFrameLayout.RESIZE_MODE_FIT
-                BackgroundScaleMode.CROP -> AspectRatioFrameLayout.RESIZE_MODE_ZOOM
-            }
+            enforceAspectPreservingBackgroundScale(view, scaleMode)
             if (surfaceActive) {
                 view.visibility = android.view.View.VISIBLE
                 // Register the candidate first. Claiming BACKGROUND before registration can
@@ -369,6 +404,7 @@ private fun BackgroundVideo(
     var lifecycleActive by remember(lifecycleOwner) {
         mutableStateOf(lifecycleOwner.lifecycle.currentState.isAtLeast(Lifecycle.State.STARTED))
     }
+    var backgroundView by remember { mutableStateOf<PlayerView?>(null) }
     val backgroundPlayer = remember(source) {
         val renderersFactory = DefaultRenderersFactory(context.applicationContext)
             .setEnableDecoderFallback(true)
@@ -411,6 +447,21 @@ private fun BackgroundVideo(
     DisposableEffect(backgroundPlayer) {
         onDispose { backgroundPlayer.release() }
     }
+    DisposableEffect(backgroundPlayer, backgroundView, scaleMode) {
+        val view = backgroundView
+        if (view == null) {
+            onDispose { }
+        } else {
+            val listener = object : Player.Listener {
+                override fun onVideoSizeChanged(videoSize: androidx.media3.common.VideoSize) {
+                    view.post { enforceAspectPreservingBackgroundScale(view, scaleMode) }
+                }
+            }
+            backgroundPlayer.addListener(listener)
+            view.post { enforceAspectPreservingBackgroundScale(view, scaleMode) }
+            onDispose { backgroundPlayer.removeListener(listener) }
+        }
+    }
     LaunchedEffect(backgroundPlayer, shouldPlay, lifecycleActive) {
         backgroundPlayer.playWhenReady = shouldPlay && lifecycleActive
     }
@@ -421,20 +472,16 @@ private fun BackgroundVideo(
                 .inflate(com.local.listentomusic.R.layout.background_video, android.widget.FrameLayout(viewContext), false) as PlayerView)
                 .apply {
                     useController = false
-                    resizeMode = when (scaleMode) {
-                        BackgroundScaleMode.FIT -> AspectRatioFrameLayout.RESIZE_MODE_FIT
-                        BackgroundScaleMode.CROP -> AspectRatioFrameLayout.RESIZE_MODE_ZOOM
-                    }
+                    enforceAspectPreservingBackgroundScale(this, scaleMode)
                     setKeepContentOnPlayerReset(true)
                     player = backgroundPlayer
+                    backgroundView = this
                     visibility = android.view.View.VISIBLE
                 }
         },
         update = { view ->
-            view.resizeMode = when (scaleMode) {
-                BackgroundScaleMode.FIT -> AspectRatioFrameLayout.RESIZE_MODE_FIT
-                BackgroundScaleMode.CROP -> AspectRatioFrameLayout.RESIZE_MODE_ZOOM
-            }
+            enforceAspectPreservingBackgroundScale(view, scaleMode)
+            if (backgroundView !== view) backgroundView = view
             if (surfaceActive) {
                 if (view.player !== backgroundPlayer) view.player = backgroundPlayer
                 view.visibility = android.view.View.VISIBLE

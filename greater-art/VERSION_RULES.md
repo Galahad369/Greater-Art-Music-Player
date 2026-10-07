@@ -7,7 +7,7 @@ This file is the authoritative version policy for Greater Art. If any handoff no
 ## Machine-checkable state
 
 
-Current source: **1.20.2 (code 220)**
+Current source: **1.20.3 (code 221)**
 Current release state: **SOURCE_ONLY**
 Latest verified APK: **1.15.77 (code 207)**
 Allowed series transition: **1.14.15 -> 1.15.1**
@@ -212,5 +212,7 @@ Previous baseline: 1.13.26 (code 115).
 - Consumed mainline identity: **1.20.1 (code 215)** — a concurrent version-only bump was committed from the 1.15.84/code214 tree while the landscape work was advancing separately. It was later superseded by the 1.15.85–1.15.89 sequence and must never be reused. Its unverified APK was removed from the current tree during release cleanup; no 1.20.1 release is claimed.
 
 - 1.20.2 (code 220) — begin the 1.20 series with thumbnail/cache hardening: cache sibling-art stamps briefly so memory-hit loads do not probe ~30 artwork candidates every time; bound disk bitmap decodes to three; move periodic/startup disk pruning off the caller path with single-flight pruning; stat each cached file once per prune; let the existing 256 MiB byte budget, rather than a 600-file cliff, govern retention up to 6,000 entries; contain thumbnail-generation OutOfMemoryError by evicting the thumbnail LRU and returning a miss. Cache file-key format remains SHA-256 hex and disk thumbnail format is unchanged. No permission/network/media-source change. SOURCE_ONLY pending exact-head CI and device fast-fling verification.
+
+- 1.20.3 (code 221) — background aspect-ratio regression hardening: all custom-image/current-video/custom-video/Stack background renderers now resolve through the same aspect-preserving Crop/Fit policy; native PlayerView backgrounds reassert ZOOM/FIT plus identity X/Y view scale on creation/update and again when Media3 reports a new video size, preventing a reused/rotated background surface from remaining visually stretched after ownership/layout changes. Legacy STRETCH remains absent and saved/imported STRETCH still migrates to Crop. No playback timeline, permission, network or media-quality change. SOURCE_ONLY pending exact-head CI and device visual verification.
 
 **No silent builds. No version reuse. No version skips. No APK overwrite/rename/copy.**

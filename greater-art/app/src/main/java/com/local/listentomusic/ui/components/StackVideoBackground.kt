@@ -89,10 +89,13 @@ private fun StackCompanionVideo(path: String) {
                 useController = false
                 isClickable = false
                 isFocusable = false
-                resizeMode = AspectRatioFrameLayout.RESIZE_MODE_FIT
+                enforceAspectPreservingBackgroundScale(this, BackgroundScaleMode.FIT)
                 setKeepContentOnPlayerReset(true)
                 StackPlayback.attachVideo(path, owner, this)
             }
+        },
+        update = { view ->
+            enforceAspectPreservingBackgroundScale(view, BackgroundScaleMode.FIT)
         },
         modifier = Modifier.fillMaxSize(),
     )
