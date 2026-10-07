@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -23,16 +24,18 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
 import androidx.compose.ui.input.nestedscroll.NestedScrollSource
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.Velocity
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.launch
+import kotlin.math.roundToInt
 
 internal const val LIBRARY_BACKGROUND_REVEAL_MAX_DP = 240f
 internal const val LIBRARY_BACKGROUND_REVEAL_SNAP_THRESHOLD = 0.35f
@@ -43,6 +46,9 @@ internal fun libraryBackgroundRevealTarget(fraction: Float): Float =
 
 internal fun libraryBackgroundContentAlpha(lightPalette: Boolean): Float =
     if (lightPalette) LIBRARY_BACKGROUND_LIGHT_SCRIM_ALPHA else 0f
+
+internal fun libraryBackgroundRevealOffsetPx(fraction: Float, maxPx: Float): Float =
+    fraction.coerceIn(0f, 1f) * maxPx.coerceAtLeast(0f)
 
 @Stable
 internal class LibraryBackgroundRevealState {
@@ -98,6 +104,7 @@ internal fun LibraryFamilyWithBackgroundReveal(
 ) {
     val density = LocalDensity.current
     val maxRevealPx = with(density) { LIBRARY_BACKGROUND_REVEAL_MAX_DP.dp.toPx() }
+    val revealOffsetPx = libraryBackgroundRevealOffsetPx(reveal.fraction, maxRevealPx)
     val scope = rememberCoroutineScope()
 
     val nestedScrollConnection = remember(reveal, maxRevealPx) {
@@ -138,20 +145,29 @@ internal fun LibraryFamilyWithBackgroundReveal(
         }
     }
 
-    Column(modifier.fillMaxSize().nestedScroll(nestedScrollConnection)) {
-        // Intentionally empty: no Surface, scrim, color, or placeholder may cover AppBackground.
+    Box(
+        modifier
+            .fillMaxSize()
+            .clipToBounds()
+            .nestedScroll(nestedScrollConnection),
+    ) {
+        // Pure reveal band: this draws absolutely nothing over AppBackground.
+        // AppBackground remains full-screen and fixed-size; only the Library content
+        // layer below is translated, so wallpaper/video aspect ratio never changes.
         Box(
             Modifier
                 .fillMaxWidth()
                 .height((LIBRARY_BACKGROUND_REVEAL_MAX_DP * reveal.fraction).dp)
                 .inspectElement(
                     "LIBRARY_BACKGROUND_REVEAL",
-                    "Pure app-background reveal band; pull down to expand, pull up to collapse",
+                    "Pure app-background reveal band; wallpaper remains fixed while content moves",
                 ),
         )
 
         Surface(
-            modifier = Modifier.fillMaxWidth().weight(1f),
+            modifier = Modifier
+                .fillMaxSize()
+                .offset { IntOffset(0, revealOffsetPx.roundToInt()) },
             color = MaterialTheme.colorScheme.background.copy(
                 alpha = libraryBackgroundContentAlpha(lightPalette),
             ),

@@ -7,7 +7,7 @@ This file is the authoritative version policy for Greater Art. If any handoff no
 ## Machine-checkable state
 
 
-Current source: **1.21.2 (code 225)**
+Current source: **1.21.3 (code 226)**
 Current release state: **SOURCE_ONLY**
 Latest verified APK: **1.15.77 (code 207)**
 Allowed series transition: **1.14.15 -> 1.15.1**
@@ -224,5 +224,7 @@ Previous baseline: 1.13.26 (code 115).
 - 1.21.1 (code 224) — Library-family pure-background reveal, forward-ported from the Grok design after its named branch/PR refs contained no implementation commits. Stack / All songs / Nodes share one pull-down reveal state: downward overscroll at the top expands an empty wallpaper-only band up to 240dp, upward drag collapses it, and release/fling snaps at a 0.35 threshold. A thin backup drag handle sits below the content. The app root is transparent while Library is active; the content region below the reveal keeps a local 94% light-theme surface scrim for readability. Existing BackgroundScaleMode remains unchanged: Crop default, Fit optional, never Stretch/RESIZE_MODE_FILL. No playback, network, permission, Stack alignment, or loop change. SOURCE_ONLY pending exact-head CI and touch/device verification.
 
 - 1.21.2 (code 225) — compile repair for the Library background reveal after 1.21.1 exact-head Android CI caught an invalid explicit import of ColumnScope.weight. The reveal behavior, 240dp geometry, 0.35 snap threshold, pure wallpaper band, and Crop/Fit-only background policy are unchanged. 1.21.1 remains consumed by the failed compile and is not released. SOURCE_ONLY pending exact-head CI and touch/device verification.
+
+- 1.21.3 (code 226) — correct the Library-family wallpaper reveal geometry: the first implementation expanded an upper spacer and remeasured the content region while dragging. The reveal is now a fixed full-screen overlay model: AppBackground remains full-screen and unchanged, while the Stack / All songs / Nodes content surface translates downward and is clipped at the viewport. The exposed upper band is an empty transparent hole with no Library scrim, Surface, placeholder, scaling, or redraw layer. Background scaling rules remain authoritative and unchanged: Crop is the default, Fit is available in Settings, Stretch/FillBounds/RESIZE_MODE_FILL is absent. Adds pure translation-bound regression coverage. SOURCE_ONLY pending exact-head CI and touch/device verification.
 
 **No silent builds. No version reuse. No version skips. No APK overwrite/rename/copy.**

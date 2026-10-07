@@ -14,6 +14,16 @@ class LibraryBackgroundRevealTest {
     }
 
     @Test
+    fun revealTranslatesContentWithoutResizingBackground() {
+        assertEquals(0f, libraryBackgroundRevealOffsetPx(0f, 1000f), 0f)
+        assertEquals(500f, libraryBackgroundRevealOffsetPx(0.5f, 1000f), 0f)
+        assertEquals(1000f, libraryBackgroundRevealOffsetPx(1f, 1000f), 0f)
+        assertEquals(1000f, libraryBackgroundRevealOffsetPx(2f, 1000f), 0f)
+        assertEquals(0f, libraryBackgroundRevealOffsetPx(-1f, 1000f), 0f)
+        assertEquals(0f, libraryBackgroundRevealOffsetPx(0.5f, -1f), 0f)
+    }
+
+    @Test
     fun revealGeometryAndLightScrimStayBounded() {
         assertTrue(LIBRARY_BACKGROUND_REVEAL_MAX_DP > 0f)
         assertTrue(LIBRARY_BACKGROUND_REVEAL_SNAP_THRESHOLD in 0f..1f)
