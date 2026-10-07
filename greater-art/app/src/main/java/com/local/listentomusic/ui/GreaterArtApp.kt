@@ -213,6 +213,8 @@ fun GreaterArtApp(
 
     val appName = if (settings.silianRail) "PIERCE&PIERCE" else "Greater Art"
     val stackPage = screen == Screen.LIBRARY && libraryPager.currentPage == 0
+    val dockedPlayerVisible by com.local.listentomusic.playback.PlayerWindowVisibility.dockedVisible
+        .collectAsStateWithLifecycle()
     androidx.compose.runtime.DisposableEffect(stackPage) {
         com.local.listentomusic.playback.PlayerWindowVisibility.stackTransport(stackPage)
         onDispose { com.local.listentomusic.playback.PlayerWindowVisibility.stackTransport(false) }
@@ -255,6 +257,10 @@ fun GreaterArtApp(
                 allowVideoBackground =
                     settings.backgroundMode == com.local.listentomusic.data.AppBackgroundMode.CURRENT_VIDEO ||
                         playback.stackCount == 0,
+                // The Library dock is a user-facing playback surface. When it is visible,
+                // give it the single primary video surface and let CURRENT_VIDEO wallpaper
+                // fall back to ambient instead of forcing the dock to artwork.
+                allowPrimaryVideoBackground = !dockedPlayerVisible,
                 listScrolling = listScrolling,
                 horizontalPosition = backgroundHorizontalPosition,
             )

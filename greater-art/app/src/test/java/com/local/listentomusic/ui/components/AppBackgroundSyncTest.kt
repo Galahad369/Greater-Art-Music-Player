@@ -100,6 +100,39 @@ class AppBackgroundSyncTest {
             isVideo = true,
             controllerAvailable = false,
         ))
+        assertFalse(
+            shouldUsePrimaryVideoBackground(
+                visible = true,
+                allowVideoBackground = true,
+                isVideo = true,
+                controllerAvailable = true,
+                primarySurfaceAvailable = false,
+            ),
+        )
+    }
+
+    @Test
+    fun visibleLibraryDockReservesPrimaryVideoSurfaceFromCurrentVideoWallpaper() {
+        assertFalse(
+            shouldUsePrimaryVideoBackground(
+                visible = true,
+                allowVideoBackground = true,
+                isVideo = true,
+                controllerAvailable = true,
+                primarySurfaceAvailable = false,
+            ),
+        )
+        assertEquals(
+            "MINI_WINDOW",
+            expectedSurfaceOwner(
+                foreground = true,
+                nowPlaying = false,
+                pip = false,
+                systemOverlayOwner = "MINI_WINDOW",
+                currentVideoBackground = false,
+                systemOverlayDocked = true,
+            ),
+        )
     }
 
 }

@@ -63,7 +63,8 @@ internal fun shouldUsePrimaryVideoBackground(
     allowVideoBackground: Boolean,
     isVideo: Boolean,
     controllerAvailable: Boolean,
-): Boolean = visible && allowVideoBackground && isVideo && controllerAvailable
+    primarySurfaceAvailable: Boolean = true,
+): Boolean = visible && allowVideoBackground && primarySurfaceAvailable && isVideo && controllerAvailable
 
 internal fun shouldClaimCurrentVideoBackground(
     usePrimaryVideoBackground: Boolean,
@@ -79,6 +80,7 @@ fun AppBackground(
     modifier: Modifier = Modifier,
     visible: Boolean = true,
     allowVideoBackground: Boolean = true,
+    allowPrimaryVideoBackground: Boolean = true,
     listScrolling: Boolean = false,
     horizontalPosition: (() -> Float)? = null,
 ) {
@@ -157,6 +159,7 @@ fun AppBackground(
                 allowVideoBackground = allowVideoBackground,
                 isVideo = isVideo,
                 controllerAvailable = true,
+                primarySurfaceAvailable = allowPrimaryVideoBackground,
             )
 
     // During list fling drop only the presentation surface. CURRENT_VIDEO shares the

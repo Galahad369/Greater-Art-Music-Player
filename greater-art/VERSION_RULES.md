@@ -7,11 +7,12 @@ This file is the authoritative version policy for Greater Art. If any handoff no
 ## Machine-checkable state
 
 
-Current source: **1.20.2 (code 220)**
+Current source: **1.20.4 (code 222)**
 Current release state: **SOURCE_ONLY**
 Latest verified APK: **1.15.77 (code 207)**
 Allowed series transition: **1.14.15 -> 1.15.1**
 Allowed series transition: **1.15.89 -> 1.20.2**
+Allowed consumed transition: **1.20.2 (code 220) -> 1.20.4 (code 222)**
 Allowed consumed transition: **1.15.13 (code 143) -> 1.15.17 (code 147)**
 Allowed consumed transition: **1.15.17 (code 147) -> 1.15.19 (code 149)**
 Allowed consumed transition: **1.15.19 (code 149) -> 1.15.21 (code 151)**
@@ -212,5 +213,9 @@ Previous baseline: 1.13.26 (code 115).
 - Consumed mainline identity: **1.20.1 (code 215)** — a concurrent version-only bump was committed from the 1.15.84/code214 tree while the landscape work was advancing separately. It was later superseded by the 1.15.85–1.15.89 sequence and must never be reused. Its unverified APK was removed from the current tree during release cleanup; no 1.20.1 release is claimed.
 
 - 1.20.2 (code 220) — begin the 1.20 series with thumbnail/cache hardening: cache sibling-art stamps briefly so memory-hit loads do not probe ~30 artwork candidates every time; bound disk bitmap decodes to three; move periodic/startup disk pruning off the caller path with single-flight pruning; stat each cached file once per prune; let the existing 256 MiB byte budget, rather than a 600-file cliff, govern retention up to 6,000 entries; contain thumbnail-generation OutOfMemoryError by evicting the thumbnail LRU and returning a miss. Cache file-key format remains SHA-256 hex and disk thumbnail format is unchanged. No permission/network/media-source change. SOURCE_ONLY pending exact-head CI and device fast-fling verification.
+
+- Consumed branch identity: **1.20.3 (code 221)** — background-aspect PR #128 was explicitly stopped/superseded before merge and must not be reused.
+
+- 1.20.4 (code 222) — Library dock video ownership fix: while the dock is visibly presented in Library, CURRENT_VIDEO wallpaper yields the single primary Media3 video surface instead of outranking the dock. The dock therefore renders live video; the wallpaper falls back to its existing ambient/static treatment until the dock is no longer visible, after which CURRENT_VIDEO may reacquire the surface. No second decoder, network, permission, media-quality, or timeline change. SOURCE_ONLY pending exact-head CI/device verification.
 
 **No silent builds. No version reuse. No version skips. No APK overwrite/rename/copy.**
