@@ -12,6 +12,7 @@ import android.view.Window
 import android.view.WindowManager
 import android.widget.FrameLayout
 import androidx.activity.compose.BackHandler
+import androidx.annotation.RequiresApi
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.LinearEasing
@@ -2038,6 +2039,19 @@ internal fun immersiveCutoutModeForSdk(sdkInt: Int): Int? = when {
     else -> null
 }
 
+@RequiresApi(Build.VERSION_CODES.P)
+private fun windowCutoutMode(window: Window): Int =
+    window.attributes.layoutInDisplayCutoutMode
+
+@RequiresApi(Build.VERSION_CODES.P)
+private fun setWindowCutoutMode(window: Window, mode: Int) {
+    val attributes = window.attributes
+    if (attributes.layoutInDisplayCutoutMode != mode) {
+        attributes.layoutInDisplayCutoutMode = mode
+        window.attributes = attributes
+    }
+}
+
 /**
  * Apply one consistent edge-to-edge contract for landscape Now Playing and the
  * dedicated fullscreen Activity. System edge gestures remain Android-owned, but
@@ -2045,11 +2059,9 @@ internal fun immersiveCutoutModeForSdk(sdkInt: Int): Int? = when {
  */
 internal fun enforceImmersiveWindow(window: Window) {
     WindowCompat.setDecorFitsSystemWindows(window, false)
-    immersiveCutoutModeForSdk(Build.VERSION.SDK_INT)?.let { mode ->
-        val attributes = window.attributes
-        if (attributes.layoutInDisplayCutoutMode != mode) {
-            attributes.layoutInDisplayCutoutMode = mode
-            window.attributes = attributes
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+        immersiveCutoutModeForSdk(Build.VERSION.SDK_INT)?.let { mode ->
+            setWindowCutoutMode(window, mode)
         }
     }
     WindowCompat.getInsetsController(window, window.decorView).apply {
@@ -2079,7 +2091,7 @@ private fun FullscreenEffect(enabled: Boolean, forceLandscape: Boolean = false) 
         val decorView = window.decorView
         val insets = WindowCompat.getInsetsController(window, decorView)
         val previousCutoutMode = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
-            window.attributes.layoutInDisplayCutoutMode
+            windowCutoutMode(window)
         } else null
 
         fun enforceImmersiveBars() = enforceImmersiveWindow(window)
@@ -2115,10 +2127,8 @@ private fun FullscreenEffect(enabled: Boolean, forceLandscape: Boolean = false) 
                 }
                 ViewCompat.setOnApplyWindowInsetsListener(decorView, null)
                 activity.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
-                previousCutoutMode?.let { mode ->
-                    val attributes = window.attributes
-                    attributes.layoutInDisplayCutoutMode = mode
-                    window.attributes = attributes
+                if (previousCutoutMode != null && Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                    setWindowCutoutMode(window, previousCutoutMode)
                 }
                 insets.show(WindowInsetsCompat.Type.systemBars())
             }
