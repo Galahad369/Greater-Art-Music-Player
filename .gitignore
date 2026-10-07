@@ -109,6 +109,8 @@ id_ed25519*
 
 # Editor-local history snapshots are workspace state, not project source.
 /.lh/
+# Also catch editor extensions that create local-history folders below the repo root.
+.lh/
 
 # Generated build, emulator, and lint output can reveal workstation identities
 *.log

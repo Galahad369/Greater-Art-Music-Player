@@ -30,9 +30,13 @@ import kotlin.math.sqrt
  * v5 keeps the v4 music-first coarse fingerprint and also caches an attack-weighted
  * accompaniment signal at ~3.2 kHz. A confident 20 ms coarse match is then refined in
  * a bounded ±30 ms window using several separated transient-rich anchors.
+ *
+ * v6 also retains a plain-mono feature view when stereo-side analysis is selected so the
+ * matcher can compare both files on the same signal domain. Fine transient samples are cached
+ * as unsigned 16-bit values; see [writeStackFeatures].
  */
-class StackAudioAlign(context: Context) {
-    private val cache = File(context.applicationContext.cacheDir, "stack-align-v5")
+class StackAudioAlign(private val context: Context) {
+    private val cache = File(context.applicationContext.cacheDir, "stack-align-v6")
 
     companion object {
         private val mutex = Mutex()
@@ -44,6 +48,8 @@ class StackAudioAlign(context: Context) {
         private const val CHROMA_WINDOW_SAMPLES = CHROMA_SAMPLES * CHROMA_WINDOW_BINS
         private const val CHROMA_SAMPLE_RATE = CHROMA_SAMPLES * 50.0
         private const val CACHE_LIMIT = 24
+        private val layout =
+            StackFeatureLayout(FEATURE_BINS, CHROMA_SIZE, CHROMA_SAMPLES, CHROMA_SAMPLE_RATE.toInt())
 
         private val chromaWindow = DoubleArray(CHROMA_WINDOW_SAMPLES) { index ->
             0.5 - 0.5 * cos(2.0 * PI * index / (CHROMA_WINDOW_SAMPLES - 1))
@@ -58,7 +64,7 @@ class StackAudioAlign(context: Context) {
         val a = features(primary)
         val b = features(companion)
         coroutineContext.ensureActive()
-        correlateStackFeatures(a, b)
+        correlateStackFeaturesOnCommonView(a, b)
     }
 
     suspend fun estimateAll(primary: MediaFile, companions: List<MediaFile>, progress: (Int) -> Unit): Map<String, StackAlignment> {
@@ -68,7 +74,7 @@ class StackAudioAlign(context: Context) {
             val candidate = features(companion)
             val match = withContext(Dispatchers.Default) {
                 val activeContext = coroutineContext
-                correlateStackFeatures(reference, candidate) { activeContext.ensureActive() }
+                correlateStackFeaturesOnCommonView(reference, candidate) { activeContext.ensureActive() }
             }
             companion.path to match
         }.toMap()
@@ -83,30 +89,11 @@ class StackAudioAlign(context: Context) {
                 .joinToString("") { "%02x".format(it) }
             cache.mkdirs()
             val target = File(cache, "$key.bin")
+            val legacy = File(context.applicationContext.cacheDir, "stack-align-v5")
+            if (legacy.exists()) legacy.deleteRecursively()
             val cached = runCatching {
                 DataInputStream(target.inputStream().buffered()).use { input ->
-                    val n = input.readInt()
-                    val fineCount = input.readInt()
-                    require(
-                        n in 150..FEATURE_BINS &&
-                            fineCount == n * CHROMA_SAMPLES &&
-                            target.length() == 8L + n * 4L * (2 + CHROMA_SIZE + CHROMA_SAMPLES)
-                    )
-                    val envelope = FloatArray(n) {
-                        input.readFloat().also { value -> require(value.isFinite() && value >= 0f) }
-                    }
-                    val musicEnvelope = FloatArray(n) {
-                        input.readFloat().also { value -> require(value.isFinite() && value >= 0f) }
-                    }
-                    val chroma = Array(n) {
-                        FloatArray(CHROMA_SIZE) {
-                            input.readFloat().also { value -> require(value.isFinite() && value >= 0f && value <= 1.1f) }
-                        }
-                    }
-                    val fineSignal = FloatArray(fineCount) {
-                        input.readFloat().also { value -> require(value.isFinite() && value >= 0f && value <= 1.1f) }
-                    }
-                    StackAudioFeatures(envelope, chroma, musicEnvelope, fineSignal, CHROMA_SAMPLE_RATE.toInt())
+                    readStackFeatures(input, target.length(), layout)
                 }
             }.getOrNull()
             if (cached != null) {
@@ -121,12 +108,7 @@ class StackAudioAlign(context: Context) {
             try {
                 stream = atomic.startWrite()
                 val output = DataOutputStream(stream.buffered())
-                output.writeInt(decoded.envelope.size)
-                output.writeInt(decoded.fineSignal.size)
-                decoded.envelope.forEach(output::writeFloat)
-                decoded.musicEnvelope.forEach(output::writeFloat)
-                decoded.chroma.forEach { frame -> frame.forEach(output::writeFloat) }
-                decoded.fineSignal.forEach(output::writeFloat)
+                writeStackFeatures(output, decoded, layout)
                 output.flush()
                 atomic.finishWrite(stream)
                 cache.listFiles()
@@ -347,12 +329,39 @@ class StackAudioAlign(context: Context) {
                 if (chromaCounts[index] > 0) analysisSamples[index] / chromaCounts[index] else 0f
             }
             val fineSignal = stackFineTransientSignal(fineRaw)
+
+            // Keep a plain-mono second opinion only when the main view uses L-R side audio.
+            // If side was not selected, the main features already are the mono comparison view.
+            val monoView = if (preferSide) {
+                val monoWindows = Array((n + CHROMA_WINDOW_BINS - 1) / CHROMA_WINDOW_BINS) {
+                    coroutineContext.ensureActive()
+                    chromaFrame(it * CHROMA_WINDOW_BINS, monoChromaSamples)
+                }
+                val monoFineRaw = FloatArray(n * CHROMA_SAMPLES) { index ->
+                    if (chromaCounts[index] > 0) {
+                        monoChromaSamples[index] / chromaCounts[index]
+                    } else {
+                        0f
+                    }
+                }
+                StackAudioFeatures(
+                    envelope = envelope,
+                    chroma = Array(n) { monoWindows[it / CHROMA_WINDOW_BINS] },
+                    musicEnvelope = envelope,
+                    fineSignal = stackFineTransientSignal(monoFineRaw),
+                    fineSampleRateHz = CHROMA_SAMPLE_RATE.toInt(),
+                )
+            } else {
+                null
+            }
+
             return StackAudioFeatures(
                 envelope = envelope,
                 chroma = chroma,
                 musicEnvelope = musicEnvelope,
                 fineSignal = fineSignal,
                 fineSampleRateHz = CHROMA_SAMPLE_RATE.toInt(),
+                monoView = monoView,
             )
         } finally {
             codec?.let {
