@@ -99,6 +99,15 @@ class FormattingTest {
         assertFalse(com.local.listentomusic.ui.isDoubleSpeed(2.5f))
     }
 
+    @Test fun thumbnailDigestHexIsStableAndUnsigned() {
+        assertEquals(
+            "00017f80ff",
+            com.local.listentomusic.data.thumbnailDigestHex(
+                byteArrayOf(0x00, 0x01, 0x7F, 0x80.toByte(), 0xFF.toByte()),
+            ),
+        )
+    }
+
     @Test fun immersiveFullscreenRehidesAnyVisibleSystemBar() {
         assertTrue(com.local.listentomusic.ui.shouldRehideImmersiveBars(true, true, false))
         assertTrue(com.local.listentomusic.ui.shouldRehideImmersiveBars(true, false, true))
