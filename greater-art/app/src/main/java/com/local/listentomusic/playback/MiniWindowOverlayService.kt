@@ -120,12 +120,17 @@ class MiniWindowOverlayService : Service(), LifecycleOwner, ViewModelStoreOwner,
                 private val crossRaisePx = 28
         private var crossActive: Boolean? = null
         private var framePending = false
+        private var expandedPullFramePending = false
         private var openingApp = false
     private var gestureGeneration = 0
     private val dragFrame = Runnable {
         framePending = false
         updateRootLayout()
         root?.post { if (dragging) updateCrossAppearance(miniOverlapsCross()) }
+    }
+    private val expandedPullFrame = Runnable {
+        expandedPullFramePending = false
+        updateRootLayout()
     }
 
     private var downX = 0f
@@ -924,19 +929,35 @@ class MiniWindowOverlayService : Service(), LifecycleOwner, ViewModelStoreOwner,
         }
     }
 
+    private fun expandedPullViewportHeightPx(): Int {
+        val bounds = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            wm?.currentWindowMetrics?.bounds
+        } else null
+        return (bounds?.height() ?: resources.displayMetrics.heightPixels).coerceAtLeast(1)
+    }
+
     private fun dragExpanded(amount: Float) {
         if (!expanded || sharing) return
         windowAnimator?.cancel()
         params?.let {
-            it.y = (it.y + amount.toInt()).coerceIn(0, it.height.coerceAtLeast(1))
+            val maxPullPx = expandedPullMaxDistancePx(expandedPullViewportHeightPx())
+            it.y = (it.y + amount.toInt()).coerceIn(0, maxPullPx)
             it.flags = it.flags or WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS
-            updateRootLayout()
+            if (!expandedPullFramePending) {
+                expandedPullFramePending = true
+                root?.postOnAnimation(expandedPullFrame)
+            }
         }
     }
 
     private fun finishExpandedPull() {
         val position = params?.y ?: return
-        if (position >= dp(72)) returnToLibrary() else resetExpandedPull()
+        val viewportHeightPx = expandedPullViewportHeightPx()
+        if (pullDismissReached(position, resources.displayMetrics.density, viewportHeightPx)) {
+            returnToLibrary()
+        } else {
+            resetExpandedPull()
+        }
     }
 
     private fun resetExpandedPull() {
@@ -1033,6 +1054,7 @@ class MiniWindowOverlayService : Service(), LifecycleOwner, ViewModelStoreOwner,
         )
         com.local.listentomusic.ui.components.VideoSurfaceOwner.finishHandoff("MINI_WINDOW")
         root?.removeCallbacks(dragFrame)
+        root?.removeCallbacks(expandedPullFrame)
         root?.let { runCatching { wm?.removeViewImmediate(it) } }
         crossView?.let { runCatching { wm?.removeViewImmediate(it) } }
         videoView?.let(com.local.listentomusic.ui.components.VideoSurfaceOwner::detach)

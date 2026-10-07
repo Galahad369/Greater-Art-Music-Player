@@ -7,7 +7,7 @@ This file is the authoritative version policy for Greater Art. If any handoff no
 ## Machine-checkable state
 
 
-Current source: **1.21.8 (code 231)**
+Current source: **1.21.9 (code 232)**
 Current release state: **SOURCE_ONLY**
 Latest verified APK: **1.15.77 (code 207)**
 Allowed series transition: **1.14.15 -> 1.15.1**
@@ -236,5 +236,7 @@ Previous baseline: 1.13.26 (code 115).
 - 1.21.7 (code 230) — make wallpaper recovery directional instead of threshold-hostile: an upward drag that starts on the exposed wallpaper now settles the reveal closed on release, even when the sheet was still above the normal 0.35 snap threshold. Downward/non-upward release keeps the standard snap rule. This prevents the near-full 94% reveal from snapping back open and trapping the user after a short recovery gesture. SOURCE_ONLY pending exact-head CI and touch/device verification.
 
 - 1.21.8 (code 231) — thumbnail memory-pressure hardening for fast-scroll stability: retain the existing process-wide memory+disk cache and scroll deferral, but reduce heavy frame/artwork generation to one worker and disk bitmap decode fan-out to two on low-RAM or sub-384 MiB heap devices. The shared RAM LRU now responds to Android trim-memory callbacks (progressive running/UI-hidden trims and full background eviction) while the persistent disk cache remains intact, so memory can be reclaimed without forcing expensive thumbnail regeneration. No playback quality, source format, network, storage permission, or media-file behavior change. SOURCE_ONLY pending exact-head CI and physical fast-fling/OOM verification.
+
+- 1.21.9 (code 232) — restore and smooth pull navigation across Expanded Mini and the Library-family wallpaper reveal. Expanded Mini's previously disconnected pull callbacks now use a larger top-center drag affordance; WindowManager movement is coalesced to one layout update per display frame, clamps against the real viewport instead of MATCH_PARENT, and uses a short-screen adaptive return threshold. Stack / All songs / Nodes can now translate the sheet a full 100% of viewport height on every screen size, leaving the viewport as pure undimmed wallpaper with no dock or residual content; the wallpaper itself remains an invisible recovery surface. Reveal flings follow gesture direction, the open threshold is reduced to 18%, and a larger grab zone travels with the sheet so pull-down and pull-up are easier without contaminating the exposed wallpaper. SOURCE_ONLY pending exact-head CI and portrait/landscape touch verification.
 
 **No silent builds. No version reuse. No version skips. No APK overwrite/rename/copy.**

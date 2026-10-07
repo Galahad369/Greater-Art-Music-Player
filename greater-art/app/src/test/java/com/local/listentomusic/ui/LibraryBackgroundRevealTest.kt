@@ -6,10 +6,10 @@ import org.junit.Test
 
 class LibraryBackgroundRevealTest {
     @Test
-    fun snapThresholdMatchesGrokContract() {
+    fun snapThresholdFavorsEasyRevealWithoutAccidentalTinyPulls() {
         assertEquals(0f, libraryBackgroundRevealTarget(0f), 0f)
-        assertEquals(0f, libraryBackgroundRevealTarget(0.349f), 0f)
-        assertEquals(1f, libraryBackgroundRevealTarget(0.35f), 0f)
+        assertEquals(0f, libraryBackgroundRevealTarget(0.179f), 0f)
+        assertEquals(1f, libraryBackgroundRevealTarget(0.18f), 0f)
         assertEquals(1f, libraryBackgroundRevealTarget(1f), 0f)
     }
 
@@ -18,7 +18,15 @@ class LibraryBackgroundRevealTest {
         assertEquals(0f, libraryBackgroundRecoveryTarget(-1f, 0.95f), 0f)
         assertEquals(0f, libraryBackgroundRecoveryTarget(-200f, 0.80f), 0f)
         assertEquals(1f, libraryBackgroundRecoveryTarget(1f, 0.80f), 0f)
-        assertEquals(0f, libraryBackgroundRecoveryTarget(1f, 0.20f), 0f)
+        assertEquals(1f, libraryBackgroundRecoveryTarget(1f, 0.20f), 0f)
+    }
+
+    @Test
+    fun flingDirectionWinsOverCurrentFraction() {
+        assertEquals(0f, libraryBackgroundFlingTarget(-20f, 0.95f), 0f)
+        assertEquals(1f, libraryBackgroundFlingTarget(20f, 0.05f), 0f)
+        assertEquals(0f, libraryBackgroundFlingTarget(0f, 0.10f), 0f)
+        assertEquals(1f, libraryBackgroundFlingTarget(0f, 0.50f), 0f)
     }
 
     @Test
@@ -32,10 +40,10 @@ class LibraryBackgroundRevealTest {
     }
 
     @Test
-    fun revealUsesMoreOfTheViewportWithoutTakingTheWholeScreen() {
-        assertEquals(940f, libraryBackgroundRevealMaxPx(1000f, 240f), 0f)
-        assertEquals(470f, libraryBackgroundRevealMaxPx(500f, 240f), 0f)
-        assertEquals(282f, libraryBackgroundRevealMaxPx(300f, 240f), 0f)
+    fun revealCanMoveTheEntireSheetOffScreenOnEveryViewport() {
+        assertEquals(1000f, libraryBackgroundRevealMaxPx(1000f, 240f), 0f)
+        assertEquals(500f, libraryBackgroundRevealMaxPx(500f, 240f), 0f)
+        assertEquals(300f, libraryBackgroundRevealMaxPx(300f, 240f), 0f)
         assertEquals(0f, libraryBackgroundRevealMaxPx(0f, 240f), 0f)
     }
 
