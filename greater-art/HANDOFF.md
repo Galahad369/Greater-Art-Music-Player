@@ -3,7 +3,8 @@
 This file describes the **current repository state only**. Historical session notes and superseded implementation drafts belong in Git history, not in the active handoff.
 
 **Project:** `greater-art/` in the repository checkout
-**Current version:** `1.15.77 (code 207)`
+**Current source:** `1.21.20 (code 243)` — SOURCE_ONLY; Stack instrument alignment v7
+**Current version:** `1.15.77 (code 207)` — latest verified release, not current source
 **Latest APK:** `releases/GreaterArt-1.15.77.apk` (`26,549,909 bytes`; SHA-256 `2d1d5edb67013a1ecc39daa3f83903ac1a9d127ef0d69a2db414f500d841024f`)
 **Application ID:** `com.local.listentomusic`
 **Signing certificate SHA-256:** `9e28eb45b3b171c3ea47d7da942d28d88b16538885e392a6971a80906d612fbf`
@@ -12,6 +13,35 @@ This file describes the **current repository state only**. Historical session no
 **Verification boundary:** Built from exact source commit `00ca689`; `./gradlew testDebugUnitTest lintDebug :app:assembleDebug --offline` passed; `aapt dump badging` confirms package `com.local.listentomusic`, versionName `1.15.77`, versionCode `207`; signed with personal debug keystore; installed on A55/API 36; launch, library scan/load, local audio/video playback, prev/next/seek/pause/resume, playlist/Favorites playback, duplicate queue independence, Stack→Library/playlist transition, queue/Library add-to-list, Library delete three-confirm flow, mini-window/fullscreen/return flows verified; **0 FATAL EXCEPTION** in tested session.
 
 ## Repository state
+
+### October 9 — Stack synchronization overhaul (PR #152)
+
+- Production alignment uses bounded 16 kHz STFT fingerprints: percussion spectral
+  flux, bass attacks and transposition-aware harmonic progression. Median-mask HPSS
+  is an analysis weighting, not vocal removal. Mono always compares with mono;
+  side analysis additionally requires independent mono agreement.
+- Three to six non-overlapping six-second primary windows cover the clipped
+  recording. Companion searches are at most 36 seconds. Distinct-peak gates reject
+  ambiguous repeated sections; three distributed anchors must support a linear
+  `companion = scale * primary + offset` map within 25 ms residual and ±1.5% scale.
+- Optional 400 ms original-rate transient windows refine fractional microsecond
+  offsets. Small unsupported/weak refinements retain the accepted coarse map;
+  uncertainty preserves the existing user offsets. Cancellation propagates.
+- Maps persist with backward-compatible saved Stack rows, survive primary rebasing
+  within supported bounds, and drive existing pitch-preserving companion rates.
+  No primary media quality, permissions, surfaces or thumbnail scheduler changed.
+- v7 has a distinct, size-validated atomic feature cache capped at 48 entries.
+  Analysis shares the existing offline worker permit and never runs on the UI thread.
+- Recovery lesson: a concurrent agent reset the shared checkout twice. Source was
+  recovered from this chat's recorded patches into an isolated Git worktree. Never
+  share a mutable checkout or APK output between agents. Commit verified stages
+  before starting the next one. No release artifact was overwritten or promoted.
+- Verification results and limitations are recorded in
+  `docs/agent-handoff/145-stack-align-v7.md`. Shared output-clock work remains a
+  separate, default-off prototype; independent ExoPlayer position agreement is
+  not sample-accurate acoustic synchronization.
+- Inherited release provenance remains blocked by #158: preserve all historical
+  APKs and the last verified ledger identity; do not bypass the version guard.
 
 ### October 9 — Library Performance v2, stages 1–2 (local source only)
 

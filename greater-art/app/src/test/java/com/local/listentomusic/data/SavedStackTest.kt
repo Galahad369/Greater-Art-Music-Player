@@ -4,6 +4,10 @@ import org.junit.Assert.*
 import org.junit.Test
 
 class SavedStackTest {
+    @Test fun fractionalInstrumentTimingMapsSurviveSaveReload() {
+        val aligned = mix.copy(tracks = mix.tracks.map { it.copy(offsetMs = 713, alignmentScale = 1.002, alignmentOffsetUs = 713245.125) })
+        assertEquals(aligned, SavedStackCodec.decode(SavedStackCodec.encode(listOf(aligned))).single())
+    }
     @Test fun offsetsPersistAndLegacyFourFieldsRemainReadable() {
         val aligned = mix.copy(tracks = mix.tracks.mapIndexed { index, track -> track.copy(offsetMs = index * -1000L) })
         assertEquals(aligned, SavedStackCodec.decode(SavedStackCodec.encode(listOf(aligned))).single())

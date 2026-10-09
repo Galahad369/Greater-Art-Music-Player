@@ -13,6 +13,8 @@ data class StackSlot(
     val error: String? = null,
     val resolvedDurationMs: Long = 0L,
     val offsetMs: Long = 0L,
+    val alignmentScale: Double = 1.0,
+    val alignmentOffsetUs: Double? = null,
     /** A failed decorative video does not make its audio voice unavailable. */
     val videoUnavailable: Boolean = false,
 )
@@ -179,6 +181,8 @@ object StackPlayback {
     fun pause() { transportRevision++; pauseCommand?.invoke() }
     fun seek(positionMs: Long) { transportRevision++; seekCommand?.invoke(positionMs) }
     fun setLoop(enabled: Boolean) { loopCommand?.invoke(enabled) }
+    internal var alignmentsCommand: ((Map<String, StackAlignment>) -> Unit)? = null
+    fun setAlignments(alignments: Map<String, StackAlignment>) { alignmentsCommand?.invoke(alignments) }
     fun setOffsets(offsets: Map<String, Long>) { offsetsCommand?.invoke(offsets) }
     fun setOffset(path: String, offsetMs: Long) = setOffsets(mapOf(path to offsetMs))
     fun stop() { transportRevision++; stopCommand?.invoke() }
@@ -189,7 +193,7 @@ object StackPlayback {
     internal fun detach() {
         startCommand = null; addCommand = null; removeCommand = null; primaryCommand = null
         volumeCommand = null; muteCommand = null; soloCommand = null
-        playCommand = null; pauseCommand = null; seekCommand = null; loopCommand = null; offsetsCommand = null; stopCommand = null
+        playCommand = null; pauseCommand = null; seekCommand = null; loopCommand = null; offsetsCommand = null; alignmentsCommand = null; stopCommand = null
         videoCommand = null
         mutable.value = StackSession()
     }

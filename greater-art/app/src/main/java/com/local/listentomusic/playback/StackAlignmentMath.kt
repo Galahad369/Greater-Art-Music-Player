@@ -3,7 +3,13 @@ package com.local.listentomusic.playback
 import kotlin.math.ln
 import kotlin.math.sqrt
 
-data class StackAlignment(val offsetMs: Long, val correlation: Double, val confident: Boolean)
+data class StackAlignment(
+    val offsetMs: Long, val correlation: Double, val confident: Boolean,
+    val timeScale: Double = 1.0,
+    val offsetUs: Double = offsetMs * 1000.0,
+    val anchorCount: Int = 0,
+    val residualMs: Double = 0.0,
+)
 
 /**
  * Alignment features use the existing 20 ms loudness envelope plus a normalized

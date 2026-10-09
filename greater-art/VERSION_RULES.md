@@ -7,7 +7,7 @@ This file is the authoritative version policy for Greater Art. If any handoff no
 ## Machine-checkable state
 
 
-Current source: **1.21.18 (code 241)**
+Current source: **1.21.20 (code 243)**
 Current release state: **SOURCE_ONLY**
 Latest verified APK: **1.15.77 (code 207)**
 Allowed series transition: **1.14.15 -> 1.15.1**
@@ -15,6 +15,7 @@ Allowed series transition: **1.15.89 -> 1.20.2**
 Allowed series transition: **1.20.5 -> 1.21.1**
 Allowed consumed transition: **1.20.2 (code 220) -> 1.20.4 (code 222)**
 Allowed consumed transition: **1.21.16 (code 239) -> 1.21.18 (code 241)**
+Allowed consumed transition: **1.21.18 (code 241) -> 1.21.20 (code 243)**
 Allowed consumed transition: **1.15.13 (code 143) -> 1.15.17 (code 147)**
 Allowed consumed transition: **1.15.17 (code 147) -> 1.15.19 (code 149)**
 Allowed consumed transition: **1.15.19 (code 149) -> 1.15.21 (code 151)**
@@ -258,3 +259,5 @@ Previous baseline: 1.13.26 (code 115).
 
 - Consumed side-branch identity: **1.21.17 (code 240)** — PR #156 (`wip/149-theme-accessibility`, tip `b24c54f`) already commits this identity. This performance stage does not import that unrelated theme work; 1.21.17 must not be reused.
 - 1.21.18 (code 241) — Library Performance v2, stages 1–2: bounded shared thumbnail queue with viewport priority, fling cancellation/deferral, immediate filesystem-free RAM hits, two-entry idle disk-only prefetch, playback-aware allocation-byte LRU budget, sampled disk reads, verified-byte embedded/folder-cover deduplication, offline-analysis permits and queue/memory diagnostics. Stack audio/video output and alignment v6 are unchanged. SOURCE_ONLY; build/tests and device checks are recorded separately in HANDOFF.md.
+- Consumed side-branch identity: **1.21.19 (code 242)** — PR #156, commit `876cc24`, integrates Void OLED on 1.21.18. Preserved but not imported into the Stack work.
+- 1.21.20 (code 243) — instrument-first Stack v7: bounded median-mask STFT percussion/bass/chroma, distributed same-domain anchors, transposition and repeated-section rejection, linear map applied through existing pitch-preserving runtime, bounded original-rate transient refinement. SOURCE_ONLY; local tests/build/device checks recorded in HANDOFF; existing APK provenance blocker #158 remains.

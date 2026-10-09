@@ -773,7 +773,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch {
             val id = java.util.UUID.randomUUID().toString()
             preferences.saveStack(com.local.listentomusic.data.SavedStack(id, resolvedName,
-                clean.map { com.local.listentomusic.data.SavedStackTrack(it.file.path, it.volume, it.muted, it.solo, it.offsetMs) },
+                clean.map { com.local.listentomusic.data.SavedStackTrack(it.file.path, it.volume, it.muted, it.solo, it.offsetMs, it.alignmentScale, it.alignmentOffsetUs) },
                 primary?.takeIf { path -> clean.any { it.file.path == path } } ?: clean.first().file.path,
                 loop, cleanKeyword))
             offerUndo("Saved \"$resolvedName\"") { preferences.deleteStack(id) }

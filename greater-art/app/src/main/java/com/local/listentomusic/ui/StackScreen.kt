@@ -97,14 +97,15 @@ fun StackScreen(
         if (session.active) {
             stagedPaths = session.slots.map { it.file.path }
             stagedPresetRaw = com.local.listentomusic.data.SavedStackCodec.encode(listOf(SavedStack("draft", "draft", session.slots.map {
-                com.local.listentomusic.data.SavedStackTrack(it.file.path, it.volume, it.muted, it.solo, it.offsetMs)
+                com.local.listentomusic.data.SavedStackTrack(it.file.path, it.volume, it.muted, it.solo, it.offsetMs, it.alignmentScale, it.alignmentOffsetUs)
             }, session.primaryPath ?: session.slots.first().file.path, session.loopEnabled)))
         }
     }
 
     val displayed = if (session.active) session.slots else staged.map { file ->
         val saved = stagedPreset?.tracks?.firstOrNull { it.path == file.path }
-        StackSlot(file, saved?.volume ?: 1f, saved?.muted ?: false, saved?.solo ?: false, offsetMs = saved?.offsetMs ?: 0L)
+        StackSlot(file, saved?.volume ?: 1f, saved?.muted ?: false, saved?.solo ?: false, offsetMs = saved?.offsetMs ?: 0L,
+            alignmentScale = saved?.alignmentScale ?: 1.0, alignmentOffsetUs = saved?.alignmentOffsetUs)
     }
     val displayedPaths = remember(displayed) { displayed.map { it.file.path }.toSet() }
     val nowPlayingSource = nowPlayingPath?.let(::sourceMediaPath)
@@ -422,7 +423,9 @@ fun StackScreen(
                                         if (slot.solo) StackPlayback.toggleSolo(slot.file.path)
                                     }
                                     StackPlayback.setLoop(stagedPreset?.loopEnabled ?: STACK_LOOP_DEFAULT)
-                                    StackPlayback.setOffsets(displayed.associate { it.file.path to it.offsetMs })
+                                    StackPlayback.setAlignments(displayed.associate { it.file.path to
+                                        com.local.listentomusic.playback.StackAlignment(it.offsetMs, 1.0, true,
+                                            timeScale = it.alignmentScale, offsetUs = it.alignmentOffsetUs ?: it.offsetMs * 1000.0) })
                                     error = null
                                 } else {
                                     error = uiText(language, "Could not start these files on this device", "這部裝置無法播放這些檔案")
@@ -666,9 +669,11 @@ private fun StackTrackRow(
             }
             if (sessionActive) {
                 if (!isPrimary) Row(Modifier.fillMaxWidth().padding(horizontal = 14.dp), verticalAlignment = Alignment.CenterVertically) {
-                    TextButton(onClick = { StackPlayback.setOffset(path, slot.offsetMs - 100L) }) { Text("−0.1s") }
+                    TextButton(onClick = { StackPlayback.setAlignments(mapOf(path to com.local.listentomusic.playback.StackAlignment(
+                        slot.offsetMs - 100L, 1.0, true, slot.alignmentScale, (slot.alignmentOffsetUs ?: slot.offsetMs * 1000.0) - 100_000))) }) { Text("−0.1s") }
                     Text(java.lang.String.format(java.util.Locale.ROOT, "%+.2fs", slot.offsetMs / 1000.0), Modifier.weight(1f), style = MaterialTheme.typography.labelMedium)
-                    TextButton(onClick = { StackPlayback.setOffset(path, slot.offsetMs + 100L) }) { Text("+0.1s") }
+                    TextButton(onClick = { StackPlayback.setAlignments(mapOf(path to com.local.listentomusic.playback.StackAlignment(
+                        slot.offsetMs + 100L, 1.0, true, slot.alignmentScale, (slot.alignmentOffsetUs ?: slot.offsetMs * 1000.0) + 100_000))) }) { Text("+0.1s") }
                     TextButton(onClick = { StackPlayback.setOffset(path, 0L) }) { Text(uiText(language, "Reset alignment", "重設對齊")) }
                 }
                 Row(Modifier.fillMaxWidth().padding(horizontal = 18.dp), verticalAlignment = Alignment.CenterVertically) {
