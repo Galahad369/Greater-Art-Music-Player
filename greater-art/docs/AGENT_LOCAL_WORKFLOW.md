@@ -117,6 +117,11 @@ Preserve versioned source commits. Use a checked merge commit with an expected-h
 
 ## Core invariants
 
+- If a small source push repeatedly times out, inspect pack progress and the
+  actual remote SHA before retrying. Git may resend historical APK objects;
+  negotiate existing objects rather than deleting binaries, rewriting history,
+  or claiming that `Everything up-to-date` after an RPC error means success.
+
 - `main` is canonical.
 - Never silently reuse consumed versions.
 - Executable change + version bump are atomic.

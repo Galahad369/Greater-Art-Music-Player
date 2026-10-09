@@ -103,3 +103,12 @@ not three exercised methods per variant.
 - Integrated default-off gate: 278 JVM tests pass; lint 0 errors / 28 warnings;
   Android app/test APK build pass. Unchanged version guard passes source 1.21.23
   plus current main's owner-confirmed 1.21.18 hash/manifest metadata.
+- Exact source commit `881f39c` was tested again after integrating current main.
+  API 36 default-off native/gate coverage passed; enabled transport/native coverage
+  passed in 17.196 seconds (each variant intentionally skips the opposite gate).
+  This repeat measured eight-voice peak mix 461,121 us, 0 reported underruns;
+  six compressed voices measured peak 8,005 us, 0 underruns, 1 decoder wait and
+  Java heap 14,788,736 bytes. Cold timing varies considerably: neither zero
+  underruns nor a short emulator snapshot establishes a performance pass.
+- Alignment PR #152 merged as `af626b5` after every exact-head CI check passed.
+  The ordinary independent-player convergence limitation remains open.
