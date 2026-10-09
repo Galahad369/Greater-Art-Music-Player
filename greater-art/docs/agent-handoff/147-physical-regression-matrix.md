@@ -86,3 +86,11 @@ No quality cap, permission, production cache-scheduler or surface-route changes
 are introduced by this evidence report. Main has now finalized owner-confirmed
 1.21.18 provenance; the unchanged version guard passes tracked SHA/manifest
 checks, without retroactively certifying older binaries. New sources are SOURCE_ONLY.
+
+Exact-source `881f39c` API 36 repeat: default-off native/gate coverage passed;
+enabled transport/native coverage passed in 17.196 s. Eight-voice peak mix was
+461.121 ms with 0 reported underruns; six compressed voices peaked at 8.005 ms
+with 0 underruns, 1 decoder wait and a 14.79 MB Java heap snapshot. These variable
+cold timings reinforce the NOT ACCEPTED performance gate above. Each variant
+intentionally skips the opposite feature-gate method, not three exercised tests.
+PR #152 merged as `af626b5` after all exact-head CI checks passed.
