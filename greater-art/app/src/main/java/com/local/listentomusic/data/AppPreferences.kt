@@ -70,6 +70,7 @@ enum class ColorTheme(val label: String) {
     INDIGO("Astra"),
     ROSE("Nova"),
     MONOCHROME("Space Black"),
+    VOID("Void OLED"),
 }
 enum class FloatingWindowMode { COMPACT, FOLLOW_VIDEO, MINI_WINDOW }
 enum class AppLanguage(val label: String) {
