@@ -809,6 +809,9 @@ class MiniWindowOverlayService : Service(), LifecycleOwner, ViewModelStoreOwner,
                 WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS.inv() and
                 WindowManager.LayoutParams.FLAG_FULLSCREEN.inv()
         }
+        // Only the expanded Now Playing overlay keeps the display awake.
+        // Both docked and detached Mini Window modes must allow screen timeout.
+        layout.flags = playerWindowScreenAwakeFlags(layout.flags, mode)
         layout.dimAmount = if (expanded) .14f else 0f
         if (expanded) {
             layout.x = 0
