@@ -8,8 +8,8 @@ This file is the authoritative version policy for Greater Art. If any handoff no
 
 
 Current source: **1.21.18 (code 241)**
-Current release state: **SOURCE_ONLY**
-Latest verified APK: **1.15.77 (code 207)**
+Current release state: **VERIFIED**
+Latest verified APK: **1.21.18 (code 241)**
 Allowed series transition: **1.14.15 -> 1.15.1**
 Allowed series transition: **1.15.89 -> 1.20.2**
 Allowed series transition: **1.20.5 -> 1.21.1**
@@ -258,3 +258,9 @@ Previous baseline: 1.13.26 (code 115).
 
 - Consumed side-branch identity: **1.21.17 (code 240)** — PR #156 (`wip/149-theme-accessibility`, tip `b24c54f`) already commits this identity. This performance stage does not import that unrelated theme work; 1.21.17 must not be reused.
 - 1.21.18 (code 241) — Library Performance v2, stages 1–2: bounded shared thumbnail queue with viewport priority, fling cancellation/deferral, immediate filesystem-free RAM hits, two-entry idle disk-only prefetch, playback-aware allocation-byte LRU budget, sampled disk reads, verified-byte embedded/folder-cover deduplication, offline-analysis permits and queue/memory diagnostics. Stack audio/video output and alignment v6 are unchanged. SOURCE_ONLY; build/tests and device checks are recorded separately in HANDOFF.md.
+
+## 9 October 2026 — 1.21.18 release-finalization candidate
+
+- Owner confirmed that the 1.21.18 APK was verified. The existing HANDOFF QA record specifies package `com.local.listentomusic`, version 1.21.18/code241, a 27,746,006-byte APK, SHA-256 `bba973d127a9dec1f03b29fca1a146707c9feee82497e9a65ab196870b696b3d`, signing certificate `9e28eb45b3b171c3ea47d7da942d28d88b16538885e392a6971a80906d612fbf`, zip alignment, 249 JVM tests and three API36 emulator regressions. The working-tree QA run was recorded before commit `2edb328a`; exact committed-source equivalence is owner-attested and **not independently proven by that older handoff alone**.
+- **Mandatory independent gate before merge:** The unmodified version guard must read the *tracked* `releases/GreaterArt-1.21.18.apk`, recompute its SHA-256, match the hash in HANDOFF, and validate APK package/version metadata via `aapt`. If it fails, do not merge this candidate, relabel the artifact, or modify the guard to conceal provenance defects.
+- Older 1.21.x binaries are preserved, not retroactively certified. This finalization only applies to the 1.21.18 candidate; issue #158 retains full history and evidence.
