@@ -1,6 +1,6 @@
 # Issue #145 — Stack Align v7
 
-Implementation: source 1.21.20 / code 243, existing PR #152. This is no longer
+Implementation: source 1.21.22 / code 245 after main integration, existing PR #152. This is no longer
 a documentation-only bootstrap. Production matching delegates to StackInstrumentAlign;
 the original v6 decoder remains an internal device-regression baseline only.
 
@@ -53,13 +53,17 @@ the original v6 decoder remains an internal device-regression baseline only.
 - First-pair comparison: v6 accepted -27 ms; four-window v7 abstained because an
   intro produced a conflicting +160 ms/pitch candidate and there were insufficient
   distributed mono anchors. Six-window support and evidence-gated pitch consensus
-  were added; all JVM tests/lint/build pass, but the emulator process disappeared
-  during that rerun. The six-window real-take rerun remains unverified.
+  were added. The subsequent API 36 rerun passed in 50.711 seconds, including
+  cache-corruption recovery and reuse. Five anchors support -27.553833 ms,
+  scale 0.9999707975922502, score 0.7050321, residual 1.6383835 ms. This is
+  multi-region consistency, not acoustic ground-truth accuracy.
 - No physical
   acoustic ground truth or universal phase lock is claimed. v6 comparison logs must
   not be interpreted as accuracy measurements without manually labelled ground truth.
-- Version guard is blocked by exactly ten inherited newer unverified APKs (#158).
-  Nothing was deleted, relabelled, promoted or bypassed. Current source stays SOURCE_ONLY.
+- The original version guard failed on ten inherited unverified APKs (#158).
+  Main later finalized owner-confirmed 1.21.18 provenance; integrating that metadata
+  makes the unchanged current-tree guard pass SHA/manifest checks. Older artifacts
+  are preserved, not retroactively certified. Source stays SOURCE_ONLY.
 
 ## Baseline
 
@@ -103,5 +107,8 @@ Do not regress those safeguards.
 - Analysis remains cancellable and bounded.
 - Do not claim sample-accurate playback; #146 owns runtime architecture.
 
-The original bootstrap was documentation-only. This source stage consumes 1.21.20;
-1.21.17 and 1.21.19 remain recorded as consumed side-branch identities.
+The original bootstrap was documentation-only. Initial source `49a3cd6` consumed
+1.21.20. Main concurrently consumed 1.21.19/20 for other changes; both histories
+are preserved and the alignment integration advances to 1.21.22/code245 after
+main also consumed 1.21.21/code244 for Void OLED. No uncommitted test identity
+is treated as a consumed release or retained APK.

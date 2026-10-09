@@ -206,7 +206,7 @@ fun SettingsScreen(
                 )
                 ChoiceSetting(
                     uiText(language, "Color theme", "色彩主題"),
-                    uiText(language, "Choose an accent palette while keeping your light/dark mode preference.", "在保留淺色／深色模式偏好的同時，選擇你喜歡的色彩調性。"),
+                    uiText(language, "Choose a palette. Void OLED always uses true-black dark surfaces; other palettes follow your appearance setting.", "選擇色彩主題。Void OLED 固定使用純黑深色介面；其他主題會跟隨外觀設定。"),
                     ColorTheme.entries,
                     preferences.colorTheme,
                     {
@@ -217,6 +217,7 @@ fun SettingsScreen(
                             ColorTheme.INDIGO -> uiText(language, "Astra", "Astra")
                             ColorTheme.ROSE -> uiText(language, "Nova", "Nova")
                             ColorTheme.MONOCHROME -> uiText(language, "Space Black", "Space Black")
+                            ColorTheme.VOID -> uiText(language, "Void OLED", "Void OLED")
                         }
                     },
                     onColorTheme,

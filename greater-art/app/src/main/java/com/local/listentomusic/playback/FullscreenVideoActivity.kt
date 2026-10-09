@@ -33,6 +33,9 @@ class FullscreenVideoActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         viewModel.useSessionPresentationOnly()
+        // Landscape fullscreen is a separate Activity; its own window must stay awake.
+        // This applies to paused playback and is released when fullscreen closes.
+        window.addFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
         enforceImmersiveSystemBars()
         setContent {
             val playback by viewModel.playback.collectAsState()

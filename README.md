@@ -4,20 +4,27 @@ Greater Art is a local-first Android audio and video player. This repository con
 
 > **Vibe-coded disclosure:** Greater Art was built through iterative work with AI coding agents. Human direction, product decisions, device feedback, and acceptance guide the work; substantial code and documentation are AI-assisted.
 
-- Verified build: **1.15.77 (code 207)** — preserves the reviewed Stack alignment/readiness work and adds guarded decoder-pressure recovery so stale recovery jobs cannot interfere with a replacement Stack. The recorded API 36 verification covers build/lint/tests, package/version/signature checks, playback and Stack transitions. Emulator state is not acoustic synchronization proof; see the handoff.
-- APK: [GreaterArt-1.15.77.apk](greater-art/releases/GreaterArt-1.15.77.apk)
+- Latest owner-verified APK: **1.21.18 (code 241)** — see the [verification boundary](greater-art/HANDOFF.md) for test and signing evidence; this does not verify the newer source changes.
+- APK: [GreaterArt-1.21.18.apk](greater-art/releases/GreaterArt-1.21.18.apk)
 - [App documentation](greater-art/README.md) · [Handoff and verification](greater-art/HANDOFF.md)
 - [User demonstration](greater-art-user-demo.html) · [Technical demonstration](greater-art-technical-demo.html)
 
-Current source: **1.21.20 / code 243 — SOURCE_ONLY**, instrument-first Stack alignment
+Current source: **1.21.23 / code 246 — SOURCE_ONLY**, default-off shared-clock PCM
+developer prototype plus instrument-first Stack alignment
 with distributed timing anchors, confidence-gated linear drift maps and bounded
 original-rate transient refinement. Library Performance v2
 stages 1–2. Shared viewport-priority artwork work pauses during fling; RAM hits stay
 immediate, allocation budgets respond to playback/Stack pressure, and verified
 identical covers reuse assets. No playback-quality constraint or network permission.
+Main's screen-awake, fullscreen-lock and Void OLED changes are preserved. Full-size screens
+(Library, Settings, expanded Now Playing and landscape fullscreen) now request the
+display stay awake whether playback is running or paused. Floating Mini Window and
+Android picture-in-picture allow normal screen timeout. No new permissions.
+Previous 1.21.18 work introduced Library Performance v2 (shared viewport-priority
+artwork, fling-aware scheduling, memory-pressure budgets and verified cover reuse).
 See the [staged Stack/performance plan](greater-art/docs/PERFORMANCE_AND_STACK_UPGRADE_PLAN.md).
 Timing maps are implemented in source, not a verified release. The shared-clock
-mixer is a separate prototype stage, not the production audio path.
+mixer is implemented as a separate debug/test prototype, not the production audio path.
 
 Greater Art has no Internet permission, advertisements, accounts, analytics, telemetry, or cloud playback dependency. Library files stay on the device. Playback history is optional, off by default, and can be burned locally.
 
