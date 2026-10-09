@@ -255,6 +255,21 @@ private val monochromePalette = AppColorPalette(
     ),
 )
 
+// Void OLED intentionally leaves Space Black unchanged. Flat surfaces are true black;
+// raised containers and outlines keep interactive controls distinguishable.
+private val voidPalette = AppColorPalette(
+    light = monochromePalette.light,
+    dark = monochromePalette.dark.copy(
+        background = Color.Black,
+        surface = Color.Black,
+        surfaceVariant = Color(0xFF171717),
+        primaryContainer = Color(0xFF222222),
+        onPrimaryContainer = Color.White,
+        outline = Color(0xFF979797),
+        outlineVariant = Color(0xFF434343),
+    ),
+)
+
 internal val LightColors = forestPalette.light
 internal val DarkColors = forestPalette.dark
 
@@ -266,8 +281,10 @@ internal fun appColorScheme(theme: ColorTheme, dark: Boolean): ColorScheme {
         ColorTheme.INDIGO -> indigoPalette
         ColorTheme.ROSE -> rosePalette
         ColorTheme.MONOCHROME -> monochromePalette
+        ColorTheme.VOID -> voidPalette
     }
-    val colors = if (dark) palette.dark else palette.light
+    // Explicit Void choice wins over Light/System to prevent grey or light surfaces.
+    val colors = if (dark || theme == ColorTheme.VOID) palette.dark else palette.light
     // Material's default secondary containers are lavender even in Forest/Amber.
     // Derive every control surface from the selected palette instead.
     return colors.copy(
@@ -283,7 +300,8 @@ internal fun appColorScheme(theme: ColorTheme, dark: Boolean): ColorScheme {
         onSecondaryContainer = colors.onSurface,
         tertiaryContainer = androidx.compose.ui.graphics.lerp(colors.surfaceVariant, colors.tertiary, .12f),
         onTertiaryContainer = colors.onSurface,
-        surfaceTint = colors.primary,
+        // Disable tonal tint on Void's black base surfaces.
+        surfaceTint = if (theme == ColorTheme.VOID) Color.Transparent else colors.primary,
     )
 }
 

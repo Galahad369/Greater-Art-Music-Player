@@ -239,6 +239,13 @@ class MainActivity : ComponentActivity() {
     ) {
         super.onPictureInPictureModeChanged(isInPictureInPictureMode, newConfig)
         isPictureInPicture = isInPictureInPictureMode
+        // PiP is a small floating player: let Android's normal screen timeout apply.
+        // The full-size app keeps the display awake even when playback is paused.
+        if (isInPictureInPictureMode) {
+            window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+        } else {
+            window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+        }
     }
 
     private fun updatePictureInPictureParams() {

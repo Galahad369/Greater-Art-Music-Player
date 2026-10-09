@@ -7,15 +7,16 @@ This file is the authoritative version policy for Greater Art. If any handoff no
 ## Machine-checkable state
 
 
-Current source: **1.21.20 (code 243)**
+Current source: **1.21.22 (code 245)**
 Current release state: **SOURCE_ONLY**
-Latest verified APK: **1.15.77 (code 207)**
+Latest verified APK: **1.21.18 (code 241)**
 Allowed series transition: **1.14.15 -> 1.15.1**
 Allowed series transition: **1.15.89 -> 1.20.2**
 Allowed series transition: **1.20.5 -> 1.21.1**
 Allowed consumed transition: **1.20.2 (code 220) -> 1.20.4 (code 222)**
 Allowed consumed transition: **1.21.16 (code 239) -> 1.21.18 (code 241)**
 Allowed consumed transition: **1.21.18 (code 241) -> 1.21.20 (code 243)**
+Allowed consumed transition: **1.21.20 (code 243) -> 1.21.22 (code 245)**
 Allowed consumed transition: **1.15.13 (code 143) -> 1.15.17 (code 147)**
 Allowed consumed transition: **1.15.17 (code 147) -> 1.15.19 (code 149)**
 Allowed consumed transition: **1.15.19 (code 149) -> 1.15.21 (code 151)**
@@ -260,4 +261,16 @@ Previous baseline: 1.13.26 (code 115).
 - Consumed side-branch identity: **1.21.17 (code 240)** — PR #156 (`wip/149-theme-accessibility`, tip `b24c54f`) already commits this identity. This performance stage does not import that unrelated theme work; 1.21.17 must not be reused.
 - 1.21.18 (code 241) — Library Performance v2, stages 1–2: bounded shared thumbnail queue with viewport priority, fling cancellation/deferral, immediate filesystem-free RAM hits, two-entry idle disk-only prefetch, playback-aware allocation-byte LRU budget, sampled disk reads, verified-byte embedded/folder-cover deduplication, offline-analysis permits and queue/memory diagnostics. Stack audio/video output and alignment v6 are unchanged. SOURCE_ONLY; build/tests and device checks are recorded separately in HANDOFF.md.
 - Consumed side-branch identity: **1.21.19 (code 242)** — PR #156, commit `876cc24`, integrates Void OLED on 1.21.18. Preserved but not imported into the Stack work.
-- 1.21.20 (code 243) — instrument-first Stack v7: bounded median-mask STFT percussion/bass/chroma, distributed same-domain anchors, transposition and repeated-section rejection, linear map applied through existing pitch-preserving runtime, bounded original-rate transient refinement. SOURCE_ONLY; local tests/build/device checks recorded in HANDOFF; existing APK provenance blocker #158 remains.
+- Consumed side-branch identity: **1.21.20 (code 243)** — Stack v7 commit `49a3cd6`. Main concurrently consumed this numeric identity for fullscreen-lock changes; both histories remain preserved, not rewritten.
+
+- 1.21.19 (code 242) — Keep full-size Greater Art pages awake regardless of audio/video playback state: foreground Library/Settings, expanded system-overlay Now Playing, and dedicated landscape fullscreen Activity. Both docked/detached Mini Window overlays clear KEEP_SCREEN_ON; Android PiP clears MainActivity's flag, restoring it upon exit. Add regression tests for window-mode flag transitions. SOURCE_ONLY; no 1.21.19 APK. **Version-policy recovery:** the immediately preceding implementation commit `51659dc` changed executable code without the mandatory version bump. In accordance with rule 9, history was preserved and this follow-up records and consumes 1.21.19/code242. It does not retroactively make that earlier commit compliant; range-guard failure on the earlier commit is recorded, and current-tree validation must pass.
+
+- 1.21.20 (code 243) — Fullscreen Now Playing chrome and player-lock icon now share a single visibility state: fade the lock with all other immersive video controls (including after the 2.5-second auto-hide); a tap on locked video restores access to Unlock without sending touches to seek/play/zoom. Preserve nonimmersive audio and portrait-video lock visibility, same-side double-tap seeking, and the measured toolbar anchor position. Add visibility-regression assertions. SOURCE_ONLY; no APK was produced.
+
+- 1.21.21 (code 244) — Reconcile PR #156 Void OLED palette from the previously consumed side branch onto the 1.21.20 main source without replacing the 1.21.19 screen-awake or 1.21.20 fullscreen lock fixes. Add true-black flat surfaces, distinct raised control surfaces, forced dark Void appearance, untinted elevation, persisted Settings selection and unit palette regressions. Space Black and other themes remain unchanged. Issue #149's High Contrast, artwork-adaptive accent and launch-window polish remain separate. SOURCE_ONLY; exact-head CI and physical OLED verification required; no APK produced.
+## 9 October 2026 — 1.21.18 release-finalization candidate
+
+- Owner confirmed that the 1.21.18 APK was verified. The existing HANDOFF QA record specifies package `com.local.listentomusic`, version 1.21.18/code241, a 27,746,006-byte APK, SHA-256 `bba973d127a9dec1f03b29fca1a146707c9feee82497e9a65ab196870b696b3d`, signing certificate `9e28eb45b3b171c3ea47d7da942d28d88b16538885e392a6971a80906d612fbf`, zip alignment, 249 JVM tests and three API36 emulator regressions. The working-tree QA run was recorded before commit `2edb328a`; exact committed-source equivalence is owner-attested and **not independently proven by that older handoff alone**.
+- **Mandatory independent gate before merge:** The unmodified version guard must read the *tracked* `releases/GreaterArt-1.21.18.apk`, recompute its SHA-256, match the hash in HANDOFF, and validate APK package/version metadata via `aapt`. If it fails, do not merge this candidate, relabel the artifact, or modify the guard to conceal provenance defects.
+- Older 1.21.x binaries are preserved, not retroactively certified. This finalization only applies to the 1.21.18 candidate; issue #158 retains full history and evidence.
+- 1.21.22 (code 245) — integrate Stack instrument-first v7 with current main's screen-awake/fullscreen-lock/Void OLED changes and owner-confirmed 1.21.18 metadata. Parallel 1.21.20 histories are retained; main's committed 1.21.21 is accounted for by the exact consumed transition. SOURCE_ONLY; no release artifact produced.

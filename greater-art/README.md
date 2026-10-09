@@ -4,12 +4,17 @@ Greater Art is a native Kotlin/Jetpack Compose player for local music and video.
 
 ## Current release
 
-Current source is **1.21.20 / code 243 — SOURCE_ONLY**.
+Current source is **1.21.22 / code 245 — SOURCE_ONLY**.
 Stack v7 weights shared instrumental attacks and harmonic progression, accepts only
 distributed confident timing maps, and preserves uncertain/manual offsets. Saved
 Stacks retain fractional offsets and linear scale; existing companions apply these
 with pitch preserved. Nonuniform tempo/ambiguous arrangements abstain.
-This stage implements the shared thumbnail scheduler and cache-pressure improvements:
+Main's fullscreen-lock and Void OLED changes are preserved. The foreground
+Library/Settings, expanded Now Playing overlay and landscape fullscreen keep the
+display awake whether or not audio/video is playing. Detached Mini Window and PiP
+do not keep the display awake. This is a source-only change, not a verified APK.
+
+The previous **1.21.18 / code 241** stage introduced the shared thumbnail scheduler and cache-pressure improvements:
 immediate RAM hits during fling; bounded, deduplicated viewport-priority misses;
 cooperative cancellation; two-entry idle disk-only prefetch; sampled disk decoding;
 playback-aware allocation-byte budget; and verified-byte embedded/folder-cover reuse.
@@ -21,7 +26,9 @@ quality is unchanged. No new permissions or dependencies.
 Bounded HPSS-weighted analysis and linear timing maps are implemented in source;
 HPSS is not vocal removal. Shared-clock output is still a separate prototype stage.
 
-Current verified build: **1.15.77/code207**, exact app source `bc1c645a3be77a0b64c4c0c523b85ccd242e292d`. It preserves the reviewed Stack alignment/readiness work and adds guarded decoder-pressure recovery so stale recovery coroutines cannot pause or publish into a replacement Stack. The API 36 verification boundary in HANDOFF covers build/lint/tests, package/version/signature checks, local media playback, Stack transitions, Mini/fullscreen/return flows and zero fatal exceptions in the tested session. This is not real-phone acoustic synchronization proof, and fixed offsets do not time-warp different arrangements or tempos.
+Latest owner-verified APK: **1.21.18/code241** (see HANDOFF for bounded QA, artifact hash and provenance limitations).
+
+Earlier verified build: **1.15.77/code207**, exact app source `bc1c645a3be77a0b64c4c0c523b85ccd242e292d`. It preserves the reviewed Stack alignment/readiness work and adds guarded decoder-pressure recovery so stale recovery coroutines cannot pause or publish into a replacement Stack. The API 36 verification boundary in HANDOFF covers build/lint/tests, package/version/signature checks, local media playback, Stack transitions, Mini/fullscreen/return flows and zero fatal exceptions in the tested session. This is not real-phone acoustic synchronization proof, and fixed offsets do not time-warp different arrangements or tempos.
 
 - Verified build: **1.15.77**, code **207**.
 - Application ID: `com.local.listentomusic`

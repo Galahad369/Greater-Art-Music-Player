@@ -3,14 +3,14 @@
 This file describes the **current repository state only**. Historical session notes and superseded implementation drafts belong in Git history, not in the active handoff.
 
 **Project:** `greater-art/` in the repository checkout
-**Current source:** `1.21.20 (code 243)` — SOURCE_ONLY; Stack instrument alignment v7
-**Current version:** `1.15.77 (code 207)` — latest verified release, not current source
-**Latest APK:** `releases/GreaterArt-1.15.77.apk` (`26,549,909 bytes`; SHA-256 `2d1d5edb67013a1ecc39daa3f83903ac1a9d127ef0d69a2db414f500d841024f`)
+**Current source:** `1.21.22 (code 245)` — SOURCE_ONLY; Stack v7 plus current-main integration
+**Current version:** `1.21.18 (code 241)`
+**Latest APK:** `releases/GreaterArt-1.21.18.apk` (`27,746,006 bytes`; SHA-256 `bba973d127a9dec1f03b29fca1a146707c9feee82497e9a65ab196870b696b3d`)
 **Application ID:** `com.local.listentomusic`
 **Signing certificate SHA-256:** `9e28eb45b3b171c3ea47d7da942d28d88b16538885e392a6971a80906d612fbf`
-**Build date:** `2026-10-05`
+**Build date:** `2026-10-09`
 **Test device:** `GreaterArt_A55_API36 (A55-sized emulator, API 36, Android 16)`
-**Verification boundary:** Built from exact source commit `00ca689`; `./gradlew testDebugUnitTest lintDebug :app:assembleDebug --offline` passed; `aapt dump badging` confirms package `com.local.listentomusic`, versionName `1.15.77`, versionCode `207`; signed with personal debug keystore; installed on A55/API 36; launch, library scan/load, local audio/video playback, prev/next/seek/pause/resume, playlist/Favorites playback, duplicate queue independence, Stack→Library/playlist transition, queue/Library add-to-list, Library delete three-confirm flow, mini-window/fullscreen/return flows verified; **0 FATAL EXCEPTION** in tested session.
+**Verification boundary:** Owner confirmed 1.21.18 verification on 9 October 2026. The existing 1.21.18 QA record below reports 249 JVM tests (0 failures), 0 lint errors, three passing API 36 ThumbnailPipelineTest regressions, Library/playback smoke, and no observed FATAL EXCEPTION or ANR in its bounded session; it records a 27,746,006-byte debug APK, package `com.local.listentomusic`, versionName `1.21.18`, versionCode `241`, ZIP alignment pass, personal debug signing certificate as above, and SHA-256 `bba973d127a9dec1f03b29fca1a146707c9feee82497e9a65ab196870b696b3d`. That earlier test took place on an uncommitted local source tree later incorporated into `2edb328a`; exact committed-source equivalence is owner-attested, not independently proven by that record alone. The separate release-finalization PR must pass the *unmodified* Version Consistency guard's SHA-256/manifest checks against the actual tracked APK before merge. Historical records remain below unchanged.
 
 ## Repository state
 
@@ -40,8 +40,15 @@ This file describes the **current repository state only**. Historical session no
   `docs/agent-handoff/145-stack-align-v7.md`. Shared output-clock work remains a
   separate, default-off prototype; independent ExoPlayer position agreement is
   not sample-accurate acoustic synchronization.
-- Inherited release provenance remains blocked by #158: preserve all historical
-  APKs and the last verified ledger identity; do not bypass the version guard.
+- Main advanced concurrently through screen-awake/fullscreen-lock/Void OLED
+  1.21.19/20/21. Both histories are preserved; integration consumes 1.21.22/code245.
+  The unchanged version guard now passes main's owner-confirmed 1.21.18 metadata.
+  This verifies its tracked hash/manifest, not acoustic playback or all older APKs.
+### October 9 — 1.21.18 release-finalization candidate (owner-confirmed)
+
+- The repository owner confirmed verification of the 1.21.18 APK. This documentation-only candidate updates release pointers from 1.15.77 to 1.21.18 without modifying any binary. A later GitHub Version Consistency run must independently validate the tracked APK's SHA-256 and manifest; a passing guard alone does not prove the origin of the original QA build.
+- Earlier QA notes saying the artifact was **not yet a release** are preserved as time-stamped history. They predate this candidate's finalization and should not be read as new verification of all earlier 1.21.x APKs.
+- Full ten-artifact history remains in #158. No binaries are deleted, overwritten, renamed or retroactively certified.
 
 ### October 9 — Library Performance v2, stages 1–2 (local source only)
 

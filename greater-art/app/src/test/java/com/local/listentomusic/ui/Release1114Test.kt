@@ -55,6 +55,14 @@ class Release1114Test {
         assertTrue(NOW_PLAYING_ART_STAGE_ALPHA in 0f..NOW_PLAYING_AMBIENT_PANEL_ALPHA)
     }
 
+    @Test fun fullscreenVideoLockFollowsPlaybackControlVisibility() {
+        assertTrue(shouldShowPlayerLock(immersiveVideo = true, videoControlsVisible = true))
+        assertFalse(shouldShowPlayerLock(immersiveVideo = true, videoControlsVisible = false))
+        // The audio/portrait lock remains independently accessible.
+        assertTrue(shouldShowPlayerLock(immersiveVideo = false, videoControlsVisible = true))
+        assertTrue(shouldShowPlayerLock(immersiveVideo = false, videoControlsVisible = false))
+    }
+
     @Test fun playerLockUsesMeasuredAnchorCoordinatesInsteadOfButtonCountOffsets() {
         val root = androidx.compose.ui.geometry.Rect(20f, 40f, 420f, 840f)
         val slot = androidx.compose.ui.geometry.Rect(272f, 58f, 320f, 106f)
