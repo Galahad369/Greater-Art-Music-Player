@@ -7,7 +7,7 @@ This file is the authoritative version policy for Greater Art. If any handoff no
 ## Machine-checkable state
 
 
-Current source: **1.21.18 (code 241)**
+Current source: **1.21.19 (code 242)**
 Current release state: **SOURCE_ONLY**
 Latest verified APK: **1.15.77 (code 207)**
 Allowed series transition: **1.14.15 -> 1.15.1**
@@ -258,3 +258,5 @@ Previous baseline: 1.13.26 (code 115).
 
 - Consumed side-branch identity: **1.21.17 (code 240)** — PR #156 (`wip/149-theme-accessibility`, tip `b24c54f`) already commits this identity. This performance stage does not import that unrelated theme work; 1.21.17 must not be reused.
 - 1.21.18 (code 241) — Library Performance v2, stages 1–2: bounded shared thumbnail queue with viewport priority, fling cancellation/deferral, immediate filesystem-free RAM hits, two-entry idle disk-only prefetch, playback-aware allocation-byte LRU budget, sampled disk reads, verified-byte embedded/folder-cover deduplication, offline-analysis permits and queue/memory diagnostics. Stack audio/video output and alignment v6 are unchanged. SOURCE_ONLY; build/tests and device checks are recorded separately in HANDOFF.md.
+
+- 1.21.19 (code 242) — integrate the previously consumed Void OLED feature (#149 / PR #156) on top of 1.21.18 without overwriting Library Performance v2. Add a distinct Void OLED palette with truly black background/flat surfaces, untinted tonal elevation, visible raised controls and persistent Settings selection; do not alter the existing Space Black. Void intentionally remains dark under Light/System appearance. Add pure JVM theme palette regression tests. The original 1.21.17 / code 240 branch identity remains consumed, not reused. Other #149 theme improvements remain open. SOURCE_ONLY pending exact-head CI and device checks.
