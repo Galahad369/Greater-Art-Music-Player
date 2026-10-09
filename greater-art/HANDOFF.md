@@ -16,6 +16,18 @@ This file describes the **current repository state only**. Historical session no
 
 ### October 9 — Shared-clock prototype (PR #153, depends on #152)
 
+- Alignment PR #152 merged as `af626b5` after all exact-head CI checks passed.
+  Prototype implementation is `881f39c` (1.21.23/code246), deliberately separate
+  and default-off. No new versioned release APK was created or overwritten.
+- Exact-source API 36 repeat passed default-off native/gate coverage and enabled
+  transport/native coverage (17.196 seconds; opposite gate skipped per variant).
+  Repeat peaks: eight voices 461121 us / zero reported underruns; six compressed
+  takes 8005 us / zero underruns / one decoder wait / 14.79 MB Java heap snapshot.
+  Variable cold timing means neither run establishes sustained performance.
+- The unchanged version guard now passes current main's owner-confirmed 1.21.18
+  tracked hash/manifest, as well as source 1.21.23. The historical provenance
+  failure is resolved for that artifact, not a retroactive claim for every APK.
+
 - `SharedClockPcmPrototype` is a developer/test harness, not a production routing
   replacement. Gate: debug build AND explicit `-PstackPcmPrototype=true`; default off.
   No developer UI/production command silently switches audio engines.
