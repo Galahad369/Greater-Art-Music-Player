@@ -9,8 +9,7 @@ Library/Settings, expanded Now Playing overlay and landscape fullscreen keep the
 display awake whether or not audio/video is playing. Detached Mini Window and PiP
 do not keep the display awake. This is a source-only change, not a verified APK.
 
-The previous **1.21.18 / code 241** stage
-This stage implements the shared thumbnail scheduler and cache-pressure improvements:
+The previous **1.21.18 / code 241** stage introduced the shared thumbnail scheduler and cache-pressure improvements:
 immediate RAM hits during fling; bounded, deduplicated viewport-priority misses;
 cooperative cancellation; two-entry idle disk-only prefetch; sampled disk decoding;
 playback-aware allocation-byte budget; and verified-byte embedded/folder-cover reuse.
