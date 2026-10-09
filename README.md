@@ -4,15 +4,17 @@ Greater Art is a local-first Android audio and video player. This repository con
 
 > **Vibe-coded disclosure:** Greater Art was built through iterative work with AI coding agents. Human direction, product decisions, device feedback, and acceptance guide the work; substantial code and documentation are AI-assisted.
 
-- Verified build: **1.15.77 (code 207)** — preserves the reviewed Stack alignment/readiness work and adds guarded decoder-pressure recovery so stale recovery jobs cannot interfere with a replacement Stack. The recorded API 36 verification covers build/lint/tests, package/version/signature checks, playback and Stack transitions. Emulator state is not acoustic synchronization proof; see the handoff.
-- APK: [GreaterArt-1.15.77.apk](greater-art/releases/GreaterArt-1.15.77.apk)
+- Latest owner-verified APK: **1.21.18 (code 241)** — see the [verification boundary](greater-art/HANDOFF.md) for test and signing evidence; this does not verify the newer source changes.
+- APK: [GreaterArt-1.21.18.apk](greater-art/releases/GreaterArt-1.21.18.apk)
 - [App documentation](greater-art/README.md) · [Handoff and verification](greater-art/HANDOFF.md)
 - [User demonstration](greater-art-user-demo.html) · [Technical demonstration](greater-art-technical-demo.html)
 
-Current local source: **1.21.18 / code 241 — SOURCE_ONLY**, Library Performance v2
-stages 1–2. Shared viewport-priority artwork work pauses during fling; RAM hits stay
-immediate, allocation budgets respond to playback/Stack pressure, and verified
-identical covers reuse assets. No playback-quality constraint or network permission.
+Current source: **1.21.19 / code 242 — SOURCE_ONLY**. Full-size Greater Art screens
+(Library, Settings, expanded Now Playing and landscape fullscreen) now request the
+display stay awake whether playback is running or paused. Floating Mini Window and
+Android picture-in-picture allow normal screen timeout. No new permissions.
+Previous 1.21.18 work introduced Library Performance v2 (shared viewport-priority
+artwork, fling-aware scheduling, memory-pressure budgets and verified cover reuse).
 See the [staged Stack/performance plan](greater-art/docs/PERFORMANCE_AND_STACK_UPGRADE_PLAN.md).
 Instrument-first timing maps and a shared-clock mixer are still planned, not released.
 
