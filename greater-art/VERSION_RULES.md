@@ -7,7 +7,7 @@ This file is the authoritative version policy for Greater Art. If any handoff no
 ## Machine-checkable state
 
 
-Current source: **1.21.20 (code 243)**
+Current source: **1.21.21 (code 244)**
 Current release state: **SOURCE_ONLY**
 Latest verified APK: **1.21.18 (code 241)**
 Allowed series transition: **1.14.15 -> 1.15.1**
@@ -263,6 +263,7 @@ Previous baseline: 1.13.26 (code 115).
 
 - 1.21.20 (code 243) — Fullscreen Now Playing chrome and player-lock icon now share a single visibility state: fade the lock with all other immersive video controls (including after the 2.5-second auto-hide); a tap on locked video restores access to Unlock without sending touches to seek/play/zoom. Preserve nonimmersive audio and portrait-video lock visibility, same-side double-tap seeking, and the measured toolbar anchor position. Add visibility-regression assertions. SOURCE_ONLY; no APK was produced.
 
+- 1.21.21 (code 244) — Reconcile PR #156 Void OLED palette from the previously consumed side branch onto the 1.21.20 main source without replacing the 1.21.19 screen-awake or 1.21.20 fullscreen lock fixes. Add true-black flat surfaces, distinct raised control surfaces, forced dark Void appearance, untinted elevation, persisted Settings selection and unit palette regressions. Space Black and other themes remain unchanged. Issue #149's High Contrast, artwork-adaptive accent and launch-window polish remain separate. SOURCE_ONLY; exact-head CI and physical OLED verification required; no APK produced.
 ## 9 October 2026 — 1.21.18 release-finalization candidate
 
 - Owner confirmed that the 1.21.18 APK was verified. The existing HANDOFF QA record specifies package `com.local.listentomusic`, version 1.21.18/code241, a 27,746,006-byte APK, SHA-256 `bba973d127a9dec1f03b29fca1a146707c9feee82497e9a65ab196870b696b3d`, signing certificate `9e28eb45b3b171c3ea47d7da942d28d88b16538885e392a6971a80906d612fbf`, zip alignment, 249 JVM tests and three API36 emulator regressions. The working-tree QA run was recorded before commit `2edb328a`; exact committed-source equivalence is owner-attested and **not independently proven by that older handoff alone**.
