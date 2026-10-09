@@ -208,6 +208,9 @@ internal fun shouldLockHeldDoubleSpeed(dragAfterHoldPx: Float, thresholdPx: Floa
     thresholdPx > 0f && dragAfterHoldPx >= thresholdPx
 internal fun isDoubleSpeed(speed: Float): Boolean = kotlin.math.abs(speed - 2f) <= 0.01f
 
+internal fun shouldShowPlayerLock(immersiveVideo: Boolean, videoControlsVisible: Boolean): Boolean =
+    !immersiveVideo || videoControlsVisible
+
 internal fun playerLockLocalOffset(
     rootBounds: androidx.compose.ui.geometry.Rect?,
     anchorBounds: androidx.compose.ui.geometry.Rect?,
@@ -302,6 +305,8 @@ fun NowPlayingScreen(
     androidx.compose.runtime.CompositionLocalProvider(LocalSystemPlayer provides systemOverlay) {
     var fullscreen by rememberSaveable { mutableStateOf(initialFullscreen) }
     var controlsLocked by rememberSaveable { mutableStateOf(false) }
+    // The lock and the fullscreen video chrome share one visibility source.
+    var videoControlsVisible by rememberSaveable { mutableStateOf(true) }
     LaunchedEffect(fullscreen) { onFullscreenChanged(fullscreen) }
 
     if (isPictureInPicture && playback.isVideo) {
@@ -396,6 +401,8 @@ fun NowPlayingScreen(
                     onEndTemporaryDoubleSpeed = onEndTemporaryDoubleSpeed,
                     onLockTemporaryDoubleSpeed = onLockTemporaryDoubleSpeed,
                     onLockAnchorBoundsChanged = reportLockAnchor,
+                    controlsVisible = videoControlsVisible,
+                    onControlsVisibilityChange = { videoControlsVisible = it },
                     modifier = if (immersiveVideo) {
                         Modifier.fillMaxSize()
                     } else {
@@ -473,13 +480,24 @@ fun NowPlayingScreen(
         }
         }
         if (controlsLocked) {
-            Box(Modifier.fillMaxSize().pointerInput(Unit) {
-                awaitPointerEventScope {
-                    while (true) awaitPointerEvent().changes.forEach { it.consume() }
+            Box(Modifier.fillMaxSize().pointerInput(immersiveVideo) {
+                if (immersiveVideo) {
+                    // Locked input cannot reach VideoPlayerStage. A tap only reveals
+                    // the unlock control; playback/seek/zoom remain blocked.
+                    detectTapGestures(onTap = { videoControlsVisible = true })
+                } else {
+                    awaitPointerEventScope {
+                        while (true) awaitPointerEvent().changes.forEach { it.consume() }
+                    }
                 }
             })
         }
         playerLockLocalOffset(playerRootBounds, lockAnchorBounds)?.let { lockOffset ->
+            AnimatedVisibility(
+                visible = shouldShowPlayerLock(immersiveVideo, videoControlsVisible),
+                enter = fadeIn(),
+                exit = fadeOut(),
+            ) {
             IconButton(
                 onClick = { controlsLocked = !controlsLocked },
                 modifier = Modifier
@@ -497,6 +515,7 @@ fun NowPlayingScreen(
                     tint = if (playback.isVideo && immersiveVideo) Color.White else MaterialTheme.colorScheme.onSurface,
                     modifier = Modifier.size(30.dp),
                 )
+            }
             }
         }
     }
@@ -526,10 +545,11 @@ private fun VideoPlayerStage(
     onEndTemporaryDoubleSpeed: () -> Unit,
     onLockTemporaryDoubleSpeed: () -> Boolean,
     onLockAnchorBoundsChanged: (androidx.compose.ui.geometry.Rect) -> Unit,
+    controlsVisible: Boolean,
+    onControlsVisibilityChange: (Boolean) -> Unit,
     modifier: Modifier,
     onLocateCurrent: (() -> Unit)? = null,
 ) {
-    var controlsVisible by rememberSaveable { mutableStateOf(true) }
     var seekFeedback by remember { mutableStateOf(0L to 0L) }
     var seeking by remember { mutableStateOf(false) }
     var seekPosition by remember { mutableFloatStateOf(0f) }
@@ -554,13 +574,13 @@ private fun VideoPlayerStage(
     LaunchedEffect(controlsVisible, playback.isPlaying, playback.currentPath) {
         if (controlsVisible && playback.isPlaying) {
             delay(2_500)
-            controlsVisible = false
+            onControlsVisibilityChange(false)
         }
     }
 
     // Reset zoom when exiting immersive mode
     LaunchedEffect(immersive) {
-        controlsVisible = true
+        onControlsVisibilityChange(true)
         if (!immersive) {
             videoScale = 1f
             videoOffset = Offset.Zero
@@ -572,7 +592,7 @@ private fun VideoPlayerStage(
             .onSizeChanged { size ->
                 if (size != lastViewportSize) {
                     lastViewportSize = size
-                    controlsVisible = true
+                    onControlsVisibilityChange(true)
                 }
             }
             .inspectElement("VIDEO_STAGE", "Side double-tap seeks; pinch to zoom in fullscreen")
@@ -683,7 +703,7 @@ private fun VideoPlayerStage(
                             val dx = kotlin.math.abs(change.position.x - startPosition.x)
                             val dy = kotlin.math.abs(change.position.y - startPosition.y)
                             maxMovement = maxOf(maxMovement, dx, dy)
-                            if (!multiTouch && dy > 4f) controlsVisible = true
+                            if (!multiTouch && dy > 4f) onControlsVisibilityChange(true)
                             tryLockCurrentHold()
                             if (!multiTouch && (holdActivated || unlockArmed || dy > viewConfiguration.touchSlop)) {
                                 change.consume()
@@ -723,6 +743,9 @@ private fun VideoPlayerStage(
                 }
 
                 if (heldMs < HOLD_2X_ACTIVATION_MS && maxMovement <= viewConfiguration.touchSlop) {
+                    // A single fullscreen tap reveals hidden chrome without losing
+                    // the existing same-side double-tap seek gesture.
+                    if (immersive && !controlsVisible) onControlsVisibilityChange(true)
                     val nowMs = android.os.SystemClock.uptimeMillis()
                     val side = seekSideForX(startPosition.x, size.width.toFloat())
                     if (sideDoubleTapSeeks(side, nowMs, lastSeekSide, lastSeekTapMs)) {
