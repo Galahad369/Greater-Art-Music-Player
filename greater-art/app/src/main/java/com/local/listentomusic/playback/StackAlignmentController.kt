@@ -46,7 +46,7 @@ object StackAlignmentController {
                         ensureActive()
                         if (unchanged() && StackPlayback.transportRevision == intent) {
                             val offsets = matches.filterValues { it.confident }.mapValues { it.value.offsetMs }
-                            StackPlayback.setOffsets(offsets)
+                            StackPlayback.setAlignments(matches.filterValues { it.confident })
                             mutable.value = mutable.value.copy(running = false, completed = companions.size, matched = offsets.size)
                         }
                     } finally { watcher.cancel() }

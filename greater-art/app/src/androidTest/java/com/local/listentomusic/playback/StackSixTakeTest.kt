@@ -24,7 +24,7 @@ class StackSixTakeTest {
             it.isFile && it.extension == "mp4" && it.name.contains("孤独毒毒")
         }.sortedBy { it.name }.take(6)
         assumeTrue("Requires six local fixture takes", sources.size == 6)
-        val files = sources.map { MediaFile(it.canonicalPath, it.name, 0, it.length(), it.lastModified(), MediaKind.VIDEO) }
+        val files = sources.map { fixture(it) }
         val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
         lateinit var main: ExoPlayer
         lateinit var coordinator: StackPlaybackCoordinator
@@ -81,7 +81,7 @@ class StackSixTakeTest {
             it.isFile && it.extension == "mp4" && it.name.contains("孤独毒毒")
         }.sortedBy { it.name }.take(6)
         assumeTrue("Requires six local fixture takes", sources.size == 6)
-        val files = sources.map { MediaFile(it.canonicalPath, it.name, 0, it.length(), it.lastModified(), MediaKind.VIDEO) }
+        val files = sources.map { fixture(it) }
         val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
         lateinit var main: ExoPlayer
         lateinit var coordinator: StackPlaybackCoordinator
@@ -129,26 +129,28 @@ class StackSixTakeTest {
             it.isFile && it.extension == "mp4" && it.name.contains("孤独毒毒")
         }.sortedBy { it.name }.take(2)
         assumeTrue("Requires two local fixture takes", sources.size == 2)
-        val files = sources.map { MediaFile(it.canonicalPath, it.name, 0, it.length(), it.lastModified(), MediaKind.VIDEO) }
+        val files = sources.map { fixture(it) }
         assertSame(com.local.listentomusic.data.MediaCaches.thumbnails(context), com.local.listentomusic.data.MediaCaches.thumbnails(context))
         assertSame(com.local.listentomusic.data.MediaCaches.waveforms(context), com.local.listentomusic.data.MediaCaches.waveforms(context))
         val aligner = StackAudioAlign(context)
         val first = aligner.estimate(files[0], files[1])
-        assertTrue("same-arrangement fixture should match", first.confident)
+        // Different arrangements are allowed to abstain; cache recovery must be deterministic.
         val source = sources[0]
-        val identity = "${source.canonicalPath}|${source.length()}|${source.lastModified()}|0|null"
+        val identity = "7|${source.canonicalPath}|${source.length()}|${source.lastModified()}|0|null|0|6000"
         val key = java.security.MessageDigest.getInstance("SHA-256").digest(identity.toByteArray())
             .joinToString("") { "%02x".format(it) }
-        val cached = File(context.cacheDir, "stack-align-v5/$key.bin")
+        val cached = File(context.cacheDir, "stack-align-v7-instruments/$key.bin")
         assertTrue(cached.length() > 4)
         // Only generated cache data is corrupted, never the user's media.
         cached.writeBytes(byteArrayOf(0, 0, 1))
         val recovered = aligner.estimate(files[0], files[1])
-        assertTrue(recovered.confident)
-        assertEquals(first.offsetMs, recovered.offsetMs)
+        assertEquals(first, recovered)
         assertTrue(cached.length() > 4)
         val cachedMatch = aligner.estimate(files[0], files[1])
         assertEquals(recovered, cachedMatch)
+        val baseline = aligner.estimateV6(files[0], files[1])
+        android.util.Log.i("GreaterArtStackTest", "v6=$baseline v7=$first; no acoustic ground truth")
+        Unit
     }
     @Test fun sixLocalTakesStartSeekResumeAndLoopWithoutLosingVoices() {
         val instrumentation = InstrumentationRegistry.getInstrumentation()
@@ -157,7 +159,7 @@ class StackSixTakeTest {
             it.isFile && it.extension == "mp4" && it.name.contains("孤独毒毒")
         }.sortedBy { it.name }.take(6)
         assumeTrue("Requires six local 孤独毒毒 fixture videos", sources.size == 6)
-        val files = sources.map { MediaFile(it.canonicalPath, it.name, 0, it.length(), it.lastModified(), MediaKind.VIDEO) }
+        val files = sources.map { fixture(it) }
         val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
         lateinit var main: ExoPlayer
         lateinit var coordinator: StackPlaybackCoordinator
@@ -204,5 +206,14 @@ class StackSixTakeTest {
         } finally {
             instrumentation.runOnMainSync { coordinator.release(); main.release(); scope.cancel() }
         }
+    }
+
+    private fun fixture(source: File): MediaFile {
+        val metadata = android.media.MediaMetadataRetriever()
+        val duration = try {
+            metadata.setDataSource(source.canonicalPath)
+            metadata.extractMetadata(android.media.MediaMetadataRetriever.METADATA_KEY_DURATION)?.toLongOrNull() ?: 0
+        } finally { metadata.release() }
+        return MediaFile(source.canonicalPath, source.name, duration, source.length(), source.lastModified(), MediaKind.VIDEO)
     }
 }

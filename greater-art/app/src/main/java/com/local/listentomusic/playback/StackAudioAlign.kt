@@ -27,15 +27,12 @@ import kotlin.math.sqrt
 
 /**
  * Separate, bounded analysis decoder. Never changes the real player's tracks or source.
- * v5 keeps the v4 music-first coarse fingerprint and also caches an attack-weighted
- * accompaniment signal at ~3.2 kHz. A confident 20 ms coarse match is then refined in
- * a bounded ±30 ms window using several separated transient-rich anchors.
- *
- * v6 also retains a plain-mono feature view when stereo-side analysis is selected so the
- * matcher can compare both files on the same signal domain. Fine transient samples are cached
- * as unsigned 16-bit values; see [writeStackFeatures].
+ * Production analysis uses v7's distributed instrument-weighted windows and timing map.
+ * The v6 extractor remains an internal regression baseline, not an uncertainty fallback.
+ * Both versions compare mono/side in the same domain and never modify audible media.
  */
 class StackAudioAlign(private val context: Context) {
+    private val instruments = StackInstrumentAlign(context)
     private val cache = File(context.applicationContext.cacheDir, "stack-align-v6")
 
     companion object {
@@ -61,20 +58,25 @@ class StackAudioAlign(private val context: Context) {
     }
 
     suspend fun estimate(primary: MediaFile, companion: MediaFile): StackAlignment = withContext(Dispatchers.Default) {
+        instruments.estimate(primary, companion)
+    }
+
+    /** Device regression baseline: compare actual v6 and v7, not a reimplementation. */
+    internal suspend fun estimateV6(primary: MediaFile, companion: MediaFile): StackAlignment = withContext(Dispatchers.Default) {
         val a = features(primary)
         val b = features(companion)
-        coroutineContext.ensureActive()
-        correlateStackFeaturesOnCommonView(a, b)
+        val active = coroutineContext
+        correlateStackFeaturesOnCommonView(a, b) { active.ensureActive() }
     }
 
     suspend fun estimateAll(primary: MediaFile, companions: List<MediaFile>, progress: (Int) -> Unit): Map<String, StackAlignment> {
-        val reference = features(primary)
         return companions.mapIndexed { index, companion ->
             progress(index)
-            val candidate = features(companion)
-            val match = withContext(Dispatchers.Default) {
-                val activeContext = coroutineContext
-                correlateStackFeaturesOnCommonView(reference, candidate) { activeContext.ensureActive() }
+            val match = try { instruments.estimate(primary, companion) }
+            catch (cancelled: kotlinx.coroutines.CancellationException) { throw cancelled }
+            catch (failure: Exception) {
+                com.local.listentomusic.diagnostics.CrashReports.recordRecoverable("stack-instrument-analysis", failure)
+                StackAlignment(0, 0.0, false)
             }
             companion.path to match
         }.toMap()

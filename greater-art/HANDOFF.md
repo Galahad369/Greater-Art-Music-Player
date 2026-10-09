@@ -3,6 +3,7 @@
 This file describes the **current repository state only**. Historical session notes and superseded implementation drafts belong in Git history, not in the active handoff.
 
 **Project:** `greater-art/` in the repository checkout
+**Current source:** `1.21.22 (code 245)` — SOURCE_ONLY; Stack v7 plus current-main integration
 **Current version:** `1.21.18 (code 241)`
 **Latest APK:** `releases/GreaterArt-1.21.18.apk` (`27,746,006 bytes`; SHA-256 `bba973d127a9dec1f03b29fca1a146707c9feee82497e9a65ab196870b696b3d`)
 **Application ID:** `com.local.listentomusic`
@@ -13,6 +14,36 @@ This file describes the **current repository state only**. Historical session no
 
 ## Repository state
 
+### October 9 — Stack synchronization overhaul (PR #152)
+
+- Production alignment uses bounded 16 kHz STFT fingerprints: percussion spectral
+  flux, bass attacks and transposition-aware harmonic progression. Median-mask HPSS
+  is an analysis weighting, not vocal removal. Mono always compares with mono;
+  side analysis additionally requires independent mono agreement.
+- Three to six non-overlapping six-second primary windows cover the clipped
+  recording. Companion searches are at most 36 seconds. Distinct-peak gates reject
+  ambiguous repeated sections; three distributed anchors must support a linear
+  `companion = scale * primary + offset` map within 25 ms residual and ±1.5% scale.
+- Optional 400 ms original-rate transient windows refine fractional microsecond
+  offsets. Small unsupported/weak refinements retain the accepted coarse map;
+  uncertainty preserves the existing user offsets. Cancellation propagates.
+- Maps persist with backward-compatible saved Stack rows, survive primary rebasing
+  within supported bounds, and drive existing pitch-preserving companion rates.
+  No primary media quality, permissions, surfaces or thumbnail scheduler changed.
+- v7 has a distinct, size-validated atomic feature cache capped at 48 entries.
+  Analysis shares the existing offline worker permit and never runs on the UI thread.
+- Recovery lesson: a concurrent agent reset the shared checkout twice. Source was
+  recovered from this chat's recorded patches into an isolated Git worktree. Never
+  share a mutable checkout or APK output between agents. Commit verified stages
+  before starting the next one. No release artifact was overwritten or promoted.
+- Verification results and limitations are recorded in
+  `docs/agent-handoff/145-stack-align-v7.md`. Shared output-clock work remains a
+  separate, default-off prototype; independent ExoPlayer position agreement is
+  not sample-accurate acoustic synchronization.
+- Main advanced concurrently through screen-awake/fullscreen-lock/Void OLED
+  1.21.19/20/21. Both histories are preserved; integration consumes 1.21.22/code245.
+  The unchanged version guard now passes main's owner-confirmed 1.21.18 metadata.
+  This verifies its tracked hash/manifest, not acoustic playback or all older APKs.
 ### October 9 — 1.21.18 release-finalization candidate (owner-confirmed)
 
 - The repository owner confirmed verification of the 1.21.18 APK. This documentation-only candidate updates release pointers from 1.15.77 to 1.21.18 without modifying any binary. A later GitHub Version Consistency run must independently validate the tracked APK's SHA-256 and manifest; a passing guard alone does not prove the origin of the original QA build.

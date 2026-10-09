@@ -259,7 +259,7 @@ internal class StackPlaybackCoordinator(
         if (durationMs > 0L) positionMs.coerceIn(0L, durationMs) else positionMs.coerceAtLeast(0L)
 
     private fun voicePosition(file: MediaFile, masterMs: Long): Long =
-        stackVoiceTarget(masterMs, slots.firstOrNull { it.file.path == file.path }?.offsetMs ?: 0L)
+        slots.firstOrNull { it.file.path == file.path }?.let { stackMappedPosition(masterMs, it) } ?: masterMs
 
     private fun voiceInWindow(voice: Voice, masterMs: Long): Boolean {
         val target = voicePosition(voice.file, masterMs)
@@ -270,7 +270,8 @@ internal class StackPlaybackCoordinator(
     /** Rate trim is relative to the master's own speed; pitch always follows the master. */
     private fun applyRate(voice: Voice, trim: Float) {
         val base = main.playbackParameters
-        val next = PlaybackParameters(base.speed * trim, base.pitch)
+        val scale = slots.firstOrNull { it.file.path == voice.file.path }?.alignmentScale ?: 1.0
+        val next = PlaybackParameters((base.speed * trim * scale).toFloat(), base.pitch)
         voice.rateTrim = trim
         if (voice.player.playbackParameters != next) voice.player.playbackParameters = next
     }
@@ -425,14 +426,22 @@ internal class StackPlaybackCoordinator(
     }
 
     fun setOffsets(offsets: Map<String, Long>) {
+        setAlignments(offsets.mapValues { StackAlignment(it.value, 1.0, true) })
+    }
+
+    fun setAlignments(alignments: Map<String, StackAlignment>) {
         if (!active) return
         val changed = mutableSetOf<String>()
         for (i in slots.indices) {
             val slot = slots[i]
-            offsets[slot.file.path]?.let { value ->
-                val next = if (slot.file.path == primaryPath) 0L else value.coerceIn(-30_000L, 30_000L)
-                if (next != slot.offsetMs) {
-                    slots[i] = slot.copy(offsetMs = next)
+            alignments[slot.file.path]?.let { value ->
+                if (!value.confident || !value.offsetUs.isFinite() || value.timeScale !in .97..1.03) return@let
+                val isPrimary = slot.file.path == primaryPath
+                val next = if (isPrimary) 0L else value.offsetMs.coerceIn(-30_000L, 30_000L)
+                val scale = if (isPrimary) 1.0 else value.timeScale
+                val offsetUs = if (isPrimary) 0.0 else value.offsetUs.coerceIn(-30_000_000.0, 30_000_000.0)
+                if (next != slot.offsetMs || scale != slot.alignmentScale || offsetUs != slot.alignmentOffsetUs) {
+                    slots[i] = slot.copy(offsetMs = next, alignmentScale = scale, alignmentOffsetUs = offsetUs)
                     changed += slot.file.path
                 }
             }
@@ -553,10 +562,14 @@ internal class StackPlaybackCoordinator(
         val replacement = voices.firstOrNull { it.file.path == path } ?: return false
         val old = slots.firstOrNull { it.file.path == primaryPath }?.file ?: return false
         val now = position()
-        val promotedPosition = stackVoiceTarget(now, target.offsetMs)
+        val promotedPosition = stackMappedPosition(now, target)
         if (promotedPosition < 0L) return false // The take has not started yet.
         val targetDuration = knownDuration(target.file)
         if (targetDuration > 0L && promotedPosition >= targetDuration) return false
+        val rebased = stackRebaseMappings(slots, target)
+        // Reject an unsupported rebase before touching players; never silently clamp a map.
+        if (rebased.any { it.alignmentScale !in .97..1.03 ||
+                kotlin.math.abs(it.alignmentOffsetUs ?: 0.0) > 30_000_000 }) return false
         voices.toList().forEach { voice -> safePlayer { voice.player.pause() } }
         internalMainChange = true
         try {
@@ -570,8 +583,7 @@ internal class StackPlaybackCoordinator(
             main.setMediaItem(target.file.toMediaItem(), boundedSeek(promotedPosition, knownDuration(target.file)))
             main.prepare()
             primaryPath = path
-            val rebased = rebaseStackOffsets(slots.map { it.offsetMs }, target.offsetMs)
-            for (i in slots.indices) slots[i] = slots[i].copy(offsetMs = rebased[i],
+            for (i in slots.indices) slots[i] = rebased[i].copy(
                 videoUnavailable = if (slots[i].file.path == old.path || slots[i].file.path == path) false else slots[i].videoUnavailable)
             anchorMs = promotedPosition
             anchorTimeMs = SystemClock.elapsedRealtime()

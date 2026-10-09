@@ -4,7 +4,12 @@ Greater Art is a native Kotlin/Jetpack Compose player for local music and video.
 
 ## Current release
 
-Current source is **1.21.19 / code 242 — SOURCE_ONLY** (committed). The foreground
+Current source is **1.21.22 / code 245 — SOURCE_ONLY**.
+Stack v7 weights shared instrumental attacks and harmonic progression, accepts only
+distributed confident timing maps, and preserves uncertain/manual offsets. Saved
+Stacks retain fractional offsets and linear scale; existing companions apply these
+with pitch preserved. Nonuniform tempo/ambiguous arrangements abstain.
+Main's fullscreen-lock and Void OLED changes are preserved. The foreground
 Library/Settings, expanded Now Playing overlay and landscape fullscreen keep the
 display awake whether or not audio/video is playing. Detached Mini Window and PiP
 do not keep the display awake. This is a source-only change, not a verified APK.
@@ -14,11 +19,12 @@ immediate RAM hits during fling; bounded, deduplicated viewport-priority misses;
 cooperative cancellation; two-entry idle disk-only prefetch; sampled disk decoding;
 playback-aware allocation-byte budget; and verified-byte embedded/folder-cover reuse.
 The previous per-row fling delay is replaced, not stacked on top. Source playback
-quality and Stack alignment v6 are unchanged. No new permissions or dependencies.
+quality is unchanged. No new permissions or dependencies.
 
 [Implementation and remaining Stack stages](docs/PERFORMANCE_AND_STACK_UPGRADE_PLAN.md)
 · [verification and inherited release-metadata problems](HANDOFF.md).
-Do not describe the planned HPSS/timing-map/shared-clock stages as implemented.
+Bounded HPSS-weighted analysis and linear timing maps are implemented in source;
+HPSS is not vocal removal. Shared-clock output is still a separate prototype stage.
 
 Latest owner-verified APK: **1.21.18/code241** (see HANDOFF for bounded QA, artifact hash and provenance limitations).
 
