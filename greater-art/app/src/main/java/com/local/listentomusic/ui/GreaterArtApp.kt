@@ -405,6 +405,7 @@ fun GreaterArtApp(
                                             LibraryScreen(
                         appName = appName,
                         showTopBar = false,
+                        onThumbnailViewport = viewModel::thumbnailViewport,
                         state = library,
                         preferences = settings,
                         playHistory = playHistory,
@@ -566,9 +567,9 @@ fun GreaterArtApp(
                 }) { androidx.compose.material3.Text(message) }
             }
             if (settings.developerMode) {
-                // Diagnostics are deliberately collected only while the inspector is
-                // enabled. Thumbnail warmup changes these counters hundreds of times;
-                // collecting them at the app root caused avoidable full-screen churn.
+                DiagnosticsLayer {
+                // Counter updates invalidate this child composition, not the whole
+                // Library/player. DEV must not turn a cache load into app-root churn.
                 val thumbnailStats by viewModel.thumbnailStats.collectAsStateWithLifecycle()
                 val waveformDiagnostics by viewModel.waveformDiagnostics.collectAsStateWithLifecycle()
                 val engineReport by com.local.listentomusic.playback.PlaybackDiagnostics.report.collectAsStateWithLifecycle()
@@ -617,6 +618,8 @@ fun GreaterArtApp(
                         appendLine("floating=${settings.floatingWindowMode} auto=${settings.autoPictureInPicture}")
                         appendLine("background=${settings.backgroundMode} theme=${settings.themeMode}/${settings.colorTheme}")
                         appendLine("thumbs=memory:${thumbnailStats.memoryHits} disk:${thumbnailStats.diskHits} made:${thumbnailStats.generated} failed:${thumbnailStats.failed} noCoverOrUnsupported:${thumbnailStats.missingArtwork} active:${thumbnailStats.inFlight}")
+                        appendLine("thumbQueue=${thumbnailStats.queued} shared=${thumbnailStats.sharedRequests} cancelled=${thumbnailStats.cancelled} rejected=${thumbnailStats.rejected} peak=${thumbnailStats.peakPending} artReuse=${thumbnailStats.artworkReuses}")
+                        appendLine("thumbRamKb=${thumbnailStats.memoryKb}/${thumbnailStats.memoryBudgetKb} peak=${thumbnailStats.peakMemoryKb}")
                         appendLine("waveform=${waveformDiagnostics.status}")
                         appendLine("waveformError=${waveformDiagnostics.error ?: "none"}")
                         val storageGranted = Build.VERSION.SDK_INT < Build.VERSION_CODES.R ||
@@ -641,6 +644,7 @@ fun GreaterArtApp(
                     modifier = Modifier,
                     badgeAlignment = if (screen == Screen.LIBRARY) Alignment.TopStart else Alignment.TopEnd,
                 )
+                }
             }
             if (settings.jokeAdsEnabled && !jokeDismissed && !isPictureInPicture) {
                 FakeAdInterstitial(
@@ -668,4 +672,9 @@ fun GreaterArtApp(
         }
         }
     }
+}
+
+@Composable
+private fun DiagnosticsLayer(content: @Composable () -> Unit) {
+    content()
 }

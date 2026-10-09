@@ -127,6 +127,32 @@ Preserve versioned source commits. Use a checked merge commit with an expected-h
 
 ## October 2026 regression checklist — lessons, not promises
 
+- **Artwork scheduling:** gate cache misses centrally, not RAM hits in every row.
+  A semaphore bounds active workers, not queued requests. Test bounded backlog,
+  visible-row priority, duplicate consumers, final-consumer cancellation, and a
+  decoder that unwinds slowly after cancellation. Do not return its permit early.
+  Native CancellationSignal support differs by API; never release a running
+  MediaMetadataRetriever from another thread. Cancellation is not “missing cover”.
+  A cancelled cache clear must release its acquired writer-lock prefix, not all locks
+  or none. Keep DEV counter collection inside its own child composition.
+- **Build writer isolation:** do not edit executable files while Gradle/lint reads them.
+  A review fix made during a gate can invalidate its source snapshot and even produce
+  misleading lint quick-fix locations. Finish the edit, then rerun the gate with source
+  held stable. Likewise, list-only jank tests must not include wallpaper-reveal gestures.
+- **Artwork budget/identity:** account decoded allocation bytes and playback pressure;
+  LRU peak is not whole-process/native memory. Hash actual cover bytes before sharing,
+  validate asset references against an exact digest pattern, and sample disk decode
+  at the thumbnail target. No cache optimization may cap real video/audio quality.
+- **Inherited release drift:** preserve mismatched/unverified artifacts and report the
+  exact guard failure. Do not “fix” a nine-APK ledger mismatch by promoting filenames
+  to VERIFIED or deleting user binaries. Separate local source checks from release
+  provenance. Disable broken Git fsmonitor *for the audit invocation* so a failed
+  file enumeration cannot masquerade as a clean scan.
+- **Stack stages:** accompaniment matching, tempo mapping and shared output clock
+  require different tests. HPSS is not vocal removal; L−R is not instrumental
+  separation; a shared timer around independent players is not a shared PCM clock.
+  Commit/build/verify each stage separately before changing normal playback.
+
 - **One binary writer:** never let agents/build shells write the same APK or version concurrently. Send text/logs to separate `.log` paths, never `app-debug.apk`. Require a valid ZIP, manifest, signature, alignment, size and SHA-256; repeat the hash just before copying/uploading. A zero exit code or `BUILT` message alone is insufficient. If another operation corrupts output, preserve evidence and rebuild the exact SHA in isolation, or recover the exact installed APK only when its build/install provenance is known and reverified. Never relabel another version.
 - **Windows runtime:** set `JAVA_HOME`, `ANDROID_HOME`, `GRADLE_USER_HOME` and `ANDROID_USER_HOME` explicitly. Validate the Java/Python executable, not a Store alias. ADB's `\\.android`/no-device error can be environment misconfiguration, not missing hardware. Use bounded checks; do not busy-loop unchanging CI.
 - **Wallpaper ownership:** service existence is not Detached visibility. Test Docked, Detached, Expanded, fullscreen and app lifecycle separately; hidden Dock must not permanently outrank BACKGROUND. Register before claiming and relinquish before detaching. One primary surface cannot simultaneously show live video in Dock and wallpaper; disclose the artwork fallback rather than adding an unrequested duplicate decoder.

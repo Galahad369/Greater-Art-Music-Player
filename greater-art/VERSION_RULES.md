@@ -7,13 +7,14 @@ This file is the authoritative version policy for Greater Art. If any handoff no
 ## Machine-checkable state
 
 
-Current source: **1.21.16 (code 239)**
+Current source: **1.21.18 (code 241)**
 Current release state: **SOURCE_ONLY**
 Latest verified APK: **1.15.77 (code 207)**
 Allowed series transition: **1.14.15 -> 1.15.1**
 Allowed series transition: **1.15.89 -> 1.20.2**
 Allowed series transition: **1.20.5 -> 1.21.1**
 Allowed consumed transition: **1.20.2 (code 220) -> 1.20.4 (code 222)**
+Allowed consumed transition: **1.21.16 (code 239) -> 1.21.18 (code 241)**
 Allowed consumed transition: **1.15.13 (code 143) -> 1.15.17 (code 147)**
 Allowed consumed transition: **1.15.17 (code 147) -> 1.15.19 (code 149)**
 Allowed consumed transition: **1.15.19 (code 149) -> 1.15.21 (code 151)**
@@ -254,3 +255,6 @@ Previous baseline: 1.13.26 (code 115).
 - 1.21.16 (code 239) — close Library follow-ups #143 and #144. The Library background reveal container now always occupies the full Scaffold viewport; Mini Window dock padding is applied only to the translated foreground, so pure-wallpaper horizontal pan and upward recovery can start from the bottom dock region without changing reveal geometry mid-gesture. Library thumbnail rows now reuse a remembered gradient brush and rows created during a fling wake in a short deterministic 36–120 ms stagger after scrolling settles instead of releasing together. ThumbnailRepository persists fingerprint-keyed .missing markers only for successfully probed audio files with no custom, embedded or sibling artwork; transient decode/OOM/custom-cover failures still use the 30-second retry path. Missing markers share the existing cache fingerprint, clear operation and LRU-style disk pruning, so source/cover changes naturally invalidate them. Existing RAM/disk worker limits, warm-disk OOM retry, immutable 103×56dp Library thumbnail size, playback and Stack behavior are unchanged. SOURCE_ONLY pending exact-head CI and physical full-screen gesture/fast-fling verification.
 
 **No silent builds. No version reuse. No version skips. No APK overwrite/rename/copy.**
+
+- Consumed side-branch identity: **1.21.17 (code 240)** — PR #156 (`wip/149-theme-accessibility`, tip `b24c54f`) already commits this identity. This performance stage does not import that unrelated theme work; 1.21.17 must not be reused.
+- 1.21.18 (code 241) — Library Performance v2, stages 1–2: bounded shared thumbnail queue with viewport priority, fling cancellation/deferral, immediate filesystem-free RAM hits, two-entry idle disk-only prefetch, playback-aware allocation-byte LRU budget, sampled disk reads, verified-byte embedded/folder-cover deduplication, offline-analysis permits and queue/memory diagnostics. Stack audio/video output and alignment v6 are unchanged. SOURCE_ONLY; build/tests and device checks are recorded separately in HANDOFF.md.

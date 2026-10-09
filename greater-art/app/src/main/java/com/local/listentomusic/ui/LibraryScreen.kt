@@ -116,7 +116,6 @@ import com.local.listentomusic.ui.theme.GaRadius
 import com.local.listentomusic.ui.theme.GaSpacing
 import com.local.listentomusic.ui.theme.gaChromeColor
 import kotlin.math.abs
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.flow.first
 
@@ -157,6 +156,7 @@ fun LibraryScreen(
     onAddSelected: (String, List<String>) -> Unit,
     onCreateSelected: (String, List<String>) -> Unit,
     showTopBar: Boolean = true,
+    onThumbnailViewport: (String, List<MediaFile>, List<MediaFile>, Boolean) -> Unit = { _, _, _, _ -> },
 ) {
     val language = preferences.appLanguage
     val thumbnailBrush = rememberThumbnailBrush()
@@ -393,14 +393,28 @@ fun LibraryScreen(
                     )
                 } else {
                     val listState = rememberLazyListState()
-                    LaunchedEffect(listState) {
+                    LaunchedEffect(listState, state.files, preferences.showThumbnails) {
+                        var previousFirst = listState.firstVisibleItemIndex
                         try {
-                            snapshotFlow { listState.isScrollInProgress }.collect { scrolling ->
+                            snapshotFlow {
+                                listState.isScrollInProgress to listState.layoutInfo.visibleItemsInfo.map { it.index }
+                            }.collect { (scrolling, indices) ->
                                 ListScrollBudget.set("library", scrolling)
                                 if (scrolling) openRowActionsPath = null
+                                val first = indices.firstOrNull() ?: 0
+                                val last = indices.lastOrNull() ?: -1
+                                val next = if (first >= previousFirst) listOf(last + 1, last + 2)
+                                    else listOf(first - 1, first - 2)
+                                previousFirst = first
+                                onThumbnailViewport("library",
+                                    if (preferences.showThumbnails) indices.mapNotNull(state.files::getOrNull) else emptyList(),
+                                    if (preferences.showThumbnails && !scrolling) next.mapNotNull(state.files::getOrNull) else emptyList(),
+                                    scrolling,
+                                )
                             }
                         } finally {
                             ListScrollBudget.set("library", false)
+                            onThumbnailViewport("library", emptyList(), emptyList(), false)
                         }
                     }
                     LazyColumn(
@@ -426,7 +440,6 @@ fun LibraryScreen(
                                 dragEnabled = !favouritesActive && selected.isEmpty() && activePlaylist?.rule == null && state.query.isBlank() && (activePlaylist != null || state.sortMode == SortMode.CUSTOM),
                                 onMove = onMoveItem,
                                 onLoadThumbnail = onLoadThumbnail,
-                                isScrolling = { listState.isScrollInProgress },
                                 thumbnailBrush = thumbnailBrush,
                                 rowSize = preferences.libraryRowSize,
                                 showThumbnails = preferences.showThumbnails,
@@ -658,15 +671,6 @@ private fun CreatePlaylistDialog(
     )
 }
 
-internal const val LIBRARY_THUMBNAIL_SETTLE_BASE_MS = 36L
-internal const val LIBRARY_THUMBNAIL_SETTLE_STEP_MS = 12L
-internal const val LIBRARY_THUMBNAIL_SETTLE_SLOTS = 8
-
-internal fun libraryThumbnailPostScrollDelayMs(path: String): Long {
-    val slot = (path.hashCode() and Int.MAX_VALUE) % LIBRARY_THUMBNAIL_SETTLE_SLOTS
-    return LIBRARY_THUMBNAIL_SETTLE_BASE_MS + slot * LIBRARY_THUMBNAIL_SETTLE_STEP_MS
-}
-
 @Composable
 private fun MediaFileRow(
     file: MediaFile,
@@ -677,7 +681,6 @@ private fun MediaFileRow(
     dragEnabled: Boolean,
     onMove: (Int, Int) -> Unit,
     onLoadThumbnail: suspend (MediaFile) -> Bitmap?,
-    isScrolling: () -> Boolean,
     thumbnailBrush: Brush,
     rowSize: LibraryRowSize,
     showThumbnails: Boolean,
@@ -694,22 +697,14 @@ private fun MediaFileRow(
     var thumbnail by remember(file.path, file.sizeBytes, file.modifiedMs, file.coverUri, showThumbnails) {
         mutableStateOf<Bitmap?>(null)
     }
-    val currentIsScrolling by rememberUpdatedState(isScrolling)
     LaunchedEffect(file.path, file.sizeBytes, file.modifiedMs, file.coverUri, showThumbnails) {
         if (!showThumbnails) {
             thumbnail = null
             return@LaunchedEffect
         }
         if (thumbnail != null) return@LaunchedEffect
-        // Rows created during a fling stay as cheap placeholders. Once scrolling
-        // stops, stagger their wake-up over a short deterministic window instead of
-        // releasing every visible row into the cache/decoder queues on the same frame.
-        if (currentIsScrolling()) {
-            do {
-                snapshotFlow { currentIsScrolling() }.first { !it }
-                delay(libraryThumbnailPostScrollDelayMs(file.path))
-            } while (currentIsScrolling())
-        }
+        // RAM hits remain immediate during a fling; the shared repository owns all
+        // disk/decode scheduling and cancels obsolete work when this effect leaves.
         thumbnail = onLoadThumbnail(file)
     }
     val pressSource = remember { MutableInteractionSource() }

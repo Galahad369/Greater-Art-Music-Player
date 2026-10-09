@@ -13,6 +13,77 @@ This file describes the **current repository state only**. Historical session no
 
 ## Repository state
 
+### October 9 — Library Performance v2, stages 1–2 (local source only)
+
+- **Working-tree source:** 1.21.18 / code 241; uncommitted atop main `3c8752d`.
+  Executable baseline matches origin/main `1e61d2e` (1.21.16 / 239). PR #156 already
+  consumed 1.21.17 / 240; record the exact consumed transition instead of reusing it.
+  No branch was merged/deleted, no remote was changed, and no release was overwritten.
+- **Cause:** row-local fling waits delayed RAM hits, while already-started extraction
+  continued competing with scrolling. Sharded source locks did not bound the total
+  backlog or prioritize the actual viewport. Full disk bitmap reads and independent
+  RAM policy ignored playback headroom; identical album covers decoded per file.
+- **Fix:** application-shared bounded scheduler (96 entries, existing constrained
+  disk-worker count), viewport priority, shared result/per-consumer cancellation,
+  fling cancellation + checkpoints, native API CancellationSignals, filesystem-free
+  RAM alias hits, two adjacent disk-only prefetches after 160 ms idle, adaptive
+  allocation-byte LRU, sampled disk decoding, verified-cover SHA-256 assets/validated
+  atomic references, and queue/cache-memory metrics in DEV. Extraction shares the
+  existing offline analysis permit. Metadata scanning remains outside that permit.
+- **Review follow-ups:** DEV flow collection now lives in a child composition, so
+  artwork counters do not invalidate the app root. Cancelled cache clear releases
+  only the writer-lock prefix it acquired; a new JVM regression covers cancellation
+  while another writer still owns the next lock.
+- **Preserved:** video/audio source quality, existing thumbnail footprint, negative
+  artwork markers, 256 MiB disk cap, file-backed offline behavior, Stack v6 matching,
+  playback controllers/surfaces and permission/signing identities. No new dependency.
+- **Verification so far:** initial full Gradle gate passed 249 JVM tests, lint
+  (0 errors / 28 warnings / 2 hints), debug app and test builds. Three new Android
+  cache regressions passed on the existing 1080×2340 A55-sized API 36 emulator:
+  RAM during fling + verified cover reuse; trimmed/oversized warm disk decode;
+  clear pending rows + reject arbitrary-path references. Final gate after native
+  cancellation/dead-delay cleanup is recorded below when complete.
+- **Final stable-source gate:** `testDebugUnitTest lintDebug :app:assembleDebug
+  :app:assembleDebugAndroidTest --offline --no-daemon --max-workers=2` passed after
+  all executable edits stopped: **249 JVM tests / 0 failures**, lint **0 errors /
+  28 warnings / 2 hints**. Final installation and all **3 ThumbnailPipelineTest**
+  regressions passed again on API 36. Library loaded 215 local files; tapping the
+  existing `ga-align-video-primary` fixture retained Library + dock and DEV reported
+  `playing=true video=true playerState=3 warnings=[]`. No FATAL EXCEPTION or app ANR
+  appeared in the bounded tested log window. Historical DEV failure records were
+  not erased or misrepresented as current failures.
+- **Final QA binary (not a release):** `app/build/outputs/apk/debug/app-debug.apk`,
+  **27,746,006 bytes**, package `com.local.listentomusic`, **1.21.18 / code 241**;
+  SHA-256 `bba973d127a9dec1f03b29fca1a146707c9feee82497e9a65ab196870b696b3d`.
+  Pinned signing certificate `9e28eb45b3b171c3ea47d7da942d28d88b16538885e392a6971a80906d612fbf`
+  verified; `zipalign -c -P 16 4` passed. Manifest has no INTERNET permission.
+  No new artifact was copied into `releases/`: source is still uncommitted/SOURCE_ONLY.
+- **Repository/docs checks:** public-repository audit passed with fsmonitor disabled
+  for that invocation (history + working files); `git diff --check` passed. Landing
+  page + both films passed metadata/script/basic-control checks at 1920×1080 and
+  390×844 in a headless browser, with remote requests blocked. This was not a new
+  responsive-design/visual acceptance audit. Films are labelled illustrative and
+  SOURCE_ONLY; their APK link remains the ledger's last verified 1.15.77.
+- **Performance boundary:** a 12-gesture smoke run collected 140 frames / 61 janky
+  frames (43.57%), but the upward/downward gestures also activated the existing
+  wallpaper-reveal page. This is not a controlled Library-fling benchmark and not
+  evidence of an improvement. A subsequent null-root accessibility dump was rejected
+  rather than reused. Physical jank/decoder-pressure profiling remains pending.
+- **Permissions:** an attempted emulator MANAGE_EXTERNAL_STORAGE grant was rejected
+  by auto-review; no workaround was used. Retried install/private-fixture tests without
+  granting permission. Read-only inspection found access already allowed, enabling
+  the initial 215-file Library smoke. No phone permissions were changed.
+- **Inherited release blocker:** the version guard reports nine newer APKs in
+  `releases/` while the ledger's Latest verified APK remains 1.15.77. Eight are
+  tracked 1.21.x artifacts from prior agents; 1.21.16 is an existing untracked file.
+  Preserve all of them. Do not delete, rename, relabel, or declare them verified to
+  silence the guard. Current local build is not an exact committed-source release.
+- **Not implemented:** instrument-first HPSS/multi-region timing maps, repeated-region
+  rejection, original-rate sample refinement, optional stem model, shared AudioTrack
+  mixer, and real-phone acoustic/performance matrix. See
+  [the staged plan](docs/PERFORMANCE_AND_STACK_UPGRADE_PLAN.md). No 2–5 ms, sample-lock,
+  nanosecond or universal crash-free claim is made.
+
 ### October 5 — extended Fit decoder-pressure recovery (source only)
 
 - 1.15.77 review guards recovery cancellation with an identity token: Stop/restart cannot let a stale coroutine catch cancellation as a failure and pause the successor mix. The device regression now includes restart while recovery is pending. Exact-source verification pending; 1.15.76 is consumed but not released.

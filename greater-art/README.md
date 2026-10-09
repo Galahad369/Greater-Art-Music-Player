@@ -4,6 +4,18 @@ Greater Art is a native Kotlin/Jetpack Compose player for local music and video.
 
 ## Current release
 
+Local source is now **1.21.18 / code 241 — SOURCE_ONLY** (uncommitted).
+This stage implements the shared thumbnail scheduler and cache-pressure improvements:
+immediate RAM hits during fling; bounded, deduplicated viewport-priority misses;
+cooperative cancellation; two-entry idle disk-only prefetch; sampled disk decoding;
+playback-aware allocation-byte budget; and verified-byte embedded/folder-cover reuse.
+The previous per-row fling delay is replaced, not stacked on top. Source playback
+quality and Stack alignment v6 are unchanged. No new permissions or dependencies.
+
+[Implementation and remaining Stack stages](docs/PERFORMANCE_AND_STACK_UPGRADE_PLAN.md)
+· [verification and inherited release-metadata problems](HANDOFF.md).
+Do not describe the planned HPSS/timing-map/shared-clock stages as implemented.
+
 Current verified build: **1.15.77/code207**, exact app source `bc1c645a3be77a0b64c4c0c523b85ccd242e292d`. It preserves the reviewed Stack alignment/readiness work and adds guarded decoder-pressure recovery so stale recovery coroutines cannot pause or publish into a replacement Stack. The API 36 verification boundary in HANDOFF covers build/lint/tests, package/version/signature checks, local media playback, Stack transitions, Mini/fullscreen/return flows and zero fatal exceptions in the tested session. This is not real-phone acoustic synchronization proof, and fixed offsets do not time-warp different arrangements or tempos.
 
 - Verified build: **1.15.77**, code **207**.

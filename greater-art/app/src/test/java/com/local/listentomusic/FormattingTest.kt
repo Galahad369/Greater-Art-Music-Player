@@ -118,21 +118,6 @@ class FormattingTest {
         )
     }
 
-    @Test fun libraryThumbnailPostScrollStaggerIsShortDeterministicAndBounded() {
-        val sameA = com.local.listentomusic.ui.libraryThumbnailPostScrollDelayMs("/music/a.mp3")
-        val sameB = com.local.listentomusic.ui.libraryThumbnailPostScrollDelayMs("/music/a.mp3")
-        assertEquals(sameA, sameB)
-        val values = (0 until 64).map {
-            com.local.listentomusic.ui.libraryThumbnailPostScrollDelayMs("/music/track-$it.mp3")
-        }
-        val min = com.local.listentomusic.ui.LIBRARY_THUMBNAIL_SETTLE_BASE_MS
-        val max = min +
-            (com.local.listentomusic.ui.LIBRARY_THUMBNAIL_SETTLE_SLOTS - 1) *
-                com.local.listentomusic.ui.LIBRARY_THUMBNAIL_SETTLE_STEP_MS
-        assertTrue(values.all { it in min..max })
-        assertTrue(values.distinct().size > 1)
-    }
-
     @Test fun persistentMissingArtworkRequiresAStableAudioNoArtworkResult() {
         val audio = com.local.listentomusic.model.MediaKind.AUDIO
         val video = com.local.listentomusic.model.MediaKind.VIDEO

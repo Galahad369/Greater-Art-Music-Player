@@ -17,6 +17,11 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.ensureActive
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.sync.withPermit
@@ -25,11 +30,17 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.distinctUntilChanged
 import java.io.File
 import java.io.FileOutputStream
 import java.security.MessageDigest
 import java.util.concurrent.ConcurrentHashMap
 import kotlin.math.max
+import kotlin.coroutines.coroutineContext
+import com.local.listentomusic.ui.ListScrollBudget
+import com.local.listentomusic.playback.StackPlayback
 
 data class ThumbnailStats(
     val memoryHits: Int = 0,
@@ -38,6 +49,15 @@ data class ThumbnailStats(
     val failed: Int = 0,
     val missingArtwork: Int = 0,
     val inFlight: Int = 0,
+    val queued: Int = 0,
+    val sharedRequests: Int = 0,
+    val cancelled: Int = 0,
+    val rejected: Int = 0,
+    val peakPending: Int = 0,
+    val memoryKb: Int = 0,
+    val memoryBudgetKb: Int = 0,
+    val peakMemoryKb: Int = 0,
+    val artworkReuses: Int = 0,
 )
 
 internal fun thumbnailDigestHex(bytes: ByteArray): String {
@@ -66,6 +86,26 @@ internal fun thumbnailWorkerPolicy(lowRamDevice: Boolean, maxHeapBytes: Long): T
 
 internal fun thumbnailMemoryBudgetKb(maxHeapBytes: Long): Int =
     (maxHeapBytes / 12L / 1024L).coerceIn(8_192L, 65_536L).toInt()
+
+internal fun thumbnailPlaybackBudgetKb(maxHeapBytes: Long, lowRam: Boolean, video: Boolean, stackTracks: Int): Int {
+    val base = thumbnailMemoryBudgetKb(maxHeapBytes)
+    val divisor = when {
+        stackTracks >= 4 -> 4
+        stackTracks >= 2 || lowRam -> 2
+        video -> 2
+        else -> 1
+    }
+    // The floor must never consume an unreasonable fraction of a tiny heap.
+    return (base / divisor).coerceAtLeast(2_048)
+        .coerceAtMost((maxHeapBytes / 8 / 1024).coerceAtLeast(1).toInt())
+}
+
+internal fun thumbnailSampleSize(width: Int, height: Int, target: Int): Int {
+    if (width <= 0 || height <= 0 || target <= 0) return 1
+    var sample = 1
+    while (maxOf(width, height) / sample > target * 2L && sample < (1 shl 29)) sample *= 2
+    return sample
+}
 
 internal fun thumbnailTrimTargetKb(maxSizeKb: Int, level: Int): Int? = when {
     maxSizeKb <= 0 -> 0
@@ -112,16 +152,92 @@ class ThumbnailRepository(private val context: Context) {
     private val recentFailures = ConcurrentHashMap<String, Long>()
     private val missingWrites = java.util.concurrent.atomic.AtomicInteger()
     private val generation = java.util.concurrent.atomic.AtomicInteger()
+    private data class MemoryAlias(val key: String, val atMs: Long)
+    private val memoryAliases = object : LinkedHashMap<String, MemoryAlias>(128, 0.75f, true) {
+        override fun removeEldestEntry(eldest: MutableMap.MutableEntry<String, MemoryAlias>?) = size > 4_000
+    }
+    private val artworkLocks = Array(32) { Mutex() }
+    @Volatile private var videoPlayback = false
+    @Volatile private var stackTracks = 0
+    private val prefetchJobs = mutableMapOf<String, Job>()
 
     private sealed class GenerationResult {
-        class Ready(val bitmap: Bitmap) : GenerationResult()
+        class Ready(val bitmap: Bitmap, val artworkKey: String? = null) : GenerationResult()
         object MissingArtwork : GenerationResult()
         object Failed : GenerationResult()
     }
     private val _stats = MutableStateFlow(ThumbnailStats())
     val stats: StateFlow<ThumbnailStats> = _stats.asStateFlow()
     private val memoryCache = object : LruCache<String, Bitmap>(thumbnailMemoryBudgetKb(maxHeapBytes)) {
-        override fun sizeOf(key: String, value: Bitmap): Int = max(1, value.byteCount / 1024)
+        override fun sizeOf(key: String, value: Bitmap): Int = max(1, (value.allocationByteCount + 1023) / 1024)
+    }
+    private val scheduler = ThumbnailRequestScheduler<String, Bitmap>(
+        pruneScope, workers = workerPolicy.diskDecodePermits,
+    ) { queue -> _stats.update { it.copy(
+        queued = queue.queued, sharedRequests = queue.shared, cancelled = queue.cancelled,
+        rejected = queue.rejected, peakPending = queue.peakPending,
+    ) } }
+
+    init {
+        updateMemoryBudget()
+        scheduler.setPaused(ListScrollBudget.scrolling.value)
+        pruneScope.launch { ListScrollBudget.scrolling.collect { scheduler.setPaused(it) } }
+        pruneScope.launch {
+            StackPlayback.state.map { if (it.active) it.slots.size else 0 }.distinctUntilChanged().collect {
+                stackTracks = it
+                updateMemoryBudget()
+            }
+        }
+    }
+
+    fun setVideoPlayback(active: Boolean) {
+        if (videoPlayback != active) { videoPlayback = active; updateMemoryBudget() }
+    }
+
+    private fun updateMemoryBudget() {
+        memoryCache.resize(thumbnailPlaybackBudgetKb(maxHeapBytes, lowRamDevice, videoPlayback, stackTracks))
+        publishMemory()
+    }
+
+    private fun publishMemory() {
+        val size = memoryCache.size()
+        _stats.update { it.copy(memoryKb = size, memoryBudgetKb = memoryCache.maxSize(), peakMemoryKb = maxOf(it.peakMemoryKb, size)) }
+    }
+
+    private fun rememberBitmap(id: String, key: String, bitmap: Bitmap) {
+        memoryCache.put(key, bitmap)
+        synchronized(memoryAliases) { memoryAliases[id] = MemoryAlias(key, System.currentTimeMillis()) }
+        publishMemory()
+    }
+
+    /** No filesystem calls on the hot RAM path, including while a list is flinging. */
+    private fun memoryHit(id: String): Bitmap? {
+        val alias = synchronized(memoryAliases) { memoryAliases[id] }
+        if (alias == null || System.currentTimeMillis() - alias.atMs >= ART_STAMP_TTL_MS) return null
+        return memoryCache.get(alias.key)?.also { _stats.update { it.copy(memoryHits = it.memoryHits + 1) } }
+    }
+
+    private fun requestId(file: MediaFile) = "${file.sourcePath}|${file.sizeBytes}|${file.modifiedMs}|${file.coverUri}"
+
+    /** Visible rows win; idle prefetch reads at most two adjacent disk entries, never extracts frames. */
+    fun setViewport(holder: String, visible: List<MediaFile>, adjacent: List<MediaFile>, scrolling: Boolean) {
+        scheduler.setViewport(holder, visible.mapTo(mutableSetOf(), ::requestId))
+        synchronized(prefetchJobs) {
+            prefetchJobs.remove(holder)?.cancel()
+            if (!scrolling && adjacent.isNotEmpty()) prefetchJobs[holder] = pruneScope.launch {
+                try {
+                    delay(160)
+                    for (file in adjacent.take(2)) {
+                        if (ListScrollBudget.scrolling.value) break
+                        val id = requestId(file)
+                        if (memoryHit(id) == null) scheduler.load("prefetch:$id", prefetch = true) {
+                            loadUnscheduled(file, id, diskOnly = true)
+                        }
+                    }
+                } catch (cancel: CancellationException) { throw cancel }
+                catch (_: Exception) { _stats.update { it.copy(failed = it.failed + 1) } }
+            }
+        }
     }
 
     /**
@@ -132,13 +248,30 @@ class ThumbnailRepository(private val context: Context) {
     fun trimMemory(level: Int) {
         val targetKb = thumbnailTrimTargetKb(memoryCache.maxSize(), level) ?: return
         if (targetKb <= 0) memoryCache.evictAll() else memoryCache.trimToSize(targetKb)
+        publishMemory()
     }
 
-    suspend fun load(file: MediaFile): Bitmap? = withContext(Dispatchers.IO) {
+    suspend fun load(file: MediaFile): Bitmap? {
+        val id = requestId(file)
+        memoryHit(id)?.let { return it }
+        return try { scheduler.load(id) { loadUnscheduled(file, id) } }
+        catch (cancel: CancellationException) { throw cancel }
+        catch (_: Exception) { _stats.update { it.copy(failed = it.failed + 1) }; null }
+    }
+
+    private suspend fun checkpoint() {
+        coroutineContext.ensureActive()
+        // Closing the small collector race also protects a task waiting for a resource permit.
+        if (ListScrollBudget.scrolling.value) throw CancellationException("Thumbnail deferred for scrolling")
+    }
+
+    private suspend fun loadUnscheduled(file: MediaFile, id: String, diskOnly: Boolean = false): Bitmap? = withContext(Dispatchers.IO) {
+        checkpoint()
         val epoch = generation.get()
         if (pruned.compareAndSet(false, true)) pruneScope.launch { pruneDiskCache() }
         val key = cacheKey(file)
         memoryCache.get(key)?.let {
+            rememberBitmap(id, key, it)
             _stats.update { value -> value.copy(memoryHits = value.memoryHits + 1) }
             return@withContext it
         }
@@ -147,23 +280,30 @@ class ThumbnailRepository(private val context: Context) {
         val mutex = locks[(key.hashCode() and Int.MAX_VALUE) % locks.size]
         try {
             mutex.withLock {
-                memoryCache.get(key)?.let { return@withLock it }
-                diskWorkers.withPermit { readDisk(key) }?.let {
-                    if (generation.get() == epoch) memoryCache.put(key, it)
+                memoryCache.get(key)?.let { rememberBitmap(id, key, it); return@withLock it }
+                val artifactKey = resolveArtworkKey(key)
+                diskWorkers.withPermit { checkpoint(); readDisk(artifactKey) }?.let {
+                    checkpoint()
+                    if (generation.get() == epoch) rememberBitmap(id, artifactKey, it)
                     _stats.update { value -> value.copy(diskHits = value.diskHits + 1) }
                     return@withLock it
                 }
+                if (diskOnly) return@withLock null
                 if (readMissing(key)) {
                     _stats.update { value -> value.copy(missingArtwork = value.missingArtwork + 1) }
                     return@withLock null
                 }
                 if (System.currentTimeMillis() - (recentFailures[key] ?: 0L) < FAILURE_RETRY_MS) return@withLock null
 
-                when (val generated = decodeWorkers.withPermit { generateGuarded(file) }) {
+                when (val generated = decodeWorkers.withPermit {
+                    OfflineAnalysisBudget.mutex.withLock { checkpoint(); generateGuarded(file, epoch) }
+                }.also { checkpoint() }) {
                     is GenerationResult.Ready -> {
                         if (generation.get() == epoch) {
-                            memoryCache.put(key, generated.bitmap)
-                            writeDisk(key, generated.bitmap)
+                            val artifact = generated.artworkKey ?: key
+                            rememberBitmap(id, artifact, generated.bitmap)
+                            if (generated.artworkKey != null) writeArtworkReference(key, artifact)
+                            else writeDisk(key, generated.bitmap)
                         }
                         recentFailures.remove(key)
                         _stats.update { value -> value.copy(generated = value.generated + 1) }
@@ -191,44 +331,49 @@ class ThumbnailRepository(private val context: Context) {
 
     suspend fun clear() = withContext(Dispatchers.IO) {
         generation.incrementAndGet()
+        scheduler.clear()
+        synchronized(prefetchJobs) { prefetchJobs.values.forEach { it.cancel() }; prefetchJobs.clear() }
         // Wait for writers before deleting. A finished decode must not refill a
         // just-cleared cache or race a partially written file into the next read.
-        locks.forEach { it.lock() }
-        try {
-        memoryCache.evictAll()
-        recentFailures.clear()
-        missingWrites.set(0)
-        artStamps.clear()
-        cacheDirectory.listFiles()?.forEach { it.delete() }
-        pruned.set(false)
-        } finally { locks.reversed().forEach { it.unlock() } }
+        withThumbnailWriterLocks(locks) {
+            memoryCache.evictAll()
+            synchronized(memoryAliases) { memoryAliases.clear() }
+            recentFailures.clear()
+            missingWrites.set(0)
+            artStamps.clear()
+            cacheDirectory.listFiles()?.forEach { it.delete() }
+            pruned.set(false)
+            publishMemory()
+        }
         Unit
     }
 
     /** A pathological embedded cover must not take the whole player down. */
-    private fun generateGuarded(file: MediaFile): GenerationResult = try {
-        generate(file)
+    private suspend fun generateGuarded(file: MediaFile, epoch: Int): GenerationResult = try {
+        generate(file, epoch)
     } catch (_: OutOfMemoryError) {
         // Release our own retained bitmap budget before giving up this request.
         memoryCache.evictAll()
+        publishMemory()
         GenerationResult.Failed
     }
 
-    private fun generate(file: MediaFile): GenerationResult {
+    private suspend fun generate(file: MediaFile, epoch: Int): GenerationResult {
         customArtwork(file.coverUri)?.let { return GenerationResult.Ready(it) }
+        checkpoint()
         return when (file.kind) {
             MediaKind.VIDEO -> {
-                val bitmap = createVideoThumbnail(file)
-                    ?: createIndexedVideoThumbnail(file)
-                    ?: createEmbeddedArtwork(file)
-                    ?: createSiblingArtwork(file)
-                bitmap?.let { GenerationResult.Ready(it) } ?: GenerationResult.Failed
+                createVideoThumbnail(file)?.let { return GenerationResult.Ready(it) }
+                checkpoint()
+                createIndexedVideoThumbnail(file)?.let { return GenerationResult.Ready(it) }
+                checkpoint()
+                createEmbeddedArtwork(file, epoch) ?: createSiblingArtwork(file, epoch) ?: GenerationResult.Failed
             }
-            MediaKind.AUDIO -> generateAudioArtwork(file)
+            MediaKind.AUDIO -> generateAudioArtwork(file, epoch)
         }
     }
 
-    private fun generateAudioArtwork(file: MediaFile): GenerationResult {
+    private suspend fun generateAudioArtwork(file: MediaFile, epoch: Int): GenerationResult {
         var embeddedProbeSucceeded = false
         var embeddedDecodeFailed = false
         val retriever = MediaMetadataRetriever()
@@ -236,10 +381,11 @@ class ThumbnailRepository(private val context: Context) {
             retriever.setDataSource(file.sourcePath)
             embeddedProbeSucceeded = true
             retriever.embeddedPicture?.let { bytes ->
-                val decoded = decodeSampled(bytes, ARTWORK_SIZE, ARTWORK_SIZE)
-                if (decoded != null) return GenerationResult.Ready(decoded)
+                val decoded = sharedArtwork(bytes, epoch)
+                if (decoded != null) return decoded
                 embeddedDecodeFailed = true
             }
+        } catch (cancel: CancellationException) { throw cancel
         } catch (_: Exception) {
             embeddedProbeSucceeded = false
         } finally {
@@ -248,9 +394,7 @@ class ThumbnailRepository(private val context: Context) {
 
         val sibling = findSiblingArtwork(File(file.sourcePath))
         if (sibling != null) {
-            return decodeSampledFile(sibling, ARTWORK_SIZE, ARTWORK_SIZE)
-                ?.let { GenerationResult.Ready(it) }
-                ?: GenerationResult.Failed
+            return sharedArtworkFile(sibling, epoch) ?: GenerationResult.Failed
         }
 
         return if (
@@ -288,16 +432,17 @@ class ThumbnailRepository(private val context: Context) {
         }
     }.getOrNull()
 
-    private fun createVideoThumbnail(media: MediaFile): Bitmap? {
+    private suspend fun createVideoThumbnail(media: MediaFile): Bitmap? {
         val source = File(media.sourcePath)
         val systemThumbnail = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            runCatching {
-                ThumbnailUtils.createVideoThumbnail(source, Size(VIDEO_WIDTH, VIDEO_HEIGHT), null)
-            }.getOrNull()
+            cancellableNativeThumbnail { signal ->
+                ThumbnailUtils.createVideoThumbnail(source, Size(VIDEO_WIDTH, VIDEO_HEIGHT), signal)
+            }
         } else {
             null
         }
         if (systemThumbnail != null) return centerCrop(systemThumbnail, VIDEO_WIDTH, VIDEO_HEIGHT)
+        checkpoint()
 
         val retriever = MediaMetadataRetriever()
         return try {
@@ -316,12 +461,13 @@ class ThumbnailRepository(private val context: Context) {
         }
     }
 
-    private fun createEmbeddedArtwork(media: MediaFile): Bitmap? {
+    private suspend fun createEmbeddedArtwork(media: MediaFile, epoch: Int): GenerationResult.Ready? {
         val retriever = MediaMetadataRetriever()
         return try {
             retriever.setDataSource(media.sourcePath)
             val bytes = retriever.embeddedPicture ?: return null
-            decodeSampled(bytes, ARTWORK_SIZE, ARTWORK_SIZE)
+            sharedArtwork(bytes, epoch)
+        } catch (cancel: CancellationException) { throw cancel
         } catch (_: Exception) {
             null
         } finally {
@@ -330,23 +476,93 @@ class ThumbnailRepository(private val context: Context) {
     }
 
     /** Reuse Android's indexed cover if direct container extraction was unavailable. */
-    private fun createIndexedVideoThumbnail(media: MediaFile): Bitmap? {
+    private suspend fun createIndexedVideoThumbnail(media: MediaFile): Bitmap? {
         if (Build.VERSION.SDK_INT < 29) return null
-        return runCatching {
+        return cancellableNativeThumbnail { signal ->
             val collection = android.provider.MediaStore.Video.Media.EXTERNAL_CONTENT_URI
             context.contentResolver.query(collection, arrayOf(android.provider.MediaStore.MediaColumns._ID),
-                "${android.provider.MediaStore.MediaColumns.DATA} = ?", arrayOf(media.sourcePath), null)?.use { cursor ->
+                "${android.provider.MediaStore.MediaColumns.DATA} = ?", arrayOf(media.sourcePath), null, signal)?.use { cursor ->
                 if (!cursor.moveToFirst()) return@use null
                 val uri = android.content.ContentUris.withAppendedId(collection, cursor.getLong(0))
-                context.contentResolver.loadThumbnail(uri, Size(VIDEO_WIDTH, VIDEO_HEIGHT), null)
+                context.contentResolver.loadThumbnail(uri, Size(VIDEO_WIDTH, VIDEO_HEIGHT), signal)
             }
-        }.getOrNull()
+        }
     }
 
+    private suspend fun cancellableNativeThumbnail(call: (android.os.CancellationSignal) -> Bitmap?): Bitmap? =
+        suspendCancellableCoroutine { continuation ->
+            val signal = android.os.CancellationSignal()
+            continuation.invokeOnCancellation { signal.cancel() }
+            val bitmap = try { call(signal) } catch (_: Exception) { null }
+            if (continuation.isActive) continuation.resumeWith(Result.success(bitmap))
+            else bitmap?.recycle()
+        }
+
     /** Same-name cover first, then conventional folder artwork. Entirely local. */
-    private fun createSiblingArtwork(media: MediaFile): Bitmap? {
+    private suspend fun createSiblingArtwork(media: MediaFile, epoch: Int): GenerationResult.Ready? {
         val artwork = findSiblingArtwork(File(media.sourcePath)) ?: return null
-        return decodeSampledFile(artwork, ARTWORK_SIZE, ARTWORK_SIZE)
+        return sharedArtworkFile(artwork, epoch)
+    }
+
+    private suspend fun sharedArtworkFile(file: File, epoch: Int): GenerationResult.Ready? {
+        // Hash a stream, not a second full-resolution cover allocation.
+        val length = file.length()
+        val modified = file.lastModified()
+        val digest = MessageDigest.getInstance("SHA-256")
+        file.inputStream().use { input ->
+            val buffer = ByteArray(8_192)
+            while (true) {
+                checkpoint()
+                val count = input.read(buffer)
+                if (count < 0) break
+                digest.update(buffer, 0, count)
+            }
+        }
+        if (length != file.length() || modified != file.lastModified()) return null
+        return sharedArtworkKey("art-${thumbnailDigestHex(digest.digest())}", epoch) {
+            val decoded = decodeSampledFile(file, ARTWORK_SIZE, ARTWORK_SIZE)
+            if (length == file.length() && modified == file.lastModified()) decoded
+            else { decoded?.recycle(); null }
+        }
+    }
+
+    private suspend fun sharedArtwork(bytes: ByteArray, epoch: Int): GenerationResult.Ready? {
+        checkpoint()
+        val key = "art-${thumbnailDigestHex(MessageDigest.getInstance("SHA-256").digest(bytes))}"
+        return sharedArtworkKey(key, epoch) { decodeSampled(bytes, ARTWORK_SIZE, ARTWORK_SIZE) }
+    }
+
+    private suspend fun sharedArtworkKey(key: String, epoch: Int, decode: () -> Bitmap?): GenerationResult.Ready? =
+        artworkLocks[(key.hashCode() and Int.MAX_VALUE) % artworkLocks.size].withLock {
+            checkpoint()
+            val existing = memoryCache.get(key) ?: readDisk(key)
+            if (existing != null) {
+                _stats.update { it.copy(artworkReuses = it.artworkReuses + 1) }
+                return@withLock GenerationResult.Ready(existing, key)
+            }
+            val bitmap = decode() ?: return@withLock null
+            checkpoint()
+            if (generation.get() == epoch) writeDisk(key, bitmap)
+            GenerationResult.Ready(bitmap, key)
+        }
+
+    private fun resolveArtworkKey(sourceKey: String): String {
+        val reference = File(cacheDirectory, "$sourceKey.ref")
+        if (!reference.isFile || reference.length() > 80) return sourceKey
+        val key = runCatching { reference.readText(Charsets.US_ASCII) }.getOrNull()
+        reference.setLastModified(System.currentTimeMillis())
+        return key?.takeIf { ARTWORK_KEY.matches(it) } ?: sourceKey
+    }
+
+    private fun writeArtworkReference(sourceKey: String, artifact: String) {
+        val atomic = android.util.AtomicFile(File(cacheDirectory, "$sourceKey.ref"))
+        var output: FileOutputStream? = null
+        try {
+            output = atomic.startWrite()
+            output.write(artifact.toByteArray(Charsets.US_ASCII))
+            atomic.finishWrite(output)
+            File(cacheDirectory, thumbnailMissingMarkerName(sourceKey)).delete()
+        } catch (_: Exception) { output?.let { atomic.failWrite(it) } }
     }
 
     private fun findSiblingArtwork(source: File): File? {
@@ -362,8 +578,7 @@ class ThumbnailRepository(private val context: Context) {
         val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
         BitmapFactory.decodeFile(file.absolutePath, bounds)
         if (bounds.outWidth <= 0 || bounds.outHeight <= 0) return null
-        var sample = 1
-        while (bounds.outWidth / sample > width * 2 || bounds.outHeight / sample > height * 2) sample *= 2
+        val sample = thumbnailSampleSize(bounds.outWidth, bounds.outHeight, maxOf(width, height))
         return BitmapFactory.decodeFile(file.absolutePath, BitmapFactory.Options().apply {
             inSampleSize = sample
             inPreferredConfig = Bitmap.Config.RGB_565
@@ -373,10 +588,8 @@ class ThumbnailRepository(private val context: Context) {
     private fun decodeSampled(bytes: ByteArray, width: Int, height: Int): Bitmap? {
         val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
         BitmapFactory.decodeByteArray(bytes, 0, bytes.size, bounds)
-        var sample = 1
-        while (bounds.outWidth / sample > width * 2 || bounds.outHeight / sample > height * 2) {
-            sample *= 2
-        }
+        if (bounds.outWidth <= 0 || bounds.outHeight <= 0) return null
+        val sample = thumbnailSampleSize(bounds.outWidth, bounds.outHeight, maxOf(width, height))
         val options = BitmapFactory.Options().apply {
             inSampleSize = sample
             inPreferredConfig = Bitmap.Config.RGB_565
@@ -404,19 +617,20 @@ class ThumbnailRepository(private val context: Context) {
 
         var hitMemoryPressure = false
         var decoded = try {
-            BitmapFactory.decodeFile(cached.absolutePath)
+            decodeSampledFile(cached, ARTWORK_SIZE, ARTWORK_SIZE)
         } catch (_: OutOfMemoryError) {
             hitMemoryPressure = true
             // A warm disk hit can still allocate a Bitmap while the LRU is near its
             // limit. Give back retained thumbnails and retry once before treating this
             // request as a miss. The disk file itself is not corrupt.
             memoryCache.evictAll()
+            publishMemory()
             null
         }
 
         if (decoded == null && hitMemoryPressure) {
             decoded = try {
-                BitmapFactory.decodeFile(cached.absolutePath)
+                decodeSampledFile(cached, ARTWORK_SIZE, ARTWORK_SIZE)
             } catch (_: OutOfMemoryError) {
                 null
             }
@@ -499,7 +713,7 @@ class ThumbnailRepository(private val context: Context) {
                 // Snapshot mtime once per file; sortedByDescending(selector) otherwise stats the
                 // same FUSE-backed files repeatedly during comparison.
                 val files = cacheDirectory.listFiles()
-                    ?.filter { it.isFile && (it.extension == "webp" || it.extension == "missing") }
+                    ?.filter { it.isFile && it.extension in setOf("webp", "missing", "ref") }
                     .orEmpty()
                     .map { file -> Triple(file, file.lastModified(), file.length()) }
                     .sortedByDescending { it.second }
@@ -528,5 +742,6 @@ class ThumbnailRepository(private val context: Context) {
         const val ART_STAMP_CACHE_LIMIT = 4_000
         val IMAGE_EXTENSIONS = setOf("jpg", "jpeg", "png", "webp", "bmp")
         val FOLDER_ART_NAMES = setOf("cover", "folder", "front", "album", "artwork")
+        val ARTWORK_KEY = Regex("art-[0-9a-f]{64}")
     }
 }

@@ -1515,14 +1515,10 @@ internal fun QueueThumbnail(
     onLoadThumbnail: suspend (MediaFile) -> Bitmap?,
     isScrolling: () -> Boolean = { false },
 ) {
-    var thumbnail by remember(file.path, file.modifiedMs, file.coverUri) { mutableStateOf<Bitmap?>(null) }
-    val currentIsScrolling by rememberUpdatedState(isScrolling)
-    LaunchedEffect(file.path, file.modifiedMs, file.coverUri) {
-        // Scroll state is read inside the effect, not composition: rows do not recompose
-        // when a fling starts/stops, and an in-flight load is never cancelled mid-fling.
-        // New loads still wait for the list to settle so video composition stays first.
+    var thumbnail by remember(file.path, file.sizeBytes, file.modifiedMs, file.coverUri) { mutableStateOf<Bitmap?>(null) }
+    LaunchedEffect(file.path, file.sizeBytes, file.modifiedMs, file.coverUri) {
+        // ListScrollBudget gates cache misses centrally, not RAM hits in each row.
         if (thumbnail != null) return@LaunchedEffect
-        snapshotFlow { currentIsScrolling() }.first { !it }
         thumbnail = onLoadThumbnail(file)
     }
     Box(

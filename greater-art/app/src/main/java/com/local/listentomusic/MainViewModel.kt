@@ -430,6 +430,9 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     suspend fun loadThumbnail(file: MediaFile): Bitmap? = thumbnailRepository.load(file)
+
+    fun thumbnailViewport(holder: String, visible: List<MediaFile>, adjacent: List<MediaFile>, scrolling: Boolean) =
+        thumbnailRepository.setViewport(holder, visible, adjacent, scrolling)
     suspend fun loadWaveform(path: String): FloatArray? {
         val file = scannedFiles.firstOrNull { it.path == path } ?: _queue.value.firstOrNull { it.path == path }
         val source = file?.sourcePath ?: com.local.listentomusic.model.sourceMediaPath(path)

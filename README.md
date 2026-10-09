@@ -9,6 +9,13 @@ Greater Art is a local-first Android audio and video player. This repository con
 - [App documentation](greater-art/README.md) · [Handoff and verification](greater-art/HANDOFF.md)
 - [User demonstration](greater-art-user-demo.html) · [Technical demonstration](greater-art-technical-demo.html)
 
+Current local source: **1.21.18 / code 241 — SOURCE_ONLY**, Library Performance v2
+stages 1–2. Shared viewport-priority artwork work pauses during fling; RAM hits stay
+immediate, allocation budgets respond to playback/Stack pressure, and verified
+identical covers reuse assets. No playback-quality constraint or network permission.
+See the [staged Stack/performance plan](greater-art/docs/PERFORMANCE_AND_STACK_UPGRADE_PLAN.md).
+Instrument-first timing maps and a shared-clock mixer are still planned, not released.
+
 Greater Art has no Internet permission, advertisements, accounts, analytics, telemetry, or cloud playback dependency. Library files stay on the device. Playback history is optional, off by default, and can be burned locally.
 
 Stack plays up to eight local tracks together. Choose **Now-playing video → Fit** in Background settings to tile Stack videos behind Library, Nodes and Stack. **Cut to screen size (Crop)** remains the default; Stretch is removed. Optional video previews need device decoder/GPU capacity and never reduce source quality. The single primary video surface serves the wallpaper while docked artwork remains visible; expanding Now Playing transfers that surface directly.

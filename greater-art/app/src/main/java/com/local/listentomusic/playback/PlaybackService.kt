@@ -190,7 +190,10 @@ class PlaybackService : MediaLibraryService() {
             override fun onEvents(player: Player, events: Player.Events) {
                 PlaybackWidget.update(this@PlaybackService, player.mediaMetadata.title?.toString() ?: "Greater Art", player.isPlaying, widgetArtwork)
             }
-            override fun onTracksChanged(tracks: androidx.media3.common.Tracks) { applyGain(); publishDiagnostics() }
+            override fun onTracksChanged(tracks: androidx.media3.common.Tracks) {
+                com.local.listentomusic.data.MediaCaches.setVideoPlayback(tracks.isTypeSelected(C.TRACK_TYPE_VIDEO))
+                applyGain(); publishDiagnostics()
+            }
             override fun onAudioSessionIdChanged(audioSessionId: Int) { applyGain() }
             override fun onIsPlayingChanged(isPlaying: Boolean) {
                 stackCoordinator.onMainIsPlayingChanged(isPlaying)

@@ -7,14 +7,20 @@ import kotlinx.coroutines.sync.Mutex
 object MediaCaches {
     private var thumbnails: ThumbnailRepository? = null
     private var waveforms: WaveformRepository? = null
+    private var videoPlayback = false
     @Synchronized fun thumbnails(context: Context): ThumbnailRepository = thumbnails
-        ?: ThumbnailRepository(context.applicationContext).also { thumbnails = it }
+        ?: ThumbnailRepository(context.applicationContext).also { thumbnails = it; it.setVideoPlayback(videoPlayback) }
     @Synchronized fun waveforms(context: Context): WaveformRepository = waveforms
         ?: WaveformRepository(context.applicationContext).also { waveforms = it }
 
     /** Do not instantiate caches just because Android is asking an idle process to trim. */
     @Synchronized fun trimMemory(level: Int) {
         thumbnails?.trimMemory(level)
+    }
+
+    @Synchronized fun setVideoPlayback(active: Boolean) {
+        videoPlayback = active
+        thumbnails?.setVideoPlayback(active)
     }
 }
 
