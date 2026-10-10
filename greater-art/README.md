@@ -10,11 +10,16 @@ optional video-colour gradient, with no extra decoder. See the
 [branch/issue review](docs/BRANCH_AND_ISSUE_REVIEW_2026-10-10.md) for integration,
 historical APK dispositions and unresolved physical/admin acceptance gates.
 
-Current source is **1.21.26 / code 249 — SOURCE_ONLY**. Adaptive Stack drift control
+Current source is **1.21.27 / code 250 — SOURCE_ONLY**. Adaptive Stack drift control
 is model-backed; audible improvement still requires physical listening.
-Stack v7 weights shared instrumental attacks and harmonic progression, accepts only
-distributed confident timing maps, and preserves uncertain/manual offsets. Saved
-Stacks retain fractional offsets and linear scale; existing companions apply these
+Calibrated internal-output probes now demonstrate remaining independent-player
+drift on the emulator; shared-clock output fixes the generated probe only in the
+default-off prototype. See [actual measurements and unresolved work](docs/STACK_BACKING_ALIGNMENT_1.21.27.md).
+Stack v8 weights shared instrumental attacks and harmonic progression, accepts only
+distributed confident timing maps, and preserves uncertain/manual offsets.
+Local repeated-beat alternatives are resolved across the song rather than discarded;
+complete timing decisions are cached separately from bounded instrument features.
+Saved Stacks retain fractional offsets and linear scale; existing companions apply these
 with pitch preserved. Nonuniform tempo/ambiguous arrangements abstain.
 Main's fullscreen-lock and Void OLED changes are preserved. The foreground
 Library/Settings, expanded Now Playing overlay and landscape fullscreen keep the

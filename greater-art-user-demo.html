@@ -36,7 +36,7 @@ button{font:inherit}.stage{position:absolute;left:50%;top:50%;width:1920px;heigh
 <section class="scene end" data-scene="7"><div><div class="shield">✓</div><h2>Nothing leaves.</h2><p>Your files, preferences, playlists, thumbnails and playback state stay on your device.</p></div></section>
 </div></div></div>
 <div class="caption" id="caption"><b>01</b> OPEN · LOCAL SCAN</div><div class="controls"><button id="sound">SOUND OFF</button><button id="restart">RESTART</button></div><div class="start" id="start"><button>PLAY FILM</button><small>SPACE TO START · ARROWS TO NAVIGATE</small></div>
-<div class="release-note">Source 1.21.26 · SOURCE_ONLY · Illustrative UI, not device footage · Owner-verified APK 1.21.18 · Space pauses</div></main>
+<div class="release-note">Source 1.21.27 · SOURCE_ONLY · Illustrative UI, not device footage · Owner-verified APK 1.21.18 · Space pauses</div></main>
 <script>
 const icon=`<svg class="icon" viewBox="0 0 32 32"><path d="M3 17h6l3-7 4 14 5-18 3 11h5"/><circle cx="24" cy="17" r="2" fill="#83ead2" stroke="none"/></svg>`;for(const id of['brandMark','launchMark','logoMark','miniArt','albumMark'])document.getElementById(id).innerHTML=icon;
 const songs=[['The 5 Ingredients of Success','80.9 MB'],['Ado — Usseewa','122.4 MB'],['Baby Blue Breaking Bad Soundtrack','38.6 MB'],['Bella Ciao','40.9 MB'],['Wagaeikouyo','10.8 MB']];document.getElementById('libRows').innerHTML=songs.map((s,i)=>`<div class="row ${i===1?'pick':''}"><div class="thumb ${i%3===1?'alt':i%3===2?'gold':''}">${i===1?icon:''}</div><div class="song"><b>${s[0]}</b><small>${s[1]}</small></div><span class="dots">⋮</span></div>`).join('');

@@ -17,12 +17,37 @@ reading stale XML. Confirm the emulator identity, wait for transitions before
 tapping, and distinguish a Launcher ANR from an app crash. Verify geometry and
 settings behavior with actual frames, not source names alone.
 
+Accessibility lesson: a small icon is not a small touch target, and a null image
+description is correct for decoration. Avoid duplicate Canvas/icon announcements
+inside a labeled control. Verify clickable semantics and measured bounds, including
+large font scales; token counts and regex checks are not whole-app proof. Fixed
+dark diagnostic surfaces also need matching button colors, not only white body text.
+
 For external sync patches, re-run their model against the integrated controller,
 including Float quantization and dwell rules; a harness with subtly different
 decisions can hide extra trim chatter. Preserve original thresholds in regression
 assertions. Measure real position noise separately from acoustic latency and do
 not claim audible gains from simulated p95. Check consumed branch versions before
 adopting the patch's proposed version identity.
+
+Backing-alignment lesson: validate actual cover families, not only synthetic
+identical arrangements. Keep several local candidates until whole-timeline
+agreement resolves repeated beats; an incompatible outro must not erase a
+distributed majority. A weak stereo-side channel is not disagreement, but a
+mono-only decision needs additional original-rate evidence, not a weaker score.
+Persist both accepted and uncertain decisions with source/clip/version identity;
+evict generated decision caches when testing descriptor corruption.
+
+Output-sync lesson: position telemetry cannot prove independent AudioTracks are
+audibly locked. Use frequency-isolated probes plus a single-file calibration.
+The separate test APK may capture only Greater Art's UID after app-only Android
+consent; do not bypass a denied whole-screen request or add recording permissions
+to production. Standalone test components cannot assume Kotlin runtime classes
+from the target APK: use framework-only components. Start the capture foreground
+service from a visible button, keep that Activity until the service acknowledges
+startup, and use unique `.wav` names. Do not restart instrumentation midway through
+playback; it terminates the target process. Capture duration and useful bursts,
+not a nominal test sleep, determine the evidence window.
 
 Before editing:
 

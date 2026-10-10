@@ -27,7 +27,7 @@ import kotlin.math.sqrt
 
 /**
  * Separate, bounded analysis decoder. Never changes the real player's tracks or source.
- * Production analysis uses v7's distributed instrument-weighted windows and timing map.
+ * Production v8 keeps v7 instrument descriptors, then resolves alternatives across the timeline.
  * The v6 extractor remains an internal regression baseline, not an uncertainty fallback.
  * Both versions compare mono/side in the same domain and never modify audible media.
  */

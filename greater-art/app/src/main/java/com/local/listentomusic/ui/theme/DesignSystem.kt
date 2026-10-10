@@ -1,6 +1,7 @@
 package com.local.listentomusic.ui.theme
 
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.darkColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
@@ -59,6 +60,26 @@ internal object GaVideoOverlay {
     val control = Color.Black.copy(alpha = 0.42f)
     val playSurface = Color.White.copy(alpha = 0.18f)
     val inactiveTrack = Color.White.copy(alpha = 0.36f)
+}
+
+/** Diagnostics must remain legible even when inspecting a broken/custom theme. */
+internal object GaInspectorPalette {
+    val surface = Color(0xFF080C0D)
+    val raised = Color(0xFF141A1C)
+    val foreground = Color.White
+    val accent = Color(0xFF75EBD4)
+    val error = Color(0xFFFF5C68)
+}
+
+@Composable
+internal fun GaInspectorTheme(content: @Composable () -> Unit) {
+    MaterialTheme(colorScheme = darkColorScheme(
+        primary = GaInspectorPalette.accent, onPrimary = GaInspectorPalette.surface,
+        secondary = GaInspectorPalette.accent, onSecondary = GaInspectorPalette.surface,
+        surface = GaInspectorPalette.surface, onSurface = GaInspectorPalette.foreground,
+        onSurfaceVariant = GaInspectorPalette.foreground,
+        error = GaInspectorPalette.error, onError = GaInspectorPalette.surface,
+    ), content = content)
 }
 
 @Composable

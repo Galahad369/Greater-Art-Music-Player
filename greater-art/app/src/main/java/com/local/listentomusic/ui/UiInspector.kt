@@ -28,6 +28,7 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
+import com.local.listentomusic.ui.theme.GaInspectorPalette
 
 internal data class InspectorRegion(
     val label: String,
@@ -136,8 +137,8 @@ internal fun UiInspectorHost(
     val context = LocalContext.current
     // Inspector colors are independent of the selected app theme. Debug text must
     // remain readable even when a custom background or broken palette is under it.
-    val inspectorError = Color(0xFFFF5C68)
-    val inspectorAccent = Color(0xFF75EBD4)
+    val inspectorError = GaInspectorPalette.error
+    val inspectorAccent = GaInspectorPalette.accent
     LaunchedEffect(enabled) { if (!enabled) state.clear() }
     BackHandler(enabled && state.armed) { state.cancel() }
     CompositionLocalProvider(LocalUiInspector provides if (enabled) state else null) {
@@ -187,7 +188,7 @@ internal fun UiInspectorHost(
                     // surface. Keep the inspector's actions above that dock.
                     modifier = Modifier.align(Alignment.BottomCenter).navigationBarsPadding()
                         .padding(start = 12.dp, end = 12.dp, bottom = 76.dp).zIndex(99f),
-                    color = Color(0xFF090D0E).copy(alpha = 0.98f),
+                    color = GaInspectorPalette.surface.copy(alpha = 0.98f),
                     contentColor = Color.White,
                     shape = RoundedCornerShape(14.dp),
                     tonalElevation = 6.dp,

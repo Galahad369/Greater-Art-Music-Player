@@ -1,0 +1,12 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Test APK only: internal Greater Art output, never microphone input or production permissions. -->
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PROJECTION" />
+    <queries><package android:name="com.local.listentomusic" /></queries>
+    <application>
+        <activity android:name="com.local.listentomusic.playback.StackOutputCaptureActivity" android:exported="true" />
+        <service android:name="com.local.listentomusic.playback.StackOutputCaptureService"
+            android:exported="false" android:foregroundServiceType="mediaProjection" />
+    </application>
+</manifest>

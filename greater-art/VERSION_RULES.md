@@ -7,7 +7,7 @@ This file is the authoritative version policy for Greater Art. If any handoff no
 ## Machine-checkable state
 
 
-Current source: **1.21.26 (code 249)**
+Current source: **1.21.27 (code 250)**
 Allowed consumed transition: **1.21.24 (code 247) -> 1.21.26 (code 249)**
 Allowed consumed transition: **1.21.22 (code 245) -> 1.21.26 (code 249)**
 Allowed consumed transition: **1.21.22 (code 245) -> 1.21.25 (code 248)**
@@ -296,3 +296,4 @@ Previous baseline: 1.13.26 (code 115).
 - Consumed parallel draft identities: **1.21.23 (code 246)** and **1.21.24 (code 247)** belong to PR #153's shared-clock source history, not this SAF branch; do not reuse them.
 - 1.21.25 (code 248) — experimental scoped media folder grant and bounded Storage Access Framework tree preview on PR #155. Introduce persistent read-only user-selected tree permission, revocation/reselection handling, bounded ContentResolver child enumeration and local media-type candidate tests; explicitly do NOT change the production filesystem-backed Library, playback, metadata/cache, or broad-permission request yet. SOURCE_ONLY; not a completed SAF migration and no APK produced.
 - 1.21.26 (code 249) — integrate reviewed PR #153 default-off PCM kernel and PR #155 bounded SAF preview with Claude adaptive sync; consumed parallel 1.21.24/code247 histories remain parents, 1.21.25/code248 remains preserved. Fix partial-reveal horizontal gestures, scalable borderless Mini/Library artwork, collapsed Settings, clear palette swatches and Ambient background. SOURCE_ONLY; no existing APK changed.
+- 1.21.27 (code 250) — distributed backing-track candidate consensus, real local four-family alignment diagnostics and regression tests. SOURCE_ONLY; no acoustic perfection claim or immutable release replacement.

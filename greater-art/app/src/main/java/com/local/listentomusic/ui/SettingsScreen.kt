@@ -6,6 +6,9 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.sizeIn
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.background
@@ -711,7 +714,7 @@ private fun <T> ChoiceSetting(title: String, description: String, values: List<T
 }
 
 @Composable
-private fun DimSliderSetting(title: String, description: String, value: Float, onValue: (Float) -> Unit) {
+internal fun DimSliderSetting(title: String, description: String, value: Float, onValue: (Float) -> Unit) {
     var inputOpen by remember { mutableStateOf(false) }
     var inputText by remember { mutableStateOf("") }
     Column(Modifier.fillMaxWidth().inspectElement("SETTING_SLIDER", title).padding(horizontal = GaSpacing.lg, vertical = GaSpacing.md)) {
@@ -720,13 +723,18 @@ private fun DimSliderSetting(title: String, description: String, value: Float, o
                 Text(title, fontWeight = FontWeight.SemiBold)
                 Text(description, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
-            Text(
+            TextButton(
+                onClick = { inputText = "${(value * 100).toInt()}"; inputOpen = true },
+                modifier = Modifier.padding(start = GaSpacing.md)
+                    .sizeIn(minWidth = com.local.listentomusic.ui.theme.GaControl.touchTarget,
+                        minHeight = com.local.listentomusic.ui.theme.GaControl.touchTarget)
+                    .semantics { contentDescription = "$title: ${(value * 100).toInt()}%" },
+            ) { Text(
                 "${(value * 100).toInt()}%",
-                modifier = Modifier.padding(start = GaSpacing.md, top = GaSpacing.micro).clickable { inputText = "${(value * 100).toInt()}"; inputOpen = true },
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.SemiBold,
                 color = MaterialTheme.colorScheme.secondary,
-            )
+            ) }
         }
         Slider(
             value = value,
