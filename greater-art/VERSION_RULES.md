@@ -7,7 +7,7 @@ This file is the authoritative version policy for Greater Art. If any handoff no
 ## Machine-checkable state
 
 
-Current source: **1.21.22 (code 245)**
+Current source: **1.21.24 (code 247)**
 Current release state: **SOURCE_ONLY**
 Latest verified APK: **1.21.18 (code 241)**
 Allowed series transition: **1.14.15 -> 1.15.1**
@@ -17,6 +17,7 @@ Allowed consumed transition: **1.20.2 (code 220) -> 1.20.4 (code 222)**
 Allowed consumed transition: **1.21.16 (code 239) -> 1.21.18 (code 241)**
 Allowed consumed transition: **1.21.18 (code 241) -> 1.21.20 (code 243)**
 Allowed consumed transition: **1.21.20 (code 243) -> 1.21.22 (code 245)**
+Allowed consumed transition: **1.21.20 (code 243) -> 1.21.23 (code 246)**
 Allowed consumed transition: **1.15.13 (code 143) -> 1.15.17 (code 147)**
 Allowed consumed transition: **1.15.17 (code 147) -> 1.15.19 (code 149)**
 Allowed consumed transition: **1.15.19 (code 149) -> 1.15.21 (code 151)**
@@ -274,3 +275,7 @@ Previous baseline: 1.13.26 (code 115).
 - **Mandatory independent gate before merge:** The unmodified version guard must read the *tracked* `releases/GreaterArt-1.21.18.apk`, recompute its SHA-256, match the hash in HANDOFF, and validate APK package/version metadata via `aapt`. If it fails, do not merge this candidate, relabel the artifact, or modify the guard to conceal provenance defects.
 - Older 1.21.x binaries are preserved, not retroactively certified. This finalization only applies to the 1.21.18 candidate; issue #158 retains full history and evidence.
 - 1.21.22 (code 245) — integrate Stack instrument-first v7 with current main's screen-awake/fullscreen-lock/Void OLED changes and owner-confirmed 1.21.18 metadata. Parallel 1.21.20 histories are retained; main's committed 1.21.21 is accounted for by the exact consumed transition. SOURCE_ONLY; no release artifact produced.
+
+- 1.21.23 (code 246) — default-off shared-clock PCM prototype for PR #153: bounded native decoder queues, stereo float AudioTrack, sample-frame mapping/windowed-sinc conversion, gain/mute/solo, deterministic transport and exclusive-host/focus/noisy safeguards. Debug instrumentation entry only; unsupported tempo maps/precision/channel formats fall back before output. Production runtime unchanged. SOURCE_ONLY.
+
+- 1.21.24 (code 247) — PR #153 debug-only PCM mixer stereo-hot-path optimization: compute the same 32-tap windowed-sinc weights once per active voice/frame for both channels; retain native rate/precision, positive/negative offsets, gain/mute/solo and coherent headroom; add scalar stereo reference and solo regression tests. SOURCE_ONLY; production route unchanged, real-time cold eight-voice output deadline and physical tests still pending.

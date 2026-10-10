@@ -4,7 +4,10 @@ Greater Art is a native Kotlin/Jetpack Compose player for local music and video.
 
 ## Current release
 
-Current source is **1.21.22 / code 245 — SOURCE_ONLY**.
+Current source is **1.21.24 / code 247 — SOURCE_ONLY**.
+The shared-clock PCM developer prototype is compiled but disabled by default;
+explicit debug builds use `-PstackPcmPrototype=true`. It is not installed as a
+production audio route. Unsupported tempo/PCM formats keep legacy playback.
 Stack v7 weights shared instrumental attacks and harmonic progression, accepts only
 distributed confident timing maps, and preserves uncertain/manual offsets. Saved
 Stacks retain fractional offsets and linear scale; existing companions apply these
@@ -24,7 +27,8 @@ quality is unchanged. No new permissions or dependencies.
 [Implementation and remaining Stack stages](docs/PERFORMANCE_AND_STACK_UPGRADE_PLAN.md)
 · [verification and inherited release-metadata problems](HANDOFF.md).
 Bounded HPSS-weighted analysis and linear timing maps are implemented in source;
-HPSS is not vocal removal. Shared-clock output is still a separate prototype stage.
+HPSS is not vocal removal. Shared-clock output is implemented only as a separate
+debug/test prototype; physical output performance and production adoption are pending.
 
 Latest owner-verified APK: **1.21.18/code241** (see HANDOFF for bounded QA, artifact hash and provenance limitations).
 

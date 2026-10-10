@@ -117,6 +117,11 @@ Preserve versioned source commits. Use a checked merge commit with an expected-h
 
 ## Core invariants
 
+- If a small source push repeatedly times out, inspect pack progress and the
+  actual remote SHA before retrying. Git may resend historical APK objects;
+  negotiate existing objects rather than deleting binaries, rewriting history,
+  or claiming that `Everything up-to-date` after an RPC error means success.
+
 - `main` is canonical.
 - Never silently reuse consumed versions.
 - Executable change + version bump are atomic.
@@ -152,6 +157,15 @@ Preserve versioned source commits. Use a checked merge commit with an expected-h
   require different tests. HPSS is not vocal removal; L−R is not instrumental
   separation; a shared timer around independent players is not a shared PCM clock.
   Commit/build/verify each stage separately before changing normal playback.
+- **PCM transport tests:** Android instrument methods must return Unit, not a log
+  integer; numeric assertions must compare the same types. Launch a foreground
+  test host for modern audio-focus rules and explicitly silence existing output.
+  Close decoder children before leaving a coroutineScope at normal EOF: waiting
+  for backpressured producers before cancelling them can deadlock. Generation-gate
+  restart callbacks, unwrap unsigned AudioTrack heads, and report steady-state
+  statistics before a loop resets the counters. Synthetic clock maths is not a
+  physical/acoustic result. Never enable an experimental route in normal builds
+  merely because its instrumentation harness works.
 
 - **One binary writer:** never let agents/build shells write the same APK or version concurrently. Send text/logs to separate `.log` paths, never `app-debug.apk`. Require a valid ZIP, manifest, signature, alignment, size and SHA-256; repeat the hash just before copying/uploading. A zero exit code or `BUILT` message alone is insufficient. If another operation corrupts output, preserve evidence and rebuild the exact SHA in isolation, or recover the exact installed APK only when its build/install provenance is known and reverified. Never relabel another version.
 - **Windows runtime:** set `JAVA_HOME`, `ANDROID_HOME`, `GRADLE_USER_HOME` and `ANDROID_USER_HOME` explicitly. Validate the Java/Python executable, not a Store alias. ADB's `\\.android`/no-device error can be environment misconfiguration, not missing hardware. Use bounded checks; do not busy-loop unchanging CI.

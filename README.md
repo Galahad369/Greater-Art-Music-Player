@@ -9,7 +9,8 @@ Greater Art is a local-first Android audio and video player. This repository con
 - [App documentation](greater-art/README.md) · [Handoff and verification](greater-art/HANDOFF.md)
 - [User demonstration](greater-art-user-demo.html) · [Technical demonstration](greater-art-technical-demo.html)
 
-Current source: **1.21.22 / code 245 — SOURCE_ONLY**, instrument-first Stack alignment
+Current source: **1.21.24 / code 247 — SOURCE_ONLY**, default-off shared-clock PCM
+developer prototype plus instrument-first Stack alignment
 with distributed timing anchors, confidence-gated linear drift maps and bounded
 original-rate transient refinement. Library Performance v2
 stages 1–2. Shared viewport-priority artwork work pauses during fling; RAM hits stay
@@ -23,7 +24,7 @@ Previous 1.21.18 work introduced Library Performance v2 (shared viewport-priorit
 artwork, fling-aware scheduling, memory-pressure budgets and verified cover reuse).
 See the [staged Stack/performance plan](greater-art/docs/PERFORMANCE_AND_STACK_UPGRADE_PLAN.md).
 Timing maps are implemented in source, not a verified release. The shared-clock
-mixer is a separate prototype stage, not the production audio path.
+mixer is implemented as a separate debug/test prototype, not the production audio path.
 
 Greater Art has no Internet permission, advertisements, accounts, analytics, telemetry, or cloud playback dependency. Library files stay on the device. Playback history is optional, off by default, and can be burned locally.
 
