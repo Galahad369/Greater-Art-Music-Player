@@ -14,6 +14,20 @@ This file describes the **current repository state only**. Historical session no
 
 ## Repository state
 
+### October 11 — repository synchronization / unverified artifact quarantine
+
+- Remote has only main and no open PRs; local implementation commit a28c7aa
+  already contains the reviewed alignment and accessibility work. No branch work
+  was discarded and no source history was rewritten.
+- The unverified GreaterArt-1.21.26.apk was accidentally tracked beside verified
+  releases. Preserved its exact bytes outside this repository in the sibling
+  Greater-Art-Unverified-Archive/GreaterArt-1.21.26.apk directory. It is not a
+  verified release and is not promoted in release metadata. Git history retains
+  the original artifact too. Current source remains 1.21.27/code250 SOURCE_ONLY;
+  latest verified release remains 1.21.18/code241.
+- Prevention: never stage another agent's APK merely because it exists. Verify
+  exact source identity, manifest, device checks and hash before release tracking.
+
 ### October 10 — focused design/accessibility audit (same uncommitted 1.21.27 source)
 
 - Decorative artwork/placeholder/launcher images remain unlabeled intentionally;
