@@ -1,24 +1,29 @@
-# Security Policy
+# Security policy — Greater Art
 
-## Scope
+## Scope and supported builds
 
-Security reports are welcome for the Android source, packaged APKs, GitHub Actions, and reusable skills in this repository. Only the latest `main` branch and the newest tagged app releases are supported.
+Security reports are welcome for the Android app, source, packaged APKs, release process, build scripts, GitHub Actions and third-party dependencies. Development happens on `main`. Only explicitly owner-verified distributable APKs should be treated as verified releases; `SOURCE_ONLY` source builds and historical APKs are not automatically certified.
 
 ## Report privately
 
-Do not open a public issue containing a live credential, private key, personal information, or an exploitable vulnerability.
+**Do not put exploits, personal media, credentials, signing keys or sensitive workstation information in public issues.**
 
-Use GitHub's private vulnerability reporting page:
+Use the Greater Art repository's own **Security → Advisories → Report a vulnerability** workflow when the repository has private vulnerability reporting enabled:
 
-<https://github.com/Galahad369/APPs-by-L/security/advisories/new>
+https://github.com/Galahad369/Greater-Art-Music-Player/security/advisories/new
 
-If private reporting is unavailable and a real credential is exposed, revoke or rotate it immediately before discussing it anywhere. A committed secret must be treated as compromised even if the file is later deleted, because Git history and forks may retain it.
+If that option is unavailable, contact the maintainer through an existing trusted private channel. If no private channel is available, you may open a public issue **only to request a private reporting channel**, without any technical exploit details or personal information. Private reporting availability has not been independently verified.
 
-## Repository guarantees and limits
+Provide affected version/commit, impact, reproducible steps using synthetic test data, and whether a secret may be compromised. The maintainer should acknowledge, assess, track remediation privately, validate a fix and disclose only after mitigation. Do not promise a response SLA until an owner and coverage have been established.
 
-- Greater Art intentionally contains no analytics or advertising SDKs.
-- Greater Art intentionally declares no Internet permission.
-- Automated checks scan for known credential formats, sensitive filenames, local user paths, vulnerable code patterns, and dependency risks.
-- Automated scanning reduces risk but cannot prove that arbitrary source or binary data is harmless.
+## Security boundaries
 
-Do not submit real passwords, API keys, seed phrases, wallet secrets, signing keys, personal documents, or private media as test data.
+- Greater Art is designed for local/offline media use; the production manifest intentionally removes the Internet permission. Verify the merged manifest on every releasable APK.
+- The current product still requests broad storage access on supported Android versions; see [the least-privilege migration plan](security/plans/storage-migration.md). Read-only SAF folder preview does **not** replace production media access.
+- Sharing and MediaSession interactions cross Android process boundaries and must be tested as untrusted input and permission boundaries.
+- GitHub Actions security, dependency, release-identity and version checks reduce risk but do not establish bug-free software, OWASP MASVS compliance or ISO/IEC 27001 certification.
+- Never commit signing secrets, real user media, personal paths or private audit evidence. Treat committed secrets as exposed even when later removed from Git history.
+
+## Security work and evidence
+
+[Security readiness hub](security/README.md) · [Mobile security assessment](security/assessments/masvs-baseline.md) · [Risk register](security/isms/risk-register.md) · [Existing security/admin issue #23](https://github.com/Galahad369/Greater-Art-Music-Player/issues/23).
