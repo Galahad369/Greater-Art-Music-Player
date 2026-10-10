@@ -140,3 +140,5 @@ This worksheet is a **test specification**, not a verification report. Every phy
 5. **Do not close #147** until required device/OS cases actually pass or each exception is explicitly documented and accepted. Completing or merging PR #154 only makes this checklist available on `main`.
 
 **Existing evidence classifications:** all October 9 metrics above are synthetic/emulator-only; `PR #153` is a default-off PCM prototype and not the production Stack route. A failed convergence target or cold eight-voice deadline is an outstanding blocker, not a physical PASS.
+
+**Suggested run order:** lock/player and Library/Nodes/wallpaper first, then Stack analysis and measured audio-route/thermal cases. Save device recordings with case IDs (for example `LOCK-03.mp4`) and annotate discrepancies in the corresponding GitHub issue. This order is guidance only; it does not imply any case has run.
