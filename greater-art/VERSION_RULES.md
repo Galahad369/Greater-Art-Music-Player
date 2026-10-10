@@ -18,6 +18,7 @@ Allowed consumed transition: **1.21.16 (code 239) -> 1.21.18 (code 241)**
 Allowed consumed transition: **1.21.18 (code 241) -> 1.21.20 (code 243)**
 Allowed consumed transition: **1.21.20 (code 243) -> 1.21.22 (code 245)**
 Allowed consumed transition: **1.21.20 (code 243) -> 1.21.23 (code 246)**
+Allowed consumed transition: **1.21.22 (code 245) -> 1.21.24 (code 247)**
 Allowed consumed transition: **1.15.13 (code 143) -> 1.15.17 (code 147)**
 Allowed consumed transition: **1.15.17 (code 147) -> 1.15.19 (code 149)**
 Allowed consumed transition: **1.15.19 (code 149) -> 1.15.21 (code 151)**
@@ -279,3 +280,5 @@ Previous baseline: 1.13.26 (code 115).
 - 1.21.23 (code 246) — default-off shared-clock PCM prototype for PR #153: bounded native decoder queues, stereo float AudioTrack, sample-frame mapping/windowed-sinc conversion, gain/mute/solo, deterministic transport and exclusive-host/focus/noisy safeguards. Debug instrumentation entry only; unsupported tempo maps/precision/channel formats fall back before output. Production runtime unchanged. SOURCE_ONLY.
 
 - 1.21.24 (code 247) — PR #153 debug-only PCM mixer stereo-hot-path optimization: compute the same 32-tap windowed-sinc weights once per active voice/frame for both channels; retain native rate/precision, positive/negative offsets, gain/mute/solo and coherent headroom; add scalar stereo reference and solo regression tests. SOURCE_ONLY; production route unchanged, real-time cold eight-voice output deadline and physical tests still pending.
+
+- Reconciled PR #153 integration: transition **1.21.22/code245 -> 1.21.24/code247** incorporates the already-consumed intermediate **1.21.23/code246** debug mixer prototype from the preserved side-branch history. PR #154's physical QA worksheet is retained in the integrated tree. This is an exact, justified consumed-branch transition, not a general validation exemption or a new APK.
