@@ -60,3 +60,7 @@ This PR now includes a **bounded SAF permission + preview slice**, not only a ha
 5. Require exact-head CI, app/device testing and explicit permission review before merging this change as a production migration.
 
 The initial bootstrap was documentation-only. This source stage remains in PR #155 for further development.
+
+## CI / scope checkpoint (10 October 2026)
+
+Source-only v1.21.25/code248 implements bounded scoped-folder grant/preview. Its PR base has been refreshed to `main` at `3060545`; before merging, confirm exact-head Version Consistency, Android CI and security/CodeQL all pass. Even green automated checks cannot establish SAF playback, metadata and playlist parity because those integrations remain intentionally unimplemented.
