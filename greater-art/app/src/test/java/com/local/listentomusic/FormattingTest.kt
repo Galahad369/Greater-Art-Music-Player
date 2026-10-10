@@ -56,12 +56,19 @@ class FormattingTest {
         )
     }
 
-    @Test fun everyLibraryRowSizeUsesTheImmutableMiniWindowThumbnailFootprint() {
-        com.local.listentomusic.data.LibraryRowSize.entries.forEach { rowSize ->
+    @Test fun librarySizesApplyToBothDimensionsAndSmallFollowsMiniSize() {
+        val sizes = com.local.listentomusic.data.LibraryRowSize.entries
+        val small = com.local.listentomusic.ui.libraryThumbnailSizeDp(sizes[0])
+        assertEquals(103 to 56, small)
+        val medium = com.local.listentomusic.ui.libraryThumbnailSizeDp(sizes[1])
+        val large = com.local.listentomusic.ui.libraryThumbnailSizeDp(sizes[2])
+        assertTrue(medium.first > small.first && medium.second > small.second)
+        assertTrue(large.first > medium.first && large.second > medium.second)
+        sizes.forEach { mini ->
             assertEquals(
-                com.local.listentomusic.model.MiniWindowMetrics.WIDTH_DP to
-                    com.local.listentomusic.model.MiniWindowMetrics.HEIGHT_DP,
-                com.local.listentomusic.ui.libraryThumbnailSizeDp(rowSize),
+                com.local.listentomusic.model.MiniWindowMetrics.widthPx(1f, mini) to
+                    com.local.listentomusic.model.MiniWindowMetrics.heightPx(1f, mini),
+                com.local.listentomusic.ui.libraryThumbnailSizeDp(sizes[0], mini),
             )
         }
     }

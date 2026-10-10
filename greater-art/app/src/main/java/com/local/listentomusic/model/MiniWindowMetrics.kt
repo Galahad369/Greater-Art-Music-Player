@@ -1,5 +1,6 @@
 package com.local.listentomusic.model
 
+import com.local.listentomusic.data.LibraryRowSize
 import kotlin.math.max
 import kotlin.math.roundToInt
 
@@ -11,16 +12,23 @@ object MiniWindowMetrics {
     const val HEIGHT_DP = 56
     const val SHRINK_PX = 0
 
-    fun widthPx(density: Float): Int = max(1, (WIDTH_DP * density).toInt() - SHRINK_PX)
-    fun heightPx(density: Float): Int = max(1, (HEIGHT_DP * density).toInt() - SHRINK_PX)
-    fun squareWidthPx(density: Float): Int = heightPx(density)
+    fun scale(size: LibraryRowSize): Float = when (size) {
+        LibraryRowSize.SMALL -> 1f
+        LibraryRowSize.MEDIUM -> 1.25f
+        LibraryRowSize.LARGE -> 1.5f
+    }
+    fun widthPx(density: Float, size: LibraryRowSize = LibraryRowSize.SMALL): Int =
+        max(1, (WIDTH_DP * density * scale(size)).toInt() - SHRINK_PX)
+    fun heightPx(density: Float, size: LibraryRowSize = LibraryRowSize.SMALL): Int =
+        max(1, (HEIGHT_DP * density * scale(size)).toInt() - SHRINK_PX)
+    fun squareWidthPx(density: Float, size: LibraryRowSize = LibraryRowSize.SMALL): Int = heightPx(density, size)
 
     fun isSquareAspect(aspectRatio: Float): Boolean = aspectRatio in 0.90f..1.10f
 
     /** Fit the media itself inside the old maximum footprint, without a padded window. */
-    fun detachedSizePx(density: Float, aspectRatio: Float): Pair<Int, Int> {
-        val maxWidth = widthPx(density)
-        val maxHeight = heightPx(density)
+    fun detachedSizePx(density: Float, aspectRatio: Float, size: LibraryRowSize = LibraryRowSize.SMALL): Pair<Int, Int> {
+        val maxWidth = widthPx(density, size)
+        val maxHeight = heightPx(density, size)
         if (!aspectRatio.isFinite() || aspectRatio <= 0f || isSquareAspect(aspectRatio)) {
             return maxHeight to maxHeight
         }

@@ -41,6 +41,7 @@ class CompactPlayerView(context: Context) : FrameLayout(context) {
     private val next = button(android.R.drawable.ic_media_next)
     private val progress = ProgressBar(context, null, android.R.attr.progressBarStyleHorizontal)
     private var player: Player? = null
+    private var miniSize = com.local.listentomusic.data.LibraryRowSize.SMALL
     private var owner = "LIBRARY_MINI"
     private var lastArtwork: Bitmap? = null
     private var previousLabel = "Previous"
@@ -66,7 +67,7 @@ class CompactPlayerView(context: Context) : FrameLayout(context) {
         setBackgroundColor(Color.rgb(22, 30, 28))
         val row = LinearLayout(context).apply { gravity = Gravity.CENTER_VERTICAL }
         addView(row, LayoutParams(-1, -1))
-        row.addView(preview, LinearLayout.LayoutParams(MiniWindowMetrics.squareWidthPx(resources.displayMetrics.density), -1))
+        row.addView(preview, LinearLayout.LayoutParams(MiniWindowMetrics.squareWidthPx(resources.displayMetrics.density, miniSize), -1))
         artwork.scaleType = ImageView.ScaleType.CENTER_CROP
         artwork.setImageResource(R.drawable.ic_launcher_foreground)
         preview.addView(artwork, LayoutParams(-1, -1))
@@ -118,6 +119,7 @@ class CompactPlayerView(context: Context) : FrameLayout(context) {
         progress.progressTintList = ColorStateList.valueOf(accent)
     }
     fun appearance(settings: UserPreferences) {
+        if (miniSize != settings.miniWindowSize) { miniSize = settings.miniWindowSize; refresh() }
         val night = resources.configuration.uiMode and android.content.res.Configuration.UI_MODE_NIGHT_MASK == android.content.res.Configuration.UI_MODE_NIGHT_YES
         val font = if (settings.silianRail) AppFont.SILIAN_RAIL else settings.appFont
         val key = listOf(settings.themeMode, settings.colorTheme, font, settings.appLanguage, night)
@@ -166,7 +168,7 @@ class CompactPlayerView(context: Context) : FrameLayout(context) {
         } else {
             setBackgroundColor(paletteBackground)
             val lp = preview.layoutParams as LinearLayout.LayoutParams
-            lp.width = MiniWindowMetrics.squareWidthPx(resources.displayMetrics.density)
+            lp.width = MiniWindowMetrics.squareWidthPx(resources.displayMetrics.density, miniSize)
             lp.height = LayoutParams.MATCH_PARENT
             preview.layoutParams = lp
         }
@@ -223,7 +225,7 @@ class CompactPlayerView(context: Context) : FrameLayout(context) {
             else lastArtwork?.let { it.width.toFloat() / it.height.coerceAtLeast(1) } ?: 1f
         val width = if (detached) LayoutParams.MATCH_PARENT else if (MiniWindowMetrics.isSquareAspect(ratio))
             MiniWindowMetrics.squareWidthPx(resources.displayMetrics.density)
-        else MiniWindowMetrics.widthPx(resources.displayMetrics.density)
+        else MiniWindowMetrics.widthPx(resources.displayMetrics.density, miniSize)
         if (preview.layoutParams.width != width) { preview.layoutParams = preview.layoutParams.apply { this.width = width } }
         if (!expanded) {
             if (isVideo) VideoSurfaceOwner.attach(p, video, overlay = owner == "MINI_WINDOW")

@@ -17,6 +17,36 @@ import java.io.File
 /** Explicit device fixture: six user-supplied takes in Download; never fetches media. */
 @RunWith(AndroidJUnit4::class)
 class StackSixTakeTest {
+    @Test fun adaptiveSyncReportsOneMinuteOfSixRealTakes() {
+        val instrumentation = InstrumentationRegistry.getInstrumentation()
+        val context = instrumentation.targetContext
+        val sources = File("/sdcard/Download").listFiles().orEmpty().filter {
+            it.isFile && it.extension == "mp4" && it.name.contains("孤独毒毒")
+        }.sortedBy { it.name }.take(6)
+        assumeTrue("Requires six local takes", sources.size == 6)
+        val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
+        lateinit var main: ExoPlayer
+        lateinit var coordinator: StackPlaybackCoordinator
+        instrumentation.runOnMainSync {
+            main = ExoPlayer.Builder(context).build()
+            coordinator = StackPlaybackCoordinator(context, main, scope) { }
+            assertTrue(coordinator.start(sources.map { fixture(it) }))
+        }
+        try {
+            val readyUntil = android.os.SystemClock.elapsedRealtime() + 15_000
+            while (StackPlayback.state.value.runningTracks != 6 && android.os.SystemClock.elapsedRealtime() < readyUntil) Thread.sleep(100)
+            assertEquals(6, StackPlayback.state.value.runningTracks)
+            repeat(60) { second ->
+                Thread.sleep(1_000)
+                instrumentation.runOnMainSync {
+                    assertEquals("voice lost at $second", 6, StackPlayback.state.value.runningTracks)
+                    android.util.Log.i("GreaterArtAdaptiveSync", "second=${second + 1} ${coordinator.voiceDiagnostics()}")
+                }
+            }
+        } finally {
+            instrumentation.runOnMainSync { coordinator.release(); main.release(); scope.cancel() }
+        }
+    }
     @Test fun decoderPressureRetiresTilesAndRetriesTheSamePrimaryWithoutLosingSingers() {
         val instrumentation = InstrumentationRegistry.getInstrumentation()
         val context = instrumentation.targetContext

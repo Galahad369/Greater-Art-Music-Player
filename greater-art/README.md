@@ -4,7 +4,14 @@ Greater Art is a native Kotlin/Jetpack Compose player for local music and video.
 
 ## Current release
 
-Current source is **1.21.22 / code 245 — SOURCE_ONLY**.
+Source settings: collapsed sections, readable palette swatches, independent
+Small/Medium/Large Mini sizing and working Library artwork sizing. Ambient is an
+optional video-colour gradient, with no extra decoder. See the
+[branch/issue review](docs/BRANCH_AND_ISSUE_REVIEW_2026-10-10.md) for integration,
+historical APK dispositions and unresolved physical/admin acceptance gates.
+
+Current source is **1.21.26 / code 249 — SOURCE_ONLY**. Adaptive Stack drift control
+is model-backed; audible improvement still requires physical listening.
 Stack v7 weights shared instrumental attacks and harmonic progression, accepts only
 distributed confident timing maps, and preserves uncertain/manual offsets. Saved
 Stacks retain fractional offsets and linear scale; existing companions apply these
@@ -24,7 +31,8 @@ quality is unchanged. No new permissions or dependencies.
 [Implementation and remaining Stack stages](docs/PERFORMANCE_AND_STACK_UPGRADE_PLAN.md)
 · [verification and inherited release-metadata problems](HANDOFF.md).
 Bounded HPSS-weighted analysis and linear timing maps are implemented in source;
-HPSS is not vocal removal. Shared-clock output is still a separate prototype stage.
+HPSS is not vocal removal. Shared-clock output is implemented only as a separate
+debug/test prototype; physical output performance and production adoption are pending.
 
 Latest owner-verified APK: **1.21.18/code241** (see HANDOFF for bounded QA, artifact hash and provenance limitations).
 

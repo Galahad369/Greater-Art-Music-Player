@@ -1,6 +1,8 @@
 package com.local.listentomusic.data
 
 import android.content.Context
+import android.content.Intent
+import android.net.Uri
 import android.util.Base64
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.booleanPreferencesKey
@@ -28,6 +30,7 @@ data class UserPreferences(
     val playbackSpeed: Float = 1f,
     val repeatMode: Int = Player.REPEAT_MODE_ONE,
     val libraryRowSize: LibraryRowSize = LibraryRowSize.SMALL,
+    val miniWindowSize: LibraryRowSize = LibraryRowSize.SMALL,
     val themeMode: ThemeMode = ThemeMode.DARK,
     val colorTheme: ColorTheme = ColorTheme.FOREST,
     val showThumbnails: Boolean = true,
@@ -58,6 +61,7 @@ data class UserPreferences(
     val playHistoryEnabled: Boolean = false,
     val favouritePaths: List<String> = emptyList(),
     val excludedFolders: List<String> = emptyList(),
+    val scopedMediaTreeUri: String? = null,
     val jokeAdsEnabled: Boolean = false,
 )
 
@@ -77,7 +81,7 @@ enum class AppLanguage(val label: String) {
     ENGLISH("English"), TRADITIONAL_CHINESE("繁體中文"), JAPANESE("日本語"),
     GERMAN("Deutsch"), FRENCH("Français"), CANTONESE("廣東話"),
 }
-enum class AppBackgroundMode { DEFAULT, CUSTOM_IMAGE, CUSTOM_VIDEO, CURRENT_VIDEO }
+enum class AppBackgroundMode { DEFAULT, CUSTOM_IMAGE, CUSTOM_VIDEO, CURRENT_VIDEO, AMBIENT }
 enum class BackgroundScaleMode(val label: String) {
     CROP("Cut to screen size"),
     FIT("Fit"),
@@ -113,6 +117,7 @@ class AppPreferences(private val context: Context) {
         val speed = floatPreferencesKey("playback_speed")
         val repeatMode = longPreferencesKey("repeat_mode")
         val libraryRowSize = stringPreferencesKey("library_row_size")
+        val miniWindowSize = stringPreferencesKey("mini_window_size")
         val themeMode = stringPreferencesKey("theme_mode")
         val colorTheme = stringPreferencesKey("color_theme")
         val showThumbnails = booleanPreferencesKey("show_thumbnails")
@@ -147,6 +152,7 @@ class AppPreferences(private val context: Context) {
         val playHistory = stringPreferencesKey("play_history_v1")
         val favouritePaths = stringPreferencesKey("favourite_paths_v1")
         val excludedFolders = stringPreferencesKey("excluded_folders")
+        val scopedMediaTreeUri = stringPreferencesKey("scoped_media_tree_uri_v1")
         val jokeAdsEnabled = booleanPreferencesKey("joke_ads_enabled")
     }
 
@@ -165,6 +171,7 @@ class AppPreferences(private val context: Context) {
             lastPositionMs = prefs[Keys.lastPosition] ?: 0L,
             playbackSpeed = prefs[Keys.speed] ?: 1f,
             repeatMode = (prefs[Keys.repeatMode] ?: Player.REPEAT_MODE_ONE.toLong()).toInt(),
+            miniWindowSize = enumValueOrDefault(prefs[Keys.miniWindowSize], LibraryRowSize.SMALL),
             libraryRowSize = enumValueOrDefault(
                 prefs[Keys.libraryRowSize],
                 LibraryRowSize.SMALL,
@@ -211,6 +218,7 @@ class AppPreferences(private val context: Context) {
             playHistoryEnabled = prefs[Keys.playHistoryEnabled] ?: false,
             favouritePaths = decodeOrder(prefs[Keys.favouritePaths].orEmpty()),
             excludedFolders = decodeOrder(prefs[Keys.excludedFolders].orEmpty()),
+            scopedMediaTreeUri = prefs[Keys.scopedMediaTreeUri],
             jokeAdsEnabled = prefs[Keys.jokeAdsEnabled] ?: false,
         )
     }
@@ -223,7 +231,7 @@ class AppPreferences(private val context: Context) {
 
     // Explicit portable preference allowlist: no last-played data, private background
     // document grants, diagnostics or joke toggle cross a backup boundary.
-    private val backupStrings = listOf(Keys.graphOptions, Keys.sortMode, Keys.customOrder, Keys.libraryRowSize,
+    private val backupStrings = listOf(Keys.graphOptions, Keys.sortMode, Keys.customOrder, Keys.libraryRowSize, Keys.miniWindowSize,
         Keys.themeMode, Keys.colorTheme, Keys.floatingWindowMode, Keys.appLanguage, Keys.appFont,
         Keys.playlists, Keys.savedStacks, Keys.activePlaylistId, Keys.excludedFolders, Keys.favouritePaths)
     private val backupBooleans = listOf(Keys.showThumbnails, Keys.showFileDetails,
@@ -289,6 +297,7 @@ class AppPreferences(private val context: Context) {
         }
     }
 
+    suspend fun setMiniWindowSize(value: LibraryRowSize) = edit { it[Keys.miniWindowSize] = value.name }
     suspend fun setLibraryRowSize(value: LibraryRowSize) = edit { it[Keys.libraryRowSize] = value.name }
     suspend fun setThemeMode(value: ThemeMode) = edit { it[Keys.themeMode] = value.name }
     suspend fun setColorTheme(value: ColorTheme) = edit { it[Keys.colorTheme] = value.name }
@@ -375,6 +384,14 @@ class AppPreferences(private val context: Context) {
     suspend fun setExcludedFolders(value: List<String>) = edit { prefs ->
         prefs[Keys.excludedFolders] = StoredPathListCodec.encode(value.distinct().sorted())
     }
+    // OS tree grants are device-specific and never included in portable settings backups.
+    suspend fun setScopedMediaTreeUri(value: String?) = edit { prefs ->
+        if (value == null) prefs.remove(Keys.scopedMediaTreeUri)
+        else {
+            require(value.startsWith("content://"))
+            prefs[Keys.scopedMediaTreeUri] = value
+        }
+    }
     suspend fun setJokeAdsEnabled(value: Boolean) = edit { it[Keys.jokeAdsEnabled] = value }
     suspend fun setActivePlaylist(id: String?) = edit { prefs ->
         if (id == null) prefs.remove(Keys.activePlaylistId) else prefs[Keys.activePlaylistId] = id
@@ -458,9 +475,14 @@ class AppPreferences(private val context: Context) {
     }
 
     suspend fun resetAppSettings() {
+        current().scopedMediaTreeUri?.let { value ->
+            runCatching { context.contentResolver.releasePersistableUriPermission(
+                Uri.parse(value), Intent.FLAG_GRANT_READ_URI_PERMISSION) }
+        }
         context.dataStore.edit {
             it.remove(Keys.graphOptions)
             it.remove(Keys.libraryRowSize)
+            it.remove(Keys.miniWindowSize)
             it.remove(Keys.themeMode)
             it.remove(Keys.colorTheme)
             it.remove(Keys.showThumbnails)
@@ -489,6 +511,7 @@ class AppPreferences(private val context: Context) {
             it.remove(Keys.playHistoryEnabled)
             it.remove(Keys.playHistory)
             it.remove(Keys.excludedFolders)
+            it.remove(Keys.scopedMediaTreeUri)
             it.remove(Keys.jokeAdsEnabled)
             it[Keys.speed] = 1f
             it[Keys.repeatMode] = Player.REPEAT_MODE_ONE.toLong()

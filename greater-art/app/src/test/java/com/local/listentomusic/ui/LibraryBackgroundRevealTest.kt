@@ -7,6 +7,16 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class LibraryBackgroundRevealTest {
+    @Test fun partialRevealAllowsHorizontalDragWithoutChangingFitMode() {
+        org.junit.Assert.assertFalse(canPanRevealedWallpaper(0f))
+        assertTrue(canPanRevealedWallpaper(.1f))
+        assertTrue(canPanRevealedWallpaper(1f))
+        val state = WallpaperPanState()
+        state.dragBy(100f, 400f, BackgroundScaleMode.FIT)
+        assertEquals(.75f, state.position, .001f)
+        state.dragBy(-200f, 400f, BackgroundScaleMode.FIT)
+        assertEquals(.25f, state.position, .001f)
+    }
     @Test
     fun snapThresholdFavorsEasyRevealWithoutAccidentalTinyPulls() {
         assertEquals(0f, libraryBackgroundRevealTarget(0f), 0f)

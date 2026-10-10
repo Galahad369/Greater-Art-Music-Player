@@ -5,6 +5,14 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class MiniWindowMetricsTest {
+    @Test fun everySizePreservesAspectAndHasNoPadding() {
+        com.local.listentomusic.data.LibraryRowSize.entries.forEach { size ->
+            val (width, height) = MiniWindowMetrics.detachedSizePx(2.8125f, 16f / 9f, size)
+            assertTrue(kotlin.math.abs(width.toFloat() / height - 16f / 9f) < .01f)
+            assertEquals(MiniWindowMetrics.heightPx(2.8125f, size), height)
+            assertEquals(0, MiniWindowMetrics.SHRINK_PX)
+        }
+    }
     @Test fun landscapeMediaFitsWithoutAWindowGutter() {
         val density = 2.8125f
         val (width, height) = MiniWindowMetrics.detachedSizePx(density, 16f / 9f)

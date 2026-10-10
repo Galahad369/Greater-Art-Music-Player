@@ -442,6 +442,7 @@ fun LibraryScreen(
                                 onLoadThumbnail = onLoadThumbnail,
                                 thumbnailBrush = thumbnailBrush,
                                 rowSize = preferences.libraryRowSize,
+                                miniSize = preferences.miniWindowSize,
                                 showThumbnails = preferences.showThumbnails,
                                 showFileDetails = preferences.showFileDetails,
                                 language = language,
@@ -683,6 +684,7 @@ private fun MediaFileRow(
     onLoadThumbnail: suspend (MediaFile) -> Bitmap?,
     thumbnailBrush: Brush,
     rowSize: LibraryRowSize,
+    miniSize: LibraryRowSize,
     showThumbnails: Boolean,
     showFileDetails: Boolean,
     language: AppLanguage,
@@ -812,7 +814,7 @@ private fun MediaFileRow(
                 }
             }
             if (showThumbnails) {
-                MediaThumbnail(file, thumbnail, rowSize, thumbnailBrush)
+                MediaThumbnail(file, thumbnail, rowSize, miniSize, thumbnailBrush)
                 Spacer(Modifier.width(rowSize.textSpacing))
             }
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.Center) {
@@ -859,13 +861,23 @@ private fun rememberThumbnailBrush(): Brush {
     return remember(surface, accent) { Brush.linearGradient(listOf(surface, accent)) }
 }
 
-internal fun libraryThumbnailSizeDp(@Suppress("UNUSED_PARAMETER") rowSize: LibraryRowSize): Pair<Int, Int> =
-    MiniWindowMetrics.WIDTH_DP to MiniWindowMetrics.HEIGHT_DP
+internal fun libraryThumbnailSizeDp(
+    rowSize: LibraryRowSize,
+    miniSize: LibraryRowSize = LibraryRowSize.SMALL,
+): Pair<Int, Int> {
+    // Small follows the chosen Mini footprint; larger rows enlarge both dimensions equally.
+    val factor = MiniWindowMetrics.scale(miniSize) * when (rowSize) {
+        LibraryRowSize.SMALL -> 1f
+        LibraryRowSize.MEDIUM -> 1.2f
+        LibraryRowSize.LARGE -> 1.4f
+    }
+    return (MiniWindowMetrics.WIDTH_DP * factor).toInt() to (MiniWindowMetrics.HEIGHT_DP * factor).toInt()
+}
 
 @Composable
-private fun MediaThumbnail(file: MediaFile, bitmap: Bitmap?, rowSize: LibraryRowSize, brush: Brush) {
+private fun MediaThumbnail(file: MediaFile, bitmap: Bitmap?, rowSize: LibraryRowSize, miniSize: LibraryRowSize, brush: Brush) {
     val shape = androidx.compose.ui.graphics.RectangleShape
-    val (widthDp, heightDp) = libraryThumbnailSizeDp(rowSize)
+    val (widthDp, heightDp) = libraryThumbnailSizeDp(rowSize, miniSize)
     Box(
         Modifier.size(widthDp.dp, heightDp.dp).clip(shape).background(brush),
         contentAlignment = Alignment.Center,

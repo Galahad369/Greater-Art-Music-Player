@@ -5,6 +5,14 @@ import org.junit.Assert.*
 import org.junit.Test
 
 class LanguageTest {
+    @Test fun newSettingsCopyHasEverySupportedTranslation() {
+        val keys = listOf("Tap to expand", "Tap to collapse", "Mini window size", "Ambient",
+            "Forest · green", "Slate · blue", "Amber · gold", "Indigo · violet",
+            "Rose · pink", "Monochrome", "OLED · true black")
+        AppLanguage.entries.filter { it != AppLanguage.ENGLISH }.forEach { language ->
+            keys.forEach { key -> assertNotNull("$language: $key", settingsUiText(language, key)) }
+        }
+    }
     @Test fun newLanguagesTranslateCoreNavigation() {
         assertEquals("設定", uiText(AppLanguage.JAPANESE, "Settings", "設定"))
         assertEquals("Einstellungen", uiText(AppLanguage.GERMAN, "Settings", "設定"))
