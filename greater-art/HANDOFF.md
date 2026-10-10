@@ -3,7 +3,7 @@
 This file describes the **current repository state only**. Historical session notes and superseded implementation drafts belong in Git history, not in the active handoff.
 
 **Project:** `greater-art/` in the repository checkout
-**Current source:** `1.21.22 (code 245)` — SOURCE_ONLY; Stack v7 plus current-main integration
+**Current source:** `1.21.24 (code 247)` — SOURCE_ONLY; Claude adaptive Stack sync over v7
 **Current version:** `1.21.18 (code 241)`
 **Latest APK:** `releases/GreaterArt-1.21.18.apk` (`27,746,006 bytes`; SHA-256 `bba973d127a9dec1f03b29fca1a146707c9feee82497e9a65ab196870b696b3d`)
 **Application ID:** `com.local.listentomusic`
@@ -13,6 +13,33 @@ This file describes the **current repository state only**. Historical session no
 **Verification boundary:** Owner confirmed 1.21.18 verification on 9 October 2026. The existing 1.21.18 QA record below reports 249 JVM tests (0 failures), 0 lint errors, three passing API 36 ThumbnailPipelineTest regressions, Library/playback smoke, and no observed FATAL EXCEPTION or ANR in its bounded session; it records a 27,746,006-byte debug APK, package `com.local.listentomusic`, versionName `1.21.18`, versionCode `241`, ZIP alignment pass, personal debug signing certificate as above, and SHA-256 `bba973d127a9dec1f03b29fca1a146707c9feee82497e9a65ab196870b696b3d`. That earlier test took place on an uncommitted local source tree later incorporated into `2edb328a`; exact committed-source equivalence is owner-attested, not independently proven by that record alone. The separate release-finalization PR must pass the *unmodified* Version Consistency guard's SHA-256/manifest checks against the actual tracked APK before merge. Historical records remain below unchanged.
 
 ## Repository state
+
+### October 10 — adaptive production Stack sync
+
+- Integrated Claude's supplied controller and model tests. 1.21.23/code246 was
+  already consumed by the PCM prototype; this source uses 1.21.24/code247.
+  No release APK is replaced. Twelve raw-drift readings enable a robust MAD
+  noise estimate and 2.5–12 ms dead zone. Small drift needs twelve same-direction
+  ticks; trims use 0.1% steps and a 0.2% update threshold with neutral release.
+- Integration repairs: quantized trim comparison prevents Float rounding from
+  suppressing a 0.2% change; direction reversal resets dwell; counter saturates.
+  Existing hard-resync/cooldown and primary media quality remain unchanged.
+- Correcting Float rounding exposed excessive simulated neutral/trim activations
+  at sigma=2 ms. Increasing same-direction dwell from 400 to 600 ms passes the
+  original activation/convergence assertions without loosening their thresholds.
+- Diagnostics add sigma/deadzone/trim/drift. These are position estimates, not
+  acoustic output latency. Simulated gains do not prove audible improvement;
+  independent decoders and Sonic processing remain possible beating causes.
+- Android gate passes: 286 JVM tests, lint zero errors / 28 warnings, main/test
+  APK builds, unchanged version guard and public-history security audit.
+  API36 six-real-take minute test passes after a clean-process retry. Initial
+  AAC codec initialization failed; no readings from that attempt. Final-half
+  reported EMA drift median28/p9561/max75 ms, sigma3.1–12.5 ms; not acoustic
+  evidence, not a before/after improvement or a verified release.
+  Details: `docs/STACK_ADAPTIVE_SYNC_REVIEW.md`.
+- Unchanged six-take seek/resume/loop regression passes in 13.061 seconds with
+  its original <75 ms settled-drift assertion. No universal convergence or
+  crash-free claim follows from this bounded run.
 
 ### October 9 — Stack synchronization overhaul (PR #152)
 

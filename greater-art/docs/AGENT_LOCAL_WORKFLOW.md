@@ -4,6 +4,13 @@ Use this workflow when the coding agent has a local clone/check-out and can buil
 
 ## 1. Start from repository truth
 
+For external sync patches, re-run their model against the integrated controller,
+including Float quantization and dwell rules; a harness with subtly different
+decisions can hide extra trim chatter. Preserve original thresholds in regression
+assertions. Measure real position noise separately from acoustic latency and do
+not claim audible gains from simulated p95. Check consumed branch versions before
+adopting the patch's proposed version identity.
+
 Before editing:
 
 1. Inspect `git status --short --branch`, current HEAD and concurrent builders before any checkout. Preserve unrelated work. Fetch/prune remotes; use current main as the integration baseline, but continue an already-authorized active branch instead of restarting.

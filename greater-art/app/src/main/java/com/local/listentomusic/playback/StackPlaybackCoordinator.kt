@@ -46,6 +46,11 @@ internal class StackPlaybackCoordinator(
         var lastSeekMs = 0L
         var lastRateMs = 0L
         var rateTrim = 1f
+        // Noise-adaptive dead zone (see StackSyncControl.kt): measured per voice, never looser than the old 12 ms.
+        val noise = StackDriftNoise()
+        val dwell = StackTrimDwell()
+        var noiseSigmaMs = -1.0
+        var deadbandMs = STACK_MAX_DEADBAND_MS
         var seekLeadMs = STACK_INITIAL_SEEK_LEAD_MS
         var measuringSeekResidual = false
         var bufferingSinceMs = 0L
@@ -61,6 +66,10 @@ internal class StackPlaybackCoordinator(
         fun resetDrift(nowMs: Long) {
             driftEma = 0.0
             hasDrift = false
+            noise.reset()
+            dwell.reset()
+            noiseSigmaMs = -1.0
+            deadbandMs = STACK_MAX_DEADBAND_MS
             settleUntilMs = nowMs + STACK_SETTLE_MS
         }
     }
@@ -98,6 +107,8 @@ internal class StackPlaybackCoordinator(
     fun voiceDiagnostics(): String = voices.mapIndexed { index, voice ->
         "${index + 1}:${voice.player.playbackState}/${voice.player.isPlaying}@${voice.player.currentPosition}ms" +
             " trim=${voice.rateTrim} drift=${voice.driftEma.toLong()}ms lead=${voice.seekLeadMs}ms" +
+            " sigma=${if (voice.noiseSigmaMs < 0.0) "n/a" else "${(voice.noiseSigmaMs * 10).toLong() / 10.0}ms"}" +
+            " deadzone=${(voice.deadbandMs * 10).toLong() / 10.0}ms" +
             " tile=${voice.videoView != null} video=${voice.videoPreview?.videoSize?.width ?: 0}x${voice.videoPreview?.videoSize?.height ?: 0} frames=${voice.videoFrames}"
     }.joinToString(",").ifEmpty { "none" }
 
@@ -398,11 +409,15 @@ internal class StackPlaybackCoordinator(
         val drift = (current - rawTarget).toDouble()
         voice.driftEma = if (voice.hasDrift) voice.driftEma * 0.6 + drift * 0.4 else drift
         voice.hasDrift = true
+        voice.noise.add(drift)
+        val sigma = voice.noise.sigmaMs()
+        voice.noiseSigmaMs = sigma ?: -1.0
+        voice.deadbandMs = stackAdaptiveDeadbandMs(sigma)
         if (voice.measuringSeekResidual) {
             voice.seekLeadMs = stackNextSeekLead(voice.seekLeadMs, drift)
             voice.measuringSeekResidual = false
         }
-        when (stackSyncAction(voice.driftEma, nowMs - voice.lastSeekMs)) {
+        when (stackSyncActionFor(voice.driftEma, nowMs - voice.lastSeekMs, voice.deadbandMs)) {
             StackSyncAction.SEEK -> {
                 applyRate(voice, 1f)
                 voice.controlledSeekUntilMs = nowMs + STACK_CONTROLLED_SEEK_GRACE_MS
@@ -411,14 +426,20 @@ internal class StackPlaybackCoordinator(
                 voice.measuringSeekResidual = true
                 voice.resetDrift(nowMs)
             }
-            StackSyncAction.RATE -> if (nowMs - voice.lastRateMs >= STACK_RATE_UPDATE_MS) {
-                voice.lastRateMs = nowMs
-                val trim = stackRateTrim(voice.driftEma)
-                if (trim != voice.rateTrim) applyRate(voice, trim)
+            StackSyncAction.RATE -> {
+                // A small drift must persist before the first trim, so a noise spike cannot start one.
+                val confirmed = if (voice.rateTrim == 1f && needsDwell(voice.driftEma))
+                    voice.dwell.confirm(true, if (voice.driftEma > 0.0) 1 else -1) else true
+                if (confirmed && nowMs - voice.lastRateMs >= STACK_RATE_UPDATE_MS) {
+                    voice.lastRateMs = nowMs
+                    val trim = stackRateTrimFor(voice.driftEma, voice.deadbandMs)
+                    if (trim != voice.rateTrim && stackTrimWorthApplying(voice.rateTrim, trim)) applyRate(voice, trim)
+                }
             }
             StackSyncAction.NONE -> {
-                // Hysteresis: only drop the trim once comfortably inside the deadband.
-                if (voice.rateTrim != 1f && kotlin.math.abs(voice.driftEma) <= STACK_SYNC_DEADBAND_MS / 2.0) {
+                voice.dwell.confirm(false)
+                // Hysteresis: only drop the trim once comfortably inside the dead zone.
+                if (voice.rateTrim != 1f && stackTrimShouldRelease(voice.driftEma, voice.deadbandMs)) {
                     applyRate(voice, 1f)
                 }
             }

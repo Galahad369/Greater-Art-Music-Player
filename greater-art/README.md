@@ -4,7 +4,8 @@ Greater Art is a native Kotlin/Jetpack Compose player for local music and video.
 
 ## Current release
 
-Current source is **1.21.22 / code 245 — SOURCE_ONLY**.
+Current source is **1.21.24 / code 247 — SOURCE_ONLY**. Adaptive Stack drift control
+is model-backed; audible improvement still requires physical listening.
 Stack v7 weights shared instrumental attacks and harmonic progression, accepts only
 distributed confident timing maps, and preserves uncertain/manual offsets. Saved
 Stacks retain fractional offsets and linear scale; existing companions apply these

@@ -7,7 +7,12 @@ This file is the authoritative version policy for Greater Art. If any handoff no
 ## Machine-checkable state
 
 
-Current source: **1.21.22 (code 245)**
+Current source: **1.21.24 (code 247)**
+Allowed consumed transition: **1.21.22 (code 245) -> 1.21.24 (code 247)**
+
+1.21.23/code246 is consumed by the separate PR #153 PCM prototype (`881f39c`).
+Claude's supplied adaptive-sync patch proposed that identity too; integration
+uses 1.21.24/code247. Adaptive sync is model-backed, not acoustically verified.
 Current release state: **SOURCE_ONLY**
 Latest verified APK: **1.21.18 (code 241)**
 Allowed series transition: **1.14.15 -> 1.15.1**
@@ -274,3 +279,4 @@ Previous baseline: 1.13.26 (code 115).
 - **Mandatory independent gate before merge:** The unmodified version guard must read the *tracked* `releases/GreaterArt-1.21.18.apk`, recompute its SHA-256, match the hash in HANDOFF, and validate APK package/version metadata via `aapt`. If it fails, do not merge this candidate, relabel the artifact, or modify the guard to conceal provenance defects.
 - Older 1.21.x binaries are preserved, not retroactively certified. This finalization only applies to the 1.21.18 candidate; issue #158 retains full history and evidence.
 - 1.21.22 (code 245) — integrate Stack instrument-first v7 with current main's screen-awake/fullscreen-lock/Void OLED changes and owner-confirmed 1.21.18 metadata. Parallel 1.21.20 histories are retained; main's committed 1.21.21 is accounted for by the exact consumed transition. SOURCE_ONLY; no release artifact produced.
+- 1.21.24 (code 247) — integrate Claude adaptive Stack dead-zone controller, same-direction dwell and finer trims. Preserve consumed prototype 1.21.23/code246; diagnostics distinguish position estimates from acoustic latency. Fix Float trim comparison and dwell reversal; model and device gates reported in HANDOFF. SOURCE_ONLY.
