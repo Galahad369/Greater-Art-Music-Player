@@ -112,3 +112,9 @@ not three exercised methods per variant.
   underruns nor a short emulator snapshot establishes a performance pass.
 - Alignment PR #152 merged as `af626b5` after every exact-head CI check passed.
   The ordinary independent-player convergence limitation remains open.
+
+## 10 October 2026: v1.21.24 / code247 mixer follow-up
+
+In experimental PCM math, one voice/output frame now reuses its original 32-tap sinc interpolation kernel for both stereo channels instead of repeating trigonometric work and mapping twice per sample. Existing source quality, float stereo, level/solo/mute, negative offsets and coherent headroom are preserved. Added pure JVM scalar-reference regression coverage for fractional stereo offsets and solo-only reads.
+
+This is an algorithmic hot-path improvement, **not measured proof** of passing the cold eight-voice budget. Android/Version/security CI must pass at the exact new head; long-run physical acoustic/CPU/thermal and headset acceptance remain open. Production routing is still default-off and unintegrated.

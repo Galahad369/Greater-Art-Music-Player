@@ -4,7 +4,7 @@ Greater Art is a native Kotlin/Jetpack Compose player for local music and video.
 
 ## Current release
 
-Current source is **1.21.23 / code 246 — SOURCE_ONLY**.
+Current source is **1.21.24 / code 247 — SOURCE_ONLY**.
 The shared-clock PCM developer prototype is compiled but disabled by default;
 explicit debug builds use `-PstackPcmPrototype=true`. It is not installed as a
 production audio route. Unsupported tempo/PCM formats keep legacy playback.
