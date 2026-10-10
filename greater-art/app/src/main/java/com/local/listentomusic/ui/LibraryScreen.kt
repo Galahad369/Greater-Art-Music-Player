@@ -175,11 +175,16 @@ fun LibraryScreen(
     var deleteError by remember { mutableStateOf<String?>(null) }
     var deleting by remember { mutableStateOf(false) }
     val actionScope = rememberCoroutineScope()
-    var selected by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf(emptyList<String>()) }
-    var selectionMenu by remember { mutableStateOf(false) }
-    var selectionNameDialog by remember { mutableStateOf(false) }
+    // Selection belongs to this result set. A changed filter must not leave a
+    // count for hidden files while actions operate only on visible results.
+    val selectionResultKey = remember(state.files) { state.files.map { it.path } }
+    var selected by androidx.compose.runtime.saveable.rememberSaveable(
+        state.query, preferences.activePlaylistId, selectionResultKey,
+    ) { mutableStateOf(emptyList<String>()) }
+    var selectionMenu by remember(state.query, preferences.activePlaylistId, selectionResultKey) { mutableStateOf(false) }
+    var selectionNameDialog by remember(state.query, preferences.activePlaylistId, selectionResultKey) { mutableStateOf(false) }
     var selectionName by remember { mutableStateOf("") }
-    var shareSelectedConfirm by remember { mutableStateOf(false) }
+    var shareSelectedConfirm by remember(state.query, preferences.activePlaylistId, selectionResultKey) { mutableStateOf(false) }
     Scaffold(
         modifier = Modifier.padding(contentPadding).inspectElement("LIBRARY_SCREEN", "Scrollable local media library"),
         containerColor = Color.Transparent,
@@ -840,6 +845,7 @@ private fun MediaFileRow(
                         style = if (rowSize == LibraryRowSize.LARGE) MaterialTheme.typography.bodyMedium else MaterialTheme.typography.labelMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
                     )
                 }
             }
@@ -909,22 +915,6 @@ private fun MessageState(title: String, body: String, buttonText: String, onClic
         Spacer(Modifier.height(20.dp))
         Button(onClick = onClick) { Text(buttonText) }
     }
-}
-
-internal fun formatDuration(milliseconds: Long): String {
-    if (milliseconds <= 0L) return "--:--"
-    val totalSeconds = milliseconds / 1000
-    val hours = totalSeconds / 3600
-    val minutes = (totalSeconds % 3600) / 60
-    val seconds = totalSeconds % 60
-    return if (hours > 0) "%d:%02d:%02d".format(hours, minutes, seconds) else "%d:%02d".format(minutes, seconds)
-}
-
-private fun formatBytes(bytes: Long): String = when {
-    bytes >= 1_073_741_824 -> "%.1f GB".format(bytes / 1_073_741_824.0)
-    bytes >= 1_048_576 -> "%.1f MB".format(bytes / 1_048_576.0)
-    bytes >= 1024 -> "%.1f KB".format(bytes / 1024.0)
-    else -> "$bytes B"
 }
 
 private fun shareBatchMessage(language: AppLanguage, count: Int, size: String): String = when (language) {

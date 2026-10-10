@@ -34,6 +34,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -50,6 +52,7 @@ import com.local.listentomusic.playback.StackSlot
 import com.local.listentomusic.playback.recommendStackTracks
 import com.local.listentomusic.ui.components.LiquidMetalSurface
 import com.local.listentomusic.ui.theme.GaRadius
+import com.local.listentomusic.ui.theme.GaSpacing
 import com.local.listentomusic.ui.theme.gaChromeColor
 import com.local.listentomusic.ui.theme.gaDividerColor
 
@@ -137,7 +140,7 @@ fun StackScreen(
             .padding(contentPadding).consumeWindowInsets(contentPadding),
     ) {
         Row(
-            Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 5.dp),
+            Modifier.fillMaxWidth().padding(horizontal = GaSpacing.md, vertical = 5.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Surface(shape = RoundedCornerShape(50), color = gaChromeColor()) {
@@ -192,7 +195,7 @@ fun StackScreen(
         }
         if (session.active && session.slots.size >= 2) {
             Surface(
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 6.dp),
+                modifier = Modifier.fillMaxWidth().padding(horizontal = GaSpacing.md, vertical = 6.dp),
                 shape = RoundedCornerShape(12.dp),
                 color = gaChromeColor(),
                 border = androidx.compose.foundation.BorderStroke(1.dp, gaDividerColor()),
@@ -294,16 +297,16 @@ fun StackScreen(
                     repeat(2 - displayed.size) {
                         Surface(
                             onClick = { pickerOpen = true },
-                            modifier = Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 5.dp)
+                            modifier = Modifier.fillMaxWidth().padding(horizontal = GaSpacing.md, vertical = 5.dp)
                                 .inspectElement("STACK_EMPTY_SLOT", "Tap to choose local tracks"),
-                            shape = RoundedCornerShape(12.dp),
+                            shape = RoundedCornerShape(GaRadius.control),
                             color = gaChromeColor(),
                             border = androidx.compose.foundation.BorderStroke(
                                 1.dp, gaDividerColor(),
                             ),
                         ) {
                             Row(
-                                Modifier.height(62.dp).padding(horizontal = 14.dp),
+                                Modifier.height(62.dp).padding(horizontal = GaSpacing.md),
                                 verticalAlignment = Alignment.CenterVertically,
                             ) {
                                 Surface(
@@ -338,7 +341,7 @@ fun StackScreen(
 
         Column(
             Modifier.fillMaxWidth()
-                .padding(horizontal = 10.dp, vertical = 6.dp)
+                .padding(horizontal = GaSpacing.md, vertical = 6.dp)
                 .clip(RoundedCornerShape(GaRadius.chrome))
                 .background(gaChromeColor())
                 .border(1.dp, gaDividerColor(), RoundedCornerShape(GaRadius.chrome))
@@ -365,6 +368,7 @@ fun StackScreen(
             }
             if (session.active) Text(
                 if (session.synchronizing) uiText(language, "Synchronizing tracks…", "正在同步歌曲…")
+                else if (!session.playing) uiText(language, "Paused", "已暫停")
                 else uiText(language, "${session.runningTracks}/${session.slots.count { it.error == null }} tracks playing", "${session.runningTracks}/${session.slots.count { it.error == null }} 首播放中"),
                 Modifier.align(Alignment.CenterHorizontally), style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -373,7 +377,7 @@ fun StackScreen(
                 Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Text(stackTime(position), style = MaterialTheme.typography.labelMedium)
+                Text(formatPlaybackTime(position), style = MaterialTheme.typography.labelMedium)
                 Box(Modifier.weight(1f), contentAlignment = Alignment.Center) {
                     if (session.active) {
                         Row(
@@ -438,7 +442,7 @@ fun StackScreen(
                         }
                     }
                 }
-                Text(stackTime(duration), style = MaterialTheme.typography.labelMedium)
+                Text(formatDuration(duration), style = MaterialTheme.typography.labelMedium)
             }
         }
     }
@@ -544,7 +548,7 @@ private fun StackNowPlayingRow(
 ) {
     Surface(
         color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.58f),
-        modifier = Modifier.fillMaxWidth().padding(horizontal = 10.dp, vertical = 2.dp)
+        modifier = Modifier.fillMaxWidth().padding(horizontal = GaSpacing.md, vertical = 2.dp)
             .inspectElement("STACK_NOW_PLAYING_CONTEXT", file.name),
         shape = RoundedCornerShape(GaRadius.control),
         border = androidx.compose.foundation.BorderStroke(
@@ -605,7 +609,7 @@ private fun StackTrackRow(
         else -> MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.16f)
     }
     Surface(
-        modifier = Modifier.fillMaxWidth().padding(horizontal = 10.dp, vertical = 2.dp),
+        modifier = Modifier.fillMaxWidth().padding(horizontal = GaSpacing.md, vertical = 2.dp),
         shape = RoundedCornerShape(GaRadius.control),
         color = rowColor,
         border = androidx.compose.foundation.BorderStroke(1.dp, outline),
@@ -654,7 +658,7 @@ private fun StackTrackRow(
         }
 
         if (expanded) {
-            Row(Modifier.fillMaxWidth().padding(horizontal = 14.dp), verticalAlignment = Alignment.CenterVertically) {
+            Row(Modifier.fillMaxWidth().padding(horizontal = GaSpacing.md), verticalAlignment = Alignment.CenterVertically) {
                 if (sessionActive) {
                     TextButton(onClick = { StackPlayback.setPrimary(path) }, enabled = !isPrimary && !ended) {
                         Text(uiText(language, "Make primary", "設為主要"))
@@ -668,16 +672,20 @@ private fun StackTrackRow(
                 }
             }
             if (sessionActive) {
-                if (!isPrimary) Row(Modifier.fillMaxWidth().padding(horizontal = 14.dp), verticalAlignment = Alignment.CenterVertically) {
+                if (!isPrimary) Row(Modifier.fillMaxWidth().padding(horizontal = GaSpacing.md), verticalAlignment = Alignment.CenterVertically) {
                     TextButton(onClick = { StackPlayback.setAlignments(mapOf(path to com.local.listentomusic.playback.StackAlignment(
                         slot.offsetMs - 100L, 1.0, true, slot.alignmentScale, (slot.alignmentOffsetUs ?: slot.offsetMs * 1000.0) - 100_000))) }) { Text("−0.1s") }
-                    Text(java.lang.String.format(java.util.Locale.ROOT, "%+.2fs", slot.offsetMs / 1000.0), Modifier.weight(1f), style = MaterialTheme.typography.labelMedium)
+                    Text(java.lang.String.format(java.util.Locale.ROOT, "%+.2fs", slot.offsetMs / 1000.0), Modifier.weight(1f), textAlign = TextAlign.Center, style = MaterialTheme.typography.labelMedium)
                     TextButton(onClick = { StackPlayback.setAlignments(mapOf(path to com.local.listentomusic.playback.StackAlignment(
                         slot.offsetMs + 100L, 1.0, true, slot.alignmentScale, (slot.alignmentOffsetUs ?: slot.offsetMs * 1000.0) + 100_000))) }) { Text("+0.1s") }
                     TextButton(onClick = { StackPlayback.setOffset(path, 0L) }) { Text(uiText(language, "Reset alignment", "重設對齊")) }
                 }
-                Row(Modifier.fillMaxWidth().padding(horizontal = 18.dp), verticalAlignment = Alignment.CenterVertically) {
-                    Text("${(slot.volume * 100).toInt()}%", style = MaterialTheme.typography.labelMedium)
+                Row(Modifier.fillMaxWidth().padding(horizontal = GaSpacing.md), verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        "${(slot.volume * 100).toInt()}%",
+                        Modifier.padding(start = ButtonDefaults.TextButtonContentPadding.calculateStartPadding(LocalLayoutDirection.current)),
+                        style = MaterialTheme.typography.labelMedium,
+                    )
                     Slider(
                         slot.volume,
                         { StackPlayback.setVolume(path, it) },
@@ -787,9 +795,10 @@ private fun StackLibraryPicker(
                             },
                             supportingContent = {
                                 Text(
-                                    listOf(file.artist.takeIf(String::isNotBlank), stackTime(file.durationMs))
+                                    listOf(file.artist.takeIf(String::isNotBlank), formatDuration(file.durationMs))
                                         .filterNotNull().joinToString(" • "),
                                     maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 )
                             },
@@ -988,8 +997,3 @@ private fun recommendationReason(reason: StackRecommendationReason, language: Ap
         StackRecommendationReason.SIMILAR_DURATION -> uiText(language, "similar length", "相近時長")
         StackRecommendationReason.PLAY_HISTORY -> uiText(language, "played nearby", "播放記錄相近")
     }
-
-private fun stackTime(ms: Long): String {
-    val seconds = (ms.coerceAtLeast(0L) / 1000L).toInt()
-    return "%d:%02d".format(seconds / 60, seconds % 60)
-}

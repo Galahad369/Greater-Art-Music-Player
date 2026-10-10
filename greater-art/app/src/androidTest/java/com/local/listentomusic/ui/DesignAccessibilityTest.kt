@@ -63,4 +63,49 @@ class DesignAccessibilityTest {
         compose.onNodeWithText("Pick an element").performClick()
         compose.onNodeWithText("Inspector").assertDoesNotExist()
     }
+
+    @Test fun percentageEditorPreserves26AndCancelDoesNotChangeValue() {
+        var value = .6f
+        compose.setContent { MaterialTheme {
+            DimSliderSetting("Background dimming", "Adjust visibility", .6f, { value = it })
+        } }
+        compose.onNodeWithContentDescription("Background dimming: 60%").performClick()
+        compose.onNodeWithText("25–85%").performTextReplacement("26")
+        compose.onNodeWithText("Save").performClick()
+        compose.runOnIdle { org.junit.Assert.assertEquals(.26f, value, .00001f) }
+        compose.onNodeWithContentDescription("Background dimming: 60%").performClick()
+        compose.onNodeWithText("25–85%").performTextReplacement("80")
+        compose.onNodeWithText("Cancel").performClick()
+        compose.runOnIdle { org.junit.Assert.assertEquals(.26f, value, .00001f) }
+    }
+
+    @Test fun labelledToggleRowsHaveOneActionAndRespectDisabledState() {
+        val checked = androidx.compose.runtime.mutableStateOf(false)
+        var changes = 0
+        compose.setContent { MaterialTheme { Column {
+            SwitchSetting("Setting label", "Description", checked.value, { checked.value = it; changes++ })
+            SwitchSetting("Disabled setting", "Description", false, { changes++ }, enabled = false)
+            GraphToggle("Graph label", checked.value, { checked.value = it; changes++ })
+        } } }
+        compose.onNodeWithText("Setting label").assertIsOff().assertHasClickAction().performClick()
+        compose.onNodeWithText("Setting label").assertIsOn()
+        compose.runOnIdle { org.junit.Assert.assertEquals(1, changes) }
+        compose.onNodeWithText("Graph label").assertIsOn().assertHeightIsAtLeast(48.dp).performClick()
+        compose.onNodeWithText("Graph label").assertIsOff()
+        compose.onNodeWithText("Disabled setting").assertIsNotEnabled()
+        compose.runOnIdle { org.junit.Assert.assertEquals(2, changes) }
+    }
+
+    @Test fun nodesLoadingAndEmptyStatesUseChosenLanguage() {
+        val graph = androidx.compose.runtime.mutableStateOf<com.local.listentomusic.graph.LibraryGraph?>(null)
+        compose.setContent { MaterialTheme {
+            NodesScreen(graph.value, false, null, null, androidx.compose.foundation.layout.PaddingValues(0.dp),
+                {}, {}, com.local.listentomusic.graph.GraphOptions(), {},
+                language = com.local.listentomusic.data.AppLanguage.FRENCH)
+        } }
+        compose.onNodeWithText("Préparation des connexions…").assertIsDisplayed()
+        compose.runOnIdle { graph.value = com.local.listentomusic.graph.LibraryGraph(emptyList(), emptyList(), emptyList()) }
+        compose.onNodeWithText("Ajoutez des médias dans Download puis actualisez la bibliothèque.").assertIsDisplayed()
+        compose.onNodeWithText("Your library is empty. Add media in Download, then refresh Library.").assertDoesNotExist()
+    }
 }

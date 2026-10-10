@@ -1,4 +1,7 @@
 package com.local.listentomusic.ui
+import androidx.compose.foundation.selection.toggleable
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.ui.semantics.Role
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
@@ -42,6 +45,7 @@ import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import com.local.listentomusic.graph.LibraryGraph
 import com.local.listentomusic.graph.GraphOptions
+import com.local.listentomusic.data.AppLanguage
 import com.local.listentomusic.graph.presentGraph
 import com.local.listentomusic.ui.components.GaChromeSurface
 import com.local.listentomusic.ui.theme.GaControl
@@ -56,16 +60,17 @@ internal fun nodeDragActivationDistancePx(touchSlopPx: Float, minimumPx: Float):
 @Composable
 fun NodesScreen(graph: LibraryGraph?, loading: Boolean, error: String?, currentPath: String?,
     contentPadding: PaddingValues, onRetry: () -> Unit, onPlay: (String) -> Unit,
-    options: GraphOptions, onOptions: (GraphOptions) -> Unit) {
+    options: GraphOptions, onOptions: (GraphOptions) -> Unit, language: AppLanguage = AppLanguage.ENGLISH) {
+    fun text(key: String) = uiText(language, key, key)
     Column(Modifier.fillMaxSize().inspectElement("NODES_SCREEN", "Filename-similarity graph and controls")
         .padding(contentPadding).consumeWindowInsets(contentPadding)) {
         when {
-            error != null -> { Text(error, Modifier.padding(16.dp).inspectElement("NODES_ERROR", error)); TextButton(onClick = onRetry, modifier = Modifier.inspectElement("NODES_RETRY_BUTTON", "Rebuild graph")) { Text("Retry") } }
-            graph == null -> { LinearProgressIndicator(Modifier.fillMaxWidth().inspectElement("NODES_LOADING", "Building filename graph")); Text("Preparing filename connections…", Modifier.padding(16.dp)) }
-            graph.nodes.isEmpty() -> Text("Your library is empty. Add media in Download, then refresh Library.", Modifier.padding(16.dp).inspectElement("NODES_EMPTY", "No media files to graph"))
+            error != null -> { Text(error, Modifier.padding(16.dp).inspectElement("NODES_ERROR", error)); TextButton(onClick = onRetry, modifier = Modifier.inspectElement("NODES_RETRY_BUTTON", "Rebuild graph")) { Text(text("Retry")) } }
+            graph == null -> { LinearProgressIndicator(Modifier.fillMaxWidth().inspectElement("NODES_LOADING", "Building filename graph")); Text(text("Preparing filename connections…"), Modifier.padding(16.dp)) }
+            graph.nodes.isEmpty() -> Text(text("Your library is empty. Add media in Download, then refresh Library."), Modifier.padding(16.dp).inspectElement("NODES_EMPTY", "No media files to graph"))
             else -> {
                 if (loading) LinearProgressIndicator(Modifier.fillMaxWidth())
-                GraphCanvas(graph, currentPath?.let { com.local.listentomusic.model.sourceMediaPath(it) }, onPlay, Modifier.weight(1f), options, onOptions)
+                GraphCanvas(graph, currentPath?.let { com.local.listentomusic.model.sourceMediaPath(it) }, onPlay, Modifier.weight(1f), options, onOptions, language)
             }
         }
     }
@@ -73,7 +78,8 @@ fun NodesScreen(graph: LibraryGraph?, loading: Boolean, error: String?, currentP
 
 @Composable
 private fun GraphCanvas(graph: LibraryGraph, currentPath: String?, onPlay: (String) -> Unit, modifier: Modifier,
-    options: GraphOptions, onOptions: (GraphOptions) -> Unit) {
+    options: GraphOptions, onOptions: (GraphOptions) -> Unit, language: AppLanguage) {
+    fun text(key: String) = uiText(language, key, key)
     val presentation = remember(graph, options) { presentGraph(graph, options) }
     var controls by remember { mutableStateOf(false) }
     val current = remember(graph, currentPath) { graph.nodes.indexOfFirst { it.id == currentPath } }
@@ -157,12 +163,12 @@ private fun GraphCanvas(graph: LibraryGraph, currentPath: String?, onPlay: (Stri
                 Modifier.fillMaxWidth().padding(horizontal = GaSpacing.xs, vertical = GaSpacing.xs),
                 horizontalArrangement = Arrangement.SpaceEvenly,
             ) {
-                GraphTool(Icons.Rounded.CenterFocusStrong, "Fit", "NODES_FIT_BUTTON") { fit() }
-                GraphTool(Icons.Rounded.Search, "Find", "NODES_FIND_BUTTON") { picker = true }
-                GraphTool(Icons.Rounded.MyLocation, "Playing", "NODES_PLAYING_BUTTON", enabled = current >= 0) {
+                GraphTool(Icons.Rounded.CenterFocusStrong, text("Fit"), "NODES_FIT_BUTTON") { fit() }
+                GraphTool(Icons.Rounded.Search, text("Find"), "NODES_FIND_BUTTON") { picker = true }
+                GraphTool(Icons.Rounded.MyLocation, text("Playing"), "NODES_PLAYING_BUTTON", enabled = current >= 0) {
                     if (current >= 0) { scale = 2f; pan = Offset(-graph.points[current].x * scale, -graph.points[current].y * scale) }
                 }
-                GraphTool(Icons.Rounded.Tune, "Controls", "NODES_CONTROLS_BUTTON") { controls = true }
+                GraphTool(Icons.Rounded.Tune, text("Controls"), "NODES_CONTROLS_BUTTON") { controls = true }
             }
         }
         Row(
@@ -176,7 +182,7 @@ private fun GraphCanvas(graph: LibraryGraph, currentPath: String?, onPlay: (Stri
                 tonalElevation = 0.dp,
             ) {
                 Text(
-                    "${graph.nodes.size} nodes · ${presentation.edges.size} links",
+                    "${graph.nodes.size} ${text("nodes")} · ${presentation.edges.size} ${text("links")}",
                     Modifier.padding(horizontal = 10.dp, vertical = 5.dp),
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -185,7 +191,7 @@ private fun GraphCanvas(graph: LibraryGraph, currentPath: String?, onPlay: (Stri
             current.takeIf { it >= 0 }?.let { index ->
                 Spacer(Modifier.width(8.dp))
                 Text(
-                    "Playing · ${graph.nodes[index].filename.substringBeforeLast('.').take(34)}",
+                    "${text("Playing")} · ${graph.nodes[index].filename.substringBeforeLast('.').take(34)}",
                     modifier = Modifier.weight(1f),
                     maxLines = 1,
                     overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
@@ -196,7 +202,7 @@ private fun GraphCanvas(graph: LibraryGraph, currentPath: String?, onPlay: (Stri
         }
         Canvas(Modifier.fillMaxWidth().weight(1f).inspectElement("NODES_GRAPH_CANVAS", "Pinch to zoom, drag nodes, tap to play; empty-space swipes navigate pages")
             .onGloballyPositioned { canvasBounds = it.boundsInRoot() }.onSizeChanged { viewport = it }
-            .semantics { contentDescription = "Filename similarity graph. Pinch to zoom, drag individual nodes, tap a node to play, or swipe empty space to change page. Use Find / play a node for a text list." }
+            .semantics { contentDescription = text("Filename similarity graph. Pinch to zoom, drag individual nodes, tap a node to play, or swipe empty space to change page. Use Find / play a node for a text list.") }
             .pointerInput(graph, presentation.visibleNodes, current) {
                 awaitEachGesture {
                     val down = awaitFirstDown(requireUnconsumed = false)
@@ -359,7 +365,7 @@ private fun GraphCanvas(graph: LibraryGraph, currentPath: String?, onPlay: (Stri
                         )
                         Text(
                             buildString {
-                                append("${linked.size} links")
+                                append("${linked.size} ${text("links")}")
                                 if (strongest.isNotEmpty()) append(" · ").append(strongest.joinToString(" · "))
                             },
                             maxLines = 1,
@@ -369,34 +375,34 @@ private fun GraphCanvas(graph: LibraryGraph, currentPath: String?, onPlay: (Stri
                         )
                     }
                     if (index == current) {
-                        Text("PLAYING", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary)
+                        Text(text("Playing"), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary)
                     } else {
                         TextButton(onClick = { onPlayCurrent(graph.nodes[index].id) }) {
                             Icon(Icons.Rounded.PlayArrow, null, Modifier.size(18.dp))
                             Spacer(Modifier.width(4.dp))
-                            Text("Play")
+                            Text(uiText(language, "Play", "播放"))
                         }
                     }
                 }
             }
         }
         Text(
-            "Tap node to play  •  Drag node  •  Pinch to zoom  •  Swipe empty space to navigate",
+            text("Tap node to play  •  Drag node  •  Pinch to zoom  •  Swipe empty space to navigate"),
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.padding(horizontal = GaSpacing.lg, vertical = GaSpacing.sm)
                 .inspectElement("NODES_GESTURE_HINT", "Graph gesture instructions"))
     }
-    if (controls) GraphControls(options, { onOptions(it); controls = false }, { controls = false })
-    if (picker) AlertDialog(onDismissRequest = { picker = false }, title = { Text("Find a node") }, text = {
+    if (controls) GraphControls(options, { onOptions(it); controls = false }, { controls = false }, language)
+    if (picker) AlertDialog(onDismissRequest = { picker = false }, title = { Text(text("Find a node")) }, text = {
         Column {
-            OutlinedTextField(query, { query = it }, label = { Text("Filename") }, singleLine = true)
+            OutlinedTextField(query, { query = it }, label = { Text(text("Filename")) }, singleLine = true)
             val found = remember(graph, query) { graph.nodes.filter { it.filename.contains(query, ignoreCase = true) } }
             LazyColumn(Modifier.heightIn(max = 360.dp)) {
                 items(found, key = { it.id }) { node -> TextButton(onClick = { picker = false; onPlay(node.id) }) { Text(node.filename) } }
             }
         }
-    }, confirmButton = { TextButton(onClick = { picker = false }) { Text("Close") } })
+    }, confirmButton = { TextButton(onClick = { picker = false }) { Text(text("Close")) } })
 }
 
 @Composable
@@ -417,36 +423,37 @@ private fun GraphTool(icon: androidx.compose.ui.graphics.vector.ImageVector, lab
 }
 
 @Composable
-private fun GraphControls(options: GraphOptions, onSave: (GraphOptions) -> Unit, onClose: () -> Unit) {
+private fun GraphControls(options: GraphOptions, onSave: (GraphOptions) -> Unit, onClose: () -> Unit, language: AppLanguage) {
+    fun text(key: String) = uiText(language, key, key)
     var edit by remember { mutableStateOf(options) }
     AlertDialog(onDismissRequest = onClose,
         title = {
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                 Column(Modifier.weight(1f)) {
-                    Text("Graph controls", fontWeight = androidx.compose.ui.text.font.FontWeight.Bold)
-                    Text("Obsidian-style display and forces", style = MaterialTheme.typography.labelSmall,
+                    Text(text("Graph controls"), fontWeight = androidx.compose.ui.text.font.FontWeight.Bold)
+                    Text(text("Obsidian-style display and forces"), style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
-                IconButton(onClick = onClose) { Icon(Icons.Rounded.Close, "Close") }
+                IconButton(onClick = onClose) { Icon(Icons.Rounded.Close, text("Close")) }
             }
         }, text = {
             Column(Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                GraphControlSection("Connections") {
-                    GraphSlider("Minimum similarity", "${(edit.threshold * 100).toInt()}%", edit.threshold, 0f..1f) { edit = edit.copy(threshold = it) }
-                    GraphSlider("Link visibility", "${(edit.edgeOpacity * 100).toInt()}%", edit.edgeOpacity, .05f..1f) { edit = edit.copy(edgeOpacity = it) }
-                    GraphToggle("Hide isolated nodes", edit.hideIsolated) { edit = edit.copy(hideIsolated = it) }
+                GraphControlSection(text("Connections")) {
+                    GraphSlider(text("Minimum similarity"), "${(edit.threshold * 100).toInt()}%", edit.threshold, 0f..1f) { edit = edit.copy(threshold = it) }
+                    GraphSlider(text("Link visibility"), "${(edit.edgeOpacity * 100).toInt()}%", edit.edgeOpacity, .05f..1f) { edit = edit.copy(edgeOpacity = it) }
+                    GraphToggle(text("Hide isolated nodes"), edit.hideIsolated) { edit = edit.copy(hideIsolated = it) }
                 }
-                GraphControlSection("Nodes") {
-                    GraphSlider("Node size", "%.1f×".format(edit.nodeSize), edit.nodeSize, .6f..2f) { edit = edit.copy(nodeSize = it) }
-                    GraphToggle("Filename labels", edit.showLabels) { edit = edit.copy(showLabels = it) }
-                    GraphToggle("Size by strong connections", edit.sizeByConnections) { edit = edit.copy(sizeByConnections = it) }
+                GraphControlSection(text("Nodes")) {
+                    GraphSlider(text("Node size"), String.format(java.util.Locale.ROOT, "%.1f×", edit.nodeSize), edit.nodeSize, .6f..2f) { edit = edit.copy(nodeSize = it) }
+                    GraphToggle(text("Filename labels"), edit.showLabels) { edit = edit.copy(showLabels = it) }
+                    GraphToggle(text("Size by strong connections"), edit.sizeByConnections) { edit = edit.copy(sizeByConnections = it) }
                 }
-                Text("The double-ring node is playing. Strongly connected files appear larger and closer.",
+                Text(text("The double-ring node is playing. Larger nodes have more strong filename connections."),
                     style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                OutlinedButton(onClick = { edit = GraphOptions() }, modifier = Modifier.fillMaxWidth()) { Text("Restore graph defaults") }
+                OutlinedButton(onClick = { edit = GraphOptions() }, modifier = Modifier.fillMaxWidth()) { Text(text("Restore graph defaults")) }
             }
-        }, confirmButton = { Button(onClick = { onSave(edit) }) { Text("Apply") } },
-        dismissButton = { TextButton(onClick = onClose) { Text("Cancel") } })
+        }, confirmButton = { Button(onClick = { onSave(edit) }) { Text(text("Apply")) } },
+        dismissButton = { TextButton(onClick = onClose) { Text(uiText(language, "Cancel", "取消")) } })
 }
 
 @Composable
@@ -475,8 +482,9 @@ private fun GraphSlider(label: String, valueLabel: String, value: Float, range: 
 }
 
 @Composable
-private fun GraphToggle(label: String, checked: Boolean, onChange: (Boolean) -> Unit) {
-    Row(Modifier.fillMaxWidth(), verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
-        Text(label, Modifier.weight(1f)); Switch(checked, onChange)
+internal fun GraphToggle(label: String, checked: Boolean, onChange: (Boolean) -> Unit) {
+    Row(Modifier.fillMaxWidth().heightIn(min = GaControl.touchTarget)
+        .toggleable(value = checked, role = Role.Switch, onValueChange = onChange), verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
+        Text(label, Modifier.weight(1f)); Switch(checked, onCheckedChange = null)
     }
 }

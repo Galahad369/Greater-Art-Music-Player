@@ -862,7 +862,7 @@ private fun VideoPlayerStage(
                     )
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                         Text(
-                            formatDuration(if (seeking) position.toLong() else playback.positionMs),
+                            formatPlaybackTime(if (seeking) position.toLong() else playback.positionMs),
                             color = GaVideoOverlay.foreground,
                             style = MaterialTheme.typography.labelMedium,
                         )
@@ -1525,13 +1525,6 @@ private fun queueDetails(file: MediaFile): String = buildList {
     file.sizeBytes.takeIf { it > 0L }?.let { add(formatBytes(it)) }
 }.joinToString("  •  ")
 
-private fun formatBytes(bytes: Long): String = when {
-    bytes >= 1_073_741_824L -> "%.1f GB".format(bytes / 1_073_741_824.0)
-    bytes >= 1_048_576L -> "%.1f MB".format(bytes / 1_048_576.0)
-    bytes >= 1_024L -> "%.1f KB".format(bytes / 1_024.0)
-    else -> "$bytes B"
-}
-
 @Composable
 internal fun QueueThumbnail(
     file: MediaFile,
@@ -1590,7 +1583,7 @@ private fun Timeline(playback: PlaybackUiState, onSeek: (Long) -> Unit) {
     )
     PracticeMarkers(playback)
     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-        ScrubReadout(null, formatDuration(if (seeking) position.toLong() else playback.positionMs), seeking)
+        ScrubReadout(null, formatPlaybackTime(if (seeking) position.toLong() else playback.positionMs), seeking)
         Text(formatDuration(playback.durationMs), style = MaterialTheme.typography.labelMedium)
     }
 }
@@ -1666,7 +1659,7 @@ private fun WaveformTimeline(
     )
     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
         ScrubReadout(artwork,
-            formatDuration(
+            formatPlaybackTime(
                 if (seeking && hasDuration) {
                     (playback.durationMs.toDouble() * seekFraction).toLong()
                 } else {
@@ -2017,10 +2010,7 @@ private fun PracticeMarkers(playback: PlaybackUiState) {
 }
 
 private fun formatSleepRemaining(ms: Long): String {
-    val totalSeconds = (ms / 1000L).coerceAtLeast(0L)
-    val m = totalSeconds / 60
-    val s = totalSeconds % 60
-    return "%d:%02d".format(m, s)
+    return formatPlaybackTime(ms)
 }
 
 @Composable

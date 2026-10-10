@@ -90,6 +90,24 @@ fun GreaterArtApp(
     val expandedPlayerVisible by com.local.listentomusic.playback.PlayerWindowVisibility.expandedShowing.collectAsStateWithLifecycle()
     val listScrolling by ListScrollBudget.scrolling.collectAsStateWithLifecycle()
     val context = LocalContext.current
+    fun hasReadGrant(uri: android.net.Uri) = context.contentResolver.persistedUriPermissions.any {
+        it.uri == uri && it.isReadPermission
+    }
+    fun retainReadGrant(uri: android.net.Uri) = retainDocumentReadGrant(
+        { context.contentResolver.takePersistableUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION) },
+        { hasReadGrant(uri) },
+    )
+    fun releaseReadGrant(value: String?, otherReferences: List<String?>): Boolean {
+        if (value == null || value in otherReferences) return true
+        val uri = value.toUri()
+        return releaseDocumentReadGrant(
+            { context.contentResolver.releasePersistableUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION) },
+            { hasReadGrant(uri) },
+        )
+    }
+    fun grantFailure() = android.widget.Toast.makeText(context,
+        uiText(settings.appLanguage, "Could not update document access. Please retry.", "無法更新文件存取權限，請重試。"),
+        android.widget.Toast.LENGTH_LONG).show()
     val backupPicker = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("application/json")) { uri -> uri?.let { viewModel.backupSettings(it) } }
     val restorePicker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri -> uri?.let { viewModel.restoreSettings(it) } }
     var restoreConfirm by rememberSaveable { mutableStateOf(false) }
@@ -99,55 +117,33 @@ fun GreaterArtApp(
     ) { uri ->
         uri ?: return@rememberLauncherForActivityResult
         val previousUri = settings.customBackgroundImageUri
-        val grantPersisted = runCatching {
-            context.contentResolver.takePersistableUriPermission(
-                uri,
-                Intent.FLAG_GRANT_READ_URI_PERMISSION,
-            )
-        }.isSuccess
+        val grantPersisted = retainReadGrant(uri)
+        if (!grantPersisted) { grantFailure(); return@rememberLauncherForActivityResult }
         viewModel.setCustomBackgroundImage(uri.toString())
-        if (grantPersisted && previousUri != null && previousUri != uri.toString()) runCatching {
-            context.contentResolver.releasePersistableUriPermission(
-                previousUri.toUri(),
-                Intent.FLAG_GRANT_READ_URI_PERMISSION,
-            )
-        }
+        if (previousUri != uri.toString() && !releaseReadGrant(previousUri,
+                listOf(settings.customBackgroundVideoUri, settings.scopedMediaTreeUri))) grantFailure()
     }
     val videoBackgroundPicker = rememberLauncherForActivityResult(
         ActivityResultContracts.OpenDocument(),
     ) { uri ->
         uri ?: return@rememberLauncherForActivityResult
         val previousUri = settings.customBackgroundVideoUri
-        val grantPersisted = runCatching {
-            context.contentResolver.takePersistableUriPermission(
-                uri,
-                Intent.FLAG_GRANT_READ_URI_PERMISSION,
-            )
-        }.isSuccess
+        val grantPersisted = retainReadGrant(uri)
+        if (!grantPersisted) { grantFailure(); return@rememberLauncherForActivityResult }
         viewModel.setCustomBackgroundVideo(uri.toString())
-        if (grantPersisted && previousUri != null && previousUri != uri.toString()) runCatching {
-            context.contentResolver.releasePersistableUriPermission(
-                previousUri.toUri(),
-                Intent.FLAG_GRANT_READ_URI_PERMISSION,
-            )
-        }
+        if (previousUri != uri.toString() && !releaseReadGrant(previousUri,
+                listOf(settings.customBackgroundImageUri, settings.scopedMediaTreeUri))) grantFailure()
     }
     val scopedTreePicker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocumentTree()) { uri ->
         uri ?: return@rememberLauncherForActivityResult
-        val persisted = runCatching {
-            context.contentResolver.takePersistableUriPermission(
-                uri, Intent.FLAG_GRANT_READ_URI_PERMISSION)
-        }.isSuccess
+        val persisted = retainReadGrant(uri)
         if (persisted) {
             val prior = settings.scopedMediaTreeUri
             viewModel.setScopedMediaTree(uri.toString())
-            if (prior != null && prior != uri.toString()) runCatching {
-                context.contentResolver.releasePersistableUriPermission(
-                    prior.toUri(), Intent.FLAG_GRANT_READ_URI_PERMISSION)
-            }
+            if (prior != uri.toString() && !releaseReadGrant(prior,
+                    listOf(settings.customBackgroundImageUri, settings.customBackgroundVideoUri))) grantFailure()
         } else {
-            android.widget.Toast.makeText(context, "Could not retain folder permission. Please retry.",
-                android.widget.Toast.LENGTH_LONG).show()
+            grantFailure()
         }
     }
     val m3uImporter = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
@@ -420,6 +416,7 @@ fun GreaterArtApp(
                                                                                     onPlay = viewModel::playGraphNode,
                                                                                     options = settings.graphOptions,
                                                                                     onOptions = viewModel::setGraphOptions,
+                                                                                    language = settings.appLanguage,
                                                                                 )
                                                                             } else {
                                             LibraryScreen(
@@ -533,8 +530,16 @@ fun GreaterArtApp(
                     onChooseBackgroundVideo = {
                         videoBackgroundPicker.launch(arrayOf("video/mp4"))
                     },
-                    onClearBackgroundImage = { viewModel.setCustomBackgroundImage(null) },
-                    onClearBackgroundVideo = { viewModel.setCustomBackgroundVideo(null) },
+                    onClearBackgroundImage = {
+                        if (releaseReadGrant(settings.customBackgroundImageUri,
+                                listOf(settings.customBackgroundVideoUri, settings.scopedMediaTreeUri)))
+                            viewModel.setCustomBackgroundImage(null) else grantFailure()
+                    },
+                    onClearBackgroundVideo = {
+                        if (releaseReadGrant(settings.customBackgroundVideoUri,
+                                listOf(settings.customBackgroundImageUri, settings.scopedMediaTreeUri)))
+                            viewModel.setCustomBackgroundVideo(null) else grantFailure()
+                    },
                     onBackgroundDim = viewModel::setBackgroundDim,
                     onCreatePlaylist = viewModel::createPlaylist,
                     onCreatePlaylistAndSeed = viewModel::createPlaylistAndSeed,
@@ -563,13 +568,11 @@ fun GreaterArtApp(
                     onChooseScopedFolder = { scopedTreePicker.launch(null) },
                     onPreviewScopedFolder = viewModel::previewScopedMediaTree,
                     onClearScopedFolder = {
-                        settings.scopedMediaTreeUri?.let { prior ->
-                            runCatching {
-                                context.contentResolver.releasePersistableUriPermission(
-                                    prior.toUri(), Intent.FLAG_GRANT_READ_URI_PERMISSION)
-                            }
-                        }
-                        viewModel.setScopedMediaTree(null)
+                        val shared = settings.scopedMediaTreeUri != null && settings.scopedMediaTreeUri in
+                            listOf(settings.customBackgroundImageUri, settings.customBackgroundVideoUri)
+                        if (shared) grantFailure()
+                        else if (releaseReadGrant(settings.scopedMediaTreeUri, emptyList()))
+                            viewModel.setScopedMediaTree(null) else grantFailure()
                     },
                     onReplayGainEnabled = viewModel::setReplayGainEnabled,
                     onBlackDiscMode = viewModel::setBlackDiscMode,
@@ -583,7 +586,7 @@ fun GreaterArtApp(
                             .putExtra(android.media.audiofx.AudioEffect.EXTRA_PACKAGE_NAME, context.packageName)
                             .putExtra(android.media.audiofx.AudioEffect.EXTRA_CONTENT_TYPE, android.media.audiofx.AudioEffect.CONTENT_TYPE_MUSIC)
                         runCatching { context.startActivity(intent) }.onFailure {
-                            android.widget.Toast.makeText(context, "No system equalizer is installed on this device.", android.widget.Toast.LENGTH_LONG).show()
+                            android.widget.Toast.makeText(context, uiText(settings.appLanguage, "No system equalizer is installed on this device.", "此裝置未安裝系統等化器。"), android.widget.Toast.LENGTH_LONG).show()
                         }
                     },
                 )

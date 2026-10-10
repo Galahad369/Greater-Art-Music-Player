@@ -4,6 +4,7 @@ import com.local.listentomusic.data.AppLanguage
 
 internal fun uiText(language: AppLanguage, english: String, traditionalChinese: String): String {
     if (language == AppLanguage.ENGLISH) return english
+    auditUiText(language, english)?.let { return it }
     settingsUiText(language, english)?.let { return it }
     additionalUiText(language, english)?.let { return it }
     if (language == AppLanguage.TRADITIONAL_CHINESE) return traditionalChinese

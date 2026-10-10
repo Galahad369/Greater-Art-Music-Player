@@ -678,12 +678,13 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     fun importM3u(uri: Uri) {
         viewModelScope.launch(Dispatchers.IO) {
+            try {
             val resolver = getApplication<Application>().contentResolver
             val raw = runCatching { resolver.openInputStream(uri)?.bufferedReader()?.use { input ->
                 val data = StringBuilder(); val chars = CharArray(4096)
                 while (true) { val count = input.read(chars); if (count < 0) break; data.append(chars, 0, count); require(data.length <= 5_000_000) }
                 data.lines()
-            } }.getOrNull() ?: return@launch
+            } }.getOrNull() ?: run { playlistFeedback("Could not read playlist", "無法讀取播放清單"); return@launch }
             val byPath = scannedFiles.associateBy { File(it.path).canonicalPath }
             val byName = scannedFiles.groupBy { File(it.path).name.lowercase(Locale.ROOT) }
             val paths = com.local.listentomusic.model.parseM3u(raw).asSequence()
@@ -697,7 +698,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                     runCatching { File(decoded).canonicalPath }.getOrNull()?.let(byPath::get)?.path
                         ?: byName[File(decoded).name.lowercase(Locale.ROOT)]?.singleOrNull()?.path
                 }.distinct().toList()
-            if (paths.isEmpty()) return@launch
+            if (paths.isEmpty()) { playlistFeedback("No matching files in playlist", "播放清單沒有相符的檔案"); return@launch }
             val displayName = runCatching {
                 resolver.query(uri, arrayOf(OpenableColumns.DISPLAY_NAME), null, null, null)?.use { cursor ->
                     if (cursor.moveToFirst()) cursor.getString(0).substringBeforeLast('.') else null
@@ -705,17 +706,27 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             }.getOrNull().orEmpty().ifBlank { "Imported playlist" }
             val id = preferences.createPlaylistWithPaths(displayName.take(60), paths)
             preferences.setActivePlaylist(id)
+            playlistFeedback("Playlist imported", "播放清單已匯入")
+            } catch (cancelled: kotlinx.coroutines.CancellationException) { throw cancelled }
+            catch (_: Exception) { playlistFeedback("Could not import playlist", "無法匯入播放清單") }
         }
     }
 
     fun exportActiveM3u(uri: Uri) {
         viewModelScope.launch(Dispatchers.IO) {
-            val lines = com.local.listentomusic.model.exportM3u(orderedFiles)
-            runCatching {
+            try {
+                val lines = com.local.listentomusic.model.exportM3u(orderedFiles)
                 getApplication<Application>().contentResolver.openOutputStream(uri, "wt")
-                    ?.bufferedWriter()?.use { it.write(lines) }
-            }
+                    ?.bufferedWriter()?.use { it.write(lines) } ?: error("Output unavailable")
+                playlistFeedback("Playlist exported", "播放清單已匯出")
+            } catch (cancelled: kotlinx.coroutines.CancellationException) { throw cancelled }
+            catch (_: Exception) { playlistFeedback("Could not export playlist", "無法匯出播放清單") }
         }
+    }
+    private suspend fun playlistFeedback(english: String, chinese: String) = withContext(Dispatchers.Main) {
+        android.widget.Toast.makeText(getApplication<Application>(),
+            com.local.listentomusic.ui.uiText(userPreferences.appLanguage, english, chinese),
+            android.widget.Toast.LENGTH_LONG).show()
     }
     fun createPlaylist(name: String) {
         if (name.isBlank()) return
@@ -831,11 +842,9 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-    fun clearThumbnailCache() {
-        viewModelScope.launch {
-            thumbnailRepository.clear()
-            waveformRepository.clear()
-        }
+    suspend fun clearThumbnailCache() {
+        thumbnailRepository.clear()
+        waveformRepository.clear()
     }
 
     fun resetAppSettings() {

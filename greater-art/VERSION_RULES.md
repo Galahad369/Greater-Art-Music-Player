@@ -7,7 +7,14 @@ This file is the authoritative version policy for Greater Art. If any handoff no
 ## Machine-checkable state
 
 
-Current source: **1.21.27 (code 250)**
+Current source: **1.21.29 (code 252)**
+Allowed consumed transition: **1.21.27 (code 250) -> 1.21.29 (code 252)**
+
+1.21.28/code251 was committed by Claude as eb17af5128fd265bc1c2b2eeba21dc461694e4e7
+on the supplied ui/symmetry branch. Its complete mail patch is preserved in
+docs/imported-patches/claude-stack-symmetry-1.21.28.patch; no remote branch exists
+at integration time. Import its layout changes selectively alongside the pending
+audit fixes under 1.21.29/code252 rather than reuse that consumed identity.
 Allowed consumed transition: **1.21.24 (code 247) -> 1.21.26 (code 249)**
 Allowed consumed transition: **1.21.22 (code 245) -> 1.21.26 (code 249)**
 Allowed consumed transition: **1.21.22 (code 245) -> 1.21.25 (code 248)**
@@ -81,6 +88,7 @@ Markdown/docs-only changes, release hashes/metadata, and adding a newly verified
 `.github/workflows/version-consistency.yml` runs `scripts/validate-greater-art-version.py`.
 
 ## Versions tracked
+
 
 - 1.14.1 (code 116)
 - 1.14.2 (code 117) — shared navigation container
@@ -297,3 +305,5 @@ Previous baseline: 1.13.26 (code 115).
 - 1.21.25 (code 248) — experimental scoped media folder grant and bounded Storage Access Framework tree preview on PR #155. Introduce persistent read-only user-selected tree permission, revocation/reselection handling, bounded ContentResolver child enumeration and local media-type candidate tests; explicitly do NOT change the production filesystem-backed Library, playback, metadata/cache, or broad-permission request yet. SOURCE_ONLY; not a completed SAF migration and no APK produced.
 - 1.21.26 (code 249) — integrate reviewed PR #153 default-off PCM kernel and PR #155 bounded SAF preview with Claude adaptive sync; consumed parallel 1.21.24/code247 histories remain parents, 1.21.25/code248 remains preserved. Fix partial-reveal horizontal gestures, scalable borderless Mini/Library artwork, collapsed Settings, clear palette swatches and Ambient background. SOURCE_ONLY; no existing APK changed.
 - 1.21.27 (code 250) — distributed backing-track candidate consensus, real local four-family alignment diagnostics and regression tests. SOURCE_ONLY; no acoustic perfection claim or immutable release replacement.
+- 1.21.28 (code 251) — Claude Stack layout symmetry side-branch commit eb17af5; preserved supplied mail patch; source only, not Android-verified by its author.
+- 1.21.29 (code 252) — UI audit: result-scoped selection, confirmed document grants, exact percentage entry, folder validation, contextual overlay permission, truthful playlist/cache/Stack feedback, shared media formatting, labelled toggle rows and Nodes language wiring. SOURCE_ONLY.

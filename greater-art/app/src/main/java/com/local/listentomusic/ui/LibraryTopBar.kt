@@ -1,4 +1,6 @@
 package com.local.listentomusic.ui
+import androidx.compose.foundation.selection.toggleable
+import androidx.compose.ui.semantics.Role
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.border
@@ -137,7 +139,8 @@ internal fun LibraryTopBar(
             title = { Text(uiText(language, "Play history", "播放紀錄")) },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                    Row(Modifier.fillMaxWidth().toggleable(value = preferences.playHistoryEnabled,
+                        role = Role.Switch, onValueChange = onPlayHistoryEnabled), verticalAlignment = Alignment.CenterVertically) {
                         Column(Modifier.weight(1f)) {
                             Text(uiText(language, "Record locally", "只在本機記錄"), fontWeight = FontWeight.SemiBold)
                             Text(
@@ -146,7 +149,7 @@ internal fun LibraryTopBar(
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
                         }
-                        Switch(preferences.playHistoryEnabled, onPlayHistoryEnabled)
+                        Switch(preferences.playHistoryEnabled, onCheckedChange = null)
                     }
                     if (playHistory.isEmpty()) {
                         Text(uiText(language, "No local play history", "尚無本機播放紀錄"), color = MaterialTheme.colorScheme.onSurfaceVariant)
