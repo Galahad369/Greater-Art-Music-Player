@@ -120,7 +120,7 @@ This worksheet is a **test specification**, not a verification report. Every phy
 | WALL-03 | Wallpaper sources | Try custom image, custom video, current-video primary/mirror | No blank surface, unintended decoder takeover or navigation loss | NOT RUN | — |
 | THUMB-01 | Rapid Library fling | Repeated fast fling cold and warm; include audio/video mixed list | Responsive scrolling with prompt RAM hits and eventual thumbnails | NOT RUN | — |
 | THUMB-02 | Cache/low-memory | Warm disk cache, background/return; memory pressure if reproducible | No crash, corrupted artwork or permanently blank rows | NOT RUN | — |
-| THUMB-03 | List sizes | Compare SMALL, MEDIUM, LARGE layouts | Thumbnail footprint remains 103x56dp in each mode | NOT RUN | — |
+| THUMB-03 | List and Mini sizes | Compare each Library row size and each Mini size | Small follows Mini; larger rows enlarge artwork; aspect and touch targets stay valid, no invisible gutter | NOT RUN | — |
 | STACK-01 | Same master/different singer | Capture acoustic reference; run Align; manual A/B playback | Applied offset matches ground truth; no false confident alignment | NOT RUN | — |
 | STACK-02 | Alternate mastering and gain | Align level/processing variations with known common timeline | Confidence and timing documented; no hidden quality reduction | NOT RUN | — |
 | STACK-03 | Stereo-side and mono | Compare stereo-side/mono and mono/mono variants | No cross-domain spurious confident match | NOT RUN | — |

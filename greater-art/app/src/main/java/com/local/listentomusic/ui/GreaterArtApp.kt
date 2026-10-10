@@ -85,6 +85,7 @@ fun GreaterArtApp(
     val controller by viewModel.controller.collectAsStateWithLifecycle()
     val settings by viewModel.settings.collectAsStateWithLifecycle()
     val playHistory by viewModel.playHistory.collectAsStateWithLifecycle()
+    val scopedPreview by viewModel.scopedPreviewStatus.collectAsStateWithLifecycle()
     val sleepTimer by viewModel.sleepTimer.collectAsStateWithLifecycle()
     val expandedPlayerVisible by com.local.listentomusic.playback.PlayerWindowVisibility.expandedShowing.collectAsStateWithLifecycle()
     val listScrolling by ListScrollBudget.scrolling.collectAsStateWithLifecycle()
@@ -131,6 +132,24 @@ fun GreaterArtApp(
             )
         }
     }
+    val scopedTreePicker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocumentTree()) { uri ->
+        uri ?: return@rememberLauncherForActivityResult
+        val persisted = runCatching {
+            context.contentResolver.takePersistableUriPermission(
+                uri, Intent.FLAG_GRANT_READ_URI_PERMISSION)
+        }.isSuccess
+        if (persisted) {
+            val prior = settings.scopedMediaTreeUri
+            viewModel.setScopedMediaTree(uri.toString())
+            if (prior != null && prior != uri.toString()) runCatching {
+                context.contentResolver.releasePersistableUriPermission(
+                    prior.toUri(), Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            }
+        } else {
+            android.widget.Toast.makeText(context, "Could not retain folder permission. Please retry.",
+                android.widget.Toast.LENGTH_LONG).show()
+        }
+    }
     val m3uImporter = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
         uri?.let(viewModel::importM3u)
     }
@@ -148,6 +167,7 @@ fun GreaterArtApp(
     val graphError by viewModel.graphError.collectAsStateWithLifecycle()
     val wallpaperPan = rememberWallpaperPanState()
     val wallpaperSourceKey = when (settings.backgroundMode) {
+        AppBackgroundMode.AMBIENT -> "ambient:${playback.currentPath.orEmpty()}"
         AppBackgroundMode.DEFAULT -> "default"
         AppBackgroundMode.CUSTOM_IMAGE -> "image:${settings.customBackgroundImageUri.orEmpty()}"
         AppBackgroundMode.CUSTOM_VIDEO -> "video:${settings.customBackgroundVideoUri.orEmpty()}"
@@ -343,7 +363,7 @@ fun GreaterArtApp(
                     contentColor = MaterialTheme.colorScheme.onBackground,
                     bottomBar = {
                         if (playback.hasMedia && !stackPage) {
-                            Spacer(Modifier.fillMaxWidth().height(com.local.listentomusic.model.MiniWindowMetrics.HEIGHT_DP.dp))
+                            Spacer(Modifier.fillMaxWidth().height((com.local.listentomusic.model.MiniWindowMetrics.HEIGHT_DP * com.local.listentomusic.model.MiniWindowMetrics.scale(settings.miniWindowSize)).dp))
                         }
                     },
                 ) { dockPadding ->
@@ -476,9 +496,10 @@ fun GreaterArtApp(
                     appName = appName,
                     preferences = settings,
                     playback = playback,
-                    dockInset = if (playback.hasMedia) com.local.listentomusic.model.MiniWindowMetrics.HEIGHT_DP.dp else 0.dp,
+                    dockInset = if (playback.hasMedia) (com.local.listentomusic.model.MiniWindowMetrics.HEIGHT_DP * com.local.listentomusic.model.MiniWindowMetrics.scale(settings.miniWindowSize)).dp else 0.dp,
                     onBack = { screen = Screen.LIBRARY },
                     onRowSize = viewModel::setLibraryRowSize,
+                    onMiniWindowSize = viewModel::setMiniWindowSize,
                     onThemeMode = viewModel::setThemeMode,
                     onColorTheme = viewModel::setColorTheme,
                     onShowThumbnails = viewModel::setShowThumbnails,
@@ -538,6 +559,18 @@ fun GreaterArtApp(
                     onShowAbRepeat = viewModel::setShowAbRepeat,
                     onExtendedSearch = viewModel::setExtendedSearch,
                     onFolderExcluded = viewModel::setFolderExcluded,
+                    scopedPreview = scopedPreview,
+                    onChooseScopedFolder = { scopedTreePicker.launch(null) },
+                    onPreviewScopedFolder = viewModel::previewScopedMediaTree,
+                    onClearScopedFolder = {
+                        settings.scopedMediaTreeUri?.let { prior ->
+                            runCatching {
+                                context.contentResolver.releasePersistableUriPermission(
+                                    prior.toUri(), Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                            }
+                        }
+                        viewModel.setScopedMediaTree(null)
+                    },
                     onReplayGainEnabled = viewModel::setReplayGainEnabled,
                     onBlackDiscMode = viewModel::setBlackDiscMode,
                     onPlayHistoryEnabled = viewModel::setPlayHistoryEnabled,
@@ -560,7 +593,7 @@ fun GreaterArtApp(
             undoMessage?.let { message ->
                 androidx.compose.material3.Snackbar(modifier = Modifier.align(Alignment.BottomCenter).navigationBarsPadding()
                     .padding(bottom =
-                        (if (playback.hasMedia) com.local.listentomusic.model.MiniWindowMetrics.HEIGHT_DP.dp else 0.dp) +
+                        (if (playback.hasMedia) (com.local.listentomusic.model.MiniWindowMetrics.HEIGHT_DP * com.local.listentomusic.model.MiniWindowMetrics.scale(settings.miniWindowSize)).dp else 0.dp) +
                             (if (screen == Screen.LIBRARY && libraryPager.currentPage == 0) 120.dp else 0.dp)
                     ), action = {
                     androidx.compose.material3.TextButton(onClick = viewModel::undoLastEdit) { androidx.compose.material3.Text(uiText(settings.appLanguage, "Undo", "復原")) }

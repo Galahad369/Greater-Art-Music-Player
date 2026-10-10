@@ -250,6 +250,10 @@ class MiniWindowOverlayService : Service(), LifecycleOwner, ViewModelStoreOwner,
         scope.launch {
             com.local.listentomusic.data.AppPreferences(applicationContext).values.collect {
                 compact?.appearance(it)
+                if (miniSize != it.miniWindowSize) {
+                    miniSize = it.miniWindowSize
+                    updateMiniWindowSize()
+                }
             }
         }
         scope.launch {
@@ -715,6 +719,8 @@ class MiniWindowOverlayService : Service(), LifecycleOwner, ViewModelStoreOwner,
         }
     }
 
+    private var miniSize = com.local.listentomusic.data.LibraryRowSize.SMALL
+
     private fun dp(v: Int) = (v * resources.displayMetrics.density).toInt()
 
     private fun detachedSizePx(): Pair<Int, Int> {
@@ -723,12 +729,12 @@ class MiniWindowOverlayService : Service(), LifecycleOwner, ViewModelStoreOwner,
             if (size != null && size.height > 0) size.width.toFloat() * size.pixelWidthHeightRatio / size.height
             else 16f / 9f
         } else artworkAspect
-        return MiniWindowMetrics.detachedSizePx(resources.displayMetrics.density, aspect)
+        return MiniWindowMetrics.detachedSizePx(resources.displayMetrics.density, aspect, miniSize)
     }
     private fun miniWidthPx() = if (docked || expanded) WindowManager.LayoutParams.MATCH_PARENT
         else detachedSizePx().first
     private fun miniHeightPx() = if (expanded) WindowManager.LayoutParams.MATCH_PARENT
-        else if (docked) MiniWindowMetrics.heightPx(resources.displayMetrics.density)
+        else if (docked) MiniWindowMetrics.heightPx(resources.displayMetrics.density, miniSize)
         else detachedSizePx().second
 
     private fun switchMode(toDocked: Boolean) {

@@ -79,6 +79,8 @@ internal fun wallpaperGestureAxis(totalX: Float, totalY: Float, touchSlop: Float
     return if (abs(totalX) > abs(totalY)) WallpaperGestureAxis.HORIZONTAL else WallpaperGestureAxis.VERTICAL
 }
 
+internal fun canPanRevealedWallpaper(fraction: Float): Boolean = fraction > 0.001f
+
 internal fun shouldSyncWallpaperPanToPager(revealFraction: Float): Boolean =
     revealFraction <= 0.001f
 
@@ -239,7 +241,7 @@ internal fun LibraryFamilyWithBackgroundReveal(
                         detectDragGestures(
                             onDragStart = {
                                 totalX = 0f; totalY = 0f; axis = null
-                                horizontalAllowed = reveal.fraction >= 0.995f
+                                horizontalAllowed = canPanRevealedWallpaper(reveal.fraction)
                             },
                             onDrag = { change, dragAmount ->
                                 totalX += dragAmount.x

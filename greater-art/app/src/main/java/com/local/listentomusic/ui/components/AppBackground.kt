@@ -229,6 +229,7 @@ fun AppBackground(
             Box(Modifier.fillMaxSize().background(androidx.compose.material3.MaterialTheme.colorScheme.background))
         }
         when (mode) {
+            AppBackgroundMode.AMBIENT -> if (visible) Box(Modifier.fillMaxSize().then(ambient))
             AppBackgroundMode.DEFAULT -> Unit
             AppBackgroundMode.CUSTOM_IMAGE -> preferences.customBackgroundImageUri
                 ?.let(Uri::parse)

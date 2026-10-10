@@ -3,7 +3,7 @@
 This file describes the **current repository state only**. Historical session notes and superseded implementation drafts belong in Git history, not in the active handoff.
 
 **Project:** `greater-art/` in the repository checkout
-**Current source:** `1.21.24 (code 247)` — SOURCE_ONLY; Claude adaptive Stack sync over v7
+**Current source:** `1.21.26 (code 249)` — SOURCE_ONLY; reviewed branch integration and background/settings repairs
 **Current version:** `1.21.18 (code 241)`
 **Latest APK:** `releases/GreaterArt-1.21.18.apk` (`27,746,006 bytes`; SHA-256 `bba973d127a9dec1f03b29fca1a146707c9feee82497e9a65ab196870b696b3d`)
 **Application ID:** `com.local.listentomusic`
@@ -13,6 +13,25 @@ This file describes the **current repository state only**. Historical session no
 **Verification boundary:** Owner confirmed 1.21.18 verification on 9 October 2026. The existing 1.21.18 QA record below reports 249 JVM tests (0 failures), 0 lint errors, three passing API 36 ThumbnailPipelineTest regressions, Library/playback smoke, and no observed FATAL EXCEPTION or ANR in its bounded session; it records a 27,746,006-byte debug APK, package `com.local.listentomusic`, versionName `1.21.18`, versionCode `241`, ZIP alignment pass, personal debug signing certificate as above, and SHA-256 `bba973d127a9dec1f03b29fca1a146707c9feee82497e9a65ab196870b696b3d`. That earlier test took place on an uncommitted local source tree later incorporated into `2edb328a`; exact committed-source equivalence is owner-attested, not independently proven by that record alone. The separate release-finalization PR must pass the *unmodified* Version Consistency guard's SHA-256/manifest checks against the actual tracked APK before merge. Historical records remain below unchanged.
 
 ## Repository state
+
+### October 10 — reviewed integration and background/settings repair
+
+- Preserve PR #153's default-off PCM harness, PR #155's read-only SAF preview,
+  and Claude adaptive sync. Neither prototype is a production migration.
+- Partial wallpaper reveal accepts horizontal drags. Fit/Crop stay distinct.
+  Mini S/M/L sizes its borderless footprint, dock and insets; Library row choices
+  now size artwork. Settings sections start collapsed, with clear colour swatches.
+  Ambient uses existing compositor colours; no decoder or quality cap added.
+- Source 1.21.26/code249 accounts for parallel 1.21.24 histories and SAF 1.21.25.
+  No release APK overwritten/promoted. Review and immutable APK inventory:
+  `docs/BRANCH_AND_ISSUE_REVIEW_2026-10-10.md`. Historical 1.21.4 and 1.21.10
+  filenames disagree with manifests; retained, not distributed or certified.
+- Final localized source: 300 JVM tests pass; lint 0 errors / 30 warnings / 2 hints;
+  app/test APK builds pass. API36 six-take seek/resume/loop passes (13.638 seconds);
+  default-off PCM/native/cache run reports OK (6 tests, enabled-only case skipped).
+  Settings starts collapsed; Fit reveal preserves a real 16:9 frame; Ambient
+  renders video colours. No app fatal exception in the bounded crash log. This
+  is virtual evidence, not physical/production adoption or a new verified APK.
 
 ### October 10 — adaptive production Stack sync
 
@@ -40,6 +59,56 @@ This file describes the **current repository state only**. Historical session no
 - Unchanged six-take seek/resume/loop regression passes in 13.061 seconds with
   its original <75 ms settled-drift assertion. No universal convergence or
   crash-free claim follows from this bounded run.
+
+### October 9 — Shared-clock prototype (PR #153, depends on #152)
+
+- Alignment PR #152 merged as `af626b5` after all exact-head CI checks passed.
+  Prototype implementation is `881f39c` (1.21.23/code246), deliberately separate
+  and default-off. No new versioned release APK was created or overwritten.
+- Exact-source API 36 repeat passed default-off native/gate coverage and enabled
+  transport/native coverage (17.196 seconds; opposite gate skipped per variant).
+  Repeat peaks: eight voices 461121 us / zero reported underruns; six compressed
+  takes 8005 us / zero underruns / one decoder wait / 14.79 MB Java heap snapshot.
+  Variable cold timing means neither run establishes sustained performance.
+- The unchanged version guard now passes current main's owner-confirmed 1.21.18
+  tracked hash/manifest, as well as source 1.21.23. The historical provenance
+  failure is resolved for that artifact, not a retroactive claim for every APK.
+
+- `SharedClockPcmPrototype` is a developer/test harness, not a production routing
+  replacement. Gate: debug build AND explicit `-PstackPcmPrototype=true`; default off.
+  No developer UI/production command silently switches audio engines.
+- Native MediaExtractor/MediaCodec streams send at most four 1024-frame PCM blocks
+  per lane; bounded retained windows feed one stereo float AudioTrack/shared frame
+  clock. Signed fractional offsets, bounded sinc conversion, mute/solo/gain and
+  coherent-sum headroom are supported for up to eight mono/stereo sources.
+- Pause/resume/seek rebuild bounded decoder lanes at the played output frame; loop
+  drains the primary boundary then restarts the group. Generation guards reject old
+  completions. Decoder starvation pauses output; timeouts/output failures retire
+  this output before returning to legacy. Focus loss/headset unplug pause the prototype.
+- Host must acquire an exclusive audible-output lease and keep native video separate;
+  no production host adapter is installed yet. This intentionally preserves the
+  existing service, audio focus, video surfaces and ordinary player behavior.
+- Unsupported non-identity tempo maps abstain: a qualified pitch-preserving stretch
+  path is not implemented. No pitch-shifting speed fallback. Unsupported multichannel,
+  PCM precision, rate changes or device output format return to legacy rather than
+  silently downmixing/reducing source quality. Physical performance limits remain unproven.
+- Integrated default-off gate: 278 JVM tests pass, lint has zero errors / 28 warnings.
+  API 36 native mono/stereo clipped decoding and bounded-queue cancellation pass;
+  the disabled gate never acquires the legacy host. Explicit enabled eight-voice
+  pause/seek/solo/whole-group loop tests pass. The shared interruption handler
+  pauses and manual resume re-requests focus; actual protected system-broadcast
+  delivery/headphone hardware remain untested. Six local compressed takes at
+  44.1 kHz passed pause/seek/resume: zero underruns/waits, peak 3532 us mix time
+  per 5805 us block in the short measured segment; Java heap snapshot 15.13 MB
+  excludes native buffers. Eight PCM voices at 48 kHz passed transport but the
+  cold-run snapshot had 3 underruns / 40270 us peak: not a performance/adoption pass.
+- Compressed decoding requests float; AAC/MP3 codec-native PCM16 is converted
+  losslessly to mixer float if float output is ignored. High-precision lossless
+  material does not get a PCM16 fallback. No primary source-quality cap is added.
+- The real-pair six-window v7 cache/recovery rerun passes: five anchors,
+  -27.553833 ms intercept, 0.9999707975922502 scale, 1.6383835 ms fit residual.
+  The existing independent-player convergence failure remains documented; it is
+  not resolved by these analysis or prototype results.
 
 ### October 9 — Stack synchronization overhaul (PR #152)
 
