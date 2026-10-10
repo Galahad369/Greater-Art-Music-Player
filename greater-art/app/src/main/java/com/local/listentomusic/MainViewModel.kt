@@ -153,6 +153,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     private var undoJob: Job? = null
     val undoMessage = MutableStateFlow<String?>(null)
     val indexStatus = MutableStateFlow("Basic filenames")
+    val scopedPreviewStatus = MutableStateFlow("No scoped-folder preview has run.")
     private val libraryObserver = com.local.listentomusic.data.LibraryObserver(application) { rescan() }
     fun startLibraryObservation() { libraryObserver.start() }
     fun stopLibraryObservation() { libraryObserver.stop() }
@@ -601,6 +602,32 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     fun toggleFavourite(path: String) = updatePreference { preferences.toggleFavourite(path) }
     fun clearPlayHistory() = updatePreference { preferences.clearPlayHistory() }
     fun setJokeAdsEnabled(value: Boolean) = updatePreference { preferences.setJokeAdsEnabled(value) }
+    fun setScopedMediaTree(uri: String?) = updatePreference {
+        preferences.setScopedMediaTreeUri(uri)
+        scopedPreviewStatus.value = if (uri == null) "No scoped folder selected." else
+            "Folder selected. Preview it to verify the persisted grant."
+    }
+    fun previewScopedMediaTree() {
+        val value = settings.value.scopedMediaTreeUri
+        if (value.isNullOrBlank()) {
+            scopedPreviewStatus.value = "Select a folder first."
+            return
+        }
+        viewModelScope.launch(Dispatchers.IO) {
+            scopedPreviewStatus.value = "Inspecting only the selected folder (bounded preview)..."
+            val context = getApplication<Application>()
+            scopedPreviewStatus.value = try {
+                val result = com.local.listentomusic.data.SafTreeReader(context.contentResolver)
+                    .preview(Uri.parse(value))
+                "Scoped preview: ${result.mediaCount} media candidates, ${result.folderCount} folders" +
+                    if (result.truncated) " (preview limit reached)." else "."
+            } catch (_: SecurityException) {
+                "Folder permission was revoked. Select the folder again."
+            } catch (_: Exception) {
+                "Could not enumerate that folder. Try selecting it again."
+            }
+        }
+    }
     fun setFolderExcluded(folder: String, excluded: Boolean) = updatePreference {
         val next = userPreferences.excludedFolders.toMutableSet().apply {
             if (excluded) add(folder) else remove(folder)

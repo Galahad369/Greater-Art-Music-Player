@@ -1,6 +1,8 @@
 package com.local.listentomusic.data
 
 import android.content.Context
+import android.content.Intent
+import android.net.Uri
 import android.util.Base64
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.booleanPreferencesKey
@@ -58,6 +60,7 @@ data class UserPreferences(
     val playHistoryEnabled: Boolean = false,
     val favouritePaths: List<String> = emptyList(),
     val excludedFolders: List<String> = emptyList(),
+    val scopedMediaTreeUri: String? = null,
     val jokeAdsEnabled: Boolean = false,
 )
 
@@ -147,6 +150,7 @@ class AppPreferences(private val context: Context) {
         val playHistory = stringPreferencesKey("play_history_v1")
         val favouritePaths = stringPreferencesKey("favourite_paths_v1")
         val excludedFolders = stringPreferencesKey("excluded_folders")
+        val scopedMediaTreeUri = stringPreferencesKey("scoped_media_tree_uri_v1")
         val jokeAdsEnabled = booleanPreferencesKey("joke_ads_enabled")
     }
 
@@ -211,6 +215,7 @@ class AppPreferences(private val context: Context) {
             playHistoryEnabled = prefs[Keys.playHistoryEnabled] ?: false,
             favouritePaths = decodeOrder(prefs[Keys.favouritePaths].orEmpty()),
             excludedFolders = decodeOrder(prefs[Keys.excludedFolders].orEmpty()),
+            scopedMediaTreeUri = prefs[Keys.scopedMediaTreeUri],
             jokeAdsEnabled = prefs[Keys.jokeAdsEnabled] ?: false,
         )
     }
@@ -375,6 +380,14 @@ class AppPreferences(private val context: Context) {
     suspend fun setExcludedFolders(value: List<String>) = edit { prefs ->
         prefs[Keys.excludedFolders] = StoredPathListCodec.encode(value.distinct().sorted())
     }
+    // OS tree grants are device-specific and never included in portable settings backups.
+    suspend fun setScopedMediaTreeUri(value: String?) = edit { prefs ->
+        if (value == null) prefs.remove(Keys.scopedMediaTreeUri)
+        else {
+            require(value.startsWith("content://"))
+            prefs[Keys.scopedMediaTreeUri] = value
+        }
+    }
     suspend fun setJokeAdsEnabled(value: Boolean) = edit { it[Keys.jokeAdsEnabled] = value }
     suspend fun setActivePlaylist(id: String?) = edit { prefs ->
         if (id == null) prefs.remove(Keys.activePlaylistId) else prefs[Keys.activePlaylistId] = id
@@ -458,6 +471,10 @@ class AppPreferences(private val context: Context) {
     }
 
     suspend fun resetAppSettings() {
+        current().scopedMediaTreeUri?.let { value ->
+            runCatching { context.contentResolver.releasePersistableUriPermission(
+                Uri.parse(value), Intent.FLAG_GRANT_READ_URI_PERMISSION) }
+        }
         context.dataStore.edit {
             it.remove(Keys.graphOptions)
             it.remove(Keys.libraryRowSize)
@@ -489,6 +506,7 @@ class AppPreferences(private val context: Context) {
             it.remove(Keys.playHistoryEnabled)
             it.remove(Keys.playHistory)
             it.remove(Keys.excludedFolders)
+            it.remove(Keys.scopedMediaTreeUri)
             it.remove(Keys.jokeAdsEnabled)
             it[Keys.speed] = 1f
             it[Keys.repeatMode] = Player.REPEAT_MODE_ONE.toLong()

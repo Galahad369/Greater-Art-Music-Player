@@ -85,6 +85,7 @@ fun GreaterArtApp(
     val controller by viewModel.controller.collectAsStateWithLifecycle()
     val settings by viewModel.settings.collectAsStateWithLifecycle()
     val playHistory by viewModel.playHistory.collectAsStateWithLifecycle()
+    val scopedPreview by viewModel.scopedPreviewStatus.collectAsStateWithLifecycle()
     val sleepTimer by viewModel.sleepTimer.collectAsStateWithLifecycle()
     val expandedPlayerVisible by com.local.listentomusic.playback.PlayerWindowVisibility.expandedShowing.collectAsStateWithLifecycle()
     val listScrolling by ListScrollBudget.scrolling.collectAsStateWithLifecycle()
@@ -129,6 +130,24 @@ fun GreaterArtApp(
                 previousUri.toUri(),
                 Intent.FLAG_GRANT_READ_URI_PERMISSION,
             )
+        }
+    }
+    val scopedTreePicker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocumentTree()) { uri ->
+        uri ?: return@rememberLauncherForActivityResult
+        val persisted = runCatching {
+            context.contentResolver.takePersistableUriPermission(
+                uri, Intent.FLAG_GRANT_READ_URI_PERMISSION)
+        }.isSuccess
+        if (persisted) {
+            val prior = settings.scopedMediaTreeUri
+            viewModel.setScopedMediaTree(uri.toString())
+            if (prior != null && prior != uri.toString()) runCatching {
+                context.contentResolver.releasePersistableUriPermission(
+                    prior.toUri(), Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            }
+        } else {
+            android.widget.Toast.makeText(context, "Could not retain folder permission. Please retry.",
+                android.widget.Toast.LENGTH_LONG).show()
         }
     }
     val m3uImporter = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
@@ -538,6 +557,18 @@ fun GreaterArtApp(
                     onShowAbRepeat = viewModel::setShowAbRepeat,
                     onExtendedSearch = viewModel::setExtendedSearch,
                     onFolderExcluded = viewModel::setFolderExcluded,
+                    scopedPreview = scopedPreview,
+                    onChooseScopedFolder = { scopedTreePicker.launch(null) },
+                    onPreviewScopedFolder = viewModel::previewScopedMediaTree,
+                    onClearScopedFolder = {
+                        settings.scopedMediaTreeUri?.let { prior ->
+                            runCatching {
+                                context.contentResolver.releasePersistableUriPermission(
+                                    prior.toUri(), Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                            }
+                        }
+                        viewModel.setScopedMediaTree(null)
+                    },
                     onReplayGainEnabled = viewModel::setReplayGainEnabled,
                     onBlackDiscMode = viewModel::setBlackDiscMode,
                     onPlayHistoryEnabled = viewModel::setPlayHistoryEnabled,

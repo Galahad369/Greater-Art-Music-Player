@@ -128,6 +128,10 @@ fun SettingsScreen(
     onShowAbRepeat: (Boolean) -> Unit,
     onExtendedSearch: (Boolean) -> Unit,
     onFolderExcluded: (String, Boolean) -> Unit,
+    scopedPreview: String,
+    onChooseScopedFolder: () -> Unit,
+    onPreviewScopedFolder: () -> Unit,
+    onClearScopedFolder: () -> Unit,
     onReplayGainEnabled: (Boolean) -> Unit,
     onBlackDiscMode: (Boolean) -> Unit,
     onPlayHistoryEnabled: (Boolean) -> Unit,
@@ -453,6 +457,40 @@ fun SettingsScreen(
                 }, enabled = folderDraft.isNotBlank(), modifier = Modifier.padding(horizontal = GaSpacing.lg)) { Text(uiText(language, "Exclude folder", "排除此資料夾")) }
                 preferences.excludedFolders.forEach { folder ->
                     SwitchSetting(folder, uiText(language, "Turn off to include again. Files remain untouched.", "關閉後重新加入，不會更改檔案。"), true, { onFolderExcluded(folder, false) })
+                }
+            }
+            item(key = "section_scoped_folder_preview") {
+                Column(Modifier.fillMaxWidth().padding(horizontal = GaSpacing.lg, vertical = GaSpacing.md)) {
+                    SectionTitle(uiText(language, "Scoped folder — experimental", "指定資料夾 — 實驗功能"))
+                    Text(
+                        uiText(language,
+                            "Grant access to one media folder and inspect it without All Files Access. This is a preview: these files are NOT yet added to the playable Library.",
+                            "授權指定媒體資料夾並預覽內容，毋須授予所有檔案存取權。此功能尚未將檔案加入可播放音樂庫。"),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    Text(
+                        if (preferences.scopedMediaTreeUri == null)
+                            uiText(language, "No folder selected", "尚未選擇資料夾")
+                        else uiText(language, "Selected folder permission retained", "已保留所選資料夾權限"),
+                        style = MaterialTheme.typography.bodyMedium,
+                        modifier = Modifier.padding(vertical = GaSpacing.sm),
+                    )
+                    Row(horizontalArrangement = Arrangement.spacedBy(GaSpacing.sm)) {
+                        OutlinedButton(onClick = onChooseScopedFolder) {
+                            Text(uiText(language, "Choose folder", "選擇資料夾"))
+                        }
+                        if (preferences.scopedMediaTreeUri != null) {
+                            TextButton(onClick = onPreviewScopedFolder) {
+                                Text(uiText(language, "Preview", "預覽"))
+                            }
+                            TextButton(onClick = onClearScopedFolder) {
+                                Text(uiText(language, "Revoke", "撤銷"))
+                            }
+                        }
+                    }
+                    Text(scopedPreview, style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }
             item(key = "section_privacy_data") {
