@@ -341,7 +341,7 @@ class ThumbnailRepository(private val context: Context) {
             recentFailures.clear()
             missingWrites.set(0)
             artStamps.clear()
-            cacheDirectory.listFiles()?.forEach { it.delete() }
+            cacheDirectory.listFiles()?.forEach { check(it.delete() || !it.exists()) { "Could not remove cached thumbnail" } }
             pruned.set(false)
             publishMemory()
         }

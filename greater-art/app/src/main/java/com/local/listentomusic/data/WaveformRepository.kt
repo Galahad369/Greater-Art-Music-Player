@@ -103,7 +103,7 @@ class WaveformRepository(context: Context) {
     suspend fun clear() = withContext(Dispatchers.IO) {
         decodeMutex.withLock {
             synchronized(memory) { generation.incrementAndGet(); memory.clear() }
-            directory.listFiles()?.forEach { file -> runCatching { file.delete() } }
+            directory.listFiles()?.forEach { file -> check(file.delete() || !file.exists()) { "Could not remove cached waveform" } }
             _diagnostics.value = WaveformDiagnostics()
         }
     }

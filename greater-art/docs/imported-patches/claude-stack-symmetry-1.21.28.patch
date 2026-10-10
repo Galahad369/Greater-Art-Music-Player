@@ -1,0 +1,190 @@
+From eb17af5128fd265bc1c2b2eeba21dc461694e4e7 Mon Sep 17 00:00:00 2001
+From: Claude <noreply@anthropic.com>
+Date: Sat, 10 Oct 2026 17:51:09 +0000
+Subject: [PATCH] 1.21.28: align Stack page cards, slot rows and stepper
+ symmetrically (layout only)
+
+Measured on StackScreen.kt (the rest of the UI's start/end padding is already symmetric):
+
+- Cards on the page used two horizontal gutters: 14 dp (counter row, alignment panel, empty-slot
+  placeholder) and 10 dp (master controls, now-playing context card, filled slot cards). With one
+  track loaded, a filled card and the empty placeholder directly below it had different widths and
+  the card edges zig-zagged down the list. All now use GaSpacing.md (12 dp, a token).
+- The empty-slot placeholder used a raw RoundedCornerShape(12.dp) while the filled slot card uses
+  GaRadius.control; same component, now the same radius.
+- Inside an expanded slot card the buttons row, offset row and volume row used 14/14/18 dp insets.
+  Because a TextButton adds its own 12 dp, the visible left edges were about 26/26/18 dp. All rows
+  now share the header's 12 dp inset, and the volume label starts at
+  ButtonDefaults.TextButtonContentPadding so the three rows share one visible left edge.
+- The offset stepper's value was left-aligned next to "-0.1s"; it is now centred between - and +.
+
+Deliberately NOT changed (taste calls that need a screenshot review): Library Add (22 dp) vs Delete
+(18 dp) glyph sizes inside equal 48 dp buttons, and the different screen-level gutters (Library 8,
+Stack 12, Settings 16, Now Playing 12/16).
+
+Layout-only: no behaviour, permission, decoder or alignment change. Verified: the edited file has no
+syntax errors and no off-token horizontal gutters remain in it. Not compiled against the Android SDK
+and not rendered or screenshot-tested here.
+---
+ greater-art/VERSION_RULES.md                  |  3 +-
+ greater-art/app/build.gradle.kts              |  4 +--
+ .../com/local/listentomusic/ui/StackScreen.kt | 35 ++++++++++++-------
+ 3 files changed, 26 insertions(+), 16 deletions(-)
+
+diff --git a/greater-art/VERSION_RULES.md b/greater-art/VERSION_RULES.md
+index 0203617..772079e 100644
+--- a/greater-art/VERSION_RULES.md
++++ b/greater-art/VERSION_RULES.md
+@@ -7,7 +7,7 @@ This file is the authoritative version policy for Greater Art. If any handoff no
+ ## Machine-checkable state
+ 
+ 
+-Current source: **1.21.27 (code 250)**
++Current source: **1.21.28 (code 251)**
+ Allowed consumed transition: **1.21.24 (code 247) -> 1.21.26 (code 249)**
+ Allowed consumed transition: **1.21.22 (code 245) -> 1.21.26 (code 249)**
+ Allowed consumed transition: **1.21.22 (code 245) -> 1.21.25 (code 248)**
+@@ -297,3 +297,4 @@ Previous baseline: 1.13.26 (code 115).
+ - 1.21.25 (code 248) — experimental scoped media folder grant and bounded Storage Access Framework tree preview on PR #155. Introduce persistent read-only user-selected tree permission, revocation/reselection handling, bounded ContentResolver child enumeration and local media-type candidate tests; explicitly do NOT change the production filesystem-backed Library, playback, metadata/cache, or broad-permission request yet. SOURCE_ONLY; not a completed SAF migration and no APK produced.
+ - 1.21.26 (code 249) — integrate reviewed PR #153 default-off PCM kernel and PR #155 bounded SAF preview with Claude adaptive sync; consumed parallel 1.21.24/code247 histories remain parents, 1.21.25/code248 remains preserved. Fix partial-reveal horizontal gestures, scalable borderless Mini/Library artwork, collapsed Settings, clear palette swatches and Ambient background. SOURCE_ONLY; no existing APK changed.
+ - 1.21.27 (code 250) — distributed backing-track candidate consensus, real local four-family alignment diagnostics and regression tests. SOURCE_ONLY; no acoustic perfection claim or immutable release replacement.
++- 1.21.28 (code 251) — Stack page layout symmetry, layout-only. Cards on the Stack page used two different horizontal gutters (14 dp: counter row, alignment panel, empty-slot placeholder; 10 dp: master controls, now-playing context card, filled slot cards), so a filled card and the empty placeholder stacked under it had different widths; all now use GaSpacing.md (12 dp). The empty placeholder also used a raw 12 dp corner radius while the filled slot card uses GaRadius.control; it now matches. Inside an expanded slot card the three rows used 14/14/18 dp insets (visible left edges about 26/26/18 dp because TextButton adds its own 12 dp); all rows now share the header's 12 dp inset and the volume label starts at the TextButton content inset, so they share one visible left edge. The offset stepper value is centred between its - and + buttons instead of left-aligned. Not changed, needs on-device visual review: Library row Add (22 dp) vs Delete (18 dp) glyph sizes, and different screen-level gutters between Library (8), Stack (12), Settings (16) and Now Playing (12/16). No behaviour, permission, decoder or alignment change. Not rendered or screenshot-tested; SOURCE_ONLY.
+diff --git a/greater-art/app/build.gradle.kts b/greater-art/app/build.gradle.kts
+index 1f5131e..8db108f 100644
+--- a/greater-art/app/build.gradle.kts
++++ b/greater-art/app/build.gradle.kts
+@@ -11,8 +11,8 @@ android {
+                         applicationId = "com.local.listentomusic"
+                         minSdk = 26
+                         targetSdk = 37
+-        versionCode = 250
+-        versionName = "1.21.27"
++        versionCode = 251
++        versionName = "1.21.28"
+         buildConfigField("boolean", "STACK_PCM_PROTOTYPE", (providers.gradleProperty("stackPcmPrototype").orNull == "true").toString())
+ 
+         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+diff --git a/greater-art/app/src/main/java/com/local/listentomusic/ui/StackScreen.kt b/greater-art/app/src/main/java/com/local/listentomusic/ui/StackScreen.kt
+index 4801d14..f6f07bb 100644
+--- a/greater-art/app/src/main/java/com/local/listentomusic/ui/StackScreen.kt
++++ b/greater-art/app/src/main/java/com/local/listentomusic/ui/StackScreen.kt
+@@ -34,6 +34,8 @@ import androidx.compose.ui.Alignment
+ import androidx.compose.ui.Modifier
+ import androidx.compose.ui.draw.clip
+ import androidx.compose.ui.graphics.Color
++import androidx.compose.ui.platform.LocalLayoutDirection
++import androidx.compose.ui.text.style.TextAlign
+ import androidx.compose.ui.text.font.FontWeight
+ import androidx.compose.ui.text.style.TextOverflow
+ import androidx.compose.ui.unit.dp
+@@ -50,6 +52,7 @@ import com.local.listentomusic.playback.StackSlot
+ import com.local.listentomusic.playback.recommendStackTracks
+ import com.local.listentomusic.ui.components.LiquidMetalSurface
+ import com.local.listentomusic.ui.theme.GaRadius
++import com.local.listentomusic.ui.theme.GaSpacing
+ import com.local.listentomusic.ui.theme.gaChromeColor
+ import com.local.listentomusic.ui.theme.gaDividerColor
+ 
+@@ -137,7 +140,7 @@ fun StackScreen(
+             .padding(contentPadding).consumeWindowInsets(contentPadding),
+     ) {
+         Row(
+-            Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 5.dp),
++            Modifier.fillMaxWidth().padding(horizontal = GaSpacing.md, vertical = 5.dp),
+             verticalAlignment = Alignment.CenterVertically,
+         ) {
+             Surface(shape = RoundedCornerShape(50), color = gaChromeColor()) {
+@@ -192,7 +195,7 @@ fun StackScreen(
+         }
+         if (session.active && session.slots.size >= 2) {
+             Surface(
+-                modifier = Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 6.dp),
++                modifier = Modifier.fillMaxWidth().padding(horizontal = GaSpacing.md, vertical = 6.dp),
+                 shape = RoundedCornerShape(12.dp),
+                 color = gaChromeColor(),
+                 border = androidx.compose.foundation.BorderStroke(1.dp, gaDividerColor()),
+@@ -294,16 +297,16 @@ fun StackScreen(
+                     repeat(2 - displayed.size) {
+                         Surface(
+                             onClick = { pickerOpen = true },
+-                            modifier = Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 5.dp)
++                            modifier = Modifier.fillMaxWidth().padding(horizontal = GaSpacing.md, vertical = 5.dp)
+                                 .inspectElement("STACK_EMPTY_SLOT", "Tap to choose local tracks"),
+-                            shape = RoundedCornerShape(12.dp),
++                            shape = RoundedCornerShape(GaRadius.control),
+                             color = gaChromeColor(),
+                             border = androidx.compose.foundation.BorderStroke(
+                                 1.dp, gaDividerColor(),
+                             ),
+                         ) {
+                             Row(
+-                                Modifier.height(62.dp).padding(horizontal = 14.dp),
++                                Modifier.height(62.dp).padding(horizontal = GaSpacing.md),
+                                 verticalAlignment = Alignment.CenterVertically,
+                             ) {
+                                 Surface(
+@@ -338,7 +341,7 @@ fun StackScreen(
+ 
+         Column(
+             Modifier.fillMaxWidth()
+-                .padding(horizontal = 10.dp, vertical = 6.dp)
++                .padding(horizontal = GaSpacing.md, vertical = 6.dp)
+                 .clip(RoundedCornerShape(GaRadius.chrome))
+                 .background(gaChromeColor())
+                 .border(1.dp, gaDividerColor(), RoundedCornerShape(GaRadius.chrome))
+@@ -544,7 +547,7 @@ private fun StackNowPlayingRow(
+ ) {
+     Surface(
+         color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.58f),
+-        modifier = Modifier.fillMaxWidth().padding(horizontal = 10.dp, vertical = 2.dp)
++        modifier = Modifier.fillMaxWidth().padding(horizontal = GaSpacing.md, vertical = 2.dp)
+             .inspectElement("STACK_NOW_PLAYING_CONTEXT", file.name),
+         shape = RoundedCornerShape(GaRadius.control),
+         border = androidx.compose.foundation.BorderStroke(
+@@ -605,7 +608,7 @@ private fun StackTrackRow(
+         else -> MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.16f)
+     }
+     Surface(
+-        modifier = Modifier.fillMaxWidth().padding(horizontal = 10.dp, vertical = 2.dp),
++        modifier = Modifier.fillMaxWidth().padding(horizontal = GaSpacing.md, vertical = 2.dp),
+         shape = RoundedCornerShape(GaRadius.control),
+         color = rowColor,
+         border = androidx.compose.foundation.BorderStroke(1.dp, outline),
+@@ -654,7 +657,7 @@ private fun StackTrackRow(
+         }
+ 
+         if (expanded) {
+-            Row(Modifier.fillMaxWidth().padding(horizontal = 14.dp), verticalAlignment = Alignment.CenterVertically) {
++            Row(Modifier.fillMaxWidth().padding(horizontal = GaSpacing.md), verticalAlignment = Alignment.CenterVertically) {
+                 if (sessionActive) {
+                     TextButton(onClick = { StackPlayback.setPrimary(path) }, enabled = !isPrimary && !ended) {
+                         Text(uiText(language, "Make primary", "設為主要"))
+@@ -668,16 +671,22 @@ private fun StackTrackRow(
+                 }
+             }
+             if (sessionActive) {
+-                if (!isPrimary) Row(Modifier.fillMaxWidth().padding(horizontal = 14.dp), verticalAlignment = Alignment.CenterVertically) {
++                if (!isPrimary) Row(Modifier.fillMaxWidth().padding(horizontal = GaSpacing.md), verticalAlignment = Alignment.CenterVertically) {
+                     TextButton(onClick = { StackPlayback.setAlignments(mapOf(path to com.local.listentomusic.playback.StackAlignment(
+                         slot.offsetMs - 100L, 1.0, true, slot.alignmentScale, (slot.alignmentOffsetUs ?: slot.offsetMs * 1000.0) - 100_000))) }) { Text("−0.1s") }
+-                    Text(java.lang.String.format(java.util.Locale.ROOT, "%+.2fs", slot.offsetMs / 1000.0), Modifier.weight(1f), style = MaterialTheme.typography.labelMedium)
++                    Text(java.lang.String.format(java.util.Locale.ROOT, "%+.2fs", slot.offsetMs / 1000.0), Modifier.weight(1f), textAlign = TextAlign.Center, style = MaterialTheme.typography.labelMedium)
+                     TextButton(onClick = { StackPlayback.setAlignments(mapOf(path to com.local.listentomusic.playback.StackAlignment(
+                         slot.offsetMs + 100L, 1.0, true, slot.alignmentScale, (slot.alignmentOffsetUs ?: slot.offsetMs * 1000.0) + 100_000))) }) { Text("+0.1s") }
+                     TextButton(onClick = { StackPlayback.setOffset(path, 0L) }) { Text(uiText(language, "Reset alignment", "重設對齊")) }
+                 }
+-                Row(Modifier.fillMaxWidth().padding(horizontal = 18.dp), verticalAlignment = Alignment.CenterVertically) {
+-                    Text("${(slot.volume * 100).toInt()}%", style = MaterialTheme.typography.labelMedium)
++                Row(Modifier.fillMaxWidth().padding(horizontal = GaSpacing.md), verticalAlignment = Alignment.CenterVertically) {
++                    // Start the label where the TextButton labels above start (their built-in content inset),
++                    // so the three expanded rows share one visible left edge.
++                    Text(
++                        "${(slot.volume * 100).toInt()}%",
++                        Modifier.padding(start = ButtonDefaults.TextButtonContentPadding.calculateStartPadding(LocalLayoutDirection.current)),
++                        style = MaterialTheme.typography.labelMedium,
++                    )
+                     Slider(
+                         slot.volume,
+                         { StackPlayback.setVolume(path, it) },
+-- 
+2.43.0

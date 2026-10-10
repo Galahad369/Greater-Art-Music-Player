@@ -3,7 +3,7 @@
 This file describes the **current repository state only**. Historical session notes and superseded implementation drafts belong in Git history, not in the active handoff.
 
 **Project:** `greater-art/` in the repository checkout
-**Current source:** `1.21.27 (code 250)` — SOURCE_ONLY; distributed backing-track consensus and cached timing decisions
+**Current source:** `1.21.29 (code 252)` — SOURCE_ONLY; selection and document-grant interaction correctness
 **Current version:** `1.21.18 (code 241)`
 **Latest APK:** `releases/GreaterArt-1.21.18.apk` (`27,746,006 bytes`; SHA-256 `bba973d127a9dec1f03b29fca1a146707c9feee82497e9a65ab196870b696b3d`)
 **Application ID:** `com.local.listentomusic`
@@ -13,6 +13,73 @@ This file describes the **current repository state only**. Historical session no
 **Verification boundary:** Owner confirmed 1.21.18 verification on 9 October 2026. The existing 1.21.18 QA record below reports 249 JVM tests (0 failures), 0 lint errors, three passing API 36 ThumbnailPipelineTest regressions, Library/playback smoke, and no observed FATAL EXCEPTION or ANR in its bounded session; it records a 27,746,006-byte debug APK, package `com.local.listentomusic`, versionName `1.21.18`, versionCode `241`, ZIP alignment pass, personal debug signing certificate as above, and SHA-256 `bba973d127a9dec1f03b29fca1a146707c9feee82497e9a65ab196870b696b3d`. That earlier test took place on an uncommitted local source tree later incorporated into `2edb328a`; exact committed-source equivalence is owner-attested, not independently proven by that record alone. The separate release-finalization PR must pass the *unmodified* Version Consistency guard's SHA-256/manifest checks against the actual tracked APK before merge. Historical records remain below unchanged.
 
 ## Repository state
+
+### October 11 — main convergence
+
+- Reviewed and merged security-readiness documentation PR #163 with all five
+  repository gates green; plans remain drafts, not certification or release proof.
+- Local interaction, formatter, toggle, Nodes-language and Claude symmetry work is
+  submitted together as source 1.21.29/code252. Local build, 318 JVM tests, six
+  emulator UI tests, lint and repository security audit pass. Main integration
+  must additionally pass the exact PR-head GitHub checks; no APK promoted.
+
+### October 11 — Claude Stack symmetry integration (1.21.29/code252)
+
+- Selectively imported Claude eb17af5 from the attached mail patch. No ui/symmetry
+  remote exists after fetch; this is a local patch integration, not a GitHub merge.
+- Stack cards share GaSpacing.md gutters; empty and filled slots share the control
+  radius. Expanded rows share insets, volume labels account for button content
+  padding, and offset text is centred between minus/plus. Existing audit fixes remain.
+- Preserved the original patch under docs/imported-patches. Claude already consumed
+  1.21.28/code251, so the pending combined source advances to 1.21.29/code252.
+- Verification: Android build passes; 318 JVM tests (0 failures), lint 0 errors /
+  30 warnings / 2 hints, six API36 Compose regressions pass. Version guard passes.
+  Installed on A55-sized API36 emulator; loaded one local test track and inspected
+  filled/empty cards with matching edges and aligned labels. Screenshot:
+  app/build/reports/claude-stack-symmetry.png (generated QA output, not a release).
+  Expanded live offset rows still need physical-phone visual review. No release
+  APK promoted. Commit/push and main convergence are tracked above.
+
+### October 11 — formatter, toggle and Nodes-language follow-up (same local 1.21.29 batch)
+
+- Work is on codex/ui-interaction-audit-1.21.28, preserving the earlier uncommitted
+  fixes; source advanced to 1.21.29 during Claude patch integration.
+  No commit/push or APK promotion.
+- Shared locale-stable formatters replace duplicated size/time math. Long durations
+  use hours everywhere; unknown duration is --:--, elapsed zero is 0:00.
+- Settings, history and graph switches have labelled row-level Switch semantics;
+  child switch indicators do not have a second handler. Disabled state remains.
+- Library details and Stack picker supporting lines ellipsize instead of clipping.
+- Confirmed Nodes translation gaps fixed by passing the app language through the
+  graph, dialogs, toolbar and accessibility description; offline dictionaries
+  reused/extended. Permission and equalizer feedback uses app language too.
+- Final follow-up: 318 JVM tests pass, lint 0 errors / 30 warnings / 2 hints,
+  app and test APK builds pass. Six API36 A55-sized Compose regressions pass,
+  including one-action labelled toggles, disabled state and French Nodes states.
+  Version guard passes. Earlier unnamed translation findings were unavailable;
+  do not claim this is whole-app translation or actual TalkBack certification.
+
+### October 11 — UI audit interaction fixes (1.21.29)
+
+- Selection is explicitly scoped to the visible result set. Changing search,
+  playlist or result identities resets selection and its pending action dialogs;
+  count, Share, Stack and playlist actions cannot disagree about hidden selections.
+- Wallpaper choices require a confirmed persisted read grant before saving.
+  Removal and folder clearing confirm grant absence before clearing preferences;
+  shared references retain the grant. Failed provider operations show feedback.
+- Dimming accepts exact integer percentages (26 stays 26), localized Save/Cancel,
+  and disables invalid submission. Excluded-folder input validates inline.
+- M3U import/export reports read/write failure, no matches and completion.
+  Overlay permission is requested contextually rather than on every app launch.
+- Stack reports Paused explicitly. Cache feedback waits for both repositories;
+  failed file deletion propagates instead of falsely reporting success. New
+  feedback has translations for all six supported languages.
+- Final unchanged-tree gate passes: 314 JVM tests, lint/build app and test APKs.
+  Four DesignAccessibilityTest interactions pass on API36 A55-sized emulator,
+  including exact 26% entry and cancelling without changing its result. Version
+  guard and public repository audit pass. Real third-party document provider
+  failure/revocation is not certified by emulator/pure tests. No release promoted;
+  source remains local until requested integration.
 
 ### October 11 — repository synchronization / unverified artifact quarantine
 

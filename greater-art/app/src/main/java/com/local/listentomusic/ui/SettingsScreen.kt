@@ -1,8 +1,10 @@
 package com.local.listentomusic.ui
 
-import kotlin.math.ceil
+import kotlin.math.roundToInt
 
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.selection.toggleable
+import androidx.compose.ui.semantics.Role
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.size
@@ -68,6 +70,7 @@ import androidx.media3.common.Player
 import com.local.listentomusic.BuildConfig
 import com.local.listentomusic.PlaybackUiState
 import com.local.listentomusic.data.AppLanguage
+import kotlinx.coroutines.launch
 import com.local.listentomusic.data.AppFont
 import com.local.listentomusic.data.AppBackgroundMode
 import com.local.listentomusic.data.BackgroundScaleMode
@@ -131,7 +134,7 @@ fun SettingsScreen(
     onSharePlaylist: (LocalPlaylist) -> Unit,
     onSpeed: (Float) -> Unit,
     onPlaybackCycle: (Int, Boolean) -> Unit,
-    onClearThumbnailCache: () -> Unit,
+    onClearThumbnailCache: suspend () -> Unit,
     onRescan: () -> Unit,
     onReset: () -> Unit,
     onSeekOffset: (Long) -> Unit,
@@ -154,6 +157,9 @@ fun SettingsScreen(
 ) {
     val language = preferences.appLanguage
     var cacheCleared by remember { mutableStateOf(false) }
+    var cacheClearing by remember { mutableStateOf(false) }
+    var cacheFailed by remember { mutableStateOf(false) }
+    val cacheScope = androidx.compose.runtime.rememberCoroutineScope()
     var createOpen by remember { mutableStateOf(false) }
     var editPlaylist by remember { mutableStateOf<LocalPlaylist?>(null) }
     var deletePlaylist by remember { mutableStateOf<LocalPlaylist?>(null) }
@@ -353,6 +359,7 @@ fun SettingsScreen(
                             uiText(language, "Darkens custom media so titles and controls remain readable.", "調暗自訂媒體，讓標題與控制按鈕保持清晰。"),
                             preferences.backgroundDim,
                             onBackgroundDim,
+                            language,
                         )
                     }
                 }
@@ -480,13 +487,14 @@ fun SettingsScreen(
                     }
                     TextButton(onClick = onDuplicates, modifier = Modifier.padding(horizontal = GaSpacing.lg)) { Text(uiText(language, "Find duplicate files", "尋找重複檔案")) }
                     Text(uiText(language, "Excluded Download folders", "排除的 Download 資料夾"), Modifier.padding(horizontal = GaSpacing.lg, vertical = GaSpacing.xs), fontWeight = FontWeight.Bold)
-                    OutlinedTextField(folderDraft, { folderDraft = it }, label = { Text(uiText(language, "Folder / subfolder", "資料夾 / 子資料夾")) }, singleLine = true, modifier = Modifier.fillMaxWidth().padding(horizontal = GaSpacing.lg, vertical = GaSpacing.sm))
+                    val normalizedFolder = normalizeExcludedFolderInput(folderDraft)
+                    OutlinedTextField(folderDraft, { folderDraft = it }, label = { Text(uiText(language, "Folder / subfolder", "資料夾 / 子資料夾")) },
+                        isError = folderDraft.isNotBlank() && normalizedFolder == null,
+                        supportingText = { if (folderDraft.isNotBlank() && normalizedFolder == null) Text(uiText(language, "Use a relative folder path without . or .. or :", "請輸入相對資料夾路徑，不可包含 .、.. 或 :")) },
+                        singleLine = true, modifier = Modifier.fillMaxWidth().padding(horizontal = GaSpacing.lg, vertical = GaSpacing.sm))
                     TextButton(onClick = {
-                        val path = folderDraft.trim().replace('\\', '/').trim('/')
-                        if (path.isNotBlank() && path.split('/').none { it == ".." || it == "." } && ':' !in path) {
-                            onFolderExcluded(path, true); folderDraft = ""
-                        }
-                    }, enabled = folderDraft.isNotBlank(), modifier = Modifier.padding(horizontal = GaSpacing.lg)) { Text(uiText(language, "Exclude folder", "排除此資料夾")) }
+                        normalizedFolder?.let { onFolderExcluded(it, true); folderDraft = "" }
+                    }, enabled = normalizedFolder != null, modifier = Modifier.padding(horizontal = GaSpacing.lg)) { Text(uiText(language, "Exclude folder", "排除此資料夾")) }
                     preferences.excludedFolders.forEach { folder ->
                         SwitchSetting(folder, uiText(language, "Turn off to include again. Files remain untouched.", "關閉後重新加入，不會更改檔案。"), true, { onFolderExcluded(folder, false) })
                     }
@@ -557,9 +565,22 @@ fun SettingsScreen(
                     ActionCard(
                         Icons.Rounded.DeleteSweep,
                         uiText(language, "Thumbnail cache", "縮圖快取"),
-                        if (cacheCleared) uiText(language, "Cache cleared. Previews will be recreated when needed.", "快取已清除，預覽會在需要時重新建立。") else uiText(language, "Remove generated previews without touching media files.", "移除產生的預覽，不會動到媒體檔案。"),
+                        when {
+                            cacheClearing -> uiText(language, "Clearing cache…", "正在清除快取…")
+                            cacheFailed -> uiText(language, "Could not clear cache. Please retry.", "無法清除快取，請重試。")
+                            cacheCleared -> uiText(language, "Cache cleared. Previews will be recreated when needed.", "快取已清除，預覽會在需要時重新建立。")
+                            else -> uiText(language, "Remove generated previews without touching media files.", "移除產生的預覽，不會動到媒體檔案。")
+                        },
                         uiText(language, "Clear cache", "清除快取"),
-                    ) { onClearThumbnailCache(); cacheCleared = true }
+                    ) {
+                        if (!cacheClearing) cacheScope.launch {
+                            cacheClearing = true; cacheCleared = false; cacheFailed = false
+                            try { onClearThumbnailCache(); cacheCleared = true }
+                            catch (cancelled: kotlinx.coroutines.CancellationException) { throw cancelled }
+                            catch (_: Exception) { cacheFailed = true }
+                            finally { cacheClearing = false }
+                        }
+                    }
                     OutlinedButton(
                         onClick = { resetConfirmOpen = true },
                         modifier = Modifier.fillMaxWidth().padding(horizontal = GaSpacing.lg),
@@ -651,9 +672,10 @@ private fun CollapsibleSettingsSection(title: String, language: AppLanguage, con
 }
 
 @Composable
-private fun SwitchSetting(title: String, description: String, checked: Boolean, onChecked: (Boolean) -> Unit, enabled: Boolean = true) {
+internal fun SwitchSetting(title: String, description: String, checked: Boolean, onChecked: (Boolean) -> Unit, enabled: Boolean = true) {
     ListItem(
-        modifier = Modifier.inspectElement("SETTING_SWITCH", title),
+        modifier = Modifier.inspectElement("SETTING_SWITCH", title)
+            .toggleable(value = checked, enabled = enabled, role = Role.Switch, onValueChange = onChecked),
         headlineContent = { Text(title, fontWeight = FontWeight.SemiBold) },
         supportingContent = {
             Text(
@@ -662,7 +684,7 @@ private fun SwitchSetting(title: String, description: String, checked: Boolean, 
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         },
-        trailingContent = { Switch(checked, onChecked, enabled = enabled) },
+        trailingContent = { Switch(checked, onCheckedChange = null, enabled = enabled) },
         colors = ListItemDefaults.colors(containerColor = Color.Transparent),
     )
     GaDivider()
@@ -714,7 +736,7 @@ private fun <T> ChoiceSetting(title: String, description: String, values: List<T
 }
 
 @Composable
-internal fun DimSliderSetting(title: String, description: String, value: Float, onValue: (Float) -> Unit) {
+internal fun DimSliderSetting(title: String, description: String, value: Float, onValue: (Float) -> Unit, language: AppLanguage = AppLanguage.ENGLISH) {
     var inputOpen by remember { mutableStateOf(false) }
     var inputText by remember { mutableStateOf("") }
     Column(Modifier.fillMaxWidth().inspectElement("SETTING_SLIDER", title).padding(horizontal = GaSpacing.lg, vertical = GaSpacing.md)) {
@@ -724,13 +746,13 @@ internal fun DimSliderSetting(title: String, description: String, value: Float, 
                 Text(description, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
             TextButton(
-                onClick = { inputText = "${(value * 100).toInt()}"; inputOpen = true },
+                onClick = { inputText = "${(value * 100).roundToInt()}"; inputOpen = true },
                 modifier = Modifier.padding(start = GaSpacing.md)
                     .sizeIn(minWidth = com.local.listentomusic.ui.theme.GaControl.touchTarget,
                         minHeight = com.local.listentomusic.ui.theme.GaControl.touchTarget)
-                    .semantics { contentDescription = "$title: ${(value * 100).toInt()}%" },
+                    .semantics { contentDescription = "$title: ${(value * 100).roundToInt()}%" },
             ) { Text(
-                "${(value * 100).toInt()}%",
+                "${(value * 100).roundToInt()}%",
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.SemiBold,
                 color = MaterialTheme.colorScheme.secondary,
@@ -745,20 +767,20 @@ internal fun DimSliderSetting(title: String, description: String, value: Float, 
     }
     if (inputOpen) AlertDialog(
         onDismissRequest = { inputOpen = false },
-        title = { Text("Background dimming %") },
+        title = { Text("$title %") },
         text = { OutlinedTextField(
             value = inputText,
             onValueChange = { inputText = it.filter { c -> c.isDigit() }.take(3) },
-            label = { Text("Enter % (25-85)") },
+            label = { Text("25–85%") },
             singleLine = true,
             modifier = Modifier.fillMaxWidth(),
         ) },
-        confirmButton = { TextButton(onClick = {
-            val pct = inputText.toFloatOrNull() ?: value * 100
-            val rounded = kotlin.math.ceil(pct.coerceIn(25f, 85f) / 5f) * 5f / 100f
-            onValue(rounded.coerceIn(0.25f, 0.85f))
+        confirmButton = { TextButton(enabled = inputText.toIntOrNull() in 25..85, onClick = {
+            val pct = inputText.toIntOrNull() ?: return@TextButton
+            onValue(pct / 100f)
             inputOpen = false
-        }) { Text("Set") } },
+        }) { Text(uiText(language, "Save", "儲存")) } },
+        dismissButton = { TextButton(onClick = { inputOpen = false }) { Text(uiText(language, "Cancel", "取消")) } },
     )
     GaDivider()
 }
