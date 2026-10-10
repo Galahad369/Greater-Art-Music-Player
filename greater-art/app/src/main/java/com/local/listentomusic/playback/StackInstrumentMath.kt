@@ -135,8 +135,20 @@ private fun regionCorrelation(a: FloatArray, b: FloatArray, lag: Int): Double {
 internal fun stackMatchInstrumentRegion(
     primary: StackInstrumentRegion, companion: StackInstrumentRegion, checkActive: () -> Unit = {},
 ): StackInstrumentAnchor? {
+    val candidates = stackInstrumentCandidates(primary, companion, checkActive = checkActive)
+    val best = candidates.firstOrNull() ?: return null
+    if (candidates.drop(1).any { best.score - it.score < .06 }) return null
+    return best
+}
+
+/** Retain local alternatives for distributed agreement instead of discarding a repeated beat. */
+internal fun stackInstrumentCandidates(
+    primary: StackInstrumentRegion, companion: StackInstrumentRegion, minimumScore: Double = .50,
+    checkActive: () -> Unit = {},
+): List<StackInstrumentAnchor> {
+    require(minimumScore in .4..1.0)
     val limit = companion.percussion.size - primary.percussion.size
-    if (limit < 0) return null
+    if (limit < 0) return emptyList()
     fun score(lag: Int): Pair<Double, Int> {
         val percussive = regionCorrelation(primary.percussion, companion.percussion, lag)
         val bass = regionCorrelation(primary.bass, companion.bass, lag)
@@ -163,22 +175,69 @@ internal fun stackMatchInstrumentRegion(
         val (value, rotation) = score(lag)
         candidates += Triple(lag, value, rotation)
     }
-    val seed = candidates.maxByOrNull { it.second } ?: return null
-    var best = seed
-    for (lag in max(0, seed.first - 5)..min(limit, seed.first + 5)) {
-        checkActive()
-        val (value, rotation) = score(lag)
-        if (value > best.second) best = Triple(lag, value, rotation)
-    }
-    val alternative = candidates.filter { abs(it.first - best.first) > 25 }.maxOfOrNull { it.second } ?: -1.0
-    if (best.second < .50 || best.second - alternative < .06) return null
-    val left = if (best.first > 0) score(best.first - 1).first else -1.0
-    val right = if (best.first < limit) score(best.first + 1).first else -1.0
-    val refined = stackRefinePeak(doubleArrayOf(left, best.second, right), 1)
     val center = primary.percussion.size * STACK_INSTRUMENT_HOP_MS / 2.0
-    return StackInstrumentAnchor(primary.startMs + center,
-        companion.startMs + center + (best.first + refined) * STACK_INSTRUMENT_HOP_MS,
-        best.second, best.third)
+    val peaks = ArrayList<Triple<Int, Double, Int>>(4)
+    for (candidate in candidates.sortedByDescending { it.second }) {
+        if (candidate.second < minimumScore) break
+        if (peaks.any { abs(it.first - candidate.first) <= 25 }) continue
+        peaks += candidate
+        if (peaks.size == 4) break
+    }
+    return peaks.map { best ->
+        val left = candidates.getOrNull(best.first - 1)?.second ?: -1.0
+        val right = candidates.getOrNull(best.first + 1)?.second ?: -1.0
+        val refined = stackRefinePeak(doubleArrayOf(left, best.second, right), 1)
+        StackInstrumentAnchor(primary.startMs + center,
+            companion.startMs + center + (best.first + refined) * STACK_INSTRUMENT_HOP_MS,
+            best.second, best.third)
+    }
+}
+
+/** One vote per independent region. Competing whole-song maps still abstain. */
+internal fun stackFitInstrumentCandidates(regions: List<List<StackInstrumentAnchor>>, durationMs: Long): StackAlignment {
+    val groups = regions.filter { it.isNotEmpty() }
+    if (groups.size < 3) return StackAlignment(0, 0.0, false)
+    val models = ArrayList<StackAlignment>()
+    for (i in groups.indices) for (j in i + 1 until groups.size) {
+        for (a in groups[i]) for (b in groups[j]) {
+            val distance = b.primaryMs - a.primaryMs
+            if (distance < durationMs * .4) continue
+            val scale = (b.companionMs - a.companionMs) / distance
+            val offset = a.companionMs - scale * a.primaryMs
+            if (scale !in .985..1.015 || abs(offset) > 30_000) continue
+            val inliers = groups.mapNotNull { group ->
+                group.minByOrNull { abs(it.companionMs - (scale * it.primaryMs + offset)) }
+                    ?.takeIf { abs(it.companionMs - (scale * it.primaryMs + offset)) <= 25 }
+            }
+            // Reject scattered local hits; never let two regions manufacture a map.
+            if (inliers.size < 3 || inliers.size * 4 < groups.size * 3) continue
+            val fitted = stackFitInstrumentMap(inliers, durationMs)
+            if (fitted.confident) models += fitted
+        }
+    }
+    val best = models.maxWithOrNull(compareBy<StackAlignment> { it.anchorCount }.thenBy { it.correlation })
+        ?: return StackAlignment(0, 0.0, false)
+    val alternative = models.filter {
+        abs(it.offsetUs - best.offsetUs) > 500_000 ||
+            abs((it.timeScale - best.timeScale) * durationMs + (it.offsetUs - best.offsetUs) / 1000) > 500
+    }.maxWithOrNull(compareBy<StackAlignment> { it.anchorCount }.thenBy { it.correlation })
+    if (alternative != null && alternative.anchorCount >= best.anchorCount && best.correlation - alternative.correlation < .06)
+        return StackAlignment(0, best.correlation, false)
+    return best
+}
+
+/** A mono-only decision requires independent native-rate attack agreement, not a relaxed score. */
+internal fun stackValidateNativeCorrections(coarse: StackAlignment, corrections: List<Double>, mandatory: Boolean): StackAlignment {
+    val values = corrections.filter { it.isFinite() && abs(it) <= 12000 }.sorted()
+    val cluster = values.indices.map { first -> values.drop(first).takeWhile { it - values[first] <= 4000 } }
+        .maxByOrNull { it.size }.orEmpty()
+    if (!coarse.confident || cluster.size < 3 || cluster.size * 4 < values.size * 3)
+        return if (mandatory) StackAlignment(0, coarse.correlation, false) else coarse
+    val correction = if (cluster.size % 2 == 0) (cluster[cluster.size / 2 - 1] + cluster[cluster.size / 2]) / 2
+        else cluster[cluster.size / 2]
+    val offset = coarse.offsetUs + correction
+    if (abs(offset) > 30_000_000) return if (mandatory) StackAlignment(0, coarse.correlation, false) else coarse
+    return coarse.copy(offsetMs = (offset / 1000).roundToLong(), offsetUs = offset)
 }
 
 /** Robustly gated linear map: no unconstrained DTW, repeated loops, or fabricated correspondences. */

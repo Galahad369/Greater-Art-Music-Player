@@ -173,6 +173,8 @@ class StackSixTakeTest {
         assertTrue(cached.length() > 4)
         // Only generated cache data is corrupted, never the user's media.
         cached.writeBytes(byteArrayOf(0, 0, 1))
+        // Evict only derived pair decisions so this assertion actually exercises descriptor recovery.
+        File(context.cacheDir, "stack-align-v8-maps").listFiles().orEmpty().forEach { it.delete() }
         val recovered = aligner.estimate(files[0], files[1])
         assertEquals(first, recovered)
         assertTrue(cached.length() > 4)

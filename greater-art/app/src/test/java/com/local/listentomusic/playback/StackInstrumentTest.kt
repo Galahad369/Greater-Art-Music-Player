@@ -9,6 +9,68 @@ import kotlin.math.*
 import kotlin.random.Random
 
 class StackInstrumentTest {
+    @Test fun monoOnlyMatchNeedsIndependentNativeAttackConsensus() {
+        val coarse = StackAlignment(20, .7, true, 1.0, 20000.0, 4, 1.0)
+        assertFalse(stackValidateNativeCorrections(coarse, listOf(1000.0, 1100.0), true).confident)
+        assertFalse(stackValidateNativeCorrections(coarse, listOf(-9000.0, -8000.0, 8000.0, 9000.0), true).confident)
+        val refined = stackValidateNativeCorrections(coarse, listOf(1000.0, 1200.0, 1100.0, -9000.0), true)
+        assertTrue(refined.confident)
+        assertEquals(21100.0, refined.offsetUs, .001)
+        assertEquals(coarse, stackValidateNativeCorrections(coarse, emptyList(), false))
+    }
+
+    @Test fun pairDecisionCachePreservesFractionalOffsetsAndRejectsMalformedData() {
+        val value = StackAlignment(152, .8, true, .99998, 151820.0, 4, 1.7)
+        val bytes = ByteArrayOutputStream().also { buffer ->
+            DataOutputStream(buffer).use { writeStackAlignmentMap(it, value) }
+        }.toByteArray()
+        assertEquals(49, bytes.size)
+        assertEquals(value, readStackAlignmentMap(DataInputStream(ByteArrayInputStream(bytes)), bytes.size.toLong()))
+        for (bad in listOf(value.copy(offsetUs = Double.NaN), value.copy(timeScale = 2.0),
+            value.copy(anchorCount = 1), value.copy(residualMs = 80.0))) {
+            val damaged = ByteArrayOutputStream().also { buffer ->
+                DataOutputStream(buffer).use { writeStackAlignmentMap(it, bad) }
+            }.toByteArray()
+            try { readStackAlignmentMap(DataInputStream(ByteArrayInputStream(damaged)), damaged.size.toLong()); fail() }
+            catch (_: IllegalArgumentException) { }
+        }
+        try { readStackAlignmentMap(DataInputStream(ByteArrayInputStream(bytes)), 48); fail() }
+        catch (_: IllegalArgumentException) { }
+    }
+
+    @Test fun distributedAgreementResolvesLocalRepeatedBeatsWithoutUsingVocals() {
+        val starts = listOf(3000.0, 39000.0, 75000.0, 111000.0, 147000.0, 177000.0)
+        val groups = starts.mapIndexed { index, time ->
+            listOf(StackInstrumentAnchor(time, time * 1.001 + 710, .76, 0),
+                StackInstrumentAnchor(time, time + 3000 + index * 600, .79, 0))
+        }
+        val match = stackFitInstrumentCandidates(groups, 180000)
+        assertTrue(match.confident)
+        assertEquals(6, match.anchorCount)
+        assertEquals(710000.0, match.offsetUs, .001)
+        assertEquals(1.001, match.timeScale, 1e-9)
+    }
+
+    @Test fun equallyPlausibleWholeSongRepeatMapsStillAbstain() {
+        val groups = listOf(3000.0, 63000.0, 123000.0, 177000.0).map { time ->
+            listOf(StackInstrumentAnchor(time, time + 700, .8, 0),
+                StackInstrumentAnchor(time, time + 2700, .79, 0))
+        }
+        assertFalse(stackFitInstrumentCandidates(groups, 180000).confident)
+    }
+
+    @Test fun distributedConsensusCanDiscardOneBadIntroButNotMostlyUnrelatedWindows() {
+        val groups = listOf(3000.0, 39000.0, 75000.0, 111000.0, 147000.0, 177000.0).map { time ->
+            listOf(StackInstrumentAnchor(time, time + 700, .8, 0))
+        }
+        assertTrue(stackFitInstrumentCandidates(groups.mapIndexed { i, g ->
+            if (i == 0) listOf(g[0].copy(companionMs = 9500.0)) else g
+        }, 180000).confident)
+        assertFalse(stackFitInstrumentCandidates(groups.mapIndexed { i, g ->
+            if (i < 3) listOf(g[0].copy(companionMs = g[0].companionMs + i * 7000 + 3000)) else g
+        }, 180000).confident)
+    }
+
     private fun region(n: Int = 300, start: Long = 0, rotation: Int = 0, shift: Int = 0): StackInstrumentRegion {
         val random = Random(713)
         val beats = FloatArray(1800) { random.nextFloat().pow(4) }

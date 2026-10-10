@@ -34,6 +34,14 @@ class DesignSystemTest {
         assertTrue(contrast(DarkColors.onSurfaceVariant, DarkColors.surface) >= 4.5f)
     }
 
+    @Test fun inspectorTextAndActionsRemainReadableOnBothFixedSurfaces() {
+        for (surface in listOf(GaInspectorPalette.surface, GaInspectorPalette.raised)) {
+            for (foreground in listOf(GaInspectorPalette.foreground, GaInspectorPalette.accent, GaInspectorPalette.error)) {
+                assertTrue("Inspector text contrast", contrast(foreground, surface) >= 4.5f)
+            }
+        }
+    }
+
     private fun contrast(foreground: Color, background: Color): Float {
         val lighter = maxOf(foreground.luminance(), background.luminance())
         val darker = minOf(foreground.luminance(), background.luminance())

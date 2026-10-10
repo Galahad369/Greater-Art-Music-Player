@@ -3,7 +3,7 @@
 This file describes the **current repository state only**. Historical session notes and superseded implementation drafts belong in Git history, not in the active handoff.
 
 **Project:** `greater-art/` in the repository checkout
-**Current source:** `1.21.26 (code 249)` — SOURCE_ONLY; reviewed branch integration and background/settings repairs
+**Current source:** `1.21.27 (code 250)` — SOURCE_ONLY; distributed backing-track consensus and cached timing decisions
 **Current version:** `1.21.18 (code 241)`
 **Latest APK:** `releases/GreaterArt-1.21.18.apk` (`27,746,006 bytes`; SHA-256 `bba973d127a9dec1f03b29fca1a146707c9feee82497e9a65ab196870b696b3d`)
 **Application ID:** `com.local.listentomusic`
@@ -13,6 +13,76 @@ This file describes the **current repository state only**. Historical session no
 **Verification boundary:** Owner confirmed 1.21.18 verification on 9 October 2026. The existing 1.21.18 QA record below reports 249 JVM tests (0 failures), 0 lint errors, three passing API 36 ThumbnailPipelineTest regressions, Library/playback smoke, and no observed FATAL EXCEPTION or ANR in its bounded session; it records a 27,746,006-byte debug APK, package `com.local.listentomusic`, versionName `1.21.18`, versionCode `241`, ZIP alignment pass, personal debug signing certificate as above, and SHA-256 `bba973d127a9dec1f03b29fca1a146707c9feee82497e9a65ab196870b696b3d`. That earlier test took place on an uncommitted local source tree later incorporated into `2edb328a`; exact committed-source equivalence is owner-attested, not independently proven by that record alone. The separate release-finalization PR must pass the *unmodified* Version Consistency guard's SHA-256/manifest checks against the actual tracked APK before merge. Historical records remain below unchanged.
 
 ## Repository state
+
+### October 11 — repository synchronization / unverified artifact quarantine
+
+- Remote has only main and no open PRs; local implementation commit a28c7aa
+  already contains the reviewed alignment and accessibility work. No branch work
+  was discarded and no source history was rewritten.
+- The unverified GreaterArt-1.21.26.apk was accidentally tracked beside verified
+  releases. Preserved its exact bytes outside this repository in the sibling
+  Greater-Art-Unverified-Archive/GreaterArt-1.21.26.apk directory. It is not a
+  verified release and is not promoted in release metadata. Git history retains
+  the original artifact too. Current source remains 1.21.27/code250 SOURCE_ONLY;
+  latest verified release remains 1.21.18/code241.
+- Prevention: never stage another agent's APK merely because it exists. Verify
+  exact source identity, manifest, device checks and hash before release tracking.
+
+### October 10 — focused design/accessibility audit (same uncommitted 1.21.27 source)
+
+- Decorative artwork/placeholder/launcher images remain unlabeled intentionally;
+  visible media labels already identify them. The speed needle no longer adds a
+  duplicate hardcoded English announcement beside its localized owning control.
+- Parody typography now uses shared theme styles (including the selected font).
+  Repeated spacing in the changed readout/parody components uses GaSpacing;
+  artwork dimensions are not blindly converted into spacing or touch targets.
+- The Settings dim-percentage editor is a real 48dp-minimum TextButton, not a
+  tiny clickable Text. DEV has an explicit 48dp target. Icon artwork stays small
+  inside the existing accessible button footprint.
+- Inspector colors are centralized and its dialog owns a matching dark theme,
+  so light-theme button defaults cannot become unreadable on its dark panel.
+  Decorative video/disc/parody colors retain their intentional visual role.
+- Added measured Compose target/interaction checks at normal and 2x font scale,
+  plus fixed inspector palette contrast tests. Final local verification: 306 JVM
+  tests pass; lint has 0 errors, 30 warnings and 2 hints; app and test APK builds
+  pass. All three DesignAccessibilityTest checks pass on the API36 A55-sized
+  emulator: percentage editor at 2x font scale, DEV target/picker interaction,
+  and localized speed semantics/48dp action bounds. These scoped checks are not
+  a whole-app accessibility or real-device TalkBack certification.
+  Alignment work and user-owned release artifacts are preserved; no push/release.
+
+### October 10 — backing-track alignment repair (1.21.27)
+
+- Actual baseline on API36 rejected the tested first pair in each of Bitter Choco,
+  Baka, Gambling and 孤独毒毒. In the last family, five regions agreed near +20 ms
+  but an incompatible outro spoiled the whole fit. Local ambiguous rhythms were
+  discarded before distributed evidence could resolve them.
+- v8 retains up to four strong alternatives per region, votes once per region,
+  requires three distributed anchors and 75% support among populated regions,
+  and rejects competing whole-song maps. Confident side/mono maps must agree;
+  uncertain side evidence can only be replaced by a strong four-anchor mono map
+  plus three agreeing native-rate attacks. Rotation/residual/scale gates stay.
+- v7 descriptor cache remains valid; separate atomic v8 pair maps reuse both
+  accepted and abstained decisions. Identity includes both source stats, clips,
+  durations and algorithm version; bounded to 96 entries, corrupt data recomputes.
+- No stems are modified, no production network/permission/dependency added, no playback
+  quality reduced. HPSS/side weighting is vocal-resistant, not perfect source
+  separation. Test-only app-UID capture now measures actual emulator audio;
+  production has no recording permission or component.
+- Actual six-player probe, calibrated against a single mixed file: median spread
+  72.92 ms / p95 111.58 ms over 60 bursts. Calibration spread rounds to zero.
+  This confirms independent-output drift; file offsets alone do not fix it.
+  Do not claim sample accuracy or tighten position thresholds as a substitute.
+- Latest six-take 孤独毒毒 run: four companions matched; ふぉるて still abstains.
+  Decision reloads are 31–48 ms. Baka/Ado remains uncertain. Real live/alternate
+  arrangements may not share one affine map. Final gate and prototype comparison
+  have completed: default build/test APKs, 305 JVM tests, lint 0 errors / 30 warnings /
+  2 hints. The enabled shared-clock probe has zero rounded output spread over 44
+  bursts / 22 seconds, but remains test-only: production tempo/video adoption is
+  NOT complete. Details: `docs/STACK_BACKING_ALIGNMENT_1.21.27.md`.
+  Unchanged version guard is blocked by the pre-existing untracked 1.21.26 APK;
+  it is preserved, not silently promoted. Settings work is deferred by the user.
+  No release is overwritten or promoted by this task.
 
 ### October 10 — reviewed integration and background/settings repair
 

@@ -16,6 +16,11 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.sizeIn
+import androidx.compose.foundation.layout.wrapContentHeight
+import com.local.listentomusic.ui.theme.GaControl
+import com.local.listentomusic.ui.theme.GaInspectorPalette
+import com.local.listentomusic.ui.theme.GaInspectorTheme
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.lazy.LazyColumn
@@ -73,7 +78,7 @@ internal fun DeveloperDiagnostics(
     var open by remember { mutableStateOf(false) }
     var showRegions by remember { mutableStateOf(false) }
     var showAdvanced by remember { mutableStateOf(false) }
-    val accent = if (warning) Color(0xFFFF5C68) else Color(0xFF75EBD4)
+    val accent = if (warning) GaInspectorPalette.error else GaInspectorPalette.accent
     val summary = remember(report) {
         report.lineSequence().filter {
             it.startsWith("screen=") || it.startsWith("playing=") ||
@@ -116,6 +121,7 @@ internal fun DeveloperDiagnostics(
                 .padding(start = if (!systemOverlay && badgeAlignment == Alignment.TopStart) 18.dp else 0.dp,
                     end = if (!systemOverlay && badgeAlignment == Alignment.TopEnd) 18.dp else 0.dp,
                     top = if (systemOverlay) 2.dp else 16.dp)
+                .sizeIn(minWidth = GaControl.touchTarget, minHeight = GaControl.touchTarget)
                 .inspectElement("DEVELOPER_BUTTON", "Opens local diagnostics and element inspector"),
             shape = RoundedCornerShape(7.dp),
             color = Color.Black.copy(alpha = 0.88f),
@@ -123,7 +129,8 @@ internal fun DeveloperDiagnostics(
         ) {
             Text(
                 if (warning) "DEV!" else "DEV",
-                Modifier.padding(horizontal = 9.dp, vertical = 5.dp),
+                Modifier.padding(horizontal = 9.dp, vertical = 5.dp).wrapContentHeight(Alignment.CenterVertically),
+                textAlign = androidx.compose.ui.text.style.TextAlign.Center,
                 color = accent,
                 fontFamily = FontFamily.Monospace,
                 fontWeight = FontWeight.Bold,
@@ -140,7 +147,7 @@ internal fun DeveloperDiagnostics(
         ) {
             Surface(
                 modifier = Modifier.fillMaxWidth().padding(16.dp).widthIn(max = 420.dp),
-                color = Color(0xFF080C0D),
+                color = GaInspectorPalette.surface,
                 contentColor = Color.White,
                 shape = RoundedCornerShape(18.dp),
             ) {
@@ -164,7 +171,7 @@ internal fun DeveloperDiagnostics(
                     }
                     Text(if (overlayAllowed) "Floating window permission: enabled"
                         else "Floating window permission: OFF — Mini and Now Playing cannot open",
-                        color = if (overlayAllowed) accent else Color(0xFFFF5C68),
+                        color = if (overlayAllowed) accent else GaInspectorPalette.error,
                         style = MaterialTheme.typography.bodySmall)
                     if (!overlayAllowed) TextButton(onClick = {
                         runCatching { context.startActivity(Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
@@ -192,7 +199,7 @@ internal fun DeveloperDiagnostics(
                         }
                         Surface(
                             modifier = Modifier.fillMaxWidth(),
-                            color = Color(0xFF141A1C),
+                            color = GaInspectorPalette.raised,
                             contentColor = Color.White,
                             border = BorderStroke(1.dp, Color.White.copy(alpha = 0.24f)),
                             shape = RoundedCornerShape(12.dp),
@@ -238,7 +245,7 @@ private fun DiagnosticsDialog(
     if (systemOverlay) {
         androidx.activity.compose.BackHandler { onDismissRequest() }
         Box(Modifier.fillMaxSize().background(Color.Black.copy(alpha = .4f)), contentAlignment = Alignment.Center) {
-            content()
+            GaInspectorTheme(content)
         }
-    } else Dialog(onDismissRequest = onDismissRequest, properties = properties, content = content)
+    } else Dialog(onDismissRequest = onDismissRequest, properties = properties) { GaInspectorTheme(content) }
 }

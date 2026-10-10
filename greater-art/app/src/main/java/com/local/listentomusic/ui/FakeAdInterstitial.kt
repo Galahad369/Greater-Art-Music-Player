@@ -15,7 +15,7 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
+import com.local.listentomusic.ui.theme.GaSpacing
 import kotlinx.coroutines.delay
 import kotlin.random.Random
 
@@ -30,14 +30,14 @@ fun FakeAdInterstitial(onSkip: () -> Unit, onOpenLink: () -> Unit) {
     val wobble by motion.animateFloat(-3f, 3f, infiniteRepeatable(tween(240), RepeatMode.Reverse), label = "wobble")
     val pulse by motion.animateFloat(0.97f, 1.04f, infiniteRepeatable(tween(600), RepeatMode.Reverse), label = "pulse")
     Box(Modifier.fillMaxSize().background(Brush.linearGradient(listOf(Color(0xFFFF00B8), Color(0xFF592EFF), Color(0xFF00FFCC)))).safeDrawingPadding()) {
-        Column(Modifier.fillMaxSize().padding(24.dp), verticalArrangement = Arrangement.Center, horizontalAlignment = Alignment.CenterHorizontally) {
-            Text("★ PREMIUM MEGA AI ★", color = Color.Yellow, fontWeight = FontWeight.Black, fontSize = 26.sp,
+        Column(Modifier.fillMaxSize().padding(GaSpacing.xl), verticalArrangement = Arrangement.Center, horizontalAlignment = Alignment.CenterHorizontally) {
+            Text("★ PREMIUM MEGA AI ★", color = Color.Yellow, fontWeight = FontWeight.Black, style = MaterialTheme.typography.headlineMedium,
                 modifier = Modifier.graphicsLayer { rotationZ = wobble })
-            Spacer(Modifier.height(24.dp))
-            Text("YOUR MUSIC\nNEEDS MORE\nBUTTONS!!!", color = Color.White, fontSize = 38.sp, lineHeight = 42.sp,
+            Spacer(Modifier.height(GaSpacing.xl))
+            Text("YOUR MUSIC\nNEEDS MORE\nBUTTONS!!!", color = Color.White, style = MaterialTheme.typography.displayMedium,
                 fontWeight = FontWeight.Black, textAlign = TextAlign.Center,
                 modifier = Modifier.graphicsLayer { scaleX = pulse; scaleY = pulse })
-            Spacer(Modifier.height(24.dp))
+            Spacer(Modifier.height(GaSpacing.xl))
             listOf("DOWNLOAD TO PLAY THIS NOW!", "UNLOCK 9000% MORE SOUND", "YES! GIVE ME ABSOLUTELY NOTHING").forEachIndexed { index, label ->
                 Button(onClick = onOpenLink, colors = ButtonDefaults.buttonColors(containerColor = if (index % 2 == 0) Color.Yellow else Color.Cyan, contentColor = Color.Black),
                     shape = RoundedCornerShape(8.dp), modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp).graphicsLayer { rotationZ = if (index % 2 == 0) wobble else -wobble }) {

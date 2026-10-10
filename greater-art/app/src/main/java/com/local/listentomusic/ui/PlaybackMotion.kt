@@ -17,13 +17,12 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.*
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.semantics.contentDescription
-import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.local.listentomusic.ui.theme.GaMotion
+import com.local.listentomusic.ui.theme.GaSpacing
 import kotlin.math.*
 
 @Composable
@@ -82,7 +81,9 @@ internal fun AnimatedWaveformBars(peaks: FloatArray?, fraction: Float, active: C
 @Composable
 internal fun SpeedDialIcon(speed: Float, tint: Color) {
     val angle = animateFloatAsState(150f + ((speed - .25f) / 2.75f).coerceIn(0f,1f) * 240f, tween(GaMotion.standardMs), label = "speed-needle")
-    Canvas(Modifier.size(27.dp).semantics { contentDescription = "Playback speed" }) {
+    // The owning button supplies its localized label and current speed. A second
+    // English label on this decorative needle would be duplicate TalkBack speech.
+    Canvas(Modifier.size(27.dp)) {
         val c = Offset(size.width/2, size.height*.55f)
         val r = size.width*.39f
         drawArc(tint.copy(alpha=.5f), 150f, 240f, false, Offset(c.x-r,c.y-r), androidx.compose.ui.geometry.Size(r*2,r*2), style=Stroke(1.6.dp.toPx(), cap=StrokeCap.Round))
@@ -98,10 +99,10 @@ internal fun ScrubReadout(artwork: Bitmap?, time: String, seeking: Boolean) {
     val lift = animateFloatAsState(if (seeking) 1f else 0f, tween(GaMotion.quickMs), label="scrub-peel")
     Row(Modifier.height(32.dp).graphicsLayer { rotationX = (1f-lift.value)*8f; translationY=(1f-lift.value)*2f }
         .clip(RoundedCornerShape(8.dp)).background(if (seeking) MaterialTheme.colorScheme.surfaceVariant else Color.Transparent)
-        .padding(horizontal=6.dp), verticalAlignment=Alignment.CenterVertically) {
+        .padding(horizontal=GaSpacing.sm), verticalAlignment=Alignment.CenterVertically) {
         if (seeking && artwork != null) {
             Image(artwork.asImageBitmap(), null, Modifier.size(26.dp).clip(RoundedCornerShape(5.dp)), contentScale=ContentScale.Crop)
-            Spacer(Modifier.width(6.dp))
+            Spacer(Modifier.width(GaSpacing.sm))
         }
         Text(time, color=MaterialTheme.colorScheme.secondary, style=MaterialTheme.typography.labelLarge)
     }
