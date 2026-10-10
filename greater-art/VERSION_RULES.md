@@ -7,7 +7,7 @@ This file is the authoritative version policy for Greater Art. If any handoff no
 ## Machine-checkable state
 
 
-Current source: **1.21.23 (code 246)**
+Current source: **1.21.24 (code 247)**
 Current release state: **SOURCE_ONLY**
 Latest verified APK: **1.21.18 (code 241)**
 Allowed series transition: **1.14.15 -> 1.15.1**
@@ -277,3 +277,5 @@ Previous baseline: 1.13.26 (code 115).
 - 1.21.22 (code 245) — integrate Stack instrument-first v7 with current main's screen-awake/fullscreen-lock/Void OLED changes and owner-confirmed 1.21.18 metadata. Parallel 1.21.20 histories are retained; main's committed 1.21.21 is accounted for by the exact consumed transition. SOURCE_ONLY; no release artifact produced.
 
 - 1.21.23 (code 246) — default-off shared-clock PCM prototype for PR #153: bounded native decoder queues, stereo float AudioTrack, sample-frame mapping/windowed-sinc conversion, gain/mute/solo, deterministic transport and exclusive-host/focus/noisy safeguards. Debug instrumentation entry only; unsupported tempo maps/precision/channel formats fall back before output. Production runtime unchanged. SOURCE_ONLY.
+
+- 1.21.24 (code 247) — PR #153 debug-only PCM mixer stereo-hot-path optimization: compute the same 32-tap windowed-sinc weights once per active voice/frame for both channels; retain native rate/precision, positive/negative offsets, gain/mute/solo and coherent headroom; add scalar stereo reference and solo regression tests. SOURCE_ONLY; production route unchanged, real-time cold eight-voice output deadline and physical tests still pending.

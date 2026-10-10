@@ -46,20 +46,47 @@ internal inline fun mixPcmBlock(frame: Long, outputRate: Int, voices: List<PcmVo
     frames: Int = PCM_BLOCK_FRAMES, crossinline sample: (Int, Long, Int) -> Float): FloatArray {
     require(frame >= 0 && outputRate in 8000..192000 && voices.size in 1..8 && frames in 1..PCM_BLOCK_FRAMES)
     val solo = voices.any { it.solo && !it.muted }
-    val weights = voices.map { if (it.muted || solo && !it.solo) 0f else it.gain }
-    // Worst-case coherent sum stays within float full scale, including identical tracks.
-    val headroom = max(1f, weights.sum())
-    return FloatArray(frames * 2) { i ->
-        val outputFrame = frame + i / 2
-        val channel = i % 2
-        var sum = 0.0
-        voices.forEachIndexed { voiceIndex, voice ->
-            if (weights[voiceIndex] > 0f) {
-                val source = pcmSourceFrame(outputFrame, outputRate, voice)
-                // Negative mapping means this take has not entered, not wrap/clamp to frame zero.
-                if (source >= 0) sum += pcmInterpolated(source) { sample(voiceIndex, it, channel) } * weights[voiceIndex]
+    val gains = FloatArray(voices.size) { i ->
+        val voice = voices[i]
+        if (voice.muted || (solo && !voice.solo)) 0f else voice.gain
+    }
+    val headroom = max(1f, gains.sum())
+    val mixed = FloatArray(frames * 2)
+    for (frameIndex in 0 until frames) {
+        val outputFrame = frame + frameIndex
+        var left = 0.0
+        var right = 0.0
+        for (voiceIndex in voices.indices) {
+            val gain = gains[voiceIndex]
+            if (gain <= 0f) continue
+            val position = pcmSourceFrame(outputFrame, outputRate, voices[voiceIndex])
+            if (position < 0) continue  // Negative-offset delayed entry, not a clamped read.
+            val center = floor(position).toLong()
+            if (position - center < 1e-9) {
+                left += sample(voiceIndex, center, 0) * gain
+                right += sample(voiceIndex, center, 1) * gain
+            } else {
+                // The stereo channels share the same 32-tap windowed-sinc kernel;
+                // avoid computing trigonometric weights twice per voice/output frame.
+                var leftSum = 0.0
+                var rightSum = 0.0
+                var weightSum = 0.0
+                for (index in center - PCM_SINC_RADIUS + 1..center + PCM_SINC_RADIUS) {
+                    val x = position - index
+                    val sinc = if (abs(x) < 1e-12) 1.0 else sin(PI * x) / (PI * x)
+                    val weight = sinc * (.5 + .5 * cos(PI * x / PCM_SINC_RADIUS))
+                    leftSum += sample(voiceIndex, index, 0) * weight
+                    rightSum += sample(voiceIndex, index, 1) * weight
+                    weightSum += weight
+                }
+                if (abs(weightSum) > 1e-9) {
+                    left += (leftSum / weightSum).toFloat() * gain
+                    right += (rightSum / weightSum).toFloat() * gain
+                }
             }
         }
-        (sum / headroom).coerceIn(-1.0, 1.0).toFloat()
+        mixed[frameIndex * 2] = (left / headroom).coerceIn(-1.0, 1.0).toFloat()
+        mixed[frameIndex * 2 + 1] = (right / headroom).coerceIn(-1.0, 1.0).toFloat()
     }
+    return mixed
 }

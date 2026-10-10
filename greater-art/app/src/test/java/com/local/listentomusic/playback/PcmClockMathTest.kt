@@ -51,6 +51,35 @@ class PcmClockMathTest {
         assertTrue("resampling RMS error $rms", rms < .001)
         println("shared-clock 44.1/48k sinusoid RMS error=$rms; relative impulse scheduling error=0 frames")
     }
+    @Test fun stereoSincMixMatchesScalarReferenceAtFractionalOffsets() {
+        val voices = listOf(PcmVoice(44100, 1234.5, gain = .6f),
+            PcmVoice(48000, -120.25, gain = .8f),
+            PcmVoice(48000, 900.75, gain = .3f, muted = true))
+        fun pcm(i: Int, at: Long, channel: Int): Float =
+            (sin(at * .013 + i * .7 + channel * .3) * .35).toFloat()
+        val mixed = mixPcmBlock(300, 48000, voices, 64, ::pcm)
+        for (frame in 0 until 64) for (channel in 0..1) {
+            var sum = 0.0
+            for (i in 0..1) {
+                val source = pcmSourceFrame(300L + frame, 48000, voices[i])
+                if (source >= 0) sum += pcmInterpolated(source) { at -> pcm(i, at, channel) } * voices[i].gain
+            }
+            assertEquals("frame=$frame channel=$channel", (sum / 1.4).toFloat(),
+                mixed[frame * 2 + channel], .000002f)
+        }
+    }
+    @Test fun singleSoloVoiceDoesNotReadOtherVoices() {
+        val voices = listOf(PcmVoice(48000, gain = .3f),
+            PcmVoice(48000, solo = true), PcmVoice(48000, muted = true))
+        var otherReads = 0
+        val output = mixPcmBlock(0, 48000, voices, 32) { i, _, channel ->
+            if (i != 1) otherReads++
+            if (channel == 0) .4f else -.2f
+        }
+        assertEquals(0, otherReads)
+        assertEquals(.4f, output[0], .000001f)
+        assertEquals(-.2f, output[1], .000001f)
+    }
     @Test fun invalidInputsAndTrackLimitsAreRejected() {
         try { PcmVoice(48000, gain = Float.NaN); fail() } catch (_: IllegalArgumentException) { }
         try { mixPcmBlock(0, 48000, List(9) { PcmVoice(48000) }) { _, _, _ -> 0f }; fail() }
