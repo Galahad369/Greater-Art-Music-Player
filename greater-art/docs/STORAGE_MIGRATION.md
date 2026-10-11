@@ -1,6 +1,107 @@
-# Storage migration — stage A
+# Storage migration — stages A and B
 
-Source target: 1.21.30 / 253. Not a verified release or permission cutover.
+Current source target: 1.21.31 / 254. Not a verified release or permission cutover.
+
+## Stage B — real metadata discovery, controlled inspection
+
+`ScopedMediaDiscovery` produces actual `MediaFile`/typed-reference records.
+`AndroidScopedDiscoveryAccess` queries the authorized Audio and Video MediaStore
+collections under Download and enumerates only persistently granted SAF trees.
+The Settings inspection action invokes this implementation and shows actual
+media names. It is not a production Library storage-mode switch.
+
+- No provider URI is converted to a filesystem path. On API26–28, DATA is only a
+  Download query predicate, never a returned playable location or ID.
+- Pending items are excluded on API29+, trashed items on API30+. MediaStore
+  visibility depends on current Android grants; an empty index does not prove
+  Download is empty. No READ_MEDIA permission is added or requested here.
+- SAF entries use authority + document ID as stable identity and keep their tree
+  URI as the readable location. Renaming preserves identity while the provider
+  keeps its document ID. Provider reinstallation/ID reassignment is not promised
+  to preserve identity forever.
+- Same document IDs from overlapping grants are deduplicated. Same-name distinct
+  documents are retained. Cross-provider byte-equivalence deduplication is not
+  attempted; doing so by filename/size would risk hiding different user files.
+- Every scan is a new snapshot. Failed or revoked roots do not reuse cached
+  records. A source failure is reported while other authorized sources can remain.
+- Cancellation reaches ContentResolver queries through CancellationSignal;
+  cursors close on completion, failure or cancellation. Media bytes are not
+  opened/decoded merely to list them. URI readability must be checked again by
+  the future playback/operation resolver; metadata visibility is not a guarantee
+  that a later open succeeds.
+- Document, folder and depth limits produce explicit partial-result warnings,
+  rather than silently presenting a truncated library as complete.
+
+### Stage B verification procedure
+
+Run JVM tests plus lint/build first. On the API36 A55-sized emulator, install
+both debug APKs and run `ScopedDiscoveryAndroidTest`. Its MediaStore fixture is a
+generated silent WAV in `Download/GreaterArtScannerTest`, with exact-URI cleanup.
+The tests exercise pending exclusion, stable rescans, removal, ungranted trees,
+partial audio/video denial, projection/selection and provider cancellation.
+
+For actual SAF grant evidence, use the system folder picker to select **only**
+`Download/GreaterArtScannerTest`, then invoke instrumentation with:
+
+```text
+-e safTree content://com.android.externalstorage.documents/tree/primary%3ADownload%2FGreaterArtScannerTest
+-e class com.local.listentomusic.data.ScopedDiscoveryAndroidTest
+```
+
+The owned-fixture test additionally indexes that folder, opens the generated
+WAV through its granted document URI, checks stable identity/removal, releases
+the test grant and verifies denial on rescan. No arbitrary user folder is
+accepted by this optional test path. Without this argument, these SAF-success
+assertions do not run; do not claim real granted-SAF coverage from the default
+four-test result alone. Temporarily disable All Files Access for this test and
+restore the emulator's previous AppOps mode afterward.
+
+The production filesystem scanner, Library queue and Stack remain unchanged.
+Stage C must adapt PCM extraction, artwork, waveforms, metadata, lyrics/cue and
+sharing/deletion before these entries become playable Library items. All Files
+Access remains declared; this PR has **not** reduced the requested permission.
+
+Android references: [shared media](https://developer.android.com/training/data-storage/shared/media),
+[SAF](https://developer.android.com/training/data-storage/shared/documents-files),
+[cancellable queries](https://developer.android.com/reference/android/content/ContentResolver).
+SAF cannot select the Download root on Android11+, though eligible child folders
+can be selected by the system picker. Do not advertise a grant as full Download
+coverage.
+
+### Stage B executed evidence — 2026-10-11
+
+- Source 1.21.31/code254 on `codex/1.21.31-scoped-scanner`, based on `417f440`.
+- Final `testDebugUnitTest lintDebug assembleDebug assembleDebugAndroidTest`: PASS.
+  337 JVM tests, zero failures/errors (14 discovery regressions). Lint zero errors,
+  32 warnings and two hints. No permission, decoder or media-quality configuration
+  changed. Initial Android fixture compile error was fixed before final checks.
+- A55-sized API36 emulator (`emulator-5554`), All Files Access AppOps temporarily
+  `ignore`, restored to prior `allow` after each test run. Default four Android
+  scanner tests PASS on the final build. The preceding build also passed with
+  the real `safTree` argument, including grant-backed discovery/open/rescan/delete/
+  revocation assertions. The final change adds a snapshot-wide grant recheck,
+  covered by the fourteenth JVM regression; real-tree assertions were not rerun
+  after that final change.
+- System picker refused Download root as expected. It granted only the generated
+  `Download/GreaterArtScannerTest` child. The test released that grant and deleted
+  only its exact generated WAV URI. No personal media was uploaded or deleted.
+- Test APK: `app/build/outputs/apk/debug/app-debug.apk`, 27,976,832 bytes;
+  SHA-256 `4b15bbe88ce4db378a81ea0bd7a88d945d073ebdeda358eab3dba543b55ce401`.
+  This is a debug verification artifact, not a promoted release.
+- Version guard and public-repository audit PASS on the Stage B working tree.
+- Production URI Library/Stack/peripheral parity, API26–28 device coverage and
+  physical-phone acceptance: NOT RUN. Latest recorded verified APK stays 1.21.18.
+
+| MASVS subset | Method / expected | Actual | Remaining gate |
+| --- | --- | --- | --- |
+| STORAGE-1 / grant-bound discovery | JVM revoked-root tests + actual SAF grant/revocation, no broad access | PASS for metadata discovery subset | #148: production URI IO parity, not full control compliance |
+| PLATFORM-1 / provider cancellation and denial | Real Android query path, missing grant / partially denied collections / cancellation | Four Android tests PASS; preceding build also passed real-tree assertions | Cross-app Intent/service attack tests remain NOT RUN |
+| Local privacy / fixture handling | Generated owned file, exact cleanup, no personal media export | PASS within this bounded test | Production sharing/delete/privacy acceptance remains open |
+
+Retest after Stage C connects discovered entries to playback. A typed URI and
+successful scan must never substitute for a fresh permission/readability check.
+
+## Stage A — identity foundation (1.21.30 / 253)
 
 `MediaSource` separates an absolute Android file path from a content URI.
 `MediaReference` separates a logical item ID (including cue segments) from its
@@ -17,7 +118,7 @@ does not establish parity for Stack, thumbnails, waveform or sharing.
 | Component | Current limitation | Required next stage |
 | --- | --- | --- |
 | MediaScanner | Download traversal uses File | MediaStore index + persisted SAF roots |
-| SafTreeReader | Bounded preview only | Return typed entries and explicit grant failures |
+| AndroidScopedDiscoveryAccess | Typed metadata discovery, Settings inspection | Production Library and URI-operation parity |
 | ThumbnailRepository | Path metadata / sibling artwork | ContentResolver descriptors + document siblings |
 | WaveformRepository | Path extractor / random access | Descriptor-backed extraction and cache keys |
 | StackPcmStream | File source | URI descriptors with safe lifetime ownership |

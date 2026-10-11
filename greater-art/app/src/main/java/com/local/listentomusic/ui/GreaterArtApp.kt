@@ -86,6 +86,7 @@ fun GreaterArtApp(
     val settings by viewModel.settings.collectAsStateWithLifecycle()
     val playHistory by viewModel.playHistory.collectAsStateWithLifecycle()
     val scopedPreview by viewModel.scopedPreviewStatus.collectAsStateWithLifecycle()
+    val scopedDiscoveredMedia by viewModel.scopedDiscoveredMedia.collectAsStateWithLifecycle()
     val sleepTimer by viewModel.sleepTimer.collectAsStateWithLifecycle()
     val expandedPlayerVisible by com.local.listentomusic.playback.PlayerWindowVisibility.expandedShowing.collectAsStateWithLifecycle()
     val listScrolling by ListScrollBudget.scrolling.collectAsStateWithLifecycle()
@@ -565,8 +566,10 @@ fun GreaterArtApp(
                     onExtendedSearch = viewModel::setExtendedSearch,
                     onFolderExcluded = viewModel::setFolderExcluded,
                     scopedPreview = scopedPreview,
+                    scopedDiscoveredMedia = scopedDiscoveredMedia,
+                    onScanScopedDownloads = { viewModel.previewScopedMediaTree(true) },
                     onChooseScopedFolder = { scopedTreePicker.launch(null) },
-                    onPreviewScopedFolder = viewModel::previewScopedMediaTree,
+                    onPreviewScopedFolder = { viewModel.previewScopedMediaTree() },
                     onClearScopedFolder = {
                         val shared = settings.scopedMediaTreeUri != null && settings.scopedMediaTreeUri in
                             listOf(settings.customBackgroundImageUri, settings.customBackgroundVideoUri)

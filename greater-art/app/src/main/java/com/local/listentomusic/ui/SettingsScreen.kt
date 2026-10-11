@@ -144,6 +144,8 @@ fun SettingsScreen(
     onExtendedSearch: (Boolean) -> Unit,
     onFolderExcluded: (String, Boolean) -> Unit,
     scopedPreview: String,
+    scopedDiscoveredMedia: List<com.local.listentomusic.model.MediaFile>,
+    onScanScopedDownloads: () -> Unit,
     onChooseScopedFolder: () -> Unit,
     onPreviewScopedFolder: () -> Unit,
     onClearScopedFolder: () -> Unit,
@@ -513,11 +515,11 @@ fun SettingsScreen(
                     Text(
                         if (preferences.scopedMediaTreeUri == null)
                             uiText(language, "No folder selected", "尚未選擇資料夾")
-                        else uiText(language, "Selected folder permission retained", "已保留所選資料夾權限"),
+                        else scopedSelectedFolderText(language),
                         style = MaterialTheme.typography.bodyMedium,
                         modifier = Modifier.padding(vertical = GaSpacing.sm),
                     )
-                    Row(horizontalArrangement = Arrangement.spacedBy(GaSpacing.sm)) {
+                    FlowRow(horizontalArrangement = Arrangement.spacedBy(GaSpacing.sm)) {
                         OutlinedButton(onClick = onChooseScopedFolder) {
                             Text(uiText(language, "Choose folder", "選擇資料夾"))
                         }
@@ -532,6 +534,13 @@ fun SettingsScreen(
                     }
                     Text(scopedPreview, style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    TextButton(onClick = onScanScopedDownloads) {
+                        Text(scopedScanLabel(language))
+                    }
+                    scopedDiscoveredMedia.take(5).forEach { media ->
+                        Text(media.name, maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                            style = MaterialTheme.typography.bodySmall)
+                    }
                 }
                 }
             }
