@@ -36,6 +36,7 @@ import com.local.listentomusic.model.SortMode
 import com.local.listentomusic.model.loadLocalLyrics
 import com.local.listentomusic.playback.PlaybackService
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -155,6 +156,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     val indexStatus = MutableStateFlow("Basic filenames")
     private var scopedPreviewJob: Job? = null
     val scopedPreviewStatus = MutableStateFlow("No scoped-folder preview has run.")
+    val scopedDiscoveredMedia = MutableStateFlow<List<MediaFile>>(emptyList())
     private val libraryObserver = com.local.listentomusic.data.LibraryObserver(application) { rescan() }
     fun startLibraryObservation() { libraryObserver.start() }
     fun stopLibraryObservation() { libraryObserver.stop() }
@@ -606,25 +608,33 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     fun setJokeAdsEnabled(value: Boolean) = updatePreference { preferences.setJokeAdsEnabled(value) }
     fun setScopedMediaTree(uri: String?) = updatePreference {
         scopedPreviewJob?.cancel()
+        scopedDiscoveredMedia.value = emptyList()
         preferences.setScopedMediaTreeUri(uri)
         scopedPreviewStatus.value = if (uri == null) "No scoped folder selected." else
             "Folder selected. Preview it to verify the persisted grant."
     }
-    fun previewScopedMediaTree() {
+    fun previewScopedMediaTree(includeMediaStore: Boolean = false) {
         val value = settings.value.scopedMediaTreeUri
-        if (value.isNullOrBlank()) {
+        if (value.isNullOrBlank() && !includeMediaStore) {
             scopedPreviewStatus.value = "Select a folder first."
             return
         }
         scopedPreviewJob?.cancel()
+        scopedDiscoveredMedia.value = emptyList()
         scopedPreviewJob = viewModelScope.launch(Dispatchers.IO) {
-            scopedPreviewStatus.value = "Inspecting only the selected folder (bounded preview)..."
+            val language = settings.value.appLanguage
+            scopedPreviewStatus.value = com.local.listentomusic.ui.scopedScanningText(language)
             val context = getApplication<Application>()
             scopedPreviewStatus.value = try {
-                val result = com.local.listentomusic.data.SafTreeReader(context.contentResolver)
-                    .preview(Uri.parse(value))
-                "Scoped preview: ${result.mediaCount} media candidates, ${result.folderCount} folders" +
-                    if (result.truncated) " (preview limit reached)." else "."
+                val result = com.local.listentomusic.data.ScopedMediaDiscovery(
+                    com.local.listentomusic.data.AndroidScopedDiscoveryAccess(context.contentResolver))
+                    .scan(if (includeMediaStore) emptyList() else listOfNotNull(value), includeMediaStore)
+                kotlinx.coroutines.currentCoroutineContext().ensureActive()
+                scopedDiscoveredMedia.value = result.records.map { it.media }
+                com.local.listentomusic.ui.scopedResultText(language, result.records.size, result.inspected) +
+                    result.issues.map { it.problem }.distinct().joinToString(" ", prefix = if (result.issues.isEmpty()) "" else " ") {
+                        com.local.listentomusic.ui.scopedProblemText(language, it)
+                    }
             } catch (cancelled: kotlinx.coroutines.CancellationException) {
                 throw cancelled
             } catch (_: SecurityException) {

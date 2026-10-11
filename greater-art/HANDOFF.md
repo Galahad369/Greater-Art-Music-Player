@@ -3,7 +3,7 @@
 This file describes the **current repository state only**. Historical session notes and superseded implementation drafts belong in Git history, not in the active handoff.
 
 **Project:** `greater-art/` in the repository checkout
-**Current source:** `1.21.30 (code 253)` — SOURCE_ONLY; typed media identity foundation
+**Current source:** `1.21.31 (code 254)` — SOURCE_ONLY; bounded scoped-media discovery
 **Current version:** `1.21.18 (code 241)`
 **Latest APK:** `releases/GreaterArt-1.21.18.apk` (`27,746,006 bytes`; SHA-256 `bba973d127a9dec1f03b29fca1a146707c9feee82497e9a65ab196870b696b3d`)
 **Application ID:** `com.local.listentomusic`
@@ -13,6 +13,31 @@ This file describes the **current repository state only**. Historical session no
 **Verification boundary:** Owner confirmed 1.21.18 verification on 9 October 2026. The existing 1.21.18 QA record below reports 249 JVM tests (0 failures), 0 lint errors, three passing API 36 ThumbnailPipelineTest regressions, Library/playback smoke, and no observed FATAL EXCEPTION or ANR in its bounded session; it records a 27,746,006-byte debug APK, package `com.local.listentomusic`, versionName `1.21.18`, versionCode `241`, ZIP alignment pass, personal debug signing certificate as above, and SHA-256 `bba973d127a9dec1f03b29fca1a146707c9feee82497e9a65ab196870b696b3d`. That earlier test took place on an uncommitted local source tree later incorporated into `2edb328a`; exact committed-source equivalence is owner-attested, not independently proven by that record alone. The separate release-finalization PR must pass the *unmodified* Version Consistency guard's SHA-256/manifest checks against the actual tracked APK before merge. Historical records remain below unchanged.
 
 ## Repository state
+
+### October 11 — storage discovery stage B (1.21.31/code254)
+
+- New `ScopedMediaDiscovery` has an injectable provider boundary, fresh-snapshot
+  semantics, global document budget, folder/depth bounds, cancellation and partial
+  source failures. Revoked SAF roots are checked before enumeration and again
+  before publishing; a revoked root's partial entries are discarded.
+- `AndroidScopedDiscoveryAccess` queries Audio/Video MediaStore metadata under
+  Download, excludes pending/trashed items where supported, and enumerates only
+  exact persisted read-only SAF tree grants. Queries receive CancellationSignal.
+- Stable SAF identity is authority + document ID; readable location retains the
+  granted tree URI. Overlapping roots deduplicate by document identity, not name.
+- Settings folder inspection now exposes actual indexed media names. An explicit
+  Downloads-index inspection is separate from folder inspection. Neither enables
+  URI entries in production Library/Stack before metadata/cache/sidecar/delete
+  parity. No manifest changes or source-quality limits.
+- Fourteen JVM discovery tests and Android scanner/provider tests added; results
+  are recorded in `docs/STORAGE_MIGRATION.md`: 337 JVM tests pass, lint zero errors,
+  both builds pass, four Android scanner tests pass with All Files Access disabled.
+  A preceding build also passed a real system-picker SAF grant, document open,
+  rescan/removal and revocation denial. Final snapshot-wide revocation fix has
+  JVM regression coverage. Prior AppOps mode restored; only generated WAV cleaned up.
+- Local main contains user-authored APK commit `0a7889f`, not on origin/main.
+  Preserve it. This branch is based on `417f440` and does not publish that APK or
+  change the latest recorded verified release, 1.21.18.
 
 ### October 11 — storage identity stage A (1.21.30/code253)
 

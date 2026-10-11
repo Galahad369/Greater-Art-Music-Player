@@ -7,7 +7,7 @@ This file is the authoritative version policy for Greater Art. If any handoff no
 ## Machine-checkable state
 
 
-Current source: **1.21.30 (code 253)**
+Current source: **1.21.31 (code 254)**
 Allowed consumed transition: **1.21.27 (code 250) -> 1.21.29 (code 252)**
 
 1.21.28/code251 was committed by Claude as eb17af5128fd265bc1c2b2eeba21dc461694e4e7
@@ -308,3 +308,4 @@ Previous baseline: 1.13.26 (code 115).
 - 1.21.28 (code 251) — Claude Stack layout symmetry side-branch commit eb17af5; preserved supplied mail patch; source only, not Android-verified by its author.
 - 1.21.29 (code 252) — UI audit: result-scoped selection, confirmed document grants, exact percentage entry, folder validation, contextual overlay permission, truthful playlist/cache/Stack feedback, shared media formatting, labelled toggle rows and Nodes language wiring. SOURCE_ONLY.
 - 1.21.30 (code 253) — Typed file/content identities, lossless legacy/cue migration and scheme/bounds tests. No storage permission cutover. SOURCE_ONLY.
+- 1.21.31 (code 254) — Bounded cancellable MediaStore/SAF metadata discovery, stable document identities, grant/revocation handling and Settings inspection. Production Library/Stack remain filesystem-backed pending URI IO parity. SOURCE_ONLY.
