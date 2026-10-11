@@ -9,7 +9,7 @@ Greater Art is a local-first Android audio and video player. This repository con
 - [App documentation](greater-art/README.md) · [Handoff and verification](greater-art/HANDOFF.md)
 - [User demonstration](greater-art-user-demo.html) · [Technical demonstration](greater-art-technical-demo.html)
 
-Current source: **1.21.29 / code 252 — SOURCE_ONLY**, instrument-first Stack alignment
+Current source: **1.21.30 / code 253 — SOURCE_ONLY**, typed media identity migration foundation
 with distributed timing anchors, confidence-gated linear drift maps and bounded
 original-rate transient refinement. Library Performance v2
 stages 1–2. Shared viewport-priority artwork work pauses during fling; RAM hits stay

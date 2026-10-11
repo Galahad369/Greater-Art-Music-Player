@@ -10,7 +10,7 @@ optional video-colour gradient, with no extra decoder. See the
 [branch/issue review](docs/BRANCH_AND_ISSUE_REVIEW_2026-10-10.md) for integration,
 historical APK dispositions and unresolved physical/admin acceptance gates.
 
-Current source is **1.21.29 / code 252 — SOURCE_ONLY**. Adaptive Stack drift control
+Current source is **1.21.30 / code 253 — SOURCE_ONLY**. Typed media identities separate files from content URIs; storage permission migration is not complete. Adaptive Stack drift control
 is model-backed; audible improvement still requires physical listening.
 Calibrated internal-output probes now demonstrate remaining independent-player
 drift on the emulator; shared-clock output fixes the generated probe only in the
