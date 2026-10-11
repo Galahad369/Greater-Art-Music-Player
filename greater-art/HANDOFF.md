@@ -3,7 +3,7 @@
 This file describes the **current repository state only**. Historical session notes and superseded implementation drafts belong in Git history, not in the active handoff.
 
 **Project:** `greater-art/` in the repository checkout
-**Current source:** `1.21.29 (code 252)` — SOURCE_ONLY; selection and document-grant interaction correctness
+**Current source:** `1.21.30 (code 253)` — SOURCE_ONLY; typed media identity foundation
 **Current version:** `1.21.18 (code 241)`
 **Latest APK:** `releases/GreaterArt-1.21.18.apk` (`27,746,006 bytes`; SHA-256 `bba973d127a9dec1f03b29fca1a146707c9feee82497e9a65ab196870b696b3d`)
 **Application ID:** `com.local.listentomusic`
@@ -13,6 +13,24 @@ This file describes the **current repository state only**. Historical session no
 **Verification boundary:** Owner confirmed 1.21.18 verification on 9 October 2026. The existing 1.21.18 QA record below reports 249 JVM tests (0 failures), 0 lint errors, three passing API 36 ThumbnailPipelineTest regressions, Library/playback smoke, and no observed FATAL EXCEPTION or ANR in its bounded session; it records a 27,746,006-byte debug APK, package `com.local.listentomusic`, versionName `1.21.18`, versionCode `241`, ZIP alignment pass, personal debug signing certificate as above, and SHA-256 `bba973d127a9dec1f03b29fca1a146707c9feee82497e9a65ab196870b696b3d`. That earlier test took place on an uncommitted local source tree later incorporated into `2edb328a`; exact committed-source equivalence is owner-attested, not independently proven by that record alone. The separate release-finalization PR must pass the *unmodified* Version Consistency guard's SHA-256/manifest checks against the actual tracked APK before merge. Historical records remain below unchanged.
 
 ## Repository state
+
+### October 11 — storage identity stage A (1.21.30/code253)
+
+- Branch `codex/1.21.30-media-identities`; do not auto-merge this staged security PR.
+- Separate logical ID/cue bounds from typed LocalFile/ContentUri locations. Media3
+  uses a file URI only for files and preserves content URIs unchanged.
+- Five JVM migration tests cover Unicode/hash paths, cue bounds, content URIs,
+  rejected network/malformed schemes and lossless unsupported-record retention.
+- No preference rewrite, permission cutover or production URI scanner. Remaining
+  IO boundaries and partial MASVS evidence are in `docs/STORAGE_MIGRATION.md`.
+- Preserve the unrelated untracked `releases/GreaterArt-1.21.28.apk`. It causes the
+  working-tree version guard to fail because latest verified remains 1.21.18;
+  do not delete it, weaken the guard or include it in this PR.
+- No release APK replaced; no signing identity, history or tag rewritten.
+- Final verification: 323 JVM tests (zero failures/errors), lint zero errors
+  (31 warnings/two hints), both debug APK builds and two MediaSourceAndroidTest
+  tests passed on the A55-sized API 36 emulator. Exact test artifact hash and
+  limits are recorded in `docs/STORAGE_MIGRATION.md`.
 
 ### October 11 — main convergence
 

@@ -23,10 +23,19 @@ data class MediaFile(
     val coverUri: String = "",
 ) {
     val id: String get() = path
+    val reference: MediaReference
+        get() = MediaReference(id, requireNotNull(MediaSource.parse(sourcePath)) {
+            "Unsupported local media location"
+        }, clipStartMs, clipEndMs)
+
+    private fun playbackUri(): Uri = when (val source = reference.source) {
+        is MediaSource.LocalFile -> Uri.fromFile(File(source.value))
+        is MediaSource.ContentUri -> Uri.parse(source.value)
+    }
 
     fun toMediaItem(): MediaItem = MediaItem.Builder()
         .setMediaId(path)
-        .setUri(Uri.fromFile(File(sourcePath)))
+        .setUri(playbackUri())
         .setClippingConfiguration(MediaItem.ClippingConfiguration.Builder()
             .setStartPositionMs(clipStartMs)
             .apply { clipEndMs?.let { setEndPositionMs(it) } }.build())
