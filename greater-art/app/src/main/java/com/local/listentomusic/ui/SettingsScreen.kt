@@ -509,8 +509,8 @@ fun SettingsScreen(
                 Column(Modifier.fillMaxWidth().padding(horizontal = GaSpacing.lg, vertical = GaSpacing.md)) {
                     Text(
                         uiText(language,
-                            "Grant access to one media folder and inspect it without All Files Access. This is a preview: these files are NOT yet added to the playable Library.",
-                            "授權指定媒體資料夾並預覽內容，毋須授予所有檔案存取權。此功能尚未將檔案加入可播放音樂庫。"),
+                            "Grant access to one media folder to use it as your playable Library without All Files Access.",
+                            "授權指定媒體資料夾作為可播放音樂庫，毋須授予所有檔案存取權。"),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -536,6 +536,10 @@ fun SettingsScreen(
                     }
                     Text(scopedPreview, style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(uiText(language,
+                        "Selecting a folder now uses it as the Library source. Clear it to return to Download. URI sharing, deletion and sidecar files are not migrated yet.",
+                        "選擇資料夾後，音樂庫會使用該資料夾；清除後返回下載資料夾。URI 分享、刪除及附屬檔案尚未完成遷移。"),
+                        style = MaterialTheme.typography.bodySmall)
                     TextButton(onClick = onScanScopedDownloads) {
                         Text(scopedScanLabel(language))
                     }

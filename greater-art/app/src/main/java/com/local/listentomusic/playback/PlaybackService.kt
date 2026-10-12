@@ -209,10 +209,8 @@ class PlaybackService : MediaLibraryService() {
                 if (path != null && android.appwidget.AppWidgetManager.getInstance(this@PlaybackService)
                     .getAppWidgetIds(android.content.ComponentName(this@PlaybackService, PlaybackWidget::class.java)).isNotEmpty()) {
                     widgetJob = serviceScope.launch {
-                        val file = File(com.local.listentomusic.model.sourceMediaPath(path))
-                        val item = com.local.listentomusic.model.MediaFile(path, file.name, 0, file.length(), file.lastModified(),
-                            if (file.extension.lowercase() in MediaScanner.videoExtensions) com.local.listentomusic.model.MediaKind.VIDEO else com.local.listentomusic.model.MediaKind.AUDIO, sourcePath = file.path,
-                            coverUri = preferences.current().localOverrides[path]?.coverUri.orEmpty())
+                        val item = com.local.listentomusic.model.mediaFileFromSession(requireNotNull(mediaItem))
+                            .copy(coverUri = preferences.current().localOverrides[path]?.coverUri.orEmpty())
                         widgetArtwork = com.local.listentomusic.data.MediaCaches.thumbnails(applicationContext).load(item)
                         PlaybackWidget.update(this@PlaybackService, player.mediaMetadata.title?.toString() ?: "Greater Art", player.isPlaying, widgetArtwork)
                     }
@@ -315,6 +313,22 @@ class PlaybackService : MediaLibraryService() {
         player.playbackParameters = androidx.media3.common.PlaybackParameters(saved.playbackSpeed)
         player.repeatMode = saved.repeatMode
         val path = saved.lastPath ?: return
+        if (com.local.listentomusic.model.MediaSource.parse(path) is com.local.listentomusic.model.MediaSource.ContentUri) {
+            val tree = saved.scopedMediaTreeUri ?: return
+            val readable = runCatching {
+                val root = android.net.Uri.parse(tree)
+                val identity = android.net.Uri.parse(path)
+                require(root.authority == identity.authority)
+                android.provider.DocumentsContract.buildDocumentUriUsingTree(root,
+                    android.provider.DocumentsContract.getDocumentId(identity))
+            }.getOrNull() ?: return
+            val item = com.local.listentomusic.model.MediaFile(path, readable.lastPathSegment.orEmpty(),
+                0, 0, 0, com.local.listentomusic.model.MediaKind.AUDIO, sourcePath = readable.toString())
+            if (!com.local.listentomusic.data.mediaReadable(this, item)) return
+            player.setMediaItem(item.toMediaItem(), if (saved.resumePlayback) saved.lastPositionMs else 0L)
+            player.prepare(); player.playWhenReady = false
+            return
+        }
         val file = File(com.local.listentomusic.model.sourceMediaPath(path))
         if (!file.isFile || !file.canRead() || !MediaScanner.isInsideTarget(file)) return
 
@@ -398,6 +412,8 @@ class PlaybackService : MediaLibraryService() {
     private fun addLayer(path: String) {
         if (stackCoordinator.active) return
         if (layers.size >= ParallelPlayback.MAX_EXTRA_LAYERS) return
+        // Scoped multi-track playback uses Stack's typed MediaFile path, not this legacy ID-only command.
+        if (com.local.listentomusic.model.MediaSource.parse(path) is com.local.listentomusic.model.MediaSource.ContentUri) return
         val file = File(com.local.listentomusic.model.sourceMediaPath(path))
         if (!MediaScanner.isInsideTarget(file) || !file.isFile || file.extension.lowercase() !in MediaScanner.supportedExtensions) return
         var extra: ExoPlayer? = null

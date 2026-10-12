@@ -7,7 +7,11 @@ This file is the authoritative version policy for Greater Art. If any handoff no
 ## Machine-checkable state
 
 
-Current source: **1.21.34 (code 257)**
+Current source: **1.21.35 (code 258)**
+Allowed consumed transition: **1.21.32 (code 255) -> 1.21.35 (code 258)**
+# The parallel floating-mode feature branch used 1.21.32–1.21.34 for pre-integration
+# source-only commits; main independently verified 1.21.32 for URI-backed playback.
+# Integration retains main's immutable APK and records the consumed branch lineage.
 Allowed consumed transition: **1.21.27 (code 250) -> 1.21.29 (code 252)**
 
 1.21.28/code251 was committed by Claude as eb17af5128fd265bc1c2b2eeba21dc461694e4e7
@@ -24,7 +28,7 @@ Allowed consumed transition: **1.21.22 (code 245) -> 1.21.24 (code 247)**
 Claude's supplied adaptive-sync patch proposed that identity too; integration
 used 1.21.24/code247 in its preserved history. Adaptive sync is model-backed, not acoustically verified.
 Current release state: **SOURCE_ONLY**
-Latest verified APK: **1.21.18 (code 241)**
+Latest verified APK: **1.21.32 (code 255)**
 Allowed series transition: **1.14.15 -> 1.15.1**
 Allowed series transition: **1.15.89 -> 1.20.2**
 Allowed series transition: **1.20.5 -> 1.21.1**
@@ -309,9 +313,6 @@ Previous baseline: 1.13.26 (code 115).
 - 1.21.29 (code 252) — UI audit: result-scoped selection, confirmed document grants, exact percentage entry, folder validation, contextual overlay permission, truthful playlist/cache/Stack feedback, shared media formatting, labelled toggle rows and Nodes language wiring. SOURCE_ONLY.
 - 1.21.30 (code 253) — Typed file/content identities, lossless legacy/cue migration and scheme/bounds tests. No storage permission cutover. SOURCE_ONLY.
 - 1.21.31 (code 254) — Bounded cancellable MediaStore/SAF metadata discovery, stable document identities, grant/revocation handling and Settings inspection. Production Library/Stack remain filesystem-backed pending URI IO parity. SOURCE_ONLY.
+- 1.21.32 (code 255) — Stage C core: selected SAF folder becomes Library source; URI-backed metadata/artwork/waveform and Stack decode/access. Download filesystem mode retained; scoped sharing/deletion/sidecars and final permission cutover remain separate gates.
 
-- 1.21.32 (code 255) — Now Playing floating presentation selector cycles Mini Window, native Android video PiP and background-only playback. Move Locate into the queue search bar with independent 48dp left/right targets; retain clear/close at the opposite edge, reveal filtered-out playing items and persist mode in Settings. Handle Activity/overlay exit and surface ownership without changing MediaSession playback or the latest verified APK. SOURCE_ONLY pending branch CI and physical Android/PiP device checks.
-
-- 1.21.33 (code 256) — Resolve first draft-PR Android CI Kotlin compile failure: restore @Composable annotation directly on NowPlayingScreen (not a CompositionLocal property). Ensure closing Now Playing or receiving a background DETACH removes hidden overlay services for PiP/background-only modes without stopping independent MediaSession playback. 1.21.32 remains consumed and SOURCE_ONLY; latest verified APK remains 1.21.18. SOURCE_ONLY pending fresh CI and device verification.
-
-- 1.21.34 (code 257) — Declare the actual video PiP host, FullscreenVideoActivity, resizable and Android-picture-in-picture-capable in the manifest. Android CI compilation alone would not validate the missing Activity capability, so this follow-up closes the Android PiP manifest integration gap. Previous draft identities 1.21.32 and 1.21.33 are consumed; SOURCE_ONLY pending exact-head CI and physical PiP/overlay device tests.
+- 1.21.35 (code 258) — Integrate feature-branch Now Playing UX onto main's verified 1.21.32 URI Library/playback baseline without touching main or changing the immutable 1.21.32 APK. Queue search puts Locate on the left and Clear/Close on the right of the input (48dp targets); top bar cycles Mini Window / video Android PiP / no external floating window. Persist mode, preserve legacy Compact migration, host native PiP in a manifest-enabled Activity, and stop hidden overlay services while independent background MediaSession keeps playing. Pre-integration feature commits consumed 1.21.32–1.21.34 in parallel with main's 1.21.32 release; no earlier feature code/version identity is reused. SOURCE_ONLY pending exact-branch Android CI and physical PiP, overlay and background-playback verification.

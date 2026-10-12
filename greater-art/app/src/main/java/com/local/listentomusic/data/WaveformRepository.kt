@@ -50,7 +50,7 @@ internal fun normalizeWaveformPeaks(
 }
 
 /** Decodes real PCM peaks off the UI thread and keeps only a tiny local cache. */
-class WaveformRepository(context: Context) {
+class WaveformRepository(private val context: Context) {
     private val directory = File(context.cacheDir, "waveforms").apply { mkdirs() }
     private val _diagnostics = MutableStateFlow(WaveformDiagnostics())
     val diagnostics: StateFlow<WaveformDiagnostics> = _diagnostics.asStateFlow()
@@ -112,7 +112,7 @@ class WaveformRepository(context: Context) {
         val extractor = MediaExtractor()
         var codec: MediaCodec? = null
         return try {
-            extractor.setDataSource(path)
+            extractor.openMedia(context, path)
             val track = (0 until extractor.trackCount).firstOrNull {
                 extractor.getTrackFormat(it).getString(MediaFormat.KEY_MIME)?.startsWith("audio/") == true
             } ?: return null

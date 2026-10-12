@@ -1,6 +1,7 @@
 package com.local.listentomusic.playback
 
 import android.media.AudioFormat
+import com.local.listentomusic.data.openMedia
 import android.media.MediaCodec
 import android.media.MediaExtractor
 import android.media.MediaFormat
@@ -17,11 +18,12 @@ internal data class StackPcmWindow(val mono: FloatArray, val side: FloatArray, v
 
 /** Analysis only. Never attaches to a Surface or creates an audible output. */
 internal suspend fun decodeStackPcmWindow(file: MediaFile, startMs: Long, lengthMs: Long,
-    requestedRate: Int? = STACK_INSTRUMENT_RATE): StackPcmWindow {
+    requestedRate: Int? = STACK_INSTRUMENT_RATE, context: android.content.Context? = null): StackPcmWindow {
     require(startMs >= 0 && lengthMs in 100..36_000)
     require(requestedRate != null || lengthMs <= 1000)
     val source = File(file.sourcePath)
-    require(source.isFile && source.canRead() && MediaScanner.isInsideTarget(source))
+    require(if (context != null) com.local.listentomusic.data.mediaReadable(context, file)
+        else source.isFile && source.canRead() && MediaScanner.isInsideTarget(source))
     val extractor = MediaExtractor()
     var codec: MediaCodec? = null
     val startUs = (file.clipStartMs + startMs) * 1000
@@ -71,7 +73,7 @@ internal suspend fun decodeStackPcmWindow(file: MediaFile, startMs: Long, length
         }
     }
     try {
-        extractor.setDataSource(file.sourcePath)
+        extractor.openMedia(context, file.sourcePath)
         val track = (0 until extractor.trackCount).firstOrNull {
             extractor.getTrackFormat(it).getString(MediaFormat.KEY_MIME)?.startsWith("audio/") == true
         } ?: error("No audio track")

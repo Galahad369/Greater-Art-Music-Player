@@ -20,7 +20,7 @@ import kotlin.math.abs
 
 internal data class StackInstrumentViews(val mono: StackInstrumentRegion, val side: StackInstrumentRegion?)
 
-internal class StackInstrumentAlign(context: Context) {
+internal class StackInstrumentAlign(private val context: Context) {
     private val cache = File(context.applicationContext.cacheDir, "stack-align-v7-instruments")
     private val maps = File(context.applicationContext.cacheDir, "stack-align-v8-maps")
     companion object { private val mutex = Mutex(); private val mapMutex = Mutex() }
@@ -30,8 +30,8 @@ internal class StackInstrumentAlign(context: Context) {
             val target = withContext(Dispatchers.IO) {
                 fun identity(file: MediaFile): String {
                     val source = File(file.sourcePath)
-                    require(source.isFile && source.canRead() && MediaScanner.isInsideTarget(source))
-                    return "${source.canonicalPath}|${source.length()}|${source.lastModified()}|${file.clipStartMs}|${file.clipEndMs}|${file.durationMs}"
+                    require(com.local.listentomusic.data.mediaReadable(context, file))
+                    return "${com.local.listentomusic.data.mediaFingerprint(file)}|${file.durationMs}"
                 }
                 val key = MessageDigest.getInstance("SHA-256").digest(
                     "8|${identity(primary)}\u0000${identity(companion)}".toByteArray())
@@ -65,8 +65,8 @@ internal class StackInstrumentAlign(context: Context) {
     internal suspend fun region(file: MediaFile, start: Long, length: Long): StackInstrumentViews = withContext(Dispatchers.IO) {
         mutex.withLock {
             val source = File(file.sourcePath)
-            require(source.isFile && source.canRead() && MediaScanner.isInsideTarget(source))
-            val identity = "7|${source.canonicalPath}|${source.length()}|${source.lastModified()}|${file.clipStartMs}|${file.clipEndMs}|$start|$length"
+            require(com.local.listentomusic.data.mediaReadable(context, file))
+            val identity = "7|${com.local.listentomusic.data.mediaFingerprint(file)}|$start|$length"
             val key = MessageDigest.getInstance("SHA-256").digest(identity.toByteArray()).joinToString("") { "%02x".format(it) }
             cache.mkdirs()
             val target = File(cache, "$key.bin")
@@ -76,7 +76,7 @@ internal class StackInstrumentAlign(context: Context) {
             if (cached != null) { target.setLastModified(System.currentTimeMillis()); return@withLock cached }
             val active = coroutineContext
             val decoded = OfflineAnalysisBudget.mutex.withLock {
-                val pcm = decodeStackPcmWindow(file, start, length)
+                val pcm = decodeStackPcmWindow(file, start, length, context = context)
                 val mono = stackInstrumentFeatures(pcm.mono, start) { active.ensureActive() }
                 val monoPower = pcm.mono.sumOf { it.toDouble() * it }
                 val sidePower = pcm.side.sumOf { it.toDouble() * it }
@@ -149,8 +149,8 @@ internal class StackInstrumentAlign(context: Context) {
             val bStart = companionTime.toLong() - 200
             if (aStart < 0 || bStart < 0 || aStart + 400 > duration || bStart + 400 > companion.durationMs) continue
             val correction = try { OfflineAnalysisBudget.mutex.withLock {
-                val a = withContext(Dispatchers.IO) { decodeStackPcmWindow(primary, aStart, 400, null) }
-                val b = withContext(Dispatchers.IO) { decodeStackPcmWindow(companion, bStart, 400, null) }
+                val a = withContext(Dispatchers.IO) { decodeStackPcmWindow(primary, aStart, 400, null, context) }
+                val b = withContext(Dispatchers.IO) { decodeStackPcmWindow(companion, bStart, 400, null, context) }
                 val rate = minOf(a.sampleRate, b.sampleRate)
                 val aSamples = if (allSide && !nativeMonoRequired) a.side else a.mono
                 val bSamples = if (allSide && !nativeMonoRequired) b.side else b.mono

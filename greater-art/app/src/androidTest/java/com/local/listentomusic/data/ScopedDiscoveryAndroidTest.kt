@@ -49,6 +49,7 @@ class ScopedDiscoveryAndroidTest {
             assertEquals(first.id, second.id)
             assertEquals("content", first.toMediaItem().localConfiguration!!.uri.scheme)
             assertEquals(44L + pcmBytes, first.sizeBytes)
+            verifyUriReaders(first)
             // Optional real-picker evidence. Never grant or inspect an arbitrary user folder.
             val tree = InstrumentationRegistry.getArguments().getString("safTree")
             val safItem = tree?.let {
@@ -63,6 +64,7 @@ class ScopedDiscoveryAndroidTest {
                 requireNotNull(resolver.openFileDescriptor(Uri.parse(item.sourcePath), "r")).use {
                     assertEquals(44L + pcmBytes, it.statSize)
                 }
+                verifyUriReaders(item)
                 item
             }
             resolver.delete(uri, null, null)
@@ -78,6 +80,41 @@ class ScopedDiscoveryAndroidTest {
             // Only this test-created, exact URI; never delete user media or folders.
             resolver.delete(uri, null, null)
         }
+    }
+
+    private suspend fun verifyUriReaders(file: com.local.listentomusic.model.MediaFile) {
+        assertTrue(mediaReadable(context, file))
+        assertEquals(file.sourcePath, com.local.listentomusic.model.mediaFileFromSession(file.toMediaItem()).sourcePath)
+        val extractor = android.media.MediaExtractor()
+        try {
+            extractor.openMedia(context, file.sourcePath)
+            assertTrue(extractor.trackCount > 0)
+        } finally { extractor.release() }
+        assertNotNull(WaveformRepository(context).load(file.sourcePath, file.sizeBytes, file.modifiedMs))
+        val spec = com.local.listentomusic.playback.pcmSpec(file, context)
+        assertEquals(8000, spec.rate)
+        val pcm = com.local.listentomusic.playback.decodeStackPcmWindow(file, 0, 200, context = context)
+        assertTrue(pcm.mono.isNotEmpty())
+        val ready = CountDownLatch(1)
+        var error: androidx.media3.common.PlaybackException? = null
+        lateinit var player: androidx.media3.exoplayer.ExoPlayer
+        val instrumentation = InstrumentationRegistry.getInstrumentation()
+        instrumentation.runOnMainSync {
+            player = androidx.media3.exoplayer.ExoPlayer.Builder(context).build()
+            player.addListener(object : androidx.media3.common.Player.Listener {
+                override fun onPlaybackStateChanged(state: Int) {
+                    if (state == androidx.media3.common.Player.STATE_READY) ready.countDown()
+                }
+                override fun onPlayerError(failure: androidx.media3.common.PlaybackException) {
+                    error = failure; ready.countDown()
+                }
+            })
+            player.setMediaItem(file.toMediaItem()); player.prepare()
+        }
+        try {
+            assertTrue("URI player readiness timeout", ready.await(10, TimeUnit.SECONDS))
+            assertNull(error)
+        } finally { instrumentation.runOnMainSync { player.release() } }
     }
 
     @Test fun ungrantedRealTreeIsDeniedBeforeEnumeration() = runBlocking {
