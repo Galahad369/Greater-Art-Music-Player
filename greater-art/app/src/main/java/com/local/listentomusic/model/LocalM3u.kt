@@ -26,6 +26,10 @@ internal fun exportPortableM3u(files: List<MediaFile>, root: File): String {
                 appendLine("#EXTVLCOPT:start-time=${file.clipStartMs / 1000.0}")
                 file.clipEndMs?.let { appendLine("#EXTVLCOPT:stop-time=${it / 1000.0}") }
             }
+            if (MediaSource.parse(file.sourcePath) is MediaSource.ContentUri) {
+                appendLine(file.sourcePath)
+                return@forEach
+            }
             val source = File(file.sourcePath).canonicalFile
             val portable = source.relativeToOrNull(canonicalRoot)?.invariantSeparatorsPath
                 ?.takeIf { it.isNotBlank() && !it.startsWith("../") }

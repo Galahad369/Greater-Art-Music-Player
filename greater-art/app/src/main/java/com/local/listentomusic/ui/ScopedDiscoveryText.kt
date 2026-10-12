@@ -28,12 +28,12 @@ internal fun scopedScanningText(language: AppLanguage) = scopedText(language,
     "Analyse des médias autorisés (métadonnées uniquement)…", "掃緊已授權媒體（只讀資料）…")
 
 internal fun scopedResultText(language: AppLanguage, media: Int, inspected: Int) = scopedText(language,
-    "$media media files indexed; $inspected entries inspected. Library playback is unchanged.",
-    "已建立 $media 個媒體索引；已檢查 $inspected 個項目。音樂庫播放維持不變。",
-    "$media 件のメディアを索引化、$inspected 件を確認。ライブラリの再生は変更していません。",
-    "$media Medien indexiert; $inspected Einträge geprüft. Die Bibliothekswiedergabe bleibt unverändert.",
-    "$media médias indexés ; $inspected entrées examinées. La lecture de la bibliothèque reste inchangée.",
-    "搵到 $media 個媒體；睇咗 $inspected 個項目。歌庫播放冇改。")
+    "$media media files indexed; $inspected entries inspected.",
+    "已建立 $media 個媒體索引；已檢查 $inspected 個項目。",
+    "$media 件のメディアを索引化、$inspected 件を確認。",
+    "$media Medien indexiert; $inspected Einträge geprüft.",
+    "$media médias indexés ; $inspected entrées examinées.",
+    "搵到 $media 個媒體；睇咗 $inspected 個項目。")
 
 internal fun scopedProblemText(language: AppLanguage, problem: DiscoveryProblem): String = when (problem) {
     DiscoveryProblem.PERMISSION_DENIED -> scopedText(language,

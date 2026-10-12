@@ -10,7 +10,7 @@ optional video-colour gradient, with no extra decoder. See the
 [branch/issue review](docs/BRANCH_AND_ISSUE_REVIEW_2026-10-10.md) for integration,
 historical APK dispositions and unresolved physical/admin acceptance gates.
 
-Current source is **1.21.31 / code 254 — SOURCE_ONLY**. Settings can inspect MediaStore Download entries and authorized SAF folders using typed content identities. Production Library/Stack remain filesystem-backed until URI IO parity; storage permission migration is not complete. Adaptive Stack drift control
+Current source is **1.21.32 / code 255 — SOURCE_ONLY**. A selected SAF folder can supply Library playback, metadata, embedded artwork, waveforms and Stack readers. Clearing the folder returns to recursive Download discovery. URI sidecars, sharing/deletion and the final storage-permission migration are not complete. Adaptive Stack drift control
 is model-backed; audible improvement still requires physical listening.
 Calibrated internal-output probes now demonstrate remaining independent-player
 drift on the emulator; shared-clock output fixes the generated probe only in the

@@ -15,7 +15,7 @@ import org.json.JSONObject
 import java.io.File
 
 /** Optional search index. Cached tags are reused until the source or sidecar changes. No history. */
-class MetadataIndex(context: Context) {
+class MetadataIndex(private val context: Context) {
     private val storage = AtomicFile(File(context.cacheDir, "library-metadata-v1.json"))
     suspend fun enrich(files: List<MediaFile>, onBatch: suspend (List<MediaFile>) -> Unit) = withContext(Dispatchers.IO) {
         val old = runCatching {
@@ -45,7 +45,7 @@ class MetadataIndex(context: Context) {
         val json = JSONObject()
         val reader = MediaMetadataRetriever()
         try {
-            reader.setDataSource(file.sourcePath)
+            reader.openMedia(context, file.sourcePath)
             json.put("title", reader.extractMetadata(MediaMetadataRetriever.METADATA_KEY_TITLE).orEmpty())
             json.put("artist", reader.extractMetadata(MediaMetadataRetriever.METADATA_KEY_ARTIST).orEmpty())
             json.put("album", reader.extractMetadata(MediaMetadataRetriever.METADATA_KEY_ALBUM).orEmpty())

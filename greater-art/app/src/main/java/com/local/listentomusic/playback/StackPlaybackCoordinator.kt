@@ -113,6 +113,8 @@ internal class StackPlaybackCoordinator(
     }.joinToString(",").ifEmpty { "none" }
 
     private fun valid(file: MediaFile): Boolean {
+        if (file.reference.source is com.local.listentomusic.model.MediaSource.ContentUri)
+            return com.local.listentomusic.data.mediaReadable(context, file)
         val source = File(file.sourcePath)
         return source.isFile && source.canRead() && MediaScanner.isInsideTarget(source) &&
             source.extension.lowercase() in MediaScanner.supportedExtensions

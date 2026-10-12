@@ -3,7 +3,7 @@
 This file describes the **current repository state only**. Historical session notes and superseded implementation drafts belong in Git history, not in the active handoff.
 
 **Project:** `greater-art/` in the repository checkout
-**Current source:** `1.21.31 (code 254)` — SOURCE_ONLY; bounded scoped-media discovery
+**Current source:** `1.21.32 (code 255)` — SOURCE_ONLY; selected-folder URI playback
 **Current version:** `1.21.18 (code 241)`
 **Latest APK:** `releases/GreaterArt-1.21.18.apk` (`27,746,006 bytes`; SHA-256 `bba973d127a9dec1f03b29fca1a146707c9feee82497e9a65ab196870b696b3d`)
 **Application ID:** `com.local.listentomusic`
@@ -13,6 +13,32 @@ This file describes the **current repository state only**. Historical session no
 **Verification boundary:** Owner confirmed 1.21.18 verification on 9 October 2026. The existing 1.21.18 QA record below reports 249 JVM tests (0 failures), 0 lint errors, three passing API 36 ThumbnailPipelineTest regressions, Library/playback smoke, and no observed FATAL EXCEPTION or ANR in its bounded session; it records a 27,746,006-byte debug APK, package `com.local.listentomusic`, versionName `1.21.18`, versionCode `241`, ZIP alignment pass, personal debug signing certificate as above, and SHA-256 `bba973d127a9dec1f03b29fca1a146707c9feee82497e9a65ab196870b696b3d`. That earlier test took place on an uncommitted local source tree later incorporated into `2edb328a`; exact committed-source equivalence is owner-attested, not independently proven by that record alone. The separate release-finalization PR must pass the *unmodified* Version Consistency guard's SHA-256/manifest checks against the actual tracked APK before merge. Historical records remain below unchanged.
 
 ## Repository state
+
+### October 12 — Stage C core URI playback (1.21.32/code255)
+
+- Selecting a SAF folder now selects that folder as the production Library source.
+  Clearing it restores the recursive Download filesystem source. This avoids
+  unsafe filename-based merging of URI items with legacy path identities.
+- URI-aware access is used by metadata, embedded artwork/video thumbnails,
+  waveform decoding, Stack analysis and the shared-clock PCM prototype. URI
+  fingerprints use document identity, readable location, indexed size/date and
+  clip bounds; no URI is passed to File for decoding.
+- Media3 session reconstruction retains content scheme/authority, including
+  queues and widgets. Selected-folder session restoration resolves its granted
+  tree location and rechecks read access. Current-video backgrounds use the
+  actual playback URI, not a synthesized file URI.
+- Existing source resolution/FPS/bitrate and signing identity are unchanged.
+  MANAGE_EXTERNAL_STORAGE remains declared; this is not a permission cutover.
+- Scoped sharing/deletion deliberately fail safely, rather than interpreting
+  document IDs as file paths. URI sidecar lyrics/artwork/CUE, folder exclusion
+  parity, general MediaStore production mode and legacy ID remapping remain
+  tracked migration work. No claim of full Stage C/D completion.
+- Regression caught during verification: using the Android-only typed reference
+  in portable M3U export broke Windows-path tests. Use source parsing there.
+  A second review found Media3 URI.path stripping content authorities; session
+  reconstruction now preserves complete content URIs.
+- Build/device/artifact evidence is recorded in docs/STORAGE_MIGRATION.md after
+  verification. Do not promote an APK from version labels alone.
 
 ### October 11 — storage discovery stage B (1.21.31/code254)
 

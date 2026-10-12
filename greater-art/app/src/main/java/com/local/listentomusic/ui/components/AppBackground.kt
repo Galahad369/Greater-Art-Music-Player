@@ -120,7 +120,12 @@ fun AppBackground(
         visible, foreground, allowVideoBackground, controller != null, tiles.size)
     val currentVideoUri = currentPath
         ?.takeIf { isVideo }
-        ?.let { Uri.fromFile(File(it)) }
+        ?.let { path -> controller?.currentMediaItem?.localConfiguration?.uri
+            ?: when (val source = com.local.listentomusic.model.MediaSource.parse(path)) {
+                is com.local.listentomusic.model.MediaSource.LocalFile -> Uri.fromFile(File(source.value))
+                is com.local.listentomusic.model.MediaSource.ContentUri -> Uri.parse(source.value)
+                null -> null
+            } }
     var primaryFrameReady by remember(controller, currentPath, isVideo) { mutableStateOf(!isVideo) }
 
     // A video wallpaper is a secondary consumer. Let the real MediaController render first
