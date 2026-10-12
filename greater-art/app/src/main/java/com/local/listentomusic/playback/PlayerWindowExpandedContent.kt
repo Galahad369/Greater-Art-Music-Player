@@ -288,6 +288,7 @@ internal fun PlayerWindowExpandedContent(
                     regions = inspector.regions.values.map { "${it.label}: ${it.detail}" },
                     warning = playback.errorMessage != null,
                     inspector = inspector,
+                    onDisableDeveloperMode = { viewModel.setDeveloperMode(false) },
                     systemOverlay = true,
                 )
             }

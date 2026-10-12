@@ -3,7 +3,7 @@
 This file describes the **current repository state only**. Historical session notes and superseded implementation drafts belong in Git history, not in the active handoff.
 
 **Project:** `greater-art/` in the repository checkout
-**Current source:** `1.21.37 (code 260)` — emulator-VERIFIED sideload; reviewed floating modes + Adaptive Ambient + High Contrast
+**Current source:** `1.21.38 (code 261)` — SOURCE_ONLY; one-tap Developer Mode off in the diagnostics panel
 **Current version:** `1.21.37 (code 260)`
 **Latest APK:** `releases/GreaterArt-1.21.37.apk` (`27,862,370 bytes`; SHA-256 `4047097d81f999fe8f62d843e753975746f50d2b1d409362cd96ba4d78694fb6`)
 **Application ID:** `com.local.listentomusic`
@@ -13,6 +13,14 @@ This file describes the **current repository state only**. Historical session no
 **Verification boundary:** Exact committed source `b47d96c620a9ed5db0fd8c8e1e92df8857c99c6e`; 358 JVM tests, 23 API36 emulator tests, zero lint errors; signature, pinned certificate, version/package, 16KiB ZIP alignment and upgrade installation checked. Native PiP retains the player and source size; No Floating Home keeps playback. Nine storage/cache tests pass with All Files Access denied. No app fatal in inspected crash buffer. This is a debug sideload build, not production signing, physical-phone acceptance, full security assessment or a universal bug-free guarantee.
 
 ## Repository state
+
+### October 13 — Developer Mode quick disable (1.21.38/code261)
+
+- The local DEV Inspector dialog exposes a directly visible **Turn off Developer Mode** action, without navigating back to Settings or expanding technical details.
+- Both the main app and expanded Now Playing invoke the existing persisted Developer Mode preference setter. The action dismisses inspector UI, resets the selection/armed state and hides DEV reactively. Playback, floating mode and diagnostics collection are not altered.
+- Adds a Compose UI regression asserting a minimum 48dp action target, exactly one disable callback and removal of the DEV badge/dialog.
+- **SOURCE_ONLY** pending branch CI and device interaction checks. Retain the verified 1.21.37/code260 APK, signing certificate and all existing release evidence.
+
 
 ### October 12 — quality integration (1.21.37/code260)
 

@@ -691,6 +691,7 @@ fun GreaterArtApp(
                     regions = regions,
                     warning = warning,
                     inspector = inspector,
+                    onDisableDeveloperMode = { viewModel.setDeveloperMode(false) },
                     modifier = Modifier,
                     badgeAlignment = if (screen == Screen.LIBRARY) Alignment.TopStart else Alignment.TopEnd,
                 )
