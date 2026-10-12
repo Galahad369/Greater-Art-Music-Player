@@ -314,6 +314,10 @@ class MiniWindowOverlayService : Service(), LifecycleOwner, ViewModelStoreOwner,
             ACTION_DETACH -> {
                 detachUntilLibraryHidden = true
                 switchMode(false)
+                if (selectedFloatingMode != FloatingWindowMode.MINI_WINDOW) {
+                    stopSelf()
+                    return START_NOT_STICKY
+                }
             }
             ACTION_EXPAND -> switchMode(PlayerWindowMode.EXPANDED)
             ACTION_ENTER_NATIVE_PIP -> {
@@ -918,9 +922,10 @@ class MiniWindowOverlayService : Service(), LifecycleOwner, ViewModelStoreOwner,
         if (!expanded) return
         detachUntilLibraryHidden = true
         switchMode(PlayerWindowMode.DETACHED)
-        // Close the Activity underneath too; otherwise its visible Library immediately
-        // requests a docked player and creates a needless DETACHED→DOCKED→DETACHED hop.
+        // The in-app dock remains on return; background-only and native-PiP modes
+        // must not leave an invisible overlay foreground service running.
         sendBroadcast(Intent(MainActivity.ACTION_BACKGROUND_PLAYER).setPackage(packageName))
+        if (selectedFloatingMode != FloatingWindowMode.MINI_WINDOW) stopSelf()
     }
 
     private fun returnToLibrary() {

@@ -259,10 +259,10 @@ internal fun sideDoubleTapSeeks(
     return side != null && side == lastSide && elapsedMs in 1L..SIDE_DOUBLE_TAP_MS
 }
 
-@Composable
 private val LocalFloatingMode = androidx.compose.runtime.compositionLocalOf { FloatingWindowMode.MINI_WINDOW }
 private val LocalFloatingModeChange = androidx.compose.runtime.compositionLocalOf<(FloatingWindowMode) -> Unit> { {} }
 
+@Composable
 fun NowPlayingScreen(
     floatingWindowMode: FloatingWindowMode,
     onFloatingWindowModeChange: (FloatingWindowMode) -> Unit,

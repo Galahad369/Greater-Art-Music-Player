@@ -3,7 +3,7 @@
 This file describes the **current repository state only**. Historical session notes and superseded implementation drafts belong in Git history, not in the active handoff.
 
 **Project:** `greater-art/` in the repository checkout
-**Current source:** `1.21.32 (code 255)` — SOURCE_ONLY; Now Playing 3-mode floating presentation (feature branch)
+**Current source:** `1.21.33 (code 256)` — SOURCE_ONLY; Now Playing 3-mode floating presentation (feature branch)
 **Current version:** `1.21.18 (code 241)`
 **Latest APK:** `releases/GreaterArt-1.21.18.apk` (`27,746,006 bytes`; SHA-256 `bba973d127a9dec1f03b29fca1a146707c9feee82497e9a65ab196870b696b3d`)
 **Application ID:** `com.local.listentomusic`
@@ -14,13 +14,13 @@ This file describes the **current repository state only**. Historical session no
 
 ## Repository state
 
-### October 12 — Now Playing floating-mode UX (1.21.32/code255, feature branch)
+### October 12 — Now Playing floating-mode UX (1.21.32–1.21.33/code255–256, feature branch)
 
 - `feat/now-playing-three-floating-modes`: three-state icon cycles Mini Window → native Android PiP (video) → background-only audio and persists in existing preferences. The separate Floating button applies the selection.
 - Relocates Locate from the Now Playing top bar to the **left** edge of the queue-search row; keeps Clear/Close on the far right with independent 48dp targets and an intervening search field. Locate clears a filter before revealing the current media.
 - Adds Android PiP host handoff through FullscreenVideoActivity (an Activity is required); background-only suppresses detached overlays without stopping PlaybackService. Existing in-app Library dock remains available.
 - Compatibility: legacy COMPACT preferences read as Android PiP. Standard Settings exposes the same three choices rather than adding a dropdown.
-- **SOURCE_ONLY**; branch CI and real Android PiP, overlay permission, background playback, and rotate/return checks are required. Latest owner-verified APK remains 1.21.18/code241; no release binary is changed.
+- **SOURCE_ONLY**; original 1.21.32 draft PR CI failed on a Kotlin annotation misplaced on a property (repaired under 1.21.33); branch re-test and physical Android PiP, overlay permission, background playback, and rotate/return checks are required. Latest owner-verified APK remains 1.21.18/code241; no release binary is changed.
 
 
 ### October 11 — storage discovery stage B (1.21.31/code254)
