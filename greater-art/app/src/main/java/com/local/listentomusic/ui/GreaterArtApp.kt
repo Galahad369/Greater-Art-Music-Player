@@ -164,6 +164,7 @@ fun GreaterArtApp(
     val graphError by viewModel.graphError.collectAsStateWithLifecycle()
     val wallpaperPan = rememberWallpaperPanState()
     val wallpaperSourceKey = when (settings.backgroundMode) {
+        AppBackgroundMode.ADAPTIVE_DYNAMIC -> "adaptive:${playback.currentPath.orEmpty()}"
         AppBackgroundMode.AMBIENT -> "ambient:${playback.currentPath.orEmpty()}"
         AppBackgroundMode.DEFAULT -> "default"
         AppBackgroundMode.CUSTOM_IMAGE -> "image:${settings.customBackgroundImageUri.orEmpty()}"
@@ -171,6 +172,12 @@ fun GreaterArtApp(
         AppBackgroundMode.CURRENT_VIDEO -> "current:${playback.currentPath.orEmpty()}"
     }
     LaunchedEffect(wallpaperSourceKey) { wallpaperPan.center() }
+    val ambientArtwork by produceState<android.graphics.Bitmap?>(null, playback.currentPath,
+        settings.backgroundMode, expandedPlayerVisible, settings.localOverrides[playback.currentPath]) {
+        value = null
+        if (settings.backgroundMode == AppBackgroundMode.ADAPTIVE_DYNAMIC && !expandedPlayerVisible)
+            value = viewModel.loadCurrentArtwork(playback.currentPath)
+    }
     val backgroundHorizontalPosition = androidx.compose.runtime.remember(wallpaperPan, screen) {
         { if (screen == Screen.LIBRARY) wallpaperPan.position else 0.5f }
     }
@@ -296,6 +303,7 @@ fun GreaterArtApp(
             // flings then compete with two video decoders plus Compose/GPU work.
             AppBackground(
                 preferences = settings,
+                ambientArtwork = ambientArtwork,
                 currentPath = playback.currentPath,
                 isVideo = playback.isVideo,
                 controller = controller,
@@ -511,6 +519,9 @@ fun GreaterArtApp(
                     onEditableQueue = viewModel::setEditableQueue,
                     onImportM3u = { m3uImporter.launch(arrayOf("audio/x-mpegurl", "application/vnd.apple.mpegurl", "text/plain")) },
                     onExportM3u = { m3uExporter.launch("Greater-Art-playlist.m3u8") },
+                    onAdaptiveIntensity = viewModel::setAdaptiveIntensity,
+                    onAdaptiveReact = viewModel::setAdaptiveReactToVideo,
+                    onAdaptiveMotion = viewModel::setAdaptiveMotion,
                     onBackgroundMode = { mode ->
                                             when {
                                                 mode == AppBackgroundMode.CUSTOM_IMAGE &&

@@ -43,6 +43,9 @@ data class UserPreferences(
     val customBackgroundImageUri: String? = null,
     val customBackgroundVideoUri: String? = null,
     val backgroundDim: Float = 0.35f,
+    val adaptiveIntensity: Float = .5f,
+    val adaptiveReactToVideo: Boolean = true,
+    val adaptiveMotion: AmbientMotion = AmbientMotion.SUBTLE,
         val backgroundScaleMode: BackgroundScaleMode = BackgroundScaleMode.CROP,
         val playlists: List<LocalPlaylist> = emptyList(),
     val savedStacks: List<SavedStack> = emptyList(),
@@ -81,7 +84,7 @@ enum class AppLanguage(val label: String) {
     ENGLISH("English"), TRADITIONAL_CHINESE("繁體中文"), JAPANESE("日本語"),
     GERMAN("Deutsch"), FRENCH("Français"), CANTONESE("廣東話"),
 }
-enum class AppBackgroundMode { DEFAULT, CUSTOM_IMAGE, CUSTOM_VIDEO, CURRENT_VIDEO, AMBIENT }
+enum class AppBackgroundMode { DEFAULT, CUSTOM_IMAGE, CUSTOM_VIDEO, CURRENT_VIDEO, AMBIENT, ADAPTIVE_DYNAMIC }
 enum class BackgroundScaleMode(val label: String) {
     CROP("Cut to screen size"),
     FIT("Fit"),
@@ -133,6 +136,9 @@ class AppPreferences(private val context: Context) {
         val customBackgroundImageUri = stringPreferencesKey("custom_background_image_uri")
         val customBackgroundVideoUri = stringPreferencesKey("custom_background_video_uri")
         val backgroundDim = floatPreferencesKey("background_dim")
+        val adaptiveIntensity = floatPreferencesKey("adaptive_ambient_intensity")
+        val adaptiveReact = booleanPreferencesKey("adaptive_ambient_react")
+        val adaptiveMotion = stringPreferencesKey("adaptive_ambient_motion")
                 val backgroundScaleMode = stringPreferencesKey("background_scale_mode")
                 val playlists = stringPreferencesKey("playlists")
         val savedStacks = stringPreferencesKey("saved_stacks_v1")
@@ -200,6 +206,9 @@ class AppPreferences(private val context: Context) {
             customBackgroundImageUri = prefs[Keys.customBackgroundImageUri],
             customBackgroundVideoUri = prefs[Keys.customBackgroundVideoUri],
             backgroundDim = (prefs[Keys.backgroundDim] ?: 0.35f).coerceIn(0.25f, 0.85f),
+            adaptiveIntensity = ambientIntensityFromStorage(prefs[Keys.adaptiveIntensity]),
+            adaptiveReactToVideo = prefs[Keys.adaptiveReact] ?: true,
+            adaptiveMotion = ambientMotionFromStorage(prefs[Keys.adaptiveMotion]),
                         backgroundScaleMode = backgroundScaleModeFromStorage(prefs[Keys.backgroundScaleMode]),
                         playlists = decodePlaylists(prefs[Keys.playlists].orEmpty()),
             savedStacks = SavedStackCodec.decode(prefs[Keys.savedStacks].orEmpty()),
@@ -312,6 +321,11 @@ class AppPreferences(private val context: Context) {
     suspend fun setAppLanguage(value: AppLanguage) = edit { it[Keys.appLanguage] = value.name }
     suspend fun setBackgroundMode(value: AppBackgroundMode) =
         edit { it[Keys.backgroundMode] = value.name }
+    suspend fun setAdaptiveIntensity(value: Float) = edit {
+        it[Keys.adaptiveIntensity] = ambientIntensityFromStorage(value)
+    }
+    suspend fun setAdaptiveReactToVideo(value: Boolean) = edit { it[Keys.adaptiveReact] = value }
+    suspend fun setAdaptiveMotion(value: AmbientMotion) = edit { it[Keys.adaptiveMotion] = value.name }
     suspend fun setCustomBackgroundImageUri(value: String?) = edit { prefs ->
         if (value == null) prefs.remove(Keys.customBackgroundImageUri)
         else prefs[Keys.customBackgroundImageUri] = value
@@ -494,6 +508,9 @@ class AppPreferences(private val context: Context) {
             it.remove(Keys.floatingWindowDefaultV2)
             it.remove(Keys.appLanguage)
             it.remove(Keys.backgroundMode)
+            it.remove(Keys.adaptiveIntensity)
+            it.remove(Keys.adaptiveReact)
+            it.remove(Keys.adaptiveMotion)
                         it.remove(Keys.customBackgroundImageUri)
                         it.remove(Keys.customBackgroundVideoUri)
                         it.remove(Keys.backgroundDim)

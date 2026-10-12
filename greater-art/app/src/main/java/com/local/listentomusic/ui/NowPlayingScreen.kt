@@ -175,6 +175,7 @@ import com.local.listentomusic.model.MediaKind
 import com.local.listentomusic.model.LocalLyrics
 import com.local.listentomusic.sleepTimerOptions
 import com.local.listentomusic.ui.components.ambientBackdrop
+import com.local.listentomusic.ui.components.adaptiveAmbientBackdrop
 import com.local.listentomusic.ui.theme.GaControl
 import com.local.listentomusic.ui.theme.GaMotion
 import com.local.listentomusic.ui.theme.GaRadius
@@ -301,6 +302,7 @@ fun NowPlayingScreen(
     onFullscreenChanged: (Boolean) -> Unit = {},
     sharedVideoView: PlayerView? = null,
     onSharedVideoReleased: () -> Unit = {},
+    ambientPreferences: com.local.listentomusic.data.UserPreferences? = null,
 ) {
     androidx.compose.runtime.CompositionLocalProvider(LocalSystemPlayer provides systemOverlay) {
     var fullscreen by rememberSaveable { mutableStateOf(initialFullscreen) }
@@ -329,7 +331,11 @@ fun NowPlayingScreen(
 
         var playerRootBounds by remember { mutableStateOf<androidx.compose.ui.geometry.Rect?>(null) }
 
-        val backdrop = Modifier.ambientBackdrop(
+        val backdrop = if (ambientPreferences?.backgroundMode == com.local.listentomusic.data.AppBackgroundMode.ADAPTIVE_DYNAMIC)
+            Modifier.adaptiveAmbientBackdrop(artwork, playback.currentPath, ambientPreferences,
+                visible = !fullscreen && !forceLandscapeFullscreen,
+                extraDim = ambientPreferences.backgroundDim,
+                scrolling = queueListState.isScrollInProgress) else Modifier.ambientBackdrop(
         artwork,
         MaterialTheme.colorScheme.background.luminance() > .5f,
         playback.currentPath,

@@ -120,6 +120,9 @@ fun SettingsScreen(
     onImportM3u: () -> Unit,
     onExportM3u: () -> Unit,
     onBackgroundMode: (AppBackgroundMode) -> Unit,
+    onAdaptiveIntensity: (Float) -> Unit,
+    onAdaptiveReact: (Boolean) -> Unit,
+    onAdaptiveMotion: (com.local.listentomusic.data.AmbientMotion) -> Unit,
         onBackgroundScaleMode: (BackgroundScaleMode) -> Unit,
         onChooseBackgroundImage: () -> Unit,
     onChooseBackgroundVideo: () -> Unit,
@@ -303,7 +306,8 @@ fun SettingsScreen(
                                 AppBackgroundMode.CUSTOM_IMAGE -> uiText(language, "Image", "圖片")
                                 AppBackgroundMode.CUSTOM_VIDEO -> uiText(language, "Silent MP4", "靜音 MP4")
                                 AppBackgroundMode.CURRENT_VIDEO -> uiText(language, "Now-playing video", "播放中影片")
-                                AppBackgroundMode.AMBIENT -> uiText(language, "Ambient", "氛圍漸層")
+                                AppBackgroundMode.AMBIENT -> classicAmbientLabel(language)
+                                AppBackgroundMode.ADAPTIVE_DYNAMIC -> adaptiveLabel(language)
                             }
                         },
                         onBackgroundMode,
@@ -320,6 +324,8 @@ fun SettingsScreen(
                                             onBackgroundScaleMode,
                                         )
                                         when (preferences.backgroundMode) {
+                        AppBackgroundMode.ADAPTIVE_DYNAMIC -> AdaptiveAmbientSettings(preferences,
+                            onAdaptiveIntensity, onAdaptiveReact, onAdaptiveMotion)
                         AppBackgroundMode.CUSTOM_IMAGE -> BackgroundFileSetting(
                             title = uiText(language, "Custom image", "自訂圖片"),
                             selected = preferences.customBackgroundImageUri != null,

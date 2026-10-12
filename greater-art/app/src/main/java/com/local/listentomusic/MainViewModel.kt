@@ -574,6 +574,10 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     fun setAppLanguage(value: AppLanguage) = updatePreference { preferences.setAppLanguage(value) }
     fun setBackgroundMode(value: AppBackgroundMode) =
             updatePreference { preferences.setBackgroundMode(value) }
+    fun setAdaptiveIntensity(value: Float) = updatePreference { preferences.setAdaptiveIntensity(value) }
+    fun setAdaptiveReactToVideo(value: Boolean) = updatePreference { preferences.setAdaptiveReactToVideo(value) }
+    fun setAdaptiveMotion(value: com.local.listentomusic.data.AmbientMotion) =
+        updatePreference { preferences.setAdaptiveMotion(value) }
         fun setBackgroundScaleMode(value: BackgroundScaleMode) =
             updatePreference { preferences.setBackgroundScaleMode(value) }
         fun setCustomBackgroundImage(uri: String?) = updatePreference {

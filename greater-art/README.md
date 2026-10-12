@@ -4,13 +4,17 @@ Greater Art is a native Kotlin/Jetpack Compose player for local music and video.
 
 ## Current release
 
+Current source: **1.21.36 / code259 — SOURCE_ONLY**. Adaptive Dynamic combines
+Classic/Aurora/Bloom/Flow; Classic remains available. See
+[implementation/evidence](docs/ADAPTIVE_AMBIENT_2.md). Latest verified APK stays1.21.32.
+
 Source settings: collapsed sections, readable palette swatches, independent
 Small/Medium/Large Mini sizing and working Library artwork sizing. Ambient is an
 optional video-colour gradient, with no extra decoder. See the
 [branch/issue review](docs/BRANCH_AND_ISSUE_REVIEW_2026-10-10.md) for integration,
 historical APK dispositions and unresolved physical/admin acceptance gates.
 
-Current source is **1.21.32 / code 255 — VERIFIED sideload build**. [Download the APK](releases/GreaterArt-1.21.32.apk). Emulator/build evidence is in [HANDOFF.md](HANDOFF.md); physical-phone and production signing acceptance remain pending. A selected SAF folder can supply Library playback, metadata, embedded artwork, waveforms and Stack readers. Clearing the folder returns to recursive Download discovery. URI sidecars, sharing/deletion and the final storage-permission migration are not complete. Adaptive Stack drift control
+The verified **1.21.32 / code255 sideload APK** is [available here](releases/GreaterArt-1.21.32.apk). Emulator/build evidence is in [HANDOFF.md](HANDOFF.md); physical-phone and production signing acceptance remain pending. A selected SAF folder can supply Library playback, metadata, embedded artwork, waveforms and Stack readers. Clearing the folder returns to recursive Download discovery. URI sidecars, sharing/deletion and the final storage-permission migration are not complete. Adaptive Stack drift control
 is model-backed; audible improvement still requires physical listening.
 Calibrated internal-output probes now demonstrate remaining independent-player
 drift on the emulator; shared-clock output fixes the generated probe only in the

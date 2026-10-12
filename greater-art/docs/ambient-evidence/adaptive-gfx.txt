@@ -1,0 +1,14 @@
+Total frames rendered: 447
+Janky frames: 48 (10.74%)
+Janky frames (legacy): 273 (61.07%)
+50th percentile: 20ms
+90th percentile: 29ms
+95th percentile: 32ms
+99th percentile: 113ms
+Number Missed Vsync: 4
+Number High input latency: 569
+50th gpu percentile: 3ms
+90th gpu percentile: 23ms
+95th gpu percentile: 24ms
+99th gpu percentile: 4950ms
+heapUsedBytes=21524800

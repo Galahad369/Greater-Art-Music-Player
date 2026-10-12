@@ -3,7 +3,7 @@
 This file describes the **current repository state only**. Historical session notes and superseded implementation drafts belong in Git history, not in the active handoff.
 
 **Project:** `greater-art/` in the repository checkout
-**Current source:** `1.21.32 (code 255)` — VERIFIED sideload build; selected-folder URI playback
+**Current source:** `1.21.36 (code 259)` — SOURCE_ONLY; Adaptive Dynamic Ambient
 **Current version:** `1.21.32 (code 255)`
 **Latest APK:** `releases/GreaterArt-1.21.32.apk` (`26,812,053 bytes`; SHA-256 `353d3098296716c0cee4d4e385af73c3d7e313bc317fa2944012f0b4d8631847`)
 **Application ID:** `com.local.listentomusic`
@@ -13,6 +13,23 @@ This file describes the **current repository state only**. Historical session no
 **Verification boundary:** Owner confirmed 1.21.18 verification on 9 October 2026. The existing 1.21.18 QA record below reports 249 JVM tests (0 failures), 0 lint errors, three passing API 36 ThumbnailPipelineTest regressions, Library/playback smoke, and no observed FATAL EXCEPTION or ANR in its bounded session; it records a 27,746,006-byte debug APK, package `com.local.listentomusic`, versionName `1.21.18`, versionCode `241`, ZIP alignment pass, personal debug signing certificate as above, and SHA-256 `bba973d127a9dec1f03b29fca1a146707c9feee82497e9a65ab196870b696b3d`. That earlier test took place on an uncommitted local source tree later incorporated into `2edb328a`; exact committed-source equivalence is owner-attested, not independently proven by that record alone. The separate release-finalization PR must pass the *unmodified* Version Consistency guard's SHA-256/manifest checks against the actual tracked APK before merge. Historical records remain below unchanged.
 
 ## Repository state
+
+### October 12 — Adaptive Dynamic Ambient (1.21.36/code259)
+
+- Dedicated branch from main df7f8de; PR #168 remains separate and untouched.
+  Its consumed1.21.33–35 identities are recorded, not reused.
+- Classic renderer preserved. Adaptive combines Classic/Aurora/Bloom/Flow using
+  existing compositor samples or cached artwork. Bounded off-main analysis,
+  smooth transitions, two numeric cached snapshots and draw-only motion.
+- Persisted intensity/react/motion controls cover all six languages. Hidden,
+  scrolling, battery-saver/reduced-motion gates; no decoder/audio/DSP/quality or
+  Surface ownership changes. Evidence: docs/ADAPTIVE_AMBIENT_2.md.
+- Latest verified APK remains1.21.32. Existing local historical-APK deletions are
+  unrelated user work; do not restore/stage/publish them with this feature.
+- Final local verification: 352 JVM tests, seven API36 emulator tests, lint zero
+  errors, version guard and public-repository audit pass. Unequal short jank
+  windows are documented, not proof of a speedup; physical-device acceptance
+  remains outstanding. No release artifact was overwritten.
 
 ### October 12 — Stage C core URI playback (1.21.32/code255)
 

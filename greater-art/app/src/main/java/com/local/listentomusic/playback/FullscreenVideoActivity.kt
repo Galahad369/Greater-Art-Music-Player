@@ -9,6 +9,7 @@ import androidx.activity.viewModels
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.produceState
 import androidx.compose.ui.unit.dp
 import androidx.core.view.ViewCompat
 import androidx.lifecycle.lifecycleScope
@@ -42,11 +43,18 @@ class FullscreenVideoActivity : ComponentActivity() {
             val queue by viewModel.queue.collectAsState()
             val controller by viewModel.controller.collectAsState()
             val settings by viewModel.settings.collectAsState()
+            val artwork by produceState<android.graphics.Bitmap?>(null, playback.currentPath,
+                settings.backgroundMode, settings.localOverrides[playback.currentPath]) {
+                value = null
+                if (settings.backgroundMode == com.local.listentomusic.data.AppBackgroundMode.ADAPTIVE_DYNAMIC)
+                    value = viewModel.loadCurrentArtwork(playback.currentPath)
+            }
             val sleepTimer by viewModel.sleepTimer.collectAsState()
             GreaterArtTheme(settings.themeMode, settings.colorTheme, settings.appFont, settings.silianRail) {
                 NowPlayingScreen(
                     playback = playback,
-                    artwork = null,
+                    artwork = artwork,
+                    ambientPreferences = settings,
                     queue = queue,
                     lyrics = null,
                     showFileDetails = settings.showFileDetails,

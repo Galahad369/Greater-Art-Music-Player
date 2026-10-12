@@ -102,6 +102,7 @@ fun AppBackground(
     listScrolling: Boolean = false,
     horizontalPosition: (() -> Float)? = null,
     dimAlphaOverride: Float? = null,
+    ambientArtwork: Bitmap? = null,
 ) {
     val mode = preferences.backgroundMode
     val tiles = rememberStackVideoTiles()
@@ -219,7 +220,7 @@ fun AppBackground(
             videoSurfaceActive && !listScrolling && (attachCustomVideoBackground || usePrimaryVideoBackground)
 
     Box(modifier.fillMaxSize().graphicsLayer()) {
-        val ambient = Modifier.ambientBackdrop(null,
+        val ambient = if (mode == AppBackgroundMode.ADAPTIVE_DYNAMIC) Modifier else Modifier.ambientBackdrop(null,
             androidx.compose.material3.MaterialTheme.colorScheme.background.luminance() > .5f, currentPath)
         val videoFallback = mode == AppBackgroundMode.CUSTOM_VIDEO &&
             (preferences.customBackgroundVideoUri == null || !attachCustomVideoBackground) ||
@@ -234,6 +235,8 @@ fun AppBackground(
             Box(Modifier.fillMaxSize().background(androidx.compose.material3.MaterialTheme.colorScheme.background))
         }
         when (mode) {
+            AppBackgroundMode.ADAPTIVE_DYNAMIC -> if (visible) Box(Modifier.fillMaxSize()
+                .adaptiveAmbientBackdrop(ambientArtwork, currentPath, preferences, visible, listScrolling))
             AppBackgroundMode.AMBIENT -> if (visible) Box(Modifier.fillMaxSize().then(ambient))
             AppBackgroundMode.DEFAULT -> Unit
             AppBackgroundMode.CUSTOM_IMAGE -> preferences.customBackgroundImageUri

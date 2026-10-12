@@ -95,6 +95,7 @@ internal fun PlayerWindowExpandedContent(
                             NowPlayingScreen(
                                 playback = playback,
                                 artwork = artwork,
+                                ambientPreferences = settings,
                                 queue = queue,
                                 lyrics = lyrics,
                                 showFileDetails = settings.showFileDetails,
