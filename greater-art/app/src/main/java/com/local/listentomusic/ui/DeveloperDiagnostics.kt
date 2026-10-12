@@ -28,6 +28,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.material3.Button
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
@@ -59,6 +60,7 @@ internal fun DeveloperDiagnostics(
     regions: List<String>,
     warning: Boolean,
     inspector: UiInspectorState,
+    onDisableDeveloperMode: () -> Unit,
     modifier: Modifier = Modifier,
     systemOverlay: Boolean = false,
     badgeAlignment: Alignment = if (systemOverlay) Alignment.TopCenter else Alignment.TopStart,
@@ -165,6 +167,22 @@ internal fun DeveloperDiagnostics(
                             Text(if (warning) "Needs attention" else "Running locally", color = accent, style = MaterialTheme.typography.labelSmall)
                         }
                         TextButton(onClick = { open = false }) { Text("CLOSE") }
+                    }
+                    // Keep the exit action visible without opening Settings or
+                    // expanding technical details; one tap persists the preference.
+                    OutlinedButton(
+                        onClick = {
+                            open = false
+                            showRegions = false
+                            inspector.cancel()
+                            inspector.clearSelection()
+                            onDisableDeveloperMode()
+                        },
+                        modifier = Modifier.fillMaxWidth()
+                            .sizeIn(minHeight = GaControl.touchTarget)
+                            .inspectElement("DISABLE_DEVELOPER_MODE_BUTTON", "Turns off local developer diagnostics"),
+                    ) {
+                        Text("Turn off Developer Mode")
                     }
                     summary.forEach { line ->
                         Text(line, fontFamily = FontFamily.Monospace, style = MaterialTheme.typography.bodySmall)

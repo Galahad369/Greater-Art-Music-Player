@@ -55,12 +55,33 @@ class DesignAccessibilityTest {
 
     @Test fun developerBadgeHasMeasuredTargetAndPickStillWorks() {
         compose.setContent { MaterialTheme {
-            DeveloperDiagnostics("screen=LIBRARY", emptyList(), false, remember { UiInspectorState() })
+            DeveloperDiagnostics("screen=LIBRARY", emptyList(), false,
+                remember { UiInspectorState() }, onDisableDeveloperMode = {})
         } }
         compose.onNodeWithText("DEV").assertHasClickAction()
             .assertWidthIsAtLeast(48.dp).assertHeightIsAtLeast(48.dp).performClick()
         compose.onNodeWithText("Inspector").assertIsDisplayed()
         compose.onNodeWithText("Pick an element").performClick()
+        compose.onNodeWithText("Inspector").assertDoesNotExist()
+    }
+
+    @Test fun developerModeCanBeTurnedOffFromInsideTheInspector() {
+        val enabled = androidx.compose.runtime.mutableStateOf(true)
+        var disableCalls = 0
+        compose.setContent { MaterialTheme {
+            if (enabled.value) DeveloperDiagnostics(
+                report = "screen=LIBRARY",
+                regions = emptyList(),
+                warning = false,
+                inspector = remember { UiInspectorState() },
+                onDisableDeveloperMode = { disableCalls++; enabled.value = false },
+            )
+        } }
+        compose.onNodeWithText("DEV").performClick()
+        compose.onNodeWithText("Turn off Developer Mode").assertIsDisplayed()
+            .assertHasClickAction().assertHeightIsAtLeast(48.dp).performClick()
+        compose.runOnIdle { org.junit.Assert.assertEquals(1, disableCalls) }
+        compose.onNodeWithText("DEV").assertDoesNotExist()
         compose.onNodeWithText("Inspector").assertDoesNotExist()
     }
 
