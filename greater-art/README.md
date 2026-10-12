@@ -4,13 +4,21 @@ Greater Art is a native Kotlin/Jetpack Compose player for local music and video.
 
 ## Current release
 
+Current source: **1.21.37 / code260 — emulator-VERIFIED sideload**. Adaptive Dynamic combines
+Classic/Aurora/Bloom/Flow; Classic remains available. See
+[implementation/evidence](docs/ADAPTIVE_AMBIENT_2.md). Latest verified APK is 1.21.37.
+
+This release also integrates Mini/Android PiP/No Floating, queue Locate, bounded
+PiP startup readiness and an independent High Contrast palette. Complete evidence
+and remaining acceptance: [engineering report](docs/QUALITY_PASS_2026-10-12.md).
+
 Source settings: collapsed sections, readable palette swatches, independent
 Small/Medium/Large Mini sizing and working Library artwork sizing. Ambient is an
 optional video-colour gradient, with no extra decoder. See the
 [branch/issue review](docs/BRANCH_AND_ISSUE_REVIEW_2026-10-10.md) for integration,
 historical APK dispositions and unresolved physical/admin acceptance gates.
 
-Current source is **1.21.32 / code 255 — VERIFIED sideload build**. [Download the APK](releases/GreaterArt-1.21.32.apk). Emulator/build evidence is in [HANDOFF.md](HANDOFF.md); physical-phone and production signing acceptance remain pending. A selected SAF folder can supply Library playback, metadata, embedded artwork, waveforms and Stack readers. Clearing the folder returns to recursive Download discovery. URI sidecars, sharing/deletion and the final storage-permission migration are not complete. Adaptive Stack drift control
+The verified **1.21.37 / code260 sideload APK** is [available here](releases/GreaterArt-1.21.37.apk). Emulator/build evidence is in [HANDOFF.md](HANDOFF.md); physical-phone and production signing acceptance remain pending. A selected SAF folder can supply Library playback, metadata, embedded artwork, waveforms and Stack readers. Clearing the folder returns to recursive Download discovery. URI sidecars, sharing/deletion and the final storage-permission migration are not complete. Adaptive Stack drift control
 is model-backed; audible improvement still requires physical listening.
 Calibrated internal-output probes now demonstrate remaining independent-player
 drift on the emulator; shared-clock output fixes the generated probe only in the
@@ -39,7 +47,7 @@ Bounded HPSS-weighted analysis and linear timing maps are implemented in source;
 HPSS is not vocal removal. Shared-clock output is implemented only as a separate
 debug/test prototype; physical output performance and production adoption are pending.
 
-Latest emulator-verified sideload APK: **1.21.32/code255** (see HANDOFF for bounded QA, artifact hash and provenance limitations). Last owner-confirmed physical release remains 1.21.18/code241.
+Latest emulator-verified sideload APK: **1.21.37/code260** (see HANDOFF for bounded QA, artifact hash and provenance limitations). Last owner-confirmed physical release remains 1.21.18/code241.
 
 Earlier verified build: **1.15.77/code207**, exact app source `bc1c645a3be77a0b64c4c0c523b85ccd242e292d`. It preserves the reviewed Stack alignment/readiness work and adds guarded decoder-pressure recovery so stale recovery coroutines cannot pause or publish into a replacement Stack. The API 36 verification boundary in HANDOFF covers build/lint/tests, package/version/signature checks, local media playback, Stack transitions, Mini/fullscreen/return flows and zero fatal exceptions in the tested session. This is not real-phone acoustic synchronization proof, and fixed offsets do not time-warp different arrangements or tempos.
 

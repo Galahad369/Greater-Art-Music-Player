@@ -93,8 +93,11 @@ internal fun PlayerWindowExpandedContent(
                     Column(Modifier.fillMaxSize()) {
                         Box(Modifier.fillMaxWidth().weight(1f)) {
                             NowPlayingScreen(
+                                floatingWindowMode = settings.floatingWindowMode,
+                                onFloatingWindowModeChange = viewModel::setFloatingWindowMode,
                                 playback = playback,
                                 artwork = artwork,
+                                ambientPreferences = settings,
                                 queue = queue,
                                 lyrics = lyrics,
                                 showFileDetails = settings.showFileDetails,

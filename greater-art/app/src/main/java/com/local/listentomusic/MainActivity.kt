@@ -37,6 +37,8 @@ import com.local.listentomusic.ui.uiText
 import com.local.listentomusic.ui.theme.GreaterArtTheme
 import com.local.listentomusic.data.FloatingWindowMode
 import com.local.listentomusic.playback.MiniWindowOverlayService
+import com.local.listentomusic.playback.FullscreenVideoActivity
+import com.local.listentomusic.data.usesAndroidPip
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
@@ -67,7 +69,18 @@ class MainActivity : ComponentActivity() {
             ContextCompat.RECEIVER_NOT_EXPORTED)
         onBackPressedDispatcher.addCallback(this, object : androidx.activity.OnBackPressedCallback(true) {
             override fun handleOnBackPressed() {
-                if (viewModel.playback.value.hasMedia && startMiniWindowIfAllowed(backgroundWhenReady = true)) return
+                if (viewModel.playback.value.hasMedia) {
+                    when (viewModel.settings.value.floatingWindowMode) {
+                        FloatingWindowMode.MINI_WINDOW ->
+                            if (startMiniWindowIfAllowed(backgroundWhenReady = true)) return
+                        FloatingWindowMode.FOLLOW_VIDEO, FloatingWindowMode.COMPACT ->
+                            if (startNativePipIfAvailable()) return
+                        FloatingWindowMode.NONE -> Unit
+                    }
+                    // No window or audio-only PiP: keep the MediaSession playing.
+                    moveTaskToBack(true)
+                    return
+                }
                 isEnabled = false
                 onBackPressedDispatcher.onBackPressed()
                 isEnabled = true
@@ -184,6 +197,13 @@ class MainActivity : ComponentActivity() {
         com.local.listentomusic.playback.PlayerWindowVisibility.library(false)
         com.local.listentomusic.playback.PlayerWindowVisibility.app(false)
         super.onStop()
+        // Background-only mode has no overlay-service notification/window.
+        // Keep the independent MediaSession/PlaybackService running.
+        if (viewModel.settings.value.floatingWindowMode != FloatingWindowMode.MINI_WINDOW &&
+            !com.local.listentomusic.ui.components.VideoSurfaceOwner.expandedOverlayActive &&
+            !com.local.listentomusic.ui.components.VideoSurfaceOwner.fullscreenActivityActive) {
+            stopService(Intent(this, MiniWindowOverlayService::class.java))
+        }
     }
 
     override fun onDestroy() {
@@ -199,38 +219,25 @@ class MainActivity : ComponentActivity() {
 
     override fun onUserLeaveHint() {
         super.onUserLeaveHint()
-        // A system-level Now Playing window is already the active external
-        // presentation. Do not spawn a second Mini Window underneath it.
-        if (com.local.listentomusic.ui.components.VideoSurfaceOwner.expandedOverlayActive) {
-            if (!MiniWindowOverlayService.shareInProgress) {
-                startService(Intent(this, MiniWindowOverlayService::class.java)
-                    .setAction(MiniWindowOverlayService.ACTION_DETACH))
-            }
-            return
-        }
         val playback = viewModel.playback.value
         val settings = viewModel.settings.value
-        if (
-            playback.hasMedia &&
-            settings.autoPictureInPicture &&
-            settings.floatingWindowMode == FloatingWindowMode.MINI_WINDOW
-        ) {
-            // The already-running window follows Library visibility onStop.
-            // Do not queue a second detach intent that can race a rapid return.
+        val mode = settings.floatingWindowMode
+        if (com.local.listentomusic.ui.components.VideoSurfaceOwner.expandedOverlayActive) {
+            if (!MiniWindowOverlayService.shareInProgress) {
+                startService(Intent(this, MiniWindowOverlayService::class.java).setAction(
+                    if (settings.autoPictureInPicture && mode.usesAndroidPip() &&
+                        playback.isVideo && playback.isPlaying) MiniWindowOverlayService.ACTION_ENTER_NATIVE_PIP
+                    else MiniWindowOverlayService.ACTION_DETACH
+                ))
+            }
             return
         }
-        if (
-            playerScreenVisible &&
-            playback.isVideo &&
-            playback.isPlaying &&
-            settings.autoPictureInPicture &&
-            !isInPictureInPictureMode
-        ) {
-            updatePictureInPictureParams()
-            if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S) {
-                enterPictureInPictureMode(buildPictureInPictureParams(autoEnter = false))
-            }
+        if (!settings.autoPictureInPicture || !playback.hasMedia) return
+        if (mode.usesAndroidPip() && playback.isVideo && playback.isPlaying &&
+            !isInPictureInPictureMode) {
+            startNativePipIfAvailable()
         }
+        // MINI_WINDOW follows Library visibility; NONE has no background overlay.
     }
 
     override fun onPictureInPictureModeChanged(
@@ -250,29 +257,39 @@ class MainActivity : ComponentActivity() {
 
     private fun updatePictureInPictureParams() {
         val playback = viewModel.playback.value
-        val autoEnter = playerScreenVisible && playback.isVideo && playback.isPlaying &&
-            viewModel.settings.value.autoPictureInPicture &&
-            viewModel.settings.value.floatingWindowMode != FloatingWindowMode.MINI_WINDOW
+        // Native PiP is hosted by FullscreenVideoActivity, never the Library Activity.
+        val autoEnter = false
         setPictureInPictureParams(buildPictureInPictureParams(autoEnter))
     }
 
     private fun enterVideoPictureInPicture() {
-        val playback = viewModel.playback.value
-        if (!playback.hasMedia || isInPictureInPictureMode) return
-        if (
-            !playback.isVideo ||
-            viewModel.settings.value.floatingWindowMode == FloatingWindowMode.MINI_WINDOW
-        ) {
-            startMiniWindowIfAllowed(
-                openSettingsWhenMissing = true,
-                backgroundWhenReady = true,
-            )
-            return
+        if (!viewModel.playback.value.hasMedia) return
+        when (viewModel.settings.value.floatingWindowMode) {
+            FloatingWindowMode.MINI_WINDOW -> startMiniWindowIfAllowed(
+                openSettingsWhenMissing = true, backgroundWhenReady = true)
+            FloatingWindowMode.FOLLOW_VIDEO, FloatingWindowMode.COMPACT ->
+                if (!startNativePipIfAvailable()) moveTaskToBack(true)
+            FloatingWindowMode.NONE -> moveTaskToBack(true)
         }
-        if (!playerScreenVisible || !playback.isVideo) return
-        updatePictureInPictureParams()
-        runCatching {
-            enterPictureInPictureMode(buildPictureInPictureParams(autoEnter = false))
+    }
+
+    /** Real Android PiP needs a player Activity, not the Library or a system overlay. */
+    private fun startNativePipIfAvailable(): Boolean {
+        if (!viewModel.playback.value.isVideo) return false
+        val owner = com.local.listentomusic.ui.components.VideoSurfaceOwner
+        if (owner.fullscreenActivityActive) return true
+        owner.beginHandoff("NOW_PLAYING")
+        owner.setFullscreenActivityVisible(true)
+        return runCatching {
+            startActivity(Intent(this, FullscreenVideoActivity::class.java).apply {
+                putExtra(FullscreenVideoActivity.EXTRA_START_PIP, true)
+                addFlags(Intent.FLAG_ACTIVITY_NO_ANIMATION)
+            })
+            true
+        }.getOrElse {
+            owner.setFullscreenActivityVisible(false)
+            owner.finishHandoff("MINI_WINDOW")
+            false
         }
     }
 
@@ -344,7 +361,7 @@ class MainActivity : ComponentActivity() {
             FloatingWindowMode.COMPACT -> 16f / 9f
             FloatingWindowMode.FOLLOW_VIDEO ->
                 viewModel.playback.value.videoAspectRatio.coerceIn(0.5f, 2.0f)
-            FloatingWindowMode.MINI_WINDOW -> 16f / 9f
+            FloatingWindowMode.MINI_WINDOW, FloatingWindowMode.NONE -> 16f / 9f
         }
         return PictureInPictureParams.Builder()
             .setAspectRatio(Rational((ratio * 1_000).toInt(), 1_000))

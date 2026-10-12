@@ -4,12 +4,17 @@ Greater Art is a local-first Android audio and video player. This repository con
 
 > **Vibe-coded disclosure:** Greater Art was built through iterative work with AI coding agents. Human direction, product decisions, device feedback, and acceptance guide the work; substantial code and documentation are AI-assisted.
 
-- Latest emulator-verified sideload APK: **1.21.32 (code 255)** — see the [verification boundary](greater-art/HANDOFF.md); physical-phone and production-signing acceptance remain pending.
-- APK: [GreaterArt-1.21.32.apk](greater-art/releases/GreaterArt-1.21.32.apk)
+- Latest emulator-verified sideload APK: **1.21.37 (code 260)** — see the [verification boundary](greater-art/HANDOFF.md); physical-phone and production-signing acceptance remain pending.
+- APK: [GreaterArt-1.21.37.apk](greater-art/releases/GreaterArt-1.21.37.apk)
 - [App documentation](greater-art/README.md) · [Handoff and verification](greater-art/HANDOFF.md)
 - [User demonstration](greater-art-user-demo.html) · [Technical demonstration](greater-art-technical-demo.html)
 
-Current source: **1.21.32 / code 255 — VERIFIED sideload build**, selected-folder URI Library/playback
+Current source: **1.21.37 / code 260 — emulator-VERIFIED sideload**, Adaptive Dynamic Ambient.
+Integrated Mini/Android PiP/No Floating, queue Locate, readiness-gated PiP startup
+and independent High Contrast. [Full engineering evidence and remaining gates](greater-art/docs/QUALITY_PASS_2026-10-12.md).
+Classic/Aurora/Bloom/Flow coexist without another video decoder; see the
+[feature evidence](greater-art/docs/ADAPTIVE_AMBIENT_2.md). Latest verified APK
+is 1.21.37. Selected-folder URI Library/playback is preserved
 with distributed timing anchors, confidence-gated linear drift maps and bounded
 original-rate transient refinement. Library Performance v2
 stages 1–2. Shared viewport-priority artwork work pauses during fling; RAM hits stay

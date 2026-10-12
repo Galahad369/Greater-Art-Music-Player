@@ -32,7 +32,8 @@ object VideoAmbientColors {
                     val pixels = try { copyPixels(view) } catch (cancelled: CancellationException) {
                         throw cancelled
                     } catch (_: RuntimeException) { null }
-                    if (pixels != null && VideoSurfaceOwner.ambientSource()?.first == id)
+                    val sourceAfterCopy = VideoSurfaceOwner.ambientSource()
+                    if (pixels != null && sourceAfterCopy?.first == id && sourceAfterCopy.second === view)
                         mutable.value = VideoAmbientSample(id, pixels.toList())
                 }
                 delay(900L)
