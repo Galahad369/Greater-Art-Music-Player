@@ -77,6 +77,8 @@ import androidx.compose.material.icons.rounded.MusicNote
 import androidx.compose.material.icons.rounded.Movie
 import androidx.compose.material.icons.rounded.Pause
 import androidx.compose.material.icons.rounded.PictureInPictureAlt
+import androidx.compose.material.icons.rounded.OndemandVideo
+import androidx.compose.material.icons.rounded.Block
 import androidx.compose.material.icons.rounded.PlayArrow
 import androidx.compose.material.icons.rounded.Repeat
 import androidx.compose.material.icons.rounded.RepeatOne
@@ -95,6 +97,8 @@ import androidx.compose.material.icons.rounded.MyLocation
 import androidx.compose.material.icons.rounded.MoreVert
 import androidx.compose.material.icons.automirrored.rounded.PlaylistAdd
 import androidx.compose.material.icons.rounded.QueueMusic
+import com.local.listentomusic.data.FloatingWindowMode
+import com.local.listentomusic.data.nextFloatingMode
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.DropdownMenu
@@ -256,7 +260,12 @@ internal fun sideDoubleTapSeeks(
 }
 
 @Composable
+private val LocalFloatingMode = androidx.compose.runtime.compositionLocalOf { FloatingWindowMode.MINI_WINDOW }
+private val LocalFloatingModeChange = androidx.compose.runtime.compositionLocalOf<(FloatingWindowMode) -> Unit> { {} }
+
 fun NowPlayingScreen(
+    floatingWindowMode: FloatingWindowMode,
+    onFloatingWindowModeChange: (FloatingWindowMode) -> Unit,
     playback: PlaybackUiState,
     artwork: Bitmap?,
     queue: List<MediaFile>,
@@ -302,7 +311,11 @@ fun NowPlayingScreen(
     sharedVideoView: PlayerView? = null,
     onSharedVideoReleased: () -> Unit = {},
 ) {
-    androidx.compose.runtime.CompositionLocalProvider(LocalSystemPlayer provides systemOverlay) {
+    androidx.compose.runtime.CompositionLocalProvider(
+        LocalSystemPlayer provides systemOverlay,
+        LocalFloatingMode provides floatingWindowMode,
+        LocalFloatingModeChange provides onFloatingWindowModeChange,
+    ) {
     var fullscreen by rememberSaveable { mutableStateOf(initialFullscreen) }
     var controlsLocked by rememberSaveable { mutableStateOf(false) }
     // The lock and the fullscreen video chrome share one visibility source.
@@ -375,7 +388,6 @@ fun NowPlayingScreen(
                                         onHome = onHome,
                                         onFullscreen = { fullscreen = true },
                                         onClose = onClose,
-                                        onLocateCurrent = onLocateCurrent,
                                         onLockAnchorBoundsChanged = reportLockAnchor,
                                     )
                                 }
@@ -548,7 +560,6 @@ private fun VideoPlayerStage(
     controlsVisible: Boolean,
     onControlsVisibilityChange: (Boolean) -> Unit,
     modifier: Modifier,
-    onLocateCurrent: (() -> Unit)? = null,
 ) {
     var seekFeedback by remember { mutableStateOf(0L to 0L) }
     var seeking by remember { mutableStateOf(false) }
@@ -808,7 +819,6 @@ private fun VideoPlayerStage(
                                         onClose = onClose,
                                         overlay = true,
                                         fullscreen = true,
-                                        onLocateCurrent = onLocateCurrent,
                                         onLockAnchorBoundsChanged = onLockAnchorBoundsChanged,
                                         modifier = Modifier.align(Alignment.TopCenter)
                                             .windowInsetsPadding(playerStatusInsets()),
@@ -1033,6 +1043,7 @@ private fun AudioPlayer(
                                 modifier = Modifier.fillMaxWidth().weight(1f),
                                 queueListState = queueListState,
                                 locateTrigger = locateTrigger,
+                                onLocateCurrent = onLocateCurrent,
                             )
             WaveformTimeline(playback, waveform, onSeek, language, waveformLoading, artwork)
             PlayerBottomControls(playback, onRepeat, onPrevious, onTogglePlay, onNext, onSpeed)
@@ -1194,6 +1205,7 @@ private fun SecondaryControls(
                     modifier = Modifier.fillMaxWidth().weight(1f),
                     queueListState = queueListState,
                     locateTrigger = locateTrigger,
+                    onLocateCurrent = onLocateCurrent,
                 )
         Column(
             Modifier.fillMaxWidth()
@@ -1232,6 +1244,7 @@ private fun NowPlayingQueue(
     modifier: Modifier = Modifier,
     queueListState: androidx.compose.foundation.lazy.LazyListState,
     locateTrigger: Int,
+    onLocateCurrent: () -> Unit,
 ) {
     var query by rememberSaveable { mutableStateOf("") }
     val searchFocus = remember { FocusRequester() }
@@ -1268,10 +1281,9 @@ private fun NowPlayingQueue(
     LaunchedEffect(currentQueueIndex, visibleIndex) {
         if (visibleIndex >= 0 && !listState.isScrollInProgress) listState.scrollToItem(visibleIndex)
     }
-    LaunchedEffect(locateTrigger) {
-        if (locateTrigger > 0 && visibleIndex >= 0 && !listState.isScrollInProgress) {
-            listState.animateScrollToItem(visibleIndex)
-        }
+    LaunchedEffect(locateTrigger, visibleIndex) {
+        // Rerun after clearing a filter that was hiding the playing song.
+        if (locateTrigger > 0 && visibleIndex >= 0) listState.animateScrollToItem(visibleIndex)
     }
     LaunchedEffect(listState) {
         try {
@@ -1284,20 +1296,39 @@ private fun NowPlayingQueue(
         }
     }
     Column(modifier.inspectElement("NOW_PLAYING_QUEUE", "Ordered playback queue and optional synchronized lyrics")) {
-        if (searchOpen) Row(Modifier.fillMaxWidth().inspectElement("QUEUE_SEARCH_FIELD", "Filters the current playback queue"), verticalAlignment = Alignment.CenterVertically) {
-                OutlinedTextField(
-                    value = query,
-                    onValueChange = { query = it },
-                    modifier = Modifier.weight(1f).height(52.dp).focusRequester(searchFocus),
-                    singleLine = true,
-                    placeholder = { Text(uiText(language, "Search current queue", "搜尋目前播放佇列")) },
-                    leadingIcon = { Icon(Icons.Rounded.Search, null) },
-                    trailingIcon = {
-                        IconButton(onClick = { if (query.isNotEmpty()) query = "" else onCloseSearch() }) {
-                            Icon(Icons.Rounded.Clear, uiText(language, "Clear", "清除"))
-                        }
-                    },
+        if (searchOpen) Row(
+            Modifier.fillMaxWidth().inspectElement("QUEUE_SEARCH_FIELD", "Locate | Search current queue | Clear/Close"),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            // Dedicated targets on opposite ends minimize accidental Locate/Close taps.
+            IconButton(
+                onClick = { query = ""; onLocateCurrent() },
+                enabled = stack.active || currentQueueIndex in queue.indices,
+                modifier = Modifier.size(GaControl.touchTarget)
+                    .inspectElement("LOCATE_CURRENT_BUTTON", "Reveal and locate the playing song"),
+            ) {
+                Icon(Icons.Rounded.MyLocation, uiText(language, "Locate current song", "定位當前播放"))
+            }
+            Spacer(Modifier.width(4.dp))
+            OutlinedTextField(
+                value = query,
+                onValueChange = { query = it },
+                modifier = Modifier.weight(1f).height(52.dp).focusRequester(searchFocus),
+                singleLine = true,
+                placeholder = { Text(uiText(language, "Search current queue", "搜尋目前播放佇列")) },
+            )
+            Spacer(Modifier.width(4.dp))
+            IconButton(
+                onClick = { if (query.isNotEmpty()) query = "" else onCloseSearch() },
+                modifier = Modifier.size(GaControl.touchTarget)
+                    .inspectElement("QUEUE_SEARCH_CLEAR_CLOSE", "Clear the filter or close search"),
+            ) {
+                Icon(
+                    Icons.Rounded.Clear,
+                    uiText(language, if (query.isNotEmpty()) "Clear search" else "Close search",
+                        if (query.isNotEmpty()) "清除搜尋" else "關閉搜尋"),
                 )
+            }
         }
         if (lyrics != null) {
             SyncedLyricsPanel(
@@ -2031,7 +2062,6 @@ private fun NowPlayingTopBar(
     modifier: Modifier = Modifier,
     overlay: Boolean = false,
     fullscreen: Boolean = false,
-    onLocateCurrent: (() -> Unit)? = null,
     onLockAnchorBoundsChanged: (androidx.compose.ui.geometry.Rect) -> Unit = {},
 ) {
     val foreground = if (overlay) GaVideoOverlay.foreground else MaterialTheme.colorScheme.onSurface
@@ -2064,10 +2094,28 @@ private fun NowPlayingTopBar(
         IconButton(onClick = onHome, modifier = Modifier.size(GaControl.touchTarget).inspectElement("HOME_BUTTON", "Returns to Library")) {
             Icon(Icons.Rounded.Home, uiText(language, "Home", "首頁"), Modifier.size(30.dp), tint = foreground)
         }
-        onLocateCurrent?.let { locateAction ->
-            IconButton(onClick = locateAction, modifier = Modifier.size(GaControl.touchTarget).inspectElement("LOCATE_CURRENT_BUTTON", "Scroll to currently playing song in queue")) {
-                Icon(Icons.Rounded.QueueMusic, uiText(language, "Locate current song", "定位當前播放"), Modifier.size(30.dp), tint = foreground)
-            }
+        val selectedMode = LocalFloatingMode.current
+        val onModeChange = LocalFloatingModeChange.current
+        val modeLabel = when (selectedMode) {
+            FloatingWindowMode.MINI_WINDOW -> uiText(language, "Mini Window", "迷你視窗")
+            FloatingWindowMode.FOLLOW_VIDEO, FloatingWindowMode.COMPACT -> uiText(language, "Android picture-in-picture", "Android 子母畫面")
+            FloatingWindowMode.NONE -> uiText(language, "Background only", "僅背景播放")
+        }
+        IconButton(
+            onClick = { onModeChange(selectedMode.nextFloatingMode()) },
+            modifier = Modifier.size(GaControl.touchTarget)
+                .inspectElement("FLOATING_MODE_BUTTON", "Switch floating playback mode: $modeLabel"),
+        ) {
+            Icon(
+                when (selectedMode) {
+                    FloatingWindowMode.MINI_WINDOW -> Icons.Rounded.PictureInPictureAlt
+                    FloatingWindowMode.FOLLOW_VIDEO, FloatingWindowMode.COMPACT -> Icons.Rounded.OndemandVideo
+                    FloatingWindowMode.NONE -> Icons.Rounded.Block
+                },
+                uiText(language, "Floating mode: $modeLabel. Tap to change.", "浮動模式：$modeLabel，輕觸切換。"),
+                modifier = Modifier.size(27.dp),
+                tint = foreground,
+            )
         }
         Spacer(Modifier.weight(1f))
         // The button itself stays above the global input blocker, but its position

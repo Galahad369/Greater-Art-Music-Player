@@ -1,19 +1,26 @@
 package com.local.listentomusic.playback
 
+import android.app.PictureInPictureParams
 import android.content.Intent
 import android.content.res.Configuration
 import android.os.Bundle
+import android.util.Rational
+import android.view.WindowManager
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.viewModels
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.unit.dp
 import androidx.core.view.ViewCompat
 import androidx.lifecycle.lifecycleScope
 import com.local.listentomusic.MainActivity
 import com.local.listentomusic.MainViewModel
+import com.local.listentomusic.data.FloatingWindowMode
+import com.local.listentomusic.data.usesAndroidPip
 import com.local.listentomusic.ui.NowPlayingScreen
 import com.local.listentomusic.ui.enforceImmersiveWindow
 import com.local.listentomusic.ui.components.VideoSurfaceOwner
@@ -29,10 +36,13 @@ class FullscreenVideoActivity : ComponentActivity() {
     private var returnDestination = "EXPANDED"
     private var returnDispatched = false
     private var handoffCompletionJob: Job? = null
+    private var pipVisible by mutableStateOf(false)
+    private var pipTransitionRequested = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         viewModel.useSessionPresentationOnly()
+        if (intent.getBooleanExtra(EXTRA_START_PIP, false)) returnDestination = "DETACHED"
         // Landscape fullscreen is a separate Activity; its own window must stay awake.
         // This applies to paused playback and is released when fullscreen closes.
         window.addFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
@@ -45,6 +55,8 @@ class FullscreenVideoActivity : ComponentActivity() {
             val sleepTimer by viewModel.sleepTimer.collectAsState()
             GreaterArtTheme(settings.themeMode, settings.colorTheme, settings.appFont, settings.silianRail) {
                 NowPlayingScreen(
+                    floatingWindowMode = settings.floatingWindowMode,
+                    onFloatingWindowModeChange = viewModel::setFloatingWindowMode,
                     playback = playback,
                     artwork = null,
                     queue = queue,
@@ -55,9 +67,12 @@ class FullscreenVideoActivity : ComponentActivity() {
                     language = settings.appLanguage,
                     controller = controller,
                     contentPadding = PaddingValues(0.dp),
-                    isPictureInPicture = false,
+                    isPictureInPicture = pipVisible,
                     onVideoBoundsChanged = {},
-                    onPictureInPicture = { finishTo("DETACHED") },
+                    onPictureInPicture = {
+                        if (settings.floatingWindowMode.usesAndroidPip() && playback.isVideo) enterNativePip()
+                        else finishTo("DETACHED")
+                    },
                     onHome = {
                         returnDestination = "DOCKED"
                         startActivity(Intent(this, MainActivity::class.java).apply {
@@ -99,7 +114,7 @@ class FullscreenVideoActivity : ComponentActivity() {
 
     override fun onResume() {
         super.onResume()
-        enforceImmersiveSystemBars()
+        if (!isInPictureInPictureMode) enforceImmersiveSystemBars()
         // Fullscreen is a real Activity, not a system overlay. Track it explicitly so
         // a transient ON_PAUSE (shade/dialog/OEM transition) cannot hand the primary
         // surface back to the hidden Mini Window while this Activity still owns video.
@@ -107,11 +122,26 @@ class FullscreenVideoActivity : ComponentActivity() {
         VideoSurfaceOwner.setActivityForeground(true)
         VideoSurfaceOwner.setPresentation(nowPlayingVisible = true, pictureInPicture = false)
         completeFullscreenHandoff()
+        if (intent.getBooleanExtra(EXTRA_START_PIP, false)) {
+            intent.removeExtra(EXTRA_START_PIP)
+            window.decorView.post { if (!isFinishing && !isInPictureInPictureMode) enterNativePip() }
+        }
+    }
+
+    override fun onPictureInPictureModeChanged(
+        isInPictureInPictureMode: Boolean, newConfig: Configuration,
+    ) {
+        super.onPictureInPictureModeChanged(isInPictureInPictureMode, newConfig)
+        pipVisible = isInPictureInPictureMode
+        pipTransitionRequested = isInPictureInPictureMode
+        if (isInPictureInPictureMode) window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+        else window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+        VideoSurfaceOwner.setPresentation(nowPlayingVisible = true, pictureInPicture = isInPictureInPictureMode)
     }
 
     override fun onWindowFocusChanged(hasFocus: Boolean) {
         super.onWindowFocusChanged(hasFocus)
-        if (hasFocus) enforceImmersiveSystemBars()
+        if (hasFocus && !isInPictureInPictureMode) enforceImmersiveSystemBars()
     }
 
     override fun onConfigurationChanged(newConfig: Configuration) {
@@ -120,7 +150,7 @@ class FullscreenVideoActivity : ComponentActivity() {
         // Re-apply after the new landscape geometry has been attached so OEM window
         // managers cannot leave a status-bar/cutout strip reserved on the rotated edge.
         window.decorView.post {
-            enforceImmersiveSystemBars()
+            if (!isInPictureInPictureMode) enforceImmersiveSystemBars()
             ViewCompat.requestApplyInsets(window.decorView)
         }
     }
@@ -132,7 +162,14 @@ class FullscreenVideoActivity : ComponentActivity() {
 
     override fun onUserLeaveHint() {
         super.onUserLeaveHint()
-        finishTo("DETACHED")
+        if (pipTransitionRequested || isInPictureInPictureMode) return
+        val settings = viewModel.settings.value
+        if (settings.autoPictureInPicture && settings.floatingWindowMode.usesAndroidPip() &&
+            viewModel.playback.value.isVideo && viewModel.playback.value.isPlaying) {
+            enterNativePip()
+        } else {
+            finishTo("DETACHED")
+        }
     }
 
     override fun onDestroy() {
@@ -145,6 +182,24 @@ class FullscreenVideoActivity : ComponentActivity() {
 
     private fun enforceImmersiveSystemBars() {
         enforceImmersiveWindow(window)
+    }
+
+    private fun enterNativePip() {
+        if (isInPictureInPictureMode || pipTransitionRequested || !viewModel.playback.value.isVideo) return
+        pipTransitionRequested = true
+        returnDestination = "DETACHED"
+        val ratio = viewModel.playback.value.videoAspectRatio.coerceIn(.5f, 2f)
+        val accepted = runCatching {
+            enterPictureInPictureMode(
+                PictureInPictureParams.Builder()
+                    .setAspectRatio(Rational((ratio * 1_000).toInt(), 1_000))
+                    .build()
+            )
+        }.getOrDefault(false)
+        if (!accepted) {
+            pipTransitionRequested = false
+            finishTo("DETACHED")
+        }
     }
 
     /** Clear the service's fullscreen suppression before Android tears this Activity down. */
@@ -173,6 +228,13 @@ class FullscreenVideoActivity : ComponentActivity() {
         handoffCompletionJob?.cancel()
         VideoSurfaceOwner.beginHandoff("MINI_WINDOW")
         VideoSurfaceOwner.setFullscreenActivityVisible(false)
+        // Native PiP / background-only exit must never resurrect a detached overlay.
+        if (returnDestination == "DETACHED" &&
+            viewModel.settings.value.floatingWindowMode != FloatingWindowMode.MINI_WINDOW) {
+            stopService(Intent(this, MiniWindowOverlayService::class.java))
+            VideoSurfaceOwner.finishHandoff("MINI_WINDOW")
+            return
+        }
         val delivered = runCatching {
             startService(Intent(this, MiniWindowOverlayService::class.java).apply {
                 action = MiniWindowOverlayService.ACTION_FULLSCREEN_RETURN
@@ -185,4 +247,8 @@ class FullscreenVideoActivity : ComponentActivity() {
             VideoSurfaceOwner.finishHandoff("MINI_WINDOW")
         }
     }
+    companion object {
+        const val EXTRA_START_PIP = "com.local.listentomusic.player.START_PIP"
+    }
+
 }

@@ -76,7 +76,18 @@ enum class ColorTheme(val label: String) {
     MONOCHROME("Space Black"),
     VOID("Void OLED"),
 }
-enum class FloatingWindowMode { COMPACT, FOLLOW_VIDEO, MINI_WINDOW }
+enum class FloatingWindowMode { COMPACT, FOLLOW_VIDEO, MINI_WINDOW, NONE }
+
+/** COMPACT survives in stored backups; the user-facing cycle always has three modes. */
+fun FloatingWindowMode.nextFloatingMode(): FloatingWindowMode = when (this) {
+    FloatingWindowMode.MINI_WINDOW -> FloatingWindowMode.FOLLOW_VIDEO
+    FloatingWindowMode.FOLLOW_VIDEO, FloatingWindowMode.COMPACT -> FloatingWindowMode.NONE
+    FloatingWindowMode.NONE -> FloatingWindowMode.MINI_WINDOW
+}
+
+fun FloatingWindowMode.usesAndroidPip(): Boolean =
+    this == FloatingWindowMode.FOLLOW_VIDEO || this == FloatingWindowMode.COMPACT
+
 enum class AppLanguage(val label: String) {
     ENGLISH("English"), TRADITIONAL_CHINESE("繁體中文"), JAPANESE("日本語"),
     GERMAN("Deutsch"), FRENCH("Français"), CANTONESE("廣東話"),

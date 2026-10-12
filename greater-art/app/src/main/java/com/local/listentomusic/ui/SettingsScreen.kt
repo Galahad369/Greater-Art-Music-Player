@@ -413,13 +413,15 @@ fun SettingsScreen(
                     SwitchSetting(uiText(language, "Resume last position", "接續上次位置"), uiText(language, "Continue the last file where you stopped.", "從上次停止的位置繼續播放。"), preferences.resumePlayback, onResumePlayback)
                     SwitchSetting(uiText(language, "Automatic floating playback", "自動浮動播放"), uiText(language, "Keep playing in the selected floating mode when leaving the app.", "離開應用程式時，以所選浮動模式繼續播放。"), preferences.autoPictureInPicture, onAutoPictureInPicture)
                     ChoiceSetting(
-                        uiText(language, "Floating window shape", "浮動視窗形狀"),
-                        uiText(language, "Mini window is the tiniest option. Compact and Follow video use Android's resizable picture-in-picture.", "「迷你視窗」尺寸最小；「精簡」與「跟隨影片」使用 Android 可縮放子母畫面。"),
-                        defaultFirst(FloatingWindowMode.entries, FloatingWindowMode.MINI_WINDOW),
-                        preferences.floatingWindowMode,
-                        { if (it == FloatingWindowMode.COMPACT) uiText(language, "Compact", "精簡")
-                          else if (it == FloatingWindowMode.FOLLOW_VIDEO) uiText(language, "Follow video", "跟隨影片")
-                          else uiText(language, "Mini window", "迷你視窗") },
+                        uiText(language, "Floating playback mode", "浮動播放模式"),
+                        uiText(language, "The Now Playing mode icon cycles through three choices. Background only never shows an external floating window.", "正在播放畫面的模式圖示循環切換三種選項。僅背景播放不會顯示應用程式外的浮動視窗。"),
+                        listOf(FloatingWindowMode.MINI_WINDOW, FloatingWindowMode.FOLLOW_VIDEO, FloatingWindowMode.NONE),
+                        if (preferences.floatingWindowMode == FloatingWindowMode.COMPACT) FloatingWindowMode.FOLLOW_VIDEO else preferences.floatingWindowMode,
+                        { when (it) {
+                            FloatingWindowMode.MINI_WINDOW -> uiText(language, "Mini Window", "迷你視窗")
+                            FloatingWindowMode.FOLLOW_VIDEO, FloatingWindowMode.COMPACT -> uiText(language, "Android PiP", "Android 子母畫面")
+                            FloatingWindowMode.NONE -> uiText(language, "Background only", "僅背景播放")
+                        } },
                         onFloatingWindowMode,
                     )
                 }
