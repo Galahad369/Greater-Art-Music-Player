@@ -4,12 +4,12 @@ Greater Art is a local-first Android audio and video player. This repository con
 
 > **Vibe-coded disclosure:** Greater Art was built through iterative work with AI coding agents. Human direction, product decisions, device feedback, and acceptance guide the work; substantial code and documentation are AI-assisted.
 
-- Latest owner-verified APK: **1.21.18 (code 241)** — see the [verification boundary](greater-art/HANDOFF.md) for test and signing evidence; this does not verify the newer source changes.
-- APK: [GreaterArt-1.21.18.apk](greater-art/releases/GreaterArt-1.21.18.apk)
+- Latest emulator-verified sideload APK: **1.21.32 (code 255)** — see the [verification boundary](greater-art/HANDOFF.md); physical-phone and production-signing acceptance remain pending.
+- APK: [GreaterArt-1.21.32.apk](greater-art/releases/GreaterArt-1.21.32.apk)
 - [App documentation](greater-art/README.md) · [Handoff and verification](greater-art/HANDOFF.md)
 - [User demonstration](greater-art-user-demo.html) · [Technical demonstration](greater-art-technical-demo.html)
 
-Current source: **1.21.32 / code 255 — SOURCE_ONLY**, selected-folder URI Library/playback
+Current source: **1.21.32 / code 255 — VERIFIED sideload build**, selected-folder URI Library/playback
 with distributed timing anchors, confidence-gated linear drift maps and bounded
 original-rate transient refinement. Library Performance v2
 stages 1–2. Shared viewport-priority artwork work pauses during fling; RAM hits stay
@@ -22,7 +22,7 @@ Android picture-in-picture allow normal screen timeout. No new permissions.
 Previous 1.21.18 work introduced Library Performance v2 (shared viewport-priority
 artwork, fling-aware scheduling, memory-pressure budgets and verified cover reuse).
 See the [staged Stack/performance plan](greater-art/docs/PERFORMANCE_AND_STACK_UPGRADE_PLAN.md).
-Timing maps are implemented in source, not a verified release. The shared-clock
+Timing maps remain acoustically unverified on physical hardware. The shared-clock
 mixer is implemented as a separate debug/test prototype, not the production audio path.
 
 Greater Art has no Internet permission, advertisements, accounts, analytics, telemetry, or cloud playback dependency. Library files stay on the device. Playback history is optional, off by default, and can be burned locally.

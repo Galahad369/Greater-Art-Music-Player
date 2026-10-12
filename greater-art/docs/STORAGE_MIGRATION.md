@@ -30,6 +30,10 @@ No production-signing or security-certification claim follows from this build.
 
 ### Stage C core verification — October 12, 2026
 
+- Artifact releases/GreaterArt-1.21.32.apk, 26,812,053 bytes, SHA-256
+  353d3098296716c0cee4d4e385af73c3d7e313bc317fa2944012f0b4d8631847;
+  built after committing exact source b56e90c79d571318d1f1b8cf9736e1af69070b9d.
+
 - 337 JVM tests pass; lint zero errors, 40 warnings and two hints. Both debug
   and instrumentation APKs build successfully with Java21.
 - A55-sized API36 emulator: four Android scanner/reader tests pass with broad

@@ -3,9 +3,9 @@
 This file describes the **current repository state only**. Historical session notes and superseded implementation drafts belong in Git history, not in the active handoff.
 
 **Project:** `greater-art/` in the repository checkout
-**Current source:** `1.21.32 (code 255)` — SOURCE_ONLY; selected-folder URI playback
-**Current version:** `1.21.18 (code 241)`
-**Latest APK:** `releases/GreaterArt-1.21.18.apk` (`27,746,006 bytes`; SHA-256 `bba973d127a9dec1f03b29fca1a146707c9feee82497e9a65ab196870b696b3d`)
+**Current source:** `1.21.32 (code 255)` — VERIFIED sideload build; selected-folder URI playback
+**Current version:** `1.21.32 (code 255)`
+**Latest APK:** `releases/GreaterArt-1.21.32.apk` (`26,812,053 bytes`; SHA-256 `353d3098296716c0cee4d4e385af73c3d7e313bc317fa2944012f0b4d8631847`)
 **Application ID:** `com.local.listentomusic`
 **Signing certificate SHA-256:** `9e28eb45b3b171c3ea47d7da942d28d88b16538885e392a6971a80906d612fbf`
 **Build date:** `2026-10-09`
@@ -15,6 +15,13 @@ This file describes the **current repository state only**. Historical session no
 ## Repository state
 
 ### October 12 — Stage C core URI playback (1.21.32/code255)
+
+- Immutable APK built from source commit `b56e90c79d571318d1f1b8cf9736e1af69070b9d`.
+  Manifest, pinned certificate, signature, 16KiB ZIP alignment, installation and
+  launch checked on A55-sized API36 emulator. 337 JVM tests, four Android tests
+  (also repeated with actual SAF grant and All Files Access disabled), lint zero
+  errors. APK hash/size above. VERIFIED means these recorded emulator/build checks,
+  not physical-phone acceptance, production release signing or security certification.
 
 - Selecting a SAF folder now selects that folder as the production Library source.
   Clearing it restores the recursive Download filesystem source. This avoids
