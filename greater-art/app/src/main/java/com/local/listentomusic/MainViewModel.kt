@@ -36,6 +36,7 @@ import com.local.listentomusic.model.SortMode
 import com.local.listentomusic.model.loadLocalLyrics
 import com.local.listentomusic.playback.PlaybackService
 import kotlinx.coroutines.Job
+import com.local.listentomusic.data.openMedia
 import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.Dispatchers
@@ -188,7 +189,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             graphError.value = null
             try {
                 val input = withContext(Dispatchers.Default) { files.distinctBy { it.sourcePath }.map {
-                    com.local.listentomusic.graph.GraphInput(it.sourcePath, File(it.sourcePath).name)
+                    com.local.listentomusic.graph.GraphInput(it.path, it.name)
                 } }
                 graph.value = graphRepository.load(input)
             }
@@ -283,6 +284,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 val firstPreferences = !preferencesLoaded
                 preferencesLoaded = true
                 val searchChanged = userPreferences.extendedSearch != it.extendedSearch
+                val storageChanged = userPreferences.scopedMediaTreeUri != it.scopedMediaTreeUri
                 val libraryChanged = userPreferences.sortMode != it.sortMode || userPreferences.customOrder != it.customOrder ||
                     userPreferences.playlists != it.playlists || userPreferences.activePlaylistId != it.activePlaylistId ||
                     userPreferences.localOverrides != it.localOverrides ||
@@ -294,7 +296,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 if (!presentationOnly) {
                     if (libraryChanged) applySortingAndFilter()
                     if (searchChanged) refreshMetadata()
-                    if (firstPreferences) rescan()
+                    if (firstPreferences || storageChanged) { scanJob?.cancel(); scanJob = null; rescan() }
                 }
             }
         }
@@ -328,7 +330,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     fun rescan() {
         if (!preferencesLoaded) return
-        if (!hasStorageAccess()) {
+        if (!hasStorageAccess() && userPreferences.scopedMediaTreeUri == null) {
             _stackFiles.value = emptyList()
             _library.value = _library.value.copy(status = LibraryStatus.NEEDS_PERMISSION)
             return
@@ -336,13 +338,28 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         if (scanJob?.isActive == true) return
         scanJob = viewModelScope.launch {
             if (_library.value.files.isEmpty()) _library.value = _library.value.copy(status = LibraryStatus.SCANNING)
-            when (val result = MediaScanner.scan(userPreferences.excludedFolders.toSet())) {
+            val tree = userPreferences.scopedMediaTreeUri
+            val discovered = if (tree != null) com.local.listentomusic.data.ScopedMediaDiscovery(
+                com.local.listentomusic.data.AndroidScopedDiscoveryAccess(getApplication<Application>().contentResolver))
+                .scan(listOf(tree), includeMediaStore = false) else null
+            if (discovered != null) {
+                scopedPreviewStatus.value = com.local.listentomusic.ui.scopedResultText(
+                    userPreferences.appLanguage, discovered.records.size, discovered.inspected) +
+                    discovered.issues.joinToString(" ", prefix = " ") {
+                        com.local.listentomusic.ui.scopedProblemText(userPreferences.appLanguage, it.problem)
+                    }
+            }
+            val scan = if (discovered != null) ScanResult.Success(discovered.records.map { it.media })
+                else MediaScanner.scan(userPreferences.excludedFolders.toSet())
+            when (val result = scan) {
                 is ScanResult.Success -> {
                     scannedFiles = result.files
                     if (graphRequested) requestGraph()
                     refreshMetadata()
                     applySortingAndFilter()
-                    _library.value = _library.value.copy(status = LibraryStatus.READY)
+                    _library.value = _library.value.copy(status = if (discovered?.issues?.any {
+                        it.problem == com.local.listentomusic.data.DiscoveryProblem.PERMISSION_DENIED
+                    } == true) LibraryStatus.CANNOT_READ else LibraryStatus.READY)
                 }
                 is ScanResult.FolderMissing -> {
                     scannedFiles = emptyList()
@@ -441,12 +458,16 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         val file = scannedFiles.firstOrNull { it.path == path } ?: _queue.value.firstOrNull { it.path == path }
         val source = file?.sourcePath ?: com.local.listentomusic.model.sourceMediaPath(path)
         // Stat the physical source even before scanning finishes. Never cache under 0/0.
-        val identity = withContext(Dispatchers.IO) { File(source).let { it.length() to it.lastModified() } }
+        val identity = withContext(Dispatchers.IO) {
+            if (com.local.listentomusic.model.MediaSource.parse(source) is com.local.listentomusic.model.MediaSource.ContentUri)
+                (file?.sizeBytes ?: 0L) to (file?.modifiedMs ?: 0L)
+            else File(source).let { it.length() to it.lastModified() }
+        }
         val peaks = waveformRepository.load(source, identity.first, identity.second) ?: return null
         if (file == null || file.clipStartMs == 0L && file.clipEndMs == null) return peaks
         return withContext(Dispatchers.IO) {
             val reader = MediaMetadataRetriever()
-            val duration = try { reader.setDataSource(source); reader.extractMetadata(MediaMetadataRetriever.METADATA_KEY_DURATION)?.toLongOrNull() ?: 0 }
+            val duration = try { reader.openMedia(getApplication<Application>(), source); reader.extractMetadata(MediaMetadataRetriever.METADATA_KEY_DURATION)?.toLongOrNull() ?: 0 }
                 catch (_: Exception) { 0L } finally { runCatching { reader.release() } }
             if (duration <= 0) null else {
                 val start = (file.clipStartMs.toDouble() / duration * peaks.size).toInt().coerceIn(0, peaks.size)
@@ -695,11 +716,16 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 while (true) { val count = input.read(chars); if (count < 0) break; data.append(chars, 0, count); require(data.length <= 5_000_000) }
                 data.lines()
             } }.getOrNull() ?: run { playlistFeedback("Could not read playlist", "無法讀取播放清單"); return@launch }
-            val byPath = scannedFiles.associateBy { File(it.path).canonicalPath }
-            val byName = scannedFiles.groupBy { File(it.path).name.lowercase(Locale.ROOT) }
+            val byPath = scannedFiles.filter { it.reference.source is com.local.listentomusic.model.MediaSource.LocalFile }
+                .associateBy { File(it.path).canonicalPath }
+            val byName = scannedFiles.groupBy { it.name.lowercase(Locale.ROOT) }
             val paths = com.local.listentomusic.model.parseM3u(raw).asSequence()
                 .mapNotNull { entry ->
                     val decoded = Uri.decode(entry.path.removePrefix("file://"))
+                    if (entry.path.startsWith("content://"))
+                        return@mapNotNull scannedFiles.firstOrNull {
+                            it.id == entry.path || it.sourcePath == entry.path
+                        }?.id
                     if (entry.start != null) {
                         val candidates = scannedFiles.filter { it.clipStartMs == entry.start && it.clipEndMs == entry.end }
                         return@mapNotNull (candidates.firstOrNull { it.sourcePath == decoded }
@@ -1143,6 +1169,8 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     /** Deletes one physical media file only. The caller owns the explicit confirmation UI. */
     suspend fun deleteMediaFile(file: MediaFile): String? {
+        if (file.reference.source is com.local.listentomusic.model.MediaSource.ContentUri)
+            return "URI deletion requires Android confirmation; use the system file manager for now. Nothing was deleted."
         val candidate = withContext(Dispatchers.IO) { runCatching { File(file.sourcePath).canonicalFile }.getOrNull() }
             ?: return "Android could not resolve this file. Nothing was deleted."
         val failure = withContext(Dispatchers.IO) {
@@ -1223,7 +1251,9 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             val duration = withContext(Dispatchers.IO) {
                 val retriever = MediaMetadataRetriever()
                 try {
-                        retriever.setDataSource(com.local.listentomusic.model.sourceMediaPath(path))
+                        val location = scannedFiles.firstOrNull { it.path == path }?.sourcePath
+                            ?: com.local.listentomusic.model.sourceMediaPath(path)
+                        retriever.openMedia(getApplication<Application>(), location)
                         val full = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_DURATION)?.toLongOrNull()
                         val clip = com.local.listentomusic.model.cueBounds(path)
                         if (clip == null) full else full?.let { ((clip.second ?: it) - clip.first).coerceAtLeast(0) }

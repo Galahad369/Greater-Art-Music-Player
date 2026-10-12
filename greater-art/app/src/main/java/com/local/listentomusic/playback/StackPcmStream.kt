@@ -1,6 +1,7 @@
 package com.local.listentomusic.playback
 
 import android.media.AudioFormat
+import com.local.listentomusic.data.openMedia
 import android.media.MediaCodec
 import android.media.MediaExtractor
 import android.media.MediaFormat
@@ -18,12 +19,13 @@ internal data class NativePcmBlock(val start: Long, val samples: FloatArray, val
     val end: Long get() = start + samples.size / channels
 }
 
-internal fun pcmSpec(file: MediaFile): PcmSpec {
+internal fun pcmSpec(file: MediaFile, context: android.content.Context? = null): PcmSpec {
     val source = File(file.sourcePath)
-    require(source.isFile && source.canRead() && MediaScanner.isInsideTarget(source))
+    require(if (context != null) com.local.listentomusic.data.mediaReadable(context, file)
+        else source.isFile && source.canRead() && MediaScanner.isInsideTarget(source))
     val extractor = MediaExtractor()
     try {
-        extractor.setDataSource(source.canonicalPath)
+        extractor.openMedia(context, file.sourcePath)
         val index = (0 until extractor.trackCount).firstOrNull {
             extractor.getTrackFormat(it).getString(MediaFormat.KEY_MIME)?.startsWith("audio/") == true
         } ?: error("No audio track")
@@ -40,13 +42,13 @@ internal fun pcmSpec(file: MediaFile): PcmSpec {
 
 /** Four queued blocks per lane; send suspends the decoder instead of accumulating a recording. */
 internal class StackPcmStream(scope: CoroutineScope, private val file: MediaFile,
-    val spec: PcmSpec, startFrame: Long) {
+    val spec: PcmSpec, startFrame: Long, context: android.content.Context? = null) {
     val blocks = Channel<NativePcmBlock>(4)
     private val job = scope.launch(Dispatchers.IO) {
         val extractor = MediaExtractor()
         var codec: MediaCodec? = null
         try {
-            extractor.setDataSource(file.sourcePath)
+            extractor.openMedia(context, file.sourcePath)
             val index = (0 until extractor.trackCount).first {
                 extractor.getTrackFormat(it).getString(MediaFormat.KEY_MIME)?.startsWith("audio/") == true
             }

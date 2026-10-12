@@ -1,6 +1,7 @@
 package com.local.listentomusic.playback
 
 import android.content.Context
+import com.local.listentomusic.data.openMedia
 import android.media.AudioFormat
 import android.media.MediaCodec
 import android.media.MediaExtractor
@@ -85,8 +86,8 @@ class StackAudioAlign(private val context: Context) {
     private suspend fun features(file: MediaFile): StackAudioFeatures = withContext(Dispatchers.IO) {
         mutex.withLock {
             val source = File(file.sourcePath)
-            require(source.isFile && source.canRead() && MediaScanner.isInsideTarget(source))
-            val identity = "${source.canonicalPath}|${source.length()}|${source.lastModified()}|${file.clipStartMs}|${file.clipEndMs}"
+            require(com.local.listentomusic.data.mediaReadable(context, file))
+            val identity = com.local.listentomusic.data.mediaFingerprint(file)
             val key = MessageDigest.getInstance("SHA-256").digest(identity.toByteArray())
                 .joinToString("") { "%02x".format(it) }
             cache.mkdirs()
@@ -240,7 +241,7 @@ class StackAudioAlign(private val context: Context) {
         }
 
         try {
-            extractor.setDataSource(file.sourcePath)
+            extractor.openMedia(context, file.sourcePath)
             val track = (0 until extractor.trackCount).firstOrNull {
                 extractor.getTrackFormat(it).getString(MediaFormat.KEY_MIME)?.startsWith("audio/") == true
             } ?: error("No audio track")

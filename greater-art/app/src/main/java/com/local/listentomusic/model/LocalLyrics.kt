@@ -53,6 +53,7 @@ internal fun parseLrc(content: String): List<LyricLine> {
 }
 
 internal fun findMatchingLrc(mediaPath: String): File? {
+    if (MediaSource.parse(mediaPath) is MediaSource.ContentUri) return null
     val media = File(mediaPath)
     val parent = media.parentFile ?: return null
     for (extension in listOf("ttml", "lrc", "srt")) {

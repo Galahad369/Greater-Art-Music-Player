@@ -378,7 +378,7 @@ class ThumbnailRepository(private val context: Context) {
         var embeddedDecodeFailed = false
         val retriever = MediaMetadataRetriever()
         try {
-            retriever.setDataSource(file.sourcePath)
+            retriever.openMedia(context, file.sourcePath)
             embeddedProbeSucceeded = true
             retriever.embeddedPicture?.let { bytes ->
                 val decoded = sharedArtwork(bytes, epoch)
@@ -392,7 +392,8 @@ class ThumbnailRepository(private val context: Context) {
             runCatching { retriever.release() }
         }
 
-        val sibling = findSiblingArtwork(File(file.sourcePath))
+        val sibling = if (file.reference.source is com.local.listentomusic.model.MediaSource.LocalFile)
+            findSiblingArtwork(File(file.sourcePath)) else null
         if (sibling != null) {
             return sharedArtworkFile(sibling, epoch) ?: GenerationResult.Failed
         }
@@ -434,7 +435,8 @@ class ThumbnailRepository(private val context: Context) {
 
     private suspend fun createVideoThumbnail(media: MediaFile): Bitmap? {
         val source = File(media.sourcePath)
-        val systemThumbnail = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+        val systemThumbnail = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q &&
+            media.reference.source is com.local.listentomusic.model.MediaSource.LocalFile) {
             cancellableNativeThumbnail { signal ->
                 ThumbnailUtils.createVideoThumbnail(source, Size(VIDEO_WIDTH, VIDEO_HEIGHT), signal)
             }
@@ -446,7 +448,7 @@ class ThumbnailRepository(private val context: Context) {
 
         val retriever = MediaMetadataRetriever()
         return try {
-            retriever.setDataSource(media.sourcePath)
+            retriever.openMedia(context, media.sourcePath)
             val frame = (if (Build.VERSION.SDK_INT >= 27) {
                 retriever.getScaledFrameAtTime(1_000_000L, MediaMetadataRetriever.OPTION_CLOSEST_SYNC, VIDEO_WIDTH, VIDEO_HEIGHT)
             } else retriever.getFrameAtTime(1_000_000L, MediaMetadataRetriever.OPTION_CLOSEST_SYNC))
@@ -464,7 +466,7 @@ class ThumbnailRepository(private val context: Context) {
     private suspend fun createEmbeddedArtwork(media: MediaFile, epoch: Int): GenerationResult.Ready? {
         val retriever = MediaMetadataRetriever()
         return try {
-            retriever.setDataSource(media.sourcePath)
+            retriever.openMedia(context, media.sourcePath)
             val bytes = retriever.embeddedPicture ?: return null
             sharedArtwork(bytes, epoch)
         } catch (cancel: CancellationException) { throw cancel
@@ -478,6 +480,11 @@ class ThumbnailRepository(private val context: Context) {
     /** Reuse Android's indexed cover if direct container extraction was unavailable. */
     private suspend fun createIndexedVideoThumbnail(media: MediaFile): Bitmap? {
         if (Build.VERSION.SDK_INT < 29) return null
+        if (media.reference.source is com.local.listentomusic.model.MediaSource.ContentUri)
+            return cancellableNativeThumbnail { signal ->
+                context.contentResolver.loadThumbnail(android.net.Uri.parse(media.sourcePath),
+                    Size(VIDEO_WIDTH, VIDEO_HEIGHT), signal)
+            }
         return cancellableNativeThumbnail { signal ->
             val collection = android.provider.MediaStore.Video.Media.EXTERNAL_CONTENT_URI
             context.contentResolver.query(collection, arrayOf(android.provider.MediaStore.MediaColumns._ID),
@@ -500,6 +507,7 @@ class ThumbnailRepository(private val context: Context) {
 
     /** Same-name cover first, then conventional folder artwork. Entirely local. */
     private suspend fun createSiblingArtwork(media: MediaFile, epoch: Int): GenerationResult.Ready? {
+        if (media.reference.source !is com.local.listentomusic.model.MediaSource.LocalFile) return null
         val artwork = findSiblingArtwork(File(media.sourcePath)) ?: return null
         return sharedArtworkFile(artwork, epoch)
     }
@@ -682,6 +690,9 @@ class ThumbnailRepository(private val context: Context) {
     }
 
     private fun cacheKey(file: MediaFile): String {
+        if (file.reference.source is com.local.listentomusic.model.MediaSource.ContentUri)
+            return thumbnailDigestHex(MessageDigest.getInstance("SHA-256").digest(
+                "${mediaFingerprint(file)}|${file.coverUri}".toByteArray(Charsets.UTF_8)))
         val source = File(file.sourcePath)
         val artStamp = siblingArtStamp(source)
         val fingerprint = "${file.sourcePath}|${source.length()}|${source.lastModified()}|$artStamp|${file.coverUri}"

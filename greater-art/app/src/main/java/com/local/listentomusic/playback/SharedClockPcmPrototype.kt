@@ -65,7 +65,7 @@ internal class SharedClockPcmPrototype(context: Context, private val host: PcmPr
         if (tracks.size !in 1..8 || tracks.map { it.file.path }.distinct().size != tracks.size ||
             tracks.any { it.alignmentScale != 1.0 || it.error != null } || tracks.none { it.file.path == primaryPath })
             return@withLock false
-        val formats = try { withContext(Dispatchers.IO) { tracks.map { pcmSpec(it.file) } } }
+        val formats = try { withContext(Dispatchers.IO) { tracks.map { pcmSpec(it.file, context) } } }
             catch (cancelled: CancellationException) { throw cancelled }
             catch (_: Exception) { return@withLock false }
         val outputRate = formats.maxOf { it.rate }
@@ -144,7 +144,7 @@ internal class SharedClockPcmPrototype(context: Context, private val host: PcmPr
             try {
                 coroutineScope {
                     streams = slots.mapIndexed { i, slot -> StackPcmStream(this, slot.file, specs[i],
-                        floor(pcmSourceFrame(frame, rate, voices[i])).toLong().coerceAtLeast(0)) }
+                        floor(pcmSourceFrame(frame, rate, voices[i])).toLong().coerceAtLeast(0), context) }
                     val lanes = streams.map { stream -> PcmLane(stream) {
                         state.value = state.value.copy(decoderWaits = state.value.decoderWaits + 1)
                         sink?.pause()

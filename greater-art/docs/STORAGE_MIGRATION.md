@@ -1,6 +1,60 @@
-# Storage migration — stages A and B
+# Storage migration — stages A, B and C core
 
-Current source target: 1.21.31 / 254. Not a verified release or permission cutover.
+Current source target: 1.21.32 / 255. Not a permission cutover.
+
+## Stage C core — selected-folder Library and URI readers
+
+Selecting a persisted SAF folder now makes it the Library source, rather than
+just a Settings preview. Clearing it restores the existing filesystem Download
+source. The two modes are not combined by filename: that could duplicate a real
+file or discard a different take. Legacy playlists retain their IDs; choosing
+another source does not rewrite or delete saved entries.
+
+Metadata retrievers, thumbnails and waveform/Stack extractors distinguish local
+paths from content URIs at the IO boundary. Stack validity checks open the URI
+read-only; native PCM and analysis receive the application context. Cache keys
+include indexed size/date and source identity. Media3 session snapshots preserve
+the complete content URI, and current-video backgrounds use the player URI.
+
+The instrumentation fixture now checks content-backed Media3 READY, session URI
+round-trip, waveform decoding and Stack PCM spec/window decoding. It uses generated
+silent WAV, not a real multitrack acoustic acceptance test. Actual video rendering,
+physical-phone behavior and URI Stack listening remain separate checks.
+
+Remaining: general MediaStore production selection/permissions, URI sidecar
+lyrics/artwork/CUE, scoped folder exclusions, legacy path-to-document mapping,
+grant-safe sharing/deletion (Stage D), and final removal of broad access. Sharing
+and deletion of URI items explicitly fail without modifying files. Exported M3U
+keeps content URIs but cannot transfer their Android grants to another app.
+No production-signing or security-certification claim follows from this build.
+
+### Stage C core verification — October 12, 2026
+
+- Artifact releases/GreaterArt-1.21.32.apk, 26,812,053 bytes, SHA-256
+  353d3098296716c0cee4d4e385af73c3d7e313bc317fa2944012f0b4d8631847;
+  built after committing exact source b56e90c79d571318d1f1b8cf9736e1af69070b9d.
+
+- 337 JVM tests pass; lint zero errors, 40 warnings and two hints. Both debug
+  and instrumentation APKs build successfully with Java21.
+- A55-sized API36 emulator: four Android scanner/reader tests pass with broad
+  access disabled, both default and real persisted-SAF variants. Added assertions
+  cover full content-URI session reconstruction, Media3 READY, waveform decode
+  and native Stack PCM spec/window decode through content URIs.
+- First SAF run failed because instrumentation was started before the Activity
+  persisted the picker grant. Repeated after observing persisted=0x1 in Android's
+  permission report; all four pass. Future automation must await the grant, not
+  simply tap ALLOW and immediately terminate the Activity.
+- Generated silent WAV only; exact URI cleaned up and test folder grant revoked.
+  Prior All Files Access AppOps mode restored. Launch smoke shows a clear lost-
+  folder access state after revocation; crash buffer empty during checks.
+- APK package com.local.listentomusic, version1.21.32/code255; v2 signature and
+  16KiB ZIP alignment verify. Pinned certificate unchanged:
+  9e28eb45b3b171c3ea47d7da942d28d88b16538885e392a6971a80906d612fbf.
+- This is the existing debug-key sideload channel, not an owner-approved modern
+  production release-signing completion (#23). Physical-phone, video rendering,
+  audible multitrack/acoustic acceptance and complete migration parity NOT RUN.
+- Source version guard and public-repository audit pass. Full migration/security
+  certification remain incomplete; do not close #148 or claim MASVS compliance.
 
 ## Stage B — real metadata discovery, controlled inspection
 

@@ -7,7 +7,7 @@ This file is the authoritative version policy for Greater Art. If any handoff no
 ## Machine-checkable state
 
 
-Current source: **1.21.31 (code 254)**
+Current source: **1.21.32 (code 255)**
 Allowed consumed transition: **1.21.27 (code 250) -> 1.21.29 (code 252)**
 
 1.21.28/code251 was committed by Claude as eb17af5128fd265bc1c2b2eeba21dc461694e4e7
@@ -23,8 +23,8 @@ Allowed consumed transition: **1.21.22 (code 245) -> 1.21.24 (code 247)**
 1.21.23/code246 is consumed by the separate PR #153 PCM prototype (`881f39c`).
 Claude's supplied adaptive-sync patch proposed that identity too; integration
 used 1.21.24/code247 in its preserved history. Adaptive sync is model-backed, not acoustically verified.
-Current release state: **SOURCE_ONLY**
-Latest verified APK: **1.21.18 (code 241)**
+Current release state: **VERIFIED**
+Latest verified APK: **1.21.32 (code 255)**
 Allowed series transition: **1.14.15 -> 1.15.1**
 Allowed series transition: **1.15.89 -> 1.20.2**
 Allowed series transition: **1.20.5 -> 1.21.1**
@@ -309,3 +309,4 @@ Previous baseline: 1.13.26 (code 115).
 - 1.21.29 (code 252) — UI audit: result-scoped selection, confirmed document grants, exact percentage entry, folder validation, contextual overlay permission, truthful playlist/cache/Stack feedback, shared media formatting, labelled toggle rows and Nodes language wiring. SOURCE_ONLY.
 - 1.21.30 (code 253) — Typed file/content identities, lossless legacy/cue migration and scheme/bounds tests. No storage permission cutover. SOURCE_ONLY.
 - 1.21.31 (code 254) — Bounded cancellable MediaStore/SAF metadata discovery, stable document identities, grant/revocation handling and Settings inspection. Production Library/Stack remain filesystem-backed pending URI IO parity. SOURCE_ONLY.
+- 1.21.32 (code 255) — Stage C core: selected SAF folder becomes Library source; URI-backed metadata/artwork/waveform and Stack decode/access. Download filesystem mode retained; scoped sharing/deletion/sidecars and final permission cutover remain separate gates.

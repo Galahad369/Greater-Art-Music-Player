@@ -15,6 +15,9 @@ internal object AndroidShare {
     private const val LIST_CACHE_MAX_AGE_MS = 24L * 60L * 60L * 1_000L
 
     fun mediaChooser(context: Context, media: MediaFile, chooserTitle: String): Result<Intent> = runCatching {
+        require(media.reference.source is com.local.listentomusic.model.MediaSource.LocalFile) {
+            "Sharing scoped media awaits the Android grant-safe sharing migration."
+        }
         val source = File(media.sourcePath).canonicalFile
         require(source.isFile && source.canRead() && MediaScanner.isInsideTarget(source))
         val uri = FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", source)
@@ -36,6 +39,9 @@ internal object AndroidShare {
 
     fun mediaFiles(context: Context, media: List<MediaFile>, chooserTitle: String): Result<Unit> = runCatching {
         require(media.isNotEmpty())
+        require(media.all { it.reference.source is com.local.listentomusic.model.MediaSource.LocalFile }) {
+            "Sharing scoped media awaits the Android grant-safe sharing migration."
+        }
         val sources = media.map { File(it.sourcePath).canonicalFile }.distinctBy { it.path }
         require(sources.all { it.isFile && it.canRead() && MediaScanner.isInsideTarget(it) })
         val uris = ArrayList(sources.map { FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", it) })
