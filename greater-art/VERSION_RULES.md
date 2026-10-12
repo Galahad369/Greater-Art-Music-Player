@@ -7,12 +7,16 @@ This file is the authoritative version policy for Greater Art. If any handoff no
 ## Machine-checkable state
 
 
-Current source: **1.21.36 (code 259)**
+Current source: **1.21.37 (code 260)**
 Allowed consumed transition: **1.21.32 (code 255) -> 1.21.36 (code 259)**
 
 PR #168 separately consumed 1.21.33/code256 (5aae831), 1.21.34/code257
 (f82e0a4) and 1.21.35/code258 (886a130). Ambient uses the next identity,
-without importing or altering that floating-mode branch.
+now integrated under 1.21.37 after behavioral conflict review.
+Allowed consumed transition: **1.21.32 (code 255) -> 1.21.35 (code 258)**
+# The parallel floating-mode feature branch used 1.21.32–1.21.34 for pre-integration
+# source-only commits; main independently verified 1.21.32 for URI-backed playback.
+# Integration retains main's immutable APK and records the consumed branch lineage.
 Allowed consumed transition: **1.21.27 (code 250) -> 1.21.29 (code 252)**
 
 1.21.28/code251 was committed by Claude as eb17af5128fd265bc1c2b2eeba21dc461694e4e7
@@ -315,7 +319,8 @@ Previous baseline: 1.13.26 (code 115).
 - 1.21.30 (code 253) — Typed file/content identities, lossless legacy/cue migration and scheme/bounds tests. No storage permission cutover. SOURCE_ONLY.
 - 1.21.31 (code 254) — Bounded cancellable MediaStore/SAF metadata discovery, stable document identities, grant/revocation handling and Settings inspection. Production Library/Stack remain filesystem-backed pending URI IO parity. SOURCE_ONLY.
 - 1.21.32 (code 255) — Stage C core: selected SAF folder becomes Library source; URI-backed metadata/artwork/waveform and Stack decode/access. Download filesystem mode retained; scoped sharing/deletion/sidecars and final permission cutover remain separate gates.
-- 1.21.33 (code 256) — Consumed by separate PR #168 commit 5aae831; not imported.
-- 1.21.34 (code 257) — Consumed by separate PR #168 commit f82e0a4; not imported.
-- 1.21.35 (code 258) — Consumed by separate PR #168 commit 886a130; not imported.
+- 1.21.33 (code 256) — Consumed by PR #168 commit 5aae831; preserved integration parent.
+- 1.21.34 (code 257) — Consumed by PR #168 commit f82e0a4; preserved integration parent.
+- 1.21.35 (code 258) — Consumed by PR #168 commit 886a130; preserved integration parent.
 - 1.21.36 (code 259) — Adaptive Dynamic Ambient: combined Classic/Aurora/Bloom/Flow, existing compositor samples, cached-art fallback, bounded scene metrics and persisted localized controls. SOURCE_ONLY; Classic and playback quality unchanged.
+- 1.21.37 (code 260) — Reviewed integration of native PiP/three floating modes, queue Locate and Adaptive Ambient, preserving both branch histories. SOURCE_ONLY pending integration acceptance.

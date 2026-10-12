@@ -3,7 +3,7 @@
 This file describes the **current repository state only**. Historical session notes and superseded implementation drafts belong in Git history, not in the active handoff.
 
 **Project:** `greater-art/` in the repository checkout
-**Current source:** `1.21.36 (code 259)` — SOURCE_ONLY; Adaptive Dynamic Ambient
+**Current source:** `1.21.37 (code 260)` — SOURCE_ONLY; reviewed floating modes + Adaptive Ambient integration
 **Current version:** `1.21.32 (code 255)`
 **Latest APK:** `releases/GreaterArt-1.21.32.apk` (`26,812,053 bytes`; SHA-256 `353d3098296716c0cee4d4e385af73c3d7e313bc317fa2944012f0b4d8631847`)
 **Application ID:** `com.local.listentomusic`
@@ -13,6 +13,11 @@ This file describes the **current repository state only**. Historical session no
 **Verification boundary:** Owner confirmed 1.21.18 verification on 9 October 2026. The existing 1.21.18 QA record below reports 249 JVM tests (0 failures), 0 lint errors, three passing API 36 ThumbnailPipelineTest regressions, Library/playback smoke, and no observed FATAL EXCEPTION or ANR in its bounded session; it records a 27,746,006-byte debug APK, package `com.local.listentomusic`, versionName `1.21.18`, versionCode `241`, ZIP alignment pass, personal debug signing certificate as above, and SHA-256 `bba973d127a9dec1f03b29fca1a146707c9feee82497e9a65ab196870b696b3d`. That earlier test took place on an uncommitted local source tree later incorporated into `2edb328a`; exact committed-source equivalence is owner-attested, not independently proven by that record alone. The separate release-finalization PR must pass the *unmodified* Version Consistency guard's SHA-256/manifest checks against the actual tracked APK before merge. Historical records remain below unchanged.
 
 ## Repository state
+
+### October 12 — quality integration (1.21.37/code260)
+
+- Combines PR #168 and #169 while preserving URI playback and immutable APKs.
+- Verification and release finalization are pending; physical acceptance is not claimed.
 
 ### October 12 — Adaptive Dynamic Ambient (1.21.36/code259)
 
@@ -30,6 +35,15 @@ This file describes the **current repository state only**. Historical session no
   errors, version guard and public-repository audit pass. Unequal short jank
   windows are documented, not proof of a speedup; physical-device acceptance
   remains outstanding. No release artifact was overwritten.
+### October 12 — Now Playing UX integration (1.21.35/code258, feature branch)
+
+- Branch `feat/now-playing-three-floating-modes` incorporates main's verified Stage C URI-backed Library/playback and preserves the immutable `releases/GreaterArt-1.21.32.apk` with its current recorded SHA-256.
+- One top-bar icon cycles three persisted states: draggable Mini Window, native Android video picture-in-picture, or background-only media playback with no external floating window. Audio-only in PiP mode continues without a PiP panel. The separate Floating action invokes the selected mode.
+- Move Locate to the left of queue search and Clear/Close to the right, with independent 48dp targets and the search field between. Locate clears an obstructing filter before scrolling to the current item.
+- Native PiP uses the actual manifest-enabled FullscreenVideoActivity, not an overlay; mode is also exposed in Settings. Hidden detached-overlay service is stopped in no-floating modes while PlaybackService/MediaSession continues.
+- Feature history previously consumed source-only versions 1.21.32–1.21.34 on a parallel branch. The integration advances to 1.21.35/code258; the verified URI 1.21.32 APK and evidence from main are retained and not renamed/rebuilt.
+- **SOURCE_ONLY**. GitHub CI and actual physical Android PiP/return/notification/background audio checks remain mandatory; no release verification claimed for the new feature.
+
 
 ### October 12 — Stage C core URI playback (1.21.32/code255)
 

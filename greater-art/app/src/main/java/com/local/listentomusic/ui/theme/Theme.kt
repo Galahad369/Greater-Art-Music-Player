@@ -273,6 +273,27 @@ private val voidPalette = AppColorPalette(
 internal val LightColors = forestPalette.light
 internal val DarkColors = forestPalette.dark
 
+private val highContrastPalette = AppColorPalette(
+    light = monochromePalette.light.copy(
+        primary = Color(0xFF004C96), onPrimary = Color.White,
+        primaryContainer = Color(0xFFD7E9FF), onPrimaryContainer = Color.Black,
+        secondary = Color(0xFF004C96), tertiary = Color(0xFF663600),
+        background = Color.White, surface = Color.White,
+        surfaceVariant = Color(0xFFE5E5E5), onSurface = Color.Black,
+        onSurfaceVariant = Color(0xFF292929), outline = Color(0xFF525252),
+        outlineVariant = Color(0xFF666666),
+    ),
+    dark = monochromePalette.dark.copy(
+        primary = Color(0xFFB9DFFF), onPrimary = Color.Black,
+        primaryContainer = Color(0xFF143C59), onPrimaryContainer = Color.White,
+        secondary = Color(0xFFB9DFFF), tertiary = Color(0xFFFFD7A3),
+        background = Color.Black, surface = Color.Black,
+        surfaceVariant = Color(0xFF202020), onSurface = Color.White,
+        onSurfaceVariant = Color(0xFFE5E5E5), outline = Color(0xFFB0B0B0),
+        outlineVariant = Color(0xFF9B9B9B),
+    ),
+)
+
 internal fun appColorScheme(theme: ColorTheme, dark: Boolean): ColorScheme {
     val palette = when (theme) {
         ColorTheme.FOREST -> forestPalette
@@ -282,6 +303,7 @@ internal fun appColorScheme(theme: ColorTheme, dark: Boolean): ColorScheme {
         ColorTheme.ROSE -> rosePalette
         ColorTheme.MONOCHROME -> monochromePalette
         ColorTheme.VOID -> voidPalette
+        ColorTheme.HIGH_CONTRAST -> highContrastPalette
     }
     // Explicit Void choice wins over Light/System to prevent grey or light surfaces.
     val colors = if (dark || theme == ColorTheme.VOID) palette.dark else palette.light

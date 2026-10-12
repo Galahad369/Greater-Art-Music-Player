@@ -63,6 +63,8 @@ import com.google.common.util.concurrent.ListenableFuture
 import com.local.listentomusic.R
 import com.local.listentomusic.MainViewModel
 import com.local.listentomusic.MainActivity
+import com.local.listentomusic.data.FloatingWindowMode
+import com.local.listentomusic.data.usesAndroidPip
 import com.local.listentomusic.ui.ShareProxyActivity
 import com.local.listentomusic.ui.immersiveCutoutModeForSdk
 import com.local.listentomusic.model.MiniWindowMetrics
@@ -139,6 +141,8 @@ class MiniWindowOverlayService : Service(), LifecycleOwner, ViewModelStoreOwner,
     private var startY = 0
     private var dragging = false
     private var mode = PlayerWindowMode.DETACHED
+    private var selectedFloatingMode = FloatingWindowMode.MINI_WINDOW
+    private var autoFloatingEnabled = true
     private val modeState = MutableStateFlow(PlayerWindowMode.DETACHED)
     private val docked get() = mode == PlayerWindowMode.DOCKED
     private val expanded get() = mode == PlayerWindowMode.EXPANDED
@@ -160,8 +164,14 @@ class MiniWindowOverlayService : Service(), LifecycleOwner, ViewModelStoreOwner,
         override fun onReceive(context: Context?, intent: Intent?) {
             if (intent?.action == Intent.ACTION_CLOSE_SYSTEM_DIALOGS &&
                 shouldShrinkForSystemReason(intent.getStringExtra("reason")) && expanded) {
-                detachUntilLibraryHidden = true
-                switchMode(PlayerWindowMode.DETACHED)
+                if (autoFloatingEnabled && selectedFloatingMode.usesAndroidPip() &&
+                    viewModel.playback.value.isVideo && viewModel.playback.value.isPlaying) {
+                    openNativePictureInPicture()
+                } else {
+                    detachUntilLibraryHidden = true
+                    switchMode(PlayerWindowMode.DETACHED)
+                    if (selectedFloatingMode != FloatingWindowMode.MINI_WINDOW) stopSelf()
+                }
             }
         }
     }
@@ -188,6 +198,7 @@ class MiniWindowOverlayService : Service(), LifecycleOwner, ViewModelStoreOwner,
         const val ACTION_DOCK = "com.local.listentomusic.player.DOCK"
         const val ACTION_DETACH = "com.local.listentomusic.player.DETACH"
         const val ACTION_EXPAND = "com.local.listentomusic.player.EXPAND"
+        const val ACTION_ENTER_NATIVE_PIP = "com.local.listentomusic.player.ENTER_NATIVE_PIP"
         const val ACTION_FULLSCREEN_RETURN = "com.local.listentomusic.player.FULLSCREEN_RETURN"
         const val EXTRA_FULLSCREEN_DESTINATION = "fullscreen_destination"
         private const val POSITION_PREFS = "mini_window_position"
@@ -250,10 +261,13 @@ class MiniWindowOverlayService : Service(), LifecycleOwner, ViewModelStoreOwner,
         scope.launch {
             com.local.listentomusic.data.AppPreferences(applicationContext).values.collect {
                 compact?.appearance(it)
+                selectedFloatingMode = it.floatingWindowMode
+                autoFloatingEnabled = it.autoPictureInPicture
                 if (miniSize != it.miniWindowSize) {
                     miniSize = it.miniWindowSize
                     updateMiniWindowSize()
                 }
+                updateVisibility()
             }
         }
         scope.launch {
@@ -300,8 +314,21 @@ class MiniWindowOverlayService : Service(), LifecycleOwner, ViewModelStoreOwner,
             ACTION_DETACH -> {
                 detachUntilLibraryHidden = true
                 switchMode(false)
+                if (selectedFloatingMode != FloatingWindowMode.MINI_WINDOW) {
+                    stopSelf()
+                    return START_NOT_STICKY
+                }
             }
             ACTION_EXPAND -> switchMode(PlayerWindowMode.EXPANDED)
+            ACTION_ENTER_NATIVE_PIP -> {
+                if (viewModel.playback.value.isVideo) openNativePictureInPicture()
+                else {
+                    switchMode(PlayerWindowMode.DETACHED)
+                    stopSelf()
+                }
+                // Do not reclaim the video handoff for MINI_WINDOW after starting PiP.
+                return START_NOT_STICKY
+            }
         }
         val handoffNeeded = controller == null ||
             com.local.listentomusic.ui.components.VideoSurfaceOwner.expectedOwner != "MINI_WINDOW"
@@ -425,10 +452,7 @@ class MiniWindowOverlayService : Service(), LifecycleOwner, ViewModelStoreOwner,
                         onVideoReleased = { compact?.restoreVideo() },
                         onHome = ::returnToLibrary,
                         onClose = ::collapseExpanded,
-                        onShrink = {
-                            sendBroadcast(Intent(MainActivity.ACTION_BACKGROUND_PLAYER).setPackage(packageName))
-                            switchMode(PlayerWindowMode.DETACHED)
-                        },
+                        onShrink = ::minimizeExpandedForSelectedMode,
                         onFullscreen = { value ->
                             if (value && viewModel.playback.value.isVideo) openLandscapeFullscreen()
                             else updateExpandedFullscreen(value)
@@ -865,7 +889,9 @@ class MiniWindowOverlayService : Service(), LifecycleOwner, ViewModelStoreOwner,
     }
 
     private fun updateVisibility() {
-        val visible = com.local.listentomusic.ui.components.shouldShowPlayerWindow(
+        val allowExternalMini = mode != PlayerWindowMode.DETACHED ||
+            selectedFloatingMode == FloatingWindowMode.MINI_WINDOW
+        val visible = allowExternalMini && com.local.listentomusic.ui.components.shouldShowPlayerWindow(
             ready = ready,
             fullscreenActivity = com.local.listentomusic.ui.components.VideoSurfaceOwner.fullscreenActivityActive,
             expanded = expanded,
@@ -896,9 +922,10 @@ class MiniWindowOverlayService : Service(), LifecycleOwner, ViewModelStoreOwner,
         if (!expanded) return
         detachUntilLibraryHidden = true
         switchMode(PlayerWindowMode.DETACHED)
-        // Close the Activity underneath too; otherwise its visible Library immediately
-        // requests a docked player and creates a needless DETACHED→DOCKED→DETACHED hop.
+        // The in-app dock remains on return; background-only and native-PiP modes
+        // must not leave an invisible overlay foreground service running.
         sendBroadcast(Intent(MainActivity.ACTION_BACKGROUND_PLAYER).setPackage(packageName))
+        if (selectedFloatingMode != FloatingWindowMode.MINI_WINDOW) stopSelf()
     }
 
     private fun returnToLibrary() {
@@ -918,6 +945,40 @@ class MiniWindowOverlayService : Service(), LifecycleOwner, ViewModelStoreOwner,
         applyModeLayout()
         updateRootLayout()
         syncExpandedSystemBars()
+    }
+
+    /** Explicit Floating button applies the currently selected policy, never stops audio. */
+    private fun minimizeExpandedForSelectedMode() {
+        if (selectedFloatingMode.usesAndroidPip() && viewModel.playback.value.isVideo) {
+            openNativePictureInPicture()
+        } else {
+            // NONE and PiP-with-audio expose no external overlay; MINI remains draggable.
+            sendBroadcast(Intent(MainActivity.ACTION_BACKGROUND_PLAYER).setPackage(packageName))
+            switchMode(PlayerWindowMode.DETACHED)
+            if (selectedFloatingMode != FloatingWindowMode.MINI_WINDOW) stopSelf()
+        }
+    }
+
+    private fun openNativePictureInPicture() {
+        if (!viewModel.playback.value.isVideo ||
+            com.local.listentomusic.ui.components.VideoSurfaceOwner.fullscreenActivityActive) return
+        // Keep the service alive only during the video-surface handoff; the player
+        // Activity owns native PiP and PlaybackService remains independent.
+        com.local.listentomusic.ui.components.VideoSurfaceOwner.beginHandoff("NOW_PLAYING")
+        com.local.listentomusic.ui.components.VideoSurfaceOwner.setFullscreenActivityVisible(true)
+        runCatching {
+            startActivity(Intent(this, FullscreenVideoActivity::class.java).apply {
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_NO_ANIMATION)
+                putExtra(FullscreenVideoActivity.EXTRA_START_PIP, true)
+            })
+            switchMode(PlayerWindowMode.DETACHED)
+            updateVisibility()
+        }.onFailure {
+            com.local.listentomusic.ui.components.VideoSurfaceOwner.setFullscreenActivityVisible(false)
+            com.local.listentomusic.ui.components.VideoSurfaceOwner.finishHandoff("MINI_WINDOW")
+            switchMode(PlayerWindowMode.EXPANDED)
+            Toast.makeText(this, "Could not start picture-in-picture", Toast.LENGTH_LONG).show()
+        }
     }
 
     private fun openLandscapeFullscreen() {

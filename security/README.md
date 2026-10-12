@@ -15,10 +15,10 @@
 
 | Track | Current state | Plan / evidence needed |
 |---|---|---|
-| Minimize file permission | Production still uses `MANAGE_EXTERNAL_STORAGE`; SAF is preview only | [Storage migration](plans/storage-migration.md), issue #148 |
+| Minimize file permission | Selected-folder URI Library/playback works; broad permission remains until sidecar/operation parity | [Storage migration](../greater-art/docs/STORAGE_MIGRATION.md), issue #148 |
 | Signed release chain | Exact-tag workflow exists; successful private release-signing proof not established | [Release plan](plans/release-signing.md), issue #23 |
 | Old workstation paths | Reachable history remains a potential disclosure | [History plan](plans/history-remediation.md), issue #24 |
-| Vulnerability intake | SECURITY.md repaired to reference *this* repository; private reporting feature must be verified by owner | [Security policy](../SECURITY.md) |
+| Vulnerability intake | Correct repository link and private reporting enabled; intake exercise pending | [Security policy](../SECURITY.md) |
 | Technical mobile tests | Partial static and emulator evidence; full independent review not completed | [MASVS evidence checklist](assessments/masvs-baseline.md) |
 | ISO management system | Organizational scope, owners, decisions, audits not established | [Scope/policy](isms/scope-and-policy.md), [risk register](isms/risk-register.md), [SoA draft](isms/statement-of-applicability.md), [audit/evidence](isms/audit-evidence.md) |
 

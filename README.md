@@ -9,7 +9,7 @@ Greater Art is a local-first Android audio and video player. This repository con
 - [App documentation](greater-art/README.md) · [Handoff and verification](greater-art/HANDOFF.md)
 - [User demonstration](greater-art-user-demo.html) · [Technical demonstration](greater-art-technical-demo.html)
 
-Current source: **1.21.36 / code 259 — SOURCE_ONLY**, Adaptive Dynamic Ambient.
+Current source: **1.21.37 / code 260 — SOURCE_ONLY**, Adaptive Dynamic Ambient.
 Classic/Aurora/Bloom/Flow coexist without another video decoder; see the
 [feature evidence](greater-art/docs/ADAPTIVE_AMBIENT_2.md). Latest verified APK
 remains1.21.32. Selected-folder URI Library/playback is preserved
