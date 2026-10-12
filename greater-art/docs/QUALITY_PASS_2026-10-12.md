@@ -30,9 +30,9 @@ no-merge preference, but does not authorize weakening protected checks.
 | Scope | Evidence / status |
 | --- | --- |
 | Combined source | 358 JVM tests pass, lint zero errors / 41 warnings / 3 hints |
-| Ambient + real video + two Stack voices | Prior feature seven API36 tests pass; combined retest pending |
-| Native PiP + No Floating Home | Actual Activity entered native PiP; final regression retest pending |
-| Mini/fullscreen/search/lock | Existing tests plus combined device acceptance pending |
+| Ambient + real video + two Stack voices | Combined API36 regressions pass |
+| Native PiP + No Floating Home | PASS: genuine launch, shared controller retained, native1280×720 unchanged |
+| Mini/fullscreen/search/lock | Existing regression suite passes; exhaustive repeated physical interaction still NOT RUN |
 | High Contrast | Measured palette regression tests pass; actual full-screen screenshots pending |
 | Physical Samsung, Bluetooth, acoustic, thermal, API26 | NOT RUN; no matching hardware here |
 
@@ -79,5 +79,19 @@ check, protection or project configuration is disabled to hide that failure.
 - Release filenames do not prove version, signature, ZIP integrity or provenance.
   Build the committed source, inspect, install and hash before finalization.
 
-Final source SHA, APK identity, device results and repository convergence are
-appended only after execution. No universal bug-free/crash-free claim.
+## Final artifact — October 13
+
+- Source b47d96c620a9ed5db0fd8c8e1e92df8857c99c6e, 1.21.37/code260.
+- Java21 committed-source assemble passes; 358 JVM tests; 23 API36 tests:
+  14 combined playback/Ambient/UI tests (72.031s), nine URI/discovery/cache tests
+  with MANAGE_EXTERNAL_STORAGE denied (1.461s). Original AppOps restored.
+- APK releases/GreaterArt-1.21.37.apk, 27,862,370 bytes, SHA-256
+  4047097d81f999fe8f62d843e753975746f50d2b1d409362cd96ba4d78694fb6.
+- Package com.local.listentomusic, API26 minimum/API37 target, no INTERNET
+  permission. Pinned certificate 9e28eb45b3b171c3ea47d7da942d28d88b16538885e392a6971a80906d612fbf;
+  signature verification and 16KiB ZIP alignment pass. Upgrade install succeeds.
+- Existing personal debug signing identity preserved. This is an emulator-verified
+  sideload candidate, not the separate production-signing workstream.
+- No app fatal in the inspected crash buffer. Physical/thermal/API26 acceptance,
+  production signing, full storage parity and independent security assessment
+  remain open; no universal bug-free/crash-free claim.

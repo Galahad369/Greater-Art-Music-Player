@@ -3,21 +3,26 @@
 This file describes the **current repository state only**. Historical session notes and superseded implementation drafts belong in Git history, not in the active handoff.
 
 **Project:** `greater-art/` in the repository checkout
-**Current source:** `1.21.37 (code 260)` — SOURCE_ONLY; reviewed floating modes + Adaptive Ambient integration
-**Current version:** `1.21.32 (code 255)`
-**Latest APK:** `releases/GreaterArt-1.21.32.apk` (`26,812,053 bytes`; SHA-256 `353d3098296716c0cee4d4e385af73c3d7e313bc317fa2944012f0b4d8631847`)
+**Current source:** `1.21.37 (code 260)` — emulator-VERIFIED sideload; reviewed floating modes + Adaptive Ambient + High Contrast
+**Current version:** `1.21.37 (code 260)`
+**Latest APK:** `releases/GreaterArt-1.21.37.apk` (`27,862,370 bytes`; SHA-256 `4047097d81f999fe8f62d843e753975746f50d2b1d409362cd96ba4d78694fb6`)
 **Application ID:** `com.local.listentomusic`
 **Signing certificate SHA-256:** `9e28eb45b3b171c3ea47d7da942d28d88b16538885e392a6971a80906d612fbf`
-**Build date:** `2026-10-09`
+**Build date:** `2026-10-13`
 **Test device:** `GreaterArt_A55_API36 (A55-sized emulator, API 36, Android 16)`
-**Verification boundary:** Owner confirmed 1.21.18 verification on 9 October 2026. The existing 1.21.18 QA record below reports 249 JVM tests (0 failures), 0 lint errors, three passing API 36 ThumbnailPipelineTest regressions, Library/playback smoke, and no observed FATAL EXCEPTION or ANR in its bounded session; it records a 27,746,006-byte debug APK, package `com.local.listentomusic`, versionName `1.21.18`, versionCode `241`, ZIP alignment pass, personal debug signing certificate as above, and SHA-256 `bba973d127a9dec1f03b29fca1a146707c9feee82497e9a65ab196870b696b3d`. That earlier test took place on an uncommitted local source tree later incorporated into `2edb328a`; exact committed-source equivalence is owner-attested, not independently proven by that record alone. The separate release-finalization PR must pass the *unmodified* Version Consistency guard's SHA-256/manifest checks against the actual tracked APK before merge. Historical records remain below unchanged.
+**Verification boundary:** Exact committed source `b47d96c620a9ed5db0fd8c8e1e92df8857c99c6e`; 358 JVM tests, 23 API36 emulator tests, zero lint errors; signature, pinned certificate, version/package, 16KiB ZIP alignment and upgrade installation checked. Native PiP retains the player and source size; No Floating Home keeps playback. Nine storage/cache tests pass with All Files Access denied. No app fatal in inspected crash buffer. This is a debug sideload build, not production signing, physical-phone acceptance, full security assessment or a universal bug-free guarantee.
 
 ## Repository state
 
 ### October 12 — quality integration (1.21.37/code260)
 
 - Combines PR #168 and #169 while preserving URI playback and immutable APKs.
-- Verification and release finalization are pending; physical acceptance is not claimed.
+- 358 JVM tests and 23 API36 emulator tests pass; lint zero errors. Real native
+  PiP retains controller identity and native1280×720; No Floating Home keeps audio.
+  Scoped storage/cache tests run with broad access denied. Prior AppOps restored.
+  Signature, package/version, pinned certificate, alignment and installation pass.
+  New immutable artifact built from b47d96c; existing1.21.32 artifact untouched.
+  Evidence and uncompleted acceptance: docs/QUALITY_PASS_2026-10-12.md.
 
 ### October 12 — Adaptive Dynamic Ambient (1.21.36/code259)
 

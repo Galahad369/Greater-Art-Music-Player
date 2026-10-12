@@ -32,8 +32,8 @@ Allowed consumed transition: **1.21.22 (code 245) -> 1.21.24 (code 247)**
 1.21.23/code246 is consumed by the separate PR #153 PCM prototype (`881f39c`).
 Claude's supplied adaptive-sync patch proposed that identity too; integration
 used 1.21.24/code247 in its preserved history. Adaptive sync is model-backed, not acoustically verified.
-Current release state: **SOURCE_ONLY**
-Latest verified APK: **1.21.32 (code 255)**
+Current release state: **VERIFIED**
+Latest verified APK: **1.21.37 (code 260)**
 Allowed series transition: **1.14.15 -> 1.15.1**
 Allowed series transition: **1.15.89 -> 1.20.2**
 Allowed series transition: **1.20.5 -> 1.21.1**
@@ -323,4 +323,4 @@ Previous baseline: 1.13.26 (code 115).
 - 1.21.34 (code 257) — Consumed by PR #168 commit f82e0a4; preserved integration parent.
 - 1.21.35 (code 258) — Consumed by PR #168 commit 886a130; preserved integration parent.
 - 1.21.36 (code 259) — Adaptive Dynamic Ambient: combined Classic/Aurora/Bloom/Flow, existing compositor samples, cached-art fallback, bounded scene metrics and persisted localized controls. SOURCE_ONLY; Classic and playback quality unchanged.
-- 1.21.37 (code 260) — Reviewed integration of native PiP/three floating modes, queue Locate and Adaptive Ambient, preserving both branch histories. SOURCE_ONLY pending integration acceptance.
+- 1.21.37 (code 260) — Reviewed integration of native PiP/three floating modes, queue Locate and Adaptive Ambient, preserving both histories; bounded PiP readiness, localized mode descriptions and independent High Contrast. Emulator-verified sideload; physical/production-signing acceptance remain open.
