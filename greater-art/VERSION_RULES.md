@@ -7,7 +7,7 @@ This file is the authoritative version policy for Greater Art. If any handoff no
 ## Machine-checkable state
 
 
-Current source: **1.21.33 (code 256)**
+Current source: **1.21.34 (code 257)**
 Allowed consumed transition: **1.21.27 (code 250) -> 1.21.29 (code 252)**
 
 1.21.28/code251 was committed by Claude as eb17af5128fd265bc1c2b2eeba21dc461694e4e7
@@ -313,3 +313,5 @@ Previous baseline: 1.13.26 (code 115).
 - 1.21.32 (code 255) — Now Playing floating presentation selector cycles Mini Window, native Android video PiP and background-only playback. Move Locate into the queue search bar with independent 48dp left/right targets; retain clear/close at the opposite edge, reveal filtered-out playing items and persist mode in Settings. Handle Activity/overlay exit and surface ownership without changing MediaSession playback or the latest verified APK. SOURCE_ONLY pending branch CI and physical Android/PiP device checks.
 
 - 1.21.33 (code 256) — Resolve first draft-PR Android CI Kotlin compile failure: restore @Composable annotation directly on NowPlayingScreen (not a CompositionLocal property). Ensure closing Now Playing or receiving a background DETACH removes hidden overlay services for PiP/background-only modes without stopping independent MediaSession playback. 1.21.32 remains consumed and SOURCE_ONLY; latest verified APK remains 1.21.18. SOURCE_ONLY pending fresh CI and device verification.
+
+- 1.21.34 (code 257) — Declare the actual video PiP host, FullscreenVideoActivity, resizable and Android-picture-in-picture-capable in the manifest. Android CI compilation alone would not validate the missing Activity capability, so this follow-up closes the Android PiP manifest integration gap. Previous draft identities 1.21.32 and 1.21.33 are consumed; SOURCE_ONLY pending exact-head CI and physical PiP/overlay device tests.
