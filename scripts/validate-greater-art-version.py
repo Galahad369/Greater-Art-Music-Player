@@ -209,6 +209,10 @@ def is_versioned_code_path(path: str, parent: str, commit: str) -> bool:
         return True
 
     if path.startswith(".github/workflows/"):
+        if path == ".github/workflows/windows-desktop-ci.yml":
+            # Explicitly owned by the independent desktop guard in the required
+            # Version Consistency workflow; never exempt Android/shared workflows.
+            return False
         return Path(path).suffix.lower() in {".yml", ".yaml"}
 
     return False
