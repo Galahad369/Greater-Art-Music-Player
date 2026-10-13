@@ -1,87 +1,51 @@
-# Greater Art Desktop
+# Greater Art Desktop — native Windows edition
 
-**0.1.0 / code 1 — local development milestone, not an Android-parity release.**
+Desktop **0.1.1 / code2**, development build. Original C++ application with an IDE/Codex-style workspace: activity rail, resizable Stack pane, Library editor area, Nodes pane and fixed playback dock. Expanded Now Playing and detached Mini use the same native video renderer.
 
-Windows desktop work is isolated from Android on `feat/greater-art-windows-desktop`.
-There is no published installer, no approved desktop license change, and no claim
-that the existing Android feature set has been ported completely.
+## Install and run
 
-## Implemented
+Use the locally delivered **GreaterArt-Desktop-Setup-0.1.1.exe**. Double-click it, keep **Create desktop shortcut** selected and press Install. Setup creates a Start menu entry too. It installs for the current user without an app-runtime download. Add a local folder in the app to populate Library.
 
-- Compose desktop with simultaneous Stack, Library and Nodes panes.
-- Explicitly selected local folders; recursive discovery without following links
-  outside the selected roots; Unicode filenames and distinct file identities.
-- One native libVLC primary player shared by Library preview and expanded player.
-- Real local video/audio, seek, pause/resume, volume, playback speed and loop.
-- Up to seven additional audio companions, with gain, mute, solo and removal.
-- Persistent selected roots, favorites and pane widths; draggable dividers.
-- Filename graph computed using the unchanged pure Android graph algorithms.
+Installed executable: `%LOCALAPPDATA%/Programs/GreaterArtDesktop/GreaterArt.exe`.
+Settings and graph cache: `%LOCALAPPDATA%/GreaterArtDesktopNative/`.
+Uninstall through Windows Installed apps; your settings and media are retained.
 
-Companion sources currently provide audio only. They do **not** have Android's
-alignment engine, saved Stacks, readiness barriers or drift correction. Different
-takes are not promised to be synchronized. Expanded playback is a separate desktop
-window; maximizing it is not yet exclusive/borderless fullscreen.
+The separately delivered **GreaterArt-Desktop-0.1.1.exe** is also directly runnable. It stores preferences in LocalAppData; “single EXE” does not mean it writes settings beside itself. Do not run an obsolete prototype at the same time.
 
-## Local build
+## Dependencies and offline boundary
 
-Requires JDK 21 and a reviewed 64-bit VLC runtime. No runtime is downloaded by the
-application. For this development milestone, point `GREATER_ART_VLC` to an existing
-VLC installation containing `libvlc.dll`, `libvlccore.dll` and `plugins/`.
+The application uses Windows SDK/system components only: Win32/GDI, Windows Media Foundation, COM, shell and DWM. Static C++ runtime. **No VLC, Java, Electron, browser shell, NuGet, accounts, telemetry, updater or URL playback.** Only selected local folders are scanned; UNC/network roots and reparse-point traversal are rejected.
 
-From `desktop/` in PowerShell:
+It still relies on Windows codecs. Unsupported media shows an error; it is never silently transcoded, proxy-played or quality-capped. Windows N installations without media components are not supported by this build. No resolution, bitrate or FPS limit is added.
 
-```powershell
-$env:JAVA_HOME = 'C:/Program Files/Android/openjdk/jdk-21.0.8'
-$env:GREATER_ART_VLC = 'C:/Program Files/VideoLAN/VLC'
-& "$env:JAVA_HOME/bin/java.exe" -classpath ../greater-art/gradle/wrapper/gradle-wrapper.jar org.gradle.wrapper.GradleWrapperMain :app:test :app:run --no-daemon --max-workers=2
-```
+Build tools are different from runtime dependencies: Visual Studio C++ desktop workload + Windows SDK build the app; WiX 3 builds the embedded MSI. WiX is not an installed app dependency.
 
-If Java rejects a certificate that Windows trusts, diagnose the TLS chain first.
-The tested local workaround uses the existing Windows root store for that process:
+## Working features
+
+- Rectangular Library rows, search/reset, favorites, name/newest/oldest sort, chosen-folder recursive scan and Unicode filenames.
+- Primary video/audio plus up to seven independent audio-only companions; master and per-voice volume, mute/solo, play/pause, seek, speed and whole-Stack loop.
+- Saved Stacks separate from the Library, add-track picker, restore/delete saved Stacks, copy current/Stack paths.
+- Exact-file Recycle Bin action behind three confirmations; never a blanket delete.
+- Offline filename-similarity Nodes graph, sparse edges, strength-aware sizes, pan/zoom/drag, Fit and wand reveal; cached by media identity, size and modification time.
+- Fixed transport, direct speed control, expanded player, monitor-bound fullscreen preserving the entire video frame, and borderless Mini on minimize.
+- Collapsed settings groups, three restrained palettes, row/Mini sizing and persistent pane widths.
+- Ctrl+Space playback, Ctrl+O folder, Ctrl+, settings, F11 fullscreen, Escape exit fullscreen.
+
+## Build and check
 
 ```powershell
-$env:JAVA_TOOL_OPTIONS = '-Djavax.net.ssl.trustStoreType=Windows-ROOT -Djavax.net.ssl.trustStore=NONE'
+./desktop/native/build.ps1
+./desktop/native/package.ps1 -WixPath 'C:/path/to/wix3'
+python desktop/packaging/validate_version.py
+python desktop/packaging/test_version.py
+./desktop/native/build/GreaterArt.exe --self-test 'C:/owned/test-output'
+./desktop/native/build/GreaterArt.exe --verify 'C:/owned/video-fixture.mp4' 'C:/owned/probe-output'
 ```
 
-Do not disable certificate verification, modify global trust stores blindly, or
-put credentials into Gradle properties.
+The interactive verification probe uses an isolated settings directory and captures only its owned windows. Never substitute desktop screen capture. It checks real rendered video, six playing media engines, fullscreen monitor bounds and dock/expanded/Mini handoff; it does **not** prove acoustic alignment.
 
-## Verification and remaining gates
+## Honest limitations
 
-On October 13, 2026, three JVM tests passed and the real native backend probe
-passed using an owned 24-second 1280×720 video fixture with audio and VLC 3.0.24:
-play, pause, seek/resume, speed, volume, simultaneous companion playback, continued
-playback while minimized, and native cleanup. PNG snapshots before and after seek
-contained non-black decoded frames at the fixture's original 1280×720 dimensions.
+Not full Android parity. Independent Media Foundation voices are not sample/phase-locked, and no offline arrangement aligner is offered yet. Current interface labels are English; Unicode media titles work. Artwork/metadata extraction, waveform/lyrics, Ambient, history, deeper queue features and UIA/Narrator acceptance remain unfinished. Mixed-DPI/multi-monitor, unsupported-codec and clean-machine coverage is incomplete.
 
-Those results are **not** acoustic synchronization measurements, continuous frame
-pacing measurements, or complete Compose-window/device acceptance. D3D11 decoder
-warnings occurred during the probe and remain under investigation. No native
-resolution, bitrate or frame-rate limit was added.
-
-The local self-contained app image also built successfully. Its launcher backend
-probe exited 0 with development runtime/JDK environment overrides cleared, using
-the bundled resources. This is not a clean-machine or full-workspace acceptance
-test, and the app image is not a signed installer or a full-parity release.
-
-Before public distribution: resolve license obligations for the complete chosen
-runtime/plugins, bundle the runtime and JRE, verify offline packaged startup,
-review installer signing, and complete the feature-parity and regression gates.
-Android is not being relicensed. Public distribution remains on hold until the
-owner has enough information to approve a desktop licensing route.
-
-See [HANDOFF.md](HANDOFF.md) for the exact continuation state.
-The initial [parity tracker](PARITY.md) distinguishes implemented behavior from
-missing functionality and unverified acceptance.
-
-## Local packaging (not publishing)
-
-From `desktop/`, explicitly run `./packaging/prepare-runtime.ps1`. It downloads the
-pinned official VLC 3.0.24 archive, supports an interrupted-download resume, checks
-SHA-256 and archive boundaries, and refuses to overwrite an existing runtime.
-Then run the Gradle wrapper command above with `:app:createDistributable` instead
-of `:app:test :app:run`. The app image includes the JRE and native resources.
-Running `:app:packageExe` is a separate installer step, not a public release.
-Do not copy a lone launcher EXE without its adjacent `app/` and `runtime/` trees.
-Packaged backend verification uses `GreaterArtDesktop.exe --backend-probe <owned-fixture>`;
-it is an opt-in actual playback test, not full workspace or acoustic acceptance.
+Binaries are unsigned. Embedded MSI SHA-256 validation detects payload mismatch, not publisher authenticity. Do not disable Windows security protections to run them. See [handoff](HANDOFF.md), [parity](PARITY.md) and [version policy](VERSION_DESKTOP.md). This local development delivery is not a public production release.

@@ -17,10 +17,26 @@ class DesktopVersionTest(unittest.TestCase):
                 guard.identity(text)
 
     def test_desktop_owns_only_its_workflow_and_implementation(self):
-        for path in (".github/workflows/windows-desktop-ci.yml", "desktop/app/build.gradle.kts", "desktop/app/icon.ico", "desktop/packaging/prepare-runtime.ps1"):
+        for path in (".github/workflows/windows-desktop-ci.yml", "desktop/app/build.gradle.kts", "desktop/app/icon.ico", "desktop/native/App.cpp", "desktop/native/Window.inl", "desktop/native/Setup.rc", "desktop/native/Core.h", "desktop/native/Product.wxs", "desktop/native/App.manifest", "desktop/native/build.ps1"):
             self.assertTrue(guard.desktop_code(path), path)
         for path in (".github/workflows/android-ci.yml", "greater-art/app/build.gradle.kts", "desktop/README.md", ".github/workflows/version-consistency.yml"):
             self.assertFalse(guard.desktop_code(path), path)
+
+    def test_current_native_package_and_independent_code(self):
+        reader = lambda path: (guard.ROOT / path).read_text(encoding="utf-8")
+        version, code = guard.identity(reader("desktop/VERSION_DESKTOP.md"))
+        guard.check_package(version, code, reader, native=True)
+        with self.assertRaises(ValueError):
+            guard.check_package(version, code + 1, reader, native=True)
+
+    def test_resource_or_installer_drift_is_rejected(self):
+        reader = lambda path: (guard.ROOT / path).read_text(encoding="utf-8")
+        version, code = guard.identity(reader("desktop/VERSION_DESKTOP.md"))
+        for broken in ("desktop/native/App.rc", "desktop/native/Setup.rc", "desktop/native/Product.wxs", "desktop/native/package.ps1"):
+            def altered(path):
+                return "" if path == broken else reader(path)
+            with self.assertRaises(ValueError):
+                guard.check_package(version, code, altered, native=True)
 
 
 if __name__ == "__main__":

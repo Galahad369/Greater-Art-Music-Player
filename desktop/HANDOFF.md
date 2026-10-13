@@ -1,98 +1,53 @@
-# Desktop continuation — October 13, 2026
+# Greater Art Desktop handoff
 
-## Scope and owner decisions
+## Current state — October 13, 2026
 
-- Independent Windows edition, full Android parity is the eventual goal.
-- Default three-pane workspace: Stack | Library | Nodes.
-- Desktop branch, no automatic merge; preserve Android behavior and artifacts.
-- Owner approved independent desktop version validation and the necessary one-time
-  Android tooling-policy bump. Local source now carries 1.21.39/code262; it has
-  not been committed or claimed as a new verified Android APK.
-- Owner did not select a desktop licensing route. Do not infer permission to
-  relicense Android or publish a bundled installer from that uncertainty.
+Desktop **0.1.1/code2**, DEVELOPMENT. Native Windows implementation replaces the 0.1.0 Compose/VLC prototype, which is preserved in Git checkpoint **702976a**. Android source on the desktop branch remains 1.21.39/code262 SOURCE_ONLY; verified Android APK 1.21.37/code260 is untouched.
 
-## Current state
+User direction: VS Studio/Codex-style workspace, original application, offline, few dependencies, self-contained setup EXE that creates a shortcut. Implemented using original C++/Win32 UI and Windows Media Foundation, not a VLC wrapper.
 
-Branch `feat/greater-art-windows-desktop`, based on Android main
-`884a2d5d86aa268cffac0200b37adf925b7ed5b3` (1.21.38/code261 SOURCE_ONLY).
-Desktop identity: 0.1.0/code1, DEVELOPMENT. Work remains local and uncommitted.
-Android's verified APK remains 1.21.37; no Android APK was replaced by this work.
+## Architecture
 
-Local dependencies: JDK 21.0.8, Kotlin 2.2.21, Compose 1.9.3, JNA 5.17.0,
-coroutines 1.10.2, installed native VLC 3.0.24. Direct JNA C bindings are used;
-choosing them does not settle distribution obligations of bundled native plugins.
+- native/Core.h: bounded chosen-folder discovery, Unicode identity/similarity, sparse force graph, atomic settings/Stack persistence, disk graph cache.
+- native/App.cpp: application model, GDI layout/painting/hit testing, dialogs and controls.
+- native/Window.inl: native window hosting, dock/expanded/Mini/fullscreen transitions and isolated verification probe.
+- native/Entry.inl: entrypoint, application icon, self-tests and single-instance guard.
+- native/Media.cpp/.h: one MTA actor serializes Media Foundation engines; a stable primary renderer moves between hosts.
+- native/Setup.cpp: original offline installer front-end; checksum-verifies embedded MSI before using Windows Installer.
+- native/Product.wxs: per-user app and shortcuts; no elevated install or runtime download.
+- native/build.ps1 + package.ps1: fail-fast C++/SDK compilation and build-only WiX packaging.
+- packaging/validate_version.py: independent desktop identity/resource/package/history validation.
 
-## Actual checks
+No Java/VLC/Electron/NuGet is used by the native build. Do not resurrect the obsolete prepare-runtime download script or vendor bundle. Unrelated DLL commits on main were not blindly merged or published. No extra Git worktree was created.
 
-`test` and `backendProbe` passed after the latest Kotlin edits. Three JVM tests
-cover root boundaries/Unicode/deduplication, settings persistence and the shared
-Android similarity/layout math. Native probe exercised real generated local media:
-primary video plus one audio companion, pause, seek, resume, speed, volume,
-minimized continuation and cleanup. Original-size decoded-frame PNGs are in
-`app/build/native-probe/before-seek.png` and `after-seek.png` (ignored build output).
+## Verification recorded
 
-The latest local app image built successfully with `test createDistributable`.
-Its actual `GreaterArtDesktop.exe --backend-probe <fixture>` exited 0 with
-`GREATER_ART_VLC`, `JAVA_HOME` and `JAVA_TOOL_OPTIONS` cleared. Thus this probe
-used the packaged JRE and bundled runtime, not the development environment's
-configured VLC location. Output: `app/build/native-probe/packaged-stdout.log` and
-`packaged-stderr.log`. This machine still has development tools installed; it is
-not a clean-machine acceptance test. The full Compose workspace was not visually
-accepted by this backend-only probe.
+- Native self-tests: **18/18**, covering Latin/CJK similarity, master/gain/mute/solo, hour durations, Unicode roots/favorites, saved Stack separation, scoped discovery/cancellation, sparse graph, atomic disk cache/invalidation, canonical paths and malformed settings.
+- Actual installed native video probe: **PASS**, six media engines playing generated fixture, 1280×720 source, 249 renderer frames in that run, exact fullscreen monitor bounds, dock → expanded → fullscreen → dock → Mini → expanded → dock.
+- Owned-window workspace and Now Playing captures inspected; rectangular rows/current marker, fitted centered video, fixed controls and pane hierarchy confirmed.
+- Setup/shortcuts checked against exact target and SHA-256. A clean uninstall/reinstall check removed only development registrations; no user media/settings were deleted.
+- Final commit/artifact hashes and post-integration checks are in RELEASE_0.1.1.md when finalized.
+- No audible claim: six identical generated fixture copies are NOT six different real covers, and player-position/probe evidence is NOT acoustic synchronization.
+- GitHub CI is configured but not claimed run for this local unpushed commit.
 
-Local development launcher (keep the entire adjacent app-image directory):
-`app/build/compose/binaries/main/app/GreaterArtDesktop/GreaterArtDesktop.exe`.
-No signed installer or public distribution was produced. Three desktop JVM tests,
-three desktop-policy tests and four Android merge-policy tests pass; both current
-version guards pass. Complete Android runtime tests were not rerun for the tooling
-metadata change. No commits, pushes or automatic merges were performed.
+## Workflow and mistakes — prevention
 
-The native probe reported D3D11/avcodec warnings. Successful snapshots prove frames
-were decoded, not that all frames were smooth or that six singers were audibly
-aligned. Do not mark playback acceptance complete from position counters.
+1. **Concurrent checkout mutation:** another process reset/switched checkout and erased uncommitted prototype edits. Native implementation was staged in an ordinary non-Git workspace folder, then applied to the existing desktop branch. Inspect status/ref before every commit. Do not reset, discard or auto-merge unrelated DLLs.
+2. **Cross-thread renderer handoff deadlock:** MTA reparenting can synchronously send a UI message while UI waits for the actor. Wait pumps SENT messages only; never dispatch queued clicks/timers reentrantly. Skip no-op host transfers.
+3. **Fit looked left-aligned:** HWND presentation ignores a screen-relative destination offset. Center the renderer child inside its host and submit origin-relative frame bounds. Never fix it with Stretch, source resizing or quality limits.
+4. **Current-row marker missed equivalent paths:** slash differences made a playing file look unrelated. Use canonical absolute preferred-path identities, preserving Unicode.
+5. **Native single-node graph placement:** center the singleton explicitly. Distinguish node drag from tap so dragging never starts playback.
+6. **Win32 compile hazards:** RPC headers define small; undefine before the app font field. Use pointer-width HMENU casts and DWORD native video dimensions.
+7. **Capture privacy:** initial hidden-window desktop BitBlt test captured unrelated background; those generated images were removed. Verification now uses PrintWindow on OWNED HWNDs only. No desktop capture or unrelated app imagery in delivered evidence.
+8. **MSI directory identifier collision:** StartMenuFolder is a reserved installer property. Use GreaterArtProgramGroup under ProgramMenuFolder; verify both actual shortcut paths after install.
+9. **Stale same-version development installs:** repeated 0.1.1 test MSIs can leave multiple product registrations. Uninstall only known development product codes before acceptance; then compare installed EXE hash to package-receipt.json. Never call a successful installer exit sufficient verification.
+10. **Locked MSI rebuild:** generate each payload in a unique build subdirectory; fail fast on tool errors and produce a receipt. Do not silently deliver old output. Exact lock holder was not established.
+11. **Save dialog race:** snapshot Stack tracks/gain/mute/solo when opening Save, not after the primary may have advanced during typing.
+12. **Speed rejection:** only publish the new speed after all engines accept; restore previous speed if any source rejects it.
+13. **Immutable delivery:** commit source first, build from that commit, validate resource identity, freeze version-named EXEs without overwrite, record hashes/source commit. Generated objects/logs/MSIs/runtime bundles stay ignored.
 
-## Fixes and mistakes to avoid
+## Remaining acceptance gates
 
-- Java TLS failed PKIX validation although Windows HTTPS worked. Diagnosed via
-  Java, then used process-local Windows-ROOT trust. Never disable TLS verification.
-- Removed obsolete `--plugin-path`; VLC 3 reported it no longer exists.
-- Companion media now uses per-media `:no-video`: no stray native video windows,
-  while primary video and companion source audio quality remain untouched.
-- Media startup waits for a registered native canvas instead of starting an
-  unhosted output. All presentations still share the same primary player.
-- Failed companion loads release their native player. Queue transitions release
-  old companions and restore primary volume/rate rather than leaving stale voices.
-- Dividers convert physical-pixel drag distances to dp and use current callbacks.
-- Graph node degrees are precomputed rather than rescanning every edge per node
-  during each Canvas draw.
-- Native polling stops when shutdown begins, preventing timer dereferences after
-  player release. Executor shutdown is scheduled before awaiting native cleanup.
-- Loop restarts all current sources, but it is not a sample-synchronized barrier.
+Full Android feature parity, accurate shared-sample Stack mixing/alignment, real-cover acoustic verification, UIA/Narrator semantics and keyboard navigation, translations, metadata/artwork/waveforms/lyrics/Ambient/history, unsupported codecs, clean-machine testing, mixed-DPI/multi-monitor and trusted signing. Embedded checksum is not publisher authentication. Do not claim bug-free, security-certified or production-ready.
 
-## Next work, in order
-
-1. Run and inspect the actual Compose workspace with real media; test preview ↔
-   expanded canvas transfer, repeated source changes and clean window closure.
-2. Investigate decoder warnings and frame pacing without adding quality caps.
-3. Add integration coverage for primary/companion lifecycle, end/loop and failures.
-4. Inventory Android commands/preferences into a complete parity matrix; implement
-   missing functionality incrementally. Alignment, saved Stacks, playlists,
-   translations, metadata/artwork, lyrics, history, Ambient, true fullscreen,
-   shortcuts and tray behavior are not complete.
-5. Complete/test independent desktop CI/version governance. Current local edits
-   to shared workflow/Android guard require the authorized one-time Android patch:
-   main was rechecked at 884a2d5; local 1.21.39/code262 is free and the current-state
-   guard passes. Recheck before committing; do not overwrite an APK or claim a
-   newly verified Android binary for this source-only tooling change.
-6. Package and test a self-contained local development app image with reviewed
-   runtime/JRE. Installer/public release additionally require licensing, signing
-   and acceptance gates. Do not publish automatically.
-
-Official VLC archive downloaded, resumed after a premature connection close,
-checksum-verified and extracted into ignored `app/runtime/windows-x64/vlc`.
-The complete vendor tree, including plugins and license files, is retained.
-No archive was extracted until checksum validation passed. Metadata:
-`https://download.videolan.org/pub/videolan/vlc/3.0.24/win64/vlc-3.0.24-win64.zip`
-Vendor SHA-256:
-`fcf30850371ad10c9373cc4f0f4501e7dee49e3e9ae9f20c72fb2661a1ca6323`.
-Verify archive path safety and checksum before extracting; preserve license files.
+No automatic public push, release, branch deletion or main merge is part of this local native delivery.

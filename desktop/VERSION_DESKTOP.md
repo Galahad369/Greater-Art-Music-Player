@@ -1,18 +1,14 @@
 # Greater Art Desktop version policy
 
-Current desktop: **0.1.0 (code 1)**
+Current desktop: **0.1.1 (code 2)**
 Release state: **DEVELOPMENT**
-Android reference: 884a2d5 / 1.21.38. Desktop and Android versions are independent.
+Android remains independent: 1.21.39/code262 SOURCE_ONLY on this branch; verified Android APK 1.21.37/code260 is unchanged.
 
-Each committed desktop executable/build/workflow change increments desktop PATCH
-and code together. Initial code is 0.1.0/code1. Documentation and verified-artifact
-finalization do not consume another version. Never overwrite a versioned artifact.
-Full-parity 1.0.0 is reserved until every parity acceptance gate passes.
+Every committed desktop executable/build/workflow change increments PATCH and code together. Documentation and verified-artifact finalization do not consume another version. Never overwrite a versioned artifact. Full-parity 1.0.0 is reserved until all parity gates pass.
 
-0.1.0 is an incomplete development build, not full Android parity or production.
-Native backend, packaging, clean-machine and license acceptance remain explicit
-gates. No installer is published automatically.
+| Version | State | Changes |
+| --- | --- | --- |
+| 0.1.0 / 1 | Historical checkpoint 702976a | Compose/JVM workspace and VLC-backed prototype. Superseded; retained in Git history. |
+| 0.1.1 / 2 | Native Windows development build | Original C++/Win32 IDE-style workspace, Windows Media Foundation playback, offline self-contained installer, desktop/Start menu shortcuts. |
 
-- 0.1.0 (code 1) — Independent Compose/JVM project, coordinated session,
-  three-pane workspace, scoped recursive library, favorites, real libVLC binding,
-  basic concurrent voices, portable Android graph algorithms and initial tests.
+The native source/resource/MSI/artifact identities are checked by packaging/validate_version.py. The guard also validates the historical Compose checkpoint. Installer signing, clean-machine testing, full accessibility and full mobile feature parity remain open gates. No APK is rebuilt or relabelled for desktop work.

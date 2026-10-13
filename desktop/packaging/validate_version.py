@@ -24,7 +24,29 @@ def identity(text):
 def desktop_code(path):
     if path == ".github/workflows/windows-desktop-ci.yml":
         return True
-    return path.startswith("desktop/") and pathlib.Path(path).suffix in {".kt", ".kts", ".properties", ".py", ".ps1", ".yml", ".yaml", ".xml", ".java", ".ico", ".svg", ".png"}
+    return path.startswith("desktop/") and pathlib.Path(path).suffix in {".kt", ".kts", ".properties", ".py", ".ps1", ".yml", ".yaml", ".xml", ".java", ".ico", ".svg", ".png", ".cpp", ".h", ".inl", ".rc", ".manifest", ".wxs"}
+
+
+def check_package(version, code, reader, native):
+    if not native:
+        # Preserve validation of the historical 0.1.0 Compose checkpoint.
+        if f'packageVersion = "{version}"' not in reader("desktop/app/build.gradle.kts"):
+            raise ValueError("Legacy desktop package differs from ledger")
+        return
+    core = reader("desktop/native/Core.h")
+    if f'VERSION[] = L"{version}"' not in core or not re.search(rf"VERSION_CODE\s*=\s*{code}\s*;", core):
+        raise ValueError("Native desktop identity differs from ledger")
+    numeric = ",".join(version.split(".")) + ",0"
+    for resource in ("App.rc", "Setup.rc"):
+        text = reader("desktop/native/" + resource)
+        for field in ("FILEVERSION", "PRODUCTVERSION"):
+            if not re.search(rf"{field}\s+{re.escape(numeric)}\b", text):
+                raise ValueError(f"{resource} resource identity differs from ledger")
+    if f'Version="{version}"' not in reader("desktop/native/Product.wxs"):
+        raise ValueError("Installer identity differs from ledger")
+    packaging = reader("desktop/native/package.ps1")
+    if f"Setup-{version}.exe" not in packaging or f"version='{version}';code={code};" not in packaging:
+        raise ValueError("Installer artifact identity differs from ledger")
 
 
 def main():
@@ -36,9 +58,8 @@ def main():
     if not rules.exists():
         raise ValueError("Desktop implementation requires its version ledger")
     version, code = identity(rules.read_text(encoding="utf-8"))
-    build = (ROOT / "desktop/app/build.gradle.kts").read_text(encoding="utf-8")
-    if f'packageVersion = "{version}"' not in build:
-        raise ValueError("Desktop package version differs from ledger")
+    check_package(version, code, lambda path: (ROOT / path).read_text(encoding="utf-8"),
+                  (ROOT / "desktop/native/Core.h").exists())
     if options.base:
         for commit in git("rev-list", "--reverse", f"{options.base}..{options.head}").splitlines():
             parent = git("rev-parse", f"{commit}^").strip()
@@ -46,9 +67,8 @@ def main():
             if not any(desktop_code(path) for path in changed):
                 continue
             current = identity(git("show", f"{commit}:desktop/VERSION_DESKTOP.md"))
-            build_at_commit = git("show", f"{commit}:desktop/app/build.gradle.kts")
-            if f'packageVersion = "{current[0]}"' not in build_at_commit:
-                raise ValueError(f"{commit[:12]} package identity differs from its ledger")
+            check_package(*current, lambda path: git("show", f"{commit}:{path}"),
+                          bool(git("ls-tree", "--name-only", commit, "desktop/native/Core.h").strip()))
             # A pure integration adds no executable behavior of its own.
             parents = git("rev-list", "--parents", "-n", "1", commit).split()[1:]
             tree = git("rev-parse", f"{commit}^{{tree}}").strip()
