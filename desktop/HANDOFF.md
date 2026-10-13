@@ -26,7 +26,7 @@ No Java/VLC/Electron/NuGet is used by the native build. Do not resurrect the obs
 - Actual installed native video probe: **PASS**, six media engines playing generated fixture, 1280×720 source, 249 renderer frames in that run, exact fullscreen monitor bounds, dock → expanded → fullscreen → dock → Mini → expanded → dock.
 - Owned-window workspace and Now Playing captures inspected; rectangular rows/current marker, fitted centered video, fixed controls and pane hierarchy confirmed.
 - Setup/shortcuts checked against exact target and SHA-256. A clean uninstall/reinstall check removed only development registrations; no user media/settings were deleted.
-- Final commit/artifact hashes and post-integration checks are in RELEASE_0.1.1.md when finalized.
+- Final source commit **be22da9**, artifact hashes and post-integration checks are recorded in [RELEASE_0.1.1.md](RELEASE_0.1.1.md). The final installed probe reports 234 renderer frames; the earlier 249-frame run was a staging-build check.
 - No audible claim: six identical generated fixture copies are NOT six different real covers, and player-position/probe evidence is NOT acoustic synchronization.
 - GitHub CI is configured but not claimed run for this local unpushed commit.
 
