@@ -1,0 +1,52 @@
+name: Windows Desktop CI
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  desktop:
+    runs-on: windows-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+      - name: Validate independent desktop identity
+        working-directory: desktop
+        shell: pwsh
+        run: |
+          python packaging/validate_version.py
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          python packaging/test_version.py
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Build Windows-native application
+        shell: pwsh
+        run: ./desktop/native/build.ps1
+      - name: Run native offline core tests
+        shell: pwsh
+        run: |
+          $out = Join-Path $env:RUNNER_TEMP 'GreaterArt-native-tests'
+          $app = Join-Path $PWD 'desktop/native/build/GreaterArt.exe'
+          $test = Start-Process $app -ArgumentList "--self-test `"$out`"" -WindowStyle Hidden -PassThru
+          if (-not $test.WaitForExit(60000)) {
+            Stop-Process -Id $test.Id
+            throw 'Native tests timed out'
+          }
+          Get-Content (Join-Path $out 'unit-tests.txt')
+          if ($test.ExitCode -ne 0) { throw 'Native tests failed' }
+      - name: Package offline installer if build tools are available
+        shell: pwsh
+        run: |
+          $candle = Get-Command candle.exe -ErrorAction SilentlyContinue
+          if (-not $candle) {
+            Write-Output 'Installer gate not run: WiX 3 build tool is unavailable. No runtime will be downloaded.'
+            exit 0
+          }
+          ./desktop/native/package.ps1 -WixPath (Split-Path $candle.Source)
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      # Interactive media/installer acceptance remains a local Windows gate.

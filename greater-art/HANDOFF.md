@@ -3,7 +3,7 @@
 This file describes the **current repository state only**. Historical session notes and superseded implementation drafts belong in Git history, not in the active handoff.
 
 **Project:** `greater-art/` in the repository checkout
-**Current source:** `1.21.38 (code 261)` — SOURCE_ONLY; one-tap Developer Mode off in the diagnostics panel
+**Current source:** `1.21.39 (code 262)` — SOURCE_ONLY; desktop version-policy separation only, preserving the 1.21.38 Developer Mode change
 **Current version:** `1.21.37 (code 260)`
 **Latest APK:** `releases/GreaterArt-1.21.37.apk` (`27,862,370 bytes`; SHA-256 `4047097d81f999fe8f62d843e753975746f50d2b1d409362cd96ba4d78694fb6`)
 **Application ID:** `com.local.listentomusic`
@@ -13,6 +13,15 @@ This file describes the **current repository state only**. Historical session no
 **Verification boundary:** Exact committed source `b47d96c620a9ed5db0fd8c8e1e92df8857c99c6e`; 358 JVM tests, 23 API36 emulator tests, zero lint errors; signature, pinned certificate, version/package, 16KiB ZIP alignment and upgrade installation checked. Native PiP retains the player and source size; No Floating Home keeps playback. Nine storage/cache tests pass with All Files Access denied. No app fatal in inspected crash buffer. This is a debug sideload build, not production signing, physical-phone acceptance, full security assessment or a universal bug-free guarantee.
 
 ## Repository state
+
+### October 13 — independent desktop tooling policy (1.21.39/code262)
+
+- Owner approved independent desktop identity and validation. Windows work stays
+  on a dedicated branch and is not auto-merged or publicly distributed.
+- Only `.github/workflows/windows-desktop-ci.yml` belongs to the desktop guard;
+  Android and shared workflows retain Android version enforcement.
+- Android playback, permissions, signing and verified 1.21.37 APK are unchanged.
+  Desktop progress and explicit parity gaps: [desktop handoff](../desktop/HANDOFF.md).
 
 ### October 13 — Developer Mode quick disable (1.21.38/code261)
 
