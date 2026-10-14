@@ -48,6 +48,9 @@ void setFullscreen(bool value)
     app.fullscreen = value;
     if (value)
     {
+        // A destination request must restore an iconic window before sizing it.
+        // SetWindowPos alone otherwise updates its restored bounds, not the icon.
+        ShowWindow(app.player, SW_RESTORE);
         GetWindowPlacement(app.player, &app.placement);
         SetWindowLongPtr(app.player, GWL_STYLE, WS_POPUP | WS_VISIBLE | WS_CLIPCHILDREN);
         MONITORINFO monitor{sizeof(MONITORINFO)};
@@ -108,6 +111,7 @@ void openPlayer()
     DwmSetWindowAttribute(app.player, 20, &dark, sizeof(dark));
     SendMessage(app.player, WM_SETICON, ICON_BIG, reinterpret_cast<LPARAM>(app.icon));
     layout();
+    ShowWindow(app.player, SW_RESTORE);
     if (previousMini)
         DestroyWindow(previousMini);
     SetForegroundWindow(app.player);
@@ -384,6 +388,8 @@ void probeTick()
             fail(L"player accessible controls");
             return;
         }
+        // Exercise the iconic-window case, not only the already-visible path.
+        ShowWindow(app.player, SW_MINIMIZE);
         setFullscreen(true);
         app.probeStage = 3;
         app.probeAt = GetTickCount64();
@@ -431,7 +437,7 @@ void probeTick()
         layout();
         capture(app.main, app.probeOutput / L"returned-dock.png");
         std::ofstream report(app.probeOutput / L"verification.txt");
-        report << "PASS version=0.1.3 code=4\nvoices=" << app.slots.size()
+        report << "PASS version=0.1.4 code=5\nvoices=" << app.slots.size()
                << "\nsource=" << app.playback.width << "x" << app.playback.height
                << "\nframes=" << app.playback.frames
                << "\nfullscreen_monitor_bounds=true\nmini_and_dock_transfer=true\nmsaa_named_controls="
