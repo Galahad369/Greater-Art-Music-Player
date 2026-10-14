@@ -1,6 +1,6 @@
 # Greater Art Desktop — native Windows edition
 
-Current review source: **0.1.7/code8**, SOURCE_ONLY. Latest verified development installer: **0.1.4/code5**; its immutable links below remain valid. Original C++/Win32 application: activity rail, resizable Stack / Library / Nodes panes, collapsed Settings, fixed dock. Expanded Now Playing and detached Mini transfer the same primary renderer without reloading media.
+Current review source: **0.1.8/code9**, SOURCE_ONLY. Latest verified development installer: **0.1.4/code5**; its immutable links below remain valid. Original C++/Win32 application: activity rail, resizable Stack / Library / Nodes panes, collapsed Settings, fixed dock. Expanded Now Playing and detached Mini transfer the same primary renderer without reloading media.
 
 ## Install and run
 

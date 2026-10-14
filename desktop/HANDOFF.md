@@ -2,7 +2,7 @@
 
 ## PR review source — October 14, 2026
 
-Current source **0.1.7/code8 — SOURCE_ONLY**, on temporary integration branch codex/desktop-integration-review, PR #172. Verified/frozen 0.1.4 artifacts remain unchanged. Hosted Windows CI first lacked the pinned registry commit, then read its version database from stale HEAD. The workflow now fetches and checks out the same exact official baseline without force. Baseline evidence confirms FFmpeg 9.0.2 port revision 1 exists there. CI acceptance remains pending; no runtime codec version changed.
+Current source **0.1.8/code9 — SOURCE_ONLY**, on temporary integration branch codex/desktop-integration-review, PR #172. Verified/frozen 0.1.4 artifacts remain unchanged. Hosted Windows CI passed pinned codec compilation, native compilation and core tests on 0.1.7, then exposed a source-packaging assumption: a registry at pinned HEAD builds from ports/ffmpeg, not the cached git-tree directory. Packaging now accepts the exact registry path, verifies its approved port tree and rejects dirty source. All stages must pass together before integration; no runtime codec version changed.
 
 Review found and repaired: (1) a saturated worker queue discarded admitted operations, potentially stranding scan/alignment busy flags; admission now returns false without dropping accepted jobs, and callers clear flags/report rejection; (2) worker exceptions only logged, leaving callers without failure completion; generation-checked UI messages now clear current busy state; (3) raw FFmpeg frame allocations leaked on exceptional exits; frames are now scope-owned; (4) CI assumed vcpkg was on PATH; it also checks the runner installation root and Visual Studio tool path, with no prebuilt-codec fallback.
 

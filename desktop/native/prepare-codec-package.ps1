@@ -1,3 +1,4 @@
+param([string]$VcpkgRegistry)
 $ErrorActionPreference='Stop'
 $nativeRoot=[IO.Path]::GetFullPath($PSScriptRoot)
 $codecRoot=Join-Path $nativeRoot 'build/codecs'
@@ -8,6 +9,17 @@ $sourceArchive=Join-Path $codecRoot 'downloads/ffmpeg-ffmpeg-n9.0.2.tar.gz'
 $license=Join-Path $installed 'share/ffmpeg/copyright'
 $configuration=Join-Path $codecRoot 'buildtrees/ffmpeg/greater-art-x64-windows-rel'
 $portRoot=Join-Path $env:LOCALAPPDATA 'vcpkg/registries/git-trees/b9e158fe3e4f9d727af5e5904e1121d844267df3'
+if ($VcpkgRegistry) {
+    # A registry already at the pinned HEAD builds directly from ports/ffmpeg;
+    # no cached git-tree directory is created in that case. Verify the exact tree.
+    $portTree = & git -C $VcpkgRegistry rev-parse 'HEAD:ports/ffmpeg'
+    if ($LASTEXITCODE -ne 0 -or $portTree.Trim() -ne 'b9e158fe3e4f9d727af5e5904e1121d844267df3') {
+        throw 'Codec packaging registry does not contain the approved exact port tree.'
+    }
+    $dirty = & git -C $VcpkgRegistry status --porcelain -- ports/ffmpeg
+    if ($LASTEXITCODE -ne 0 -or $dirty) { throw 'Codec port source has uncommitted changes.' }
+    $portRoot = Join-Path $VcpkgRegistry 'ports/ffmpeg'
+}
 foreach($required in @($sourceArchive,$license,(Join-Path $configuration 'build.sh'),(Join-Path $trees[0].FullName 'COPYING.LGPLv2.1'),(Join-Path $portRoot 'portfile.cmake'))){if(-not (Test-Path -LiteralPath $required)){throw ('Missing codec source evidence: '+$required)}}
 $configText=Get-Content -LiteralPath (Join-Path $configuration 'config.h') -Raw
 foreach($flag in @('GPL','GPLV3','NONFREE')){if($configText -notmatch ('(?m)^#define CONFIG_'+$flag+' 0\s*$')){throw ('Unapproved codec license flag '+$flag)}}

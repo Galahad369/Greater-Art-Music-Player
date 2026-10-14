@@ -25,6 +25,7 @@ jobs:
           python packaging/test_version.py
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Build pinned offline codec libraries from source
+        id: codecs
         shell: pwsh
         run: |
           $vcpkg = (Get-Command vcpkg.exe -ErrorAction SilentlyContinue).Source
@@ -54,6 +55,7 @@ jobs:
           # manifest baseline. Align this disposable hosted checkout as well.
           & git -C $registry checkout --detach $baseline
           if ($LASTEXITCODE -ne 0) { throw 'Unable to align hosted registry HEAD with the pinned baseline' }
+          "registry=$registry" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
           ./desktop/native/build-codecs.ps1 -VcpkgExe $vcpkg
       - name: Build Windows-native application
         shell: pwsh
@@ -78,6 +80,6 @@ jobs:
             Write-Output 'Installer gate not run: WiX 3 build tool is unavailable. No runtime will be downloaded.'
             exit 0
           }
-          ./desktop/native/package.ps1 -WixPath (Split-Path $candle.Source)
+          ./desktop/native/package.ps1 -WixPath (Split-Path $candle.Source) -VcpkgRegistry '${{ steps.codecs.outputs.registry }}'
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       # Interactive media/installer acceptance remains a local Windows gate.

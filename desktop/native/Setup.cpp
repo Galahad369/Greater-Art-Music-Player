@@ -182,7 +182,7 @@ LRESULT CALLBACK procedure(HWND window, UINT message, WPARAM w, LPARAM l)
                  -1, &detail, DT_LEFT | DT_WORDBREAK);
         SetTextColor(dc, RGB(170, 179, 174));
         RECT version{px(28), px(280), px(230), px(350)};
-        DrawText(dc, L"Desktop 0.1.7\nDevelopment edition", -1, &version, DT_LEFT | DT_WORDBREAK);
+        DrawText(dc, L"Desktop 0.1.8\nDevelopment edition", -1, &version, DT_LEFT | DT_WORDBREAK);
         EndPaint(window, &paint);
         return 0;
     }

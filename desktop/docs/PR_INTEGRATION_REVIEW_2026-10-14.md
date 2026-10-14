@@ -8,6 +8,8 @@ No open PRs existed at review start. Protected main requires a PR and status che
 
 ## Findings repaired
 
+Third hosted repair, 0.1.8/code9: 0.1.7 passed codec/native compilation and core tests but failed exact-source packaging because pinned-HEAD builds use ports/ffmpeg instead of cached git trees. Pass the registry path into packaging and verify HEAD:ports/ffmpeg equals the approved tree; reject uncommitted changes. Source, patches, licenses and recipe are still mandatory, not skipped. Security PR #174 stays blocked by owner direction; do not weaken its check or rewrite history here.
+
 Second hosted CI repair, 0.1.7/code8: vcpkg uses registry HEAD for its versions database even after fetching a manifest baseline. The runner's old HEAD listed 9.0.2 but not port revision 1. The pinned official commit contains both baseline and database entry for 9.0.2#1; CI now checks out that exact baseline without force. Android CI/privacy/version/dependency checks passed on 0.1.6; acceptance must be repeated on the new head.
 
 | Finding | Repair | Verification |

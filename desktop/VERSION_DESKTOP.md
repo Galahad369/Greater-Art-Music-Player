@@ -1,6 +1,6 @@
 # Greater Art Desktop version policy
 
-Current desktop: **0.1.7 (code 8)**
+Current desktop: **0.1.8 (code 9)**
 Release state: **SOURCE_ONLY — PR review fixes; latest verified installer 0.1.4/code5**
 Android remains independent: 1.21.39/code262 SOURCE_ONLY on main; verified Android APK 1.21.37/code260 is unchanged.
 
@@ -16,5 +16,6 @@ Every committed desktop executable/build/workflow change increments PATCH and co
 | 0.1.5 / 6 | PR review source; not a new frozen release | Bounded background queue reports admission/failure instead of silently dropping work; UI scan/alignment busy flags recover; audio frames use RAII on exceptional exits. |
 | 0.1.6 / 7 | CI repair source; not a new frozen release | Fetch the exact pinned official vcpkg registry baseline on hosted runners before source-building codecs; no codec upgrade or runtime-quality change. |
 | 0.1.7 / 8 | CI repair source; not a new frozen release | Align hosted registry HEAD and version database with the exact pinned baseline; no force checkout, runtime or codec upgrade. |
+| 0.1.8 / 9 | Installer CI repair source; not a new frozen release | Package exact verified port source from the pinned registry when vcpkg builds directly from HEAD rather than cached git trees. Reject dirty or mismatched port trees. |
 
 The native source/resource/MSI/artifact identities are checked by packaging/validate_version.py. The guard also validates the historical Compose checkpoint. Installer signing, clean-machine testing, full accessibility and full mobile feature parity remain open gates. No APK is rebuilt or relabelled for desktop work.

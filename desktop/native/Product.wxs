@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <Wix xmlns="http://schemas.microsoft.com/wix/2006/wi">
-  <Product Id="*" Name="Greater Art Desktop" Language="1033" Version="0.1.7" Manufacturer="Greater Art" UpgradeCode="6A6D09AB-4A9A-4EAB-9958-32466F053B77">
+  <Product Id="*" Name="Greater Art Desktop" Language="1033" Version="0.1.8" Manufacturer="Greater Art" UpgradeCode="6A6D09AB-4A9A-4EAB-9958-32466F053B77">
     <Package InstallerVersion="500" Compressed="yes" InstallScope="perUser" Platform="x64" Description="Offline Windows-native Greater Art"/>
     <MajorUpgrade DowngradeErrorMessage="A newer Greater Art Desktop version is already installed."/>
     <MediaTemplate EmbedCab="yes"/>
@@ -11,7 +11,7 @@
       <Directory Id="LocalAppDataFolder"><Directory Id="UserPrograms" Name="Programs"><Directory Id="INSTALLFOLDER" Name="GreaterArtDesktop">
         <Component Id="Application" Guid="90F1A7A5-EB47-4CD0-A4B0-77EBF826D273" Win64="yes">
           <File Id="GreaterArtExe" Source="build/GreaterArt.exe"/>
-          <RegistryValue Root="HKCU" Key="Software\GreaterArt\Desktop" Name="Version" Type="string" Value="0.1.7" KeyPath="yes"/>
+          <RegistryValue Root="HKCU" Key="Software\GreaterArt\Desktop" Name="Version" Type="string" Value="0.1.8" KeyPath="yes"/>
           <RemoveFolder Id="RemoveApplicationFolder" Directory="INSTALLFOLDER" On="uninstall"/>
           <RemoveFolder Id="RemoveEmptyUserPrograms" Directory="UserPrograms" On="uninstall"/>
         </Component>

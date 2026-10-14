@@ -4,13 +4,13 @@ Greater Art is a local-first Android audio and video player. This repository con
 
 > **Vibe-coded disclosure:** Greater Art was built through iterative work with AI coding agents. Human direction, product decisions, device feedback, and acceptance guide the work; substantial code and documentation are AI-assisted.
 
-- Latest emulator-verified sideload APK: **1.21.37 (code 260)** — see the [verification boundary](greater-art/HANDOFF.md); physical-phone and production-signing acceptance remain pending.
-- APK: [GreaterArt-1.21.37.apk](greater-art/releases/GreaterArt-1.21.37.apk)
+- Latest emulator-verified sideload APK: **1.21.39 (code 262)** — see the [verification boundary](greater-art/HANDOFF.md); physical-phone and production-signing acceptance remain pending.
+- APK: [GreaterArt-1.21.39.apk](greater-art/releases/GreaterArt-1.21.39.apk)
 - [App documentation](greater-art/README.md) · [Handoff and verification](greater-art/HANDOFF.md)
 - [User demonstration](greater-art-user-demo.html) · [Technical demonstration](greater-art-technical-demo.html)
 
-Current Android source: **1.21.39 / code 262 — SOURCE_ONLY** (desktop tooling-policy separation; Android runtime unchanged). Developer Mode can be disabled directly from its Inspector dialog.
-Windows Desktop source is independently versioned at **0.1.7 / code8 — SOURCE_ONLY**;
+Current Android source: **1.21.39 / code 262 — VERIFIED debug sideload** (desktop tooling-policy separation; Android runtime unchanged). Developer Mode can be disabled directly from its Inspector dialog.
+Windows Desktop source is independently versioned at **0.1.8 / code9 — SOURCE_ONLY**;
 latest verified development installer is **0.1.4 / code5**. It is an original
 native C++ IDE-style workspace with offline EXE setup and desktop shortcuts.
 No VLC/Java/Electron runtime. Approved codecs are built from pinned source and bundled
@@ -20,7 +20,7 @@ Integrated Mini/Android PiP/No Floating, queue Locate, readiness-gated PiP start
 and independent High Contrast. [Full engineering evidence and remaining gates](greater-art/docs/QUALITY_PASS_2026-10-12.md).
 Classic/Aurora/Bloom/Flow coexist without another video decoder; see the
 [feature evidence](greater-art/docs/ADAPTIVE_AMBIENT_2.md). Latest verified APK
-is 1.21.37. Selected-folder URI Library/playback is preserved
+is 1.21.39. Selected-folder URI Library/playback is preserved
 with distributed timing anchors, confidence-gated linear drift maps and bounded
 original-rate transient refinement. Library Performance v2
 stages 1–2. Shared viewport-priority artwork work pauses during fling; RAM hits stay

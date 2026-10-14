@@ -3,16 +3,24 @@
 This file describes the **current repository state only**. Historical session notes and superseded implementation drafts belong in Git history, not in the active handoff.
 
 **Project:** `greater-art/` in the repository checkout
-**Current source:** `1.21.39 (code 262)` — SOURCE_ONLY; desktop version-policy separation only, preserving the 1.21.38 Developer Mode change
-**Current version:** `1.21.37 (code 260)`
-**Latest APK:** `releases/GreaterArt-1.21.37.apk` (`27,862,370 bytes`; SHA-256 `4047097d81f999fe8f62d843e753975746f50d2b1d409362cd96ba4d78694fb6`)
+**Current source:** `1.21.39 (code 262)` — VERIFIED debug sideload; desktop policy plus the 1.21.38 Developer Mode change
+**Current version:** `1.21.39 (code 262)`
+**Latest APK:** `releases/GreaterArt-1.21.39.apk` (`26,877,593 bytes`; SHA-256 `e636fb7c1bfdbdf5500d48863a9f6c778aec47bb2090e433bb2e86037e468104`)
 **Application ID:** `com.local.listentomusic`
 **Signing certificate SHA-256:** `9e28eb45b3b171c3ea47d7da942d28d88b16538885e392a6971a80906d612fbf`
-**Build date:** `2026-10-13`
+**Build date:** `2026-10-14`
 **Test device:** `GreaterArt_A55_API36 (A55-sized emulator, API 36, Android 16)`
-**Verification boundary:** Exact committed source `b47d96c620a9ed5db0fd8c8e1e92df8857c99c6e`; 358 JVM tests, 23 API36 emulator tests, zero lint errors; signature, pinned certificate, version/package, 16KiB ZIP alignment and upgrade installation checked. Native PiP retains the player and source size; No Floating Home keeps playback. Nine storage/cache tests pass with All Files Access denied. No app fatal in inspected crash buffer. This is a debug sideload build, not production signing, physical-phone acceptance, full security assessment or a universal bug-free guarantee.
+**Verification boundary:** Exact build source `b20489581b6125ce3963c767ed8e419c979a6820`; 358 JVM tests, 21 API36 emulator tests, zero lint errors; signature, pinned certificate, version/package, 16KiB ZIP alignment and upgrade installation checked. Emulator tests cover scoped URI discovery/access, live primary-video Dynamic Ambient colors and retained player identity, floating presentations and accessibility/Developer Mode interactions. No app fatal in the inspected crash buffer. This is a debug sideload build, not production signing, physical-phone acceptance, full security assessment or a universal bug-free guarantee. The prior 1.21.37 artifact and its evidence remain unchanged in history.
 
 ## Repository state
+
+### October 14 — current Android release re-verification
+
+- Built 1.21.39/code262 with the documented local Java 21 runtime: unit tests, lint, app and instrumentation APKs passed. All 358 JVM tests ran without failure or skip; 21 selected emulator tests passed in 448.647 seconds.
+- The A55-sized API36 emulator upgraded successfully. The owned red/blue/green 1280×720 fixture verifies live color changes, unchanged primary player/surface when switching Ambient modes, pause stability and two-video Stack coexistence. This is not evidence of Windows Dynamic Ambient parity or sample-perfect acoustic synchronization.
+- Preserve signing identity and immutable APKs. The current APK uses the same recorded debug certificate. Production signing and physical-phone tests remain open.
+- Additional Stack regression: six real local 孤独毒毒 takes remained active for a full minute (one test, 64.607 seconds). Per-voice diagnostics were emitted. This proves session continuity only, not instrumental alignment quality or speaker-output latency; independent-player positions are not an acoustic clock.
+- PR #174 is deliberately excluded: owner instructed leaving its historical-privacy failure blocked. Do not bypass protection or rewrite history as part of this integration.
 
 ### October 13 — independent desktop tooling policy (1.21.39/code262)
 
