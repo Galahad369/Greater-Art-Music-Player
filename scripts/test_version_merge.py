@@ -9,6 +9,11 @@ spec.loader.exec_module(guard)
 
 
 class IntegrationMergeTest(unittest.TestCase):
+    def test_only_desktop_owned_workflow_uses_desktop_guard(self):
+        self.assertFalse(guard.is_versioned_code_path(".github/workflows/windows-desktop-ci.yml", "a", "b"))
+        self.assertTrue(guard.is_versioned_code_path(".github/workflows/android-ci.yml", "a", "b"))
+        self.assertTrue(guard.is_versioned_code_path(".github/workflows/version-consistency.yml", "a", "b"))
+
     def check_merge(self, parents, trees):
         def git(*args):
             if args[0] == "rev-list":

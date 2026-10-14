@@ -25,6 +25,13 @@ jobs:
       - name: Validate current source/release state
         run: python3 scripts/validate-greater-art-version.py
 
+      - name: Validate independent desktop identity
+        shell: bash
+        run: |
+          if [ -f desktop/packaging/validate_version.py ]; then
+            python3 desktop/packaging/validate_version.py
+          fi
+
       - name: Enforce per-commit version bumps and immutable APKs
         if: github.event_name != 'workflow_dispatch'
         env:
@@ -54,3 +61,6 @@ jobs:
           fi
 
           python3 scripts/validate-greater-art-version.py --base "$BASE" --head "$HEAD_REF"
+          if [ -f desktop/packaging/validate_version.py ]; then
+            python3 desktop/packaging/validate_version.py --base "$BASE" --head "$HEAD_REF"
+          fi

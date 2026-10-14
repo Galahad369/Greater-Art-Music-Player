@@ -7,7 +7,7 @@ This file is the authoritative version policy for Greater Art. If any handoff no
 ## Machine-checkable state
 
 
-Current source: **1.21.38 (code 261)**
+Current source: **1.21.39 (code 262)**
 Allowed consumed transition: **1.21.32 (code 255) -> 1.21.36 (code 259)**
 
 PR #168 separately consumed 1.21.33/code256 (5aae831), 1.21.34/code257
@@ -32,8 +32,8 @@ Allowed consumed transition: **1.21.22 (code 245) -> 1.21.24 (code 247)**
 1.21.23/code246 is consumed by the separate PR #153 PCM prototype (`881f39c`).
 Claude's supplied adaptive-sync patch proposed that identity too; integration
 used 1.21.24/code247 in its preserved history. Adaptive sync is model-backed, not acoustically verified.
-Current release state: **SOURCE_ONLY**
-Latest verified APK: **1.21.37 (code 260)**
+Current release state: **VERIFIED**
+Latest verified APK: **1.21.39 (code 262)**
 Allowed series transition: **1.14.15 -> 1.15.1**
 Allowed series transition: **1.15.89 -> 1.20.2**
 Allowed series transition: **1.20.5 -> 1.21.1**
@@ -62,6 +62,13 @@ Allowed consumed transition: **1.15.47 (code 177) -> 1.15.51 (code 181)**
 Allowed consumed transition: **1.15.52 (code 182) -> 1.15.54 (code 184)**
 
 ## Non-negotiable rules
+
+Desktop is independently versioned under `desktop/VERSION_DESKTOP.md`.
+Desktop executable/build files and the exact owned workflow
+`.github/workflows/windows-desktop-ci.yml` consume desktop identities only.
+Android/shared tooling and shared workflows still consume Android identities.
+The one-time establishment of this separation consumes 1.21.39/code262; no Android
+runtime behavior or verified APK changes are implied.
 
 1. **Every versioned code commit consumes a new PATCH version.**
    - `versionName`: `X.Y.Z -> X.Y.(Z+1)`
@@ -326,3 +333,4 @@ Previous baseline: 1.13.26 (code 115).
 - 1.21.37 (code 260) — Reviewed integration of native PiP/three floating modes, queue Locate and Adaptive Ambient, preserving both histories; bounded PiP readiness, localized mode descriptions and independent High Contrast. Emulator-verified sideload; physical/production-signing acceptance remain open.
 
 - 1.21.38 (code 261) — Add a prominently visible one-tap “Turn off Developer Mode” control inside the local diagnostics inspector, available in Library and expanded Now Playing. The action clears inspector interaction state and persists the existing Developer Mode preference; the DEV badge/panel disappear reactively. Add a measured Compose UI regression for one-tap dismissal. SOURCE_ONLY pending CI and device acceptance; verified 1.21.37 APK remains untouched.
+- 1.21.39 (code 262) — Owner-approved tooling-policy separation for independent Windows desktop versions and CI. Only the owned desktop workflow is exempt from Android bumps; shared workflows remain versioned, with regression tests. Android runtime and immutable verified 1.21.37 APK unchanged. SOURCE_ONLY.

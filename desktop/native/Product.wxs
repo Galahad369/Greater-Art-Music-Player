@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Wix xmlns="http://schemas.microsoft.com/wix/2006/wi">
+  <Product Id="*" Name="Greater Art Desktop" Language="1033" Version="0.1.8" Manufacturer="Greater Art" UpgradeCode="6A6D09AB-4A9A-4EAB-9958-32466F053B77">
+    <Package InstallerVersion="500" Compressed="yes" InstallScope="perUser" Platform="x64" Description="Offline Windows-native Greater Art"/>
+    <MajorUpgrade DowngradeErrorMessage="A newer Greater Art Desktop version is already installed."/>
+    <MediaTemplate EmbedCab="yes"/>
+    <Property Id="CREATE_DESKTOP_SHORTCUT" Value="1" Secure="yes"/>
+    <Property Id="ARPPRODUCTICON" Value="GreaterArtIcon"/>
+    <Icon Id="GreaterArtIcon" SourceFile="build/app.ico"/>
+    <Directory Id="TARGETDIR" Name="SourceDir">
+      <Directory Id="LocalAppDataFolder"><Directory Id="UserPrograms" Name="Programs"><Directory Id="INSTALLFOLDER" Name="GreaterArtDesktop">
+        <Component Id="Application" Guid="90F1A7A5-EB47-4CD0-A4B0-77EBF826D273" Win64="yes">
+          <File Id="GreaterArtExe" Source="build/GreaterArt.exe"/>
+          <RegistryValue Root="HKCU" Key="Software\GreaterArt\Desktop" Name="Version" Type="string" Value="0.1.8" KeyPath="yes"/>
+          <RemoveFolder Id="RemoveApplicationFolder" Directory="INSTALLFOLDER" On="uninstall"/>
+          <RemoveFolder Id="RemoveEmptyUserPrograms" Directory="UserPrograms" On="uninstall"/>
+        </Component>
+        <Component Id="CodecRuntime" Guid="3389ED5C-E828-46DE-A05E-2307C915FBA7" Win64="yes">
+          <File Id="Avcodec" Source="build/avcodec-63.dll"/>
+          <File Id="Avformat" Source="build/avformat-63.dll"/>
+          <File Id="Avutil" Source="build/avutil-61.dll"/>
+          <File Id="Swresample" Source="build/swresample-7.dll"/>
+          <File Id="Avfilter" Source="build/avfilter-12.dll"/>
+          <File Id="Swscale" Source="build/swscale-10.dll"/>
+          <RegistryValue Root="HKCU" Key="Software\GreaterArt\Desktop" Name="CodecRuntime" Type="string" Value="9.0.2" KeyPath="yes"/>
+        </Component>
+        <Directory Id="CODECDOCS" Name="Codecs">
+          <Component Id="CodecEvidence" Guid="91D2A267-44F8-4804-80F5-9E6597B5BFA9" Win64="yes">
+            <File Id="CodecLicense" Source="build/CodecDocs/COPYRIGHT.txt"/>
+            <File Id="CodecNotice" Source="build/CodecDocs/NOTICE.md"/>
+            <File Id="CodecSource" Source="build/CodecDocs/CodecSource.zip"/>
+            <File Id="CodecReceipt" Source="build/CodecDocs/BUILD-RECEIPT.json"/>
+            <RemoveFolder Id="RemoveCodecDocs" On="uninstall"/>
+            <RegistryValue Root="HKCU" Key="Software\GreaterArt\Desktop" Name="CodecEvidence" Type="integer" Value="1" KeyPath="yes"/>
+          </Component>
+        </Directory>
+      </Directory></Directory></Directory>
+      <Directory Id="ProgramMenuFolder"><Directory Id="GreaterArtProgramGroup" Name="Greater Art Desktop">
+        <Component Id="StartMenuShortcut" Guid="1DD6E4A5-2D4B-49BA-87D3-24B5A2C635A5">
+          <Shortcut Id="StartMenuLink" Name="Greater Art Desktop" Target="[INSTALLFOLDER]GreaterArt.exe" WorkingDirectory="INSTALLFOLDER" Icon="GreaterArtIcon"/>
+          <RemoveFolder Id="RemoveStartMenu" On="uninstall"/>
+          <RegistryValue Root="HKCU" Key="Software\GreaterArt\Desktop" Name="StartMenuShortcut" Type="integer" Value="1" KeyPath="yes"/>
+        </Component>
+      </Directory></Directory>
+      <Directory Id="DesktopFolder">
+        <Component Id="DesktopShortcut" Guid="A390E2AB-A5EF-4AF5-BDF1-23BB24F503FC">
+          <Condition>CREATE_DESKTOP_SHORTCUT=1</Condition>
+          <Shortcut Id="DesktopLink" Name="Greater Art Desktop" Target="[INSTALLFOLDER]GreaterArt.exe" WorkingDirectory="INSTALLFOLDER" Icon="GreaterArtIcon"/>
+          <RegistryValue Root="HKCU" Key="Software\GreaterArt\Desktop" Name="DesktopShortcut" Type="integer" Value="1" KeyPath="yes"/>
+        </Component>
+      </Directory>
+    </Directory>
+    <Feature Id="Complete" Title="Greater Art" Level="1">
+      <ComponentRef Id="Application"/><ComponentRef Id="StartMenuShortcut"/><ComponentRef Id="DesktopShortcut"/><ComponentRef Id="CodecRuntime"/><ComponentRef Id="CodecEvidence"/>
+    </Feature>
+  </Product>
+</Wix>
+
