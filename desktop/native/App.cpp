@@ -8,6 +8,7 @@
 #include "Language.h"
 #include "Media.h"
 #include "WorkQueue.h"
+#include <future>
 #include <SystemMediaTransportControlsInterop.h>
 #include <array>
 #include <atomic>
@@ -43,7 +44,7 @@ using Microsoft::WRL::ComPtr;
 namespace
 {
 constexpr UINT SCANNED = WM_APP + 1, GRAPH_READY = WM_APP + 2, ALIGN_READY = WM_APP + 8,
-               ASSET_READY = WM_APP + 9;
+               ASSET_READY = WM_APP + 9, TASK_FAILURE = WM_APP + 26;
 constexpr int SEARCH = 101, GRAPH_SEARCH = 102, PICKER_SEARCH = 103;
 struct Rect
 {
@@ -464,28 +465,38 @@ void scan()
     int neighbors = app.features.graphNeighbors;
     double minimum = app.features.graphThreshold / 100.0;
     invalidate();
-    app.scans.emplace_back([generation, roots, neighbors, minimum] {
-        SetThreadPriority(GetCurrentThread(), THREAD_PRIORITY_BELOW_NORMAL);
-        auto canceled = [generation] { return app.closing || app.generation != generation; };
-        auto songs = scanLibrary(roots, canceled);
-        if (canceled())
-            return;
-        Graph graph;
-        bool cached = loadGraphCache(app.dataDir, songs, graph, neighbors, minimum);
-        if (!cached)
-            graph = buildGraph(songs, canceled, neighbors, minimum);
-        if (canceled())
-            return;
-        {
-            std::lock_guard<std::mutex> guard(app.resultsMutex);
+    bool accepted = app.scans.emplace_back(
+        [generation, roots, neighbors, minimum] {
+            SetThreadPriority(GetCurrentThread(), THREAD_PRIORITY_BELOW_NORMAL);
+            auto canceled = [generation] { return app.closing || app.generation != generation; };
+            auto songs = scanLibrary(roots, canceled);
             if (canceled())
                 return;
+            Graph graph;
+            bool cached = loadGraphCache(app.dataDir, songs, graph, neighbors, minimum);
             if (!cached)
-                saveGraphCache(app.dataDir, songs, graph, neighbors, minimum);
-            app.results.push_back({generation, std::move(songs), std::move(graph)});
-        }
-        PostMessage(app.main, SCANNED, 0, 0);
-    });
+                graph = buildGraph(songs, canceled, neighbors, minimum);
+            if (canceled())
+                return;
+            {
+                std::lock_guard<std::mutex> guard(app.resultsMutex);
+                if (canceled())
+                    return;
+                if (!cached)
+                    saveGraphCache(app.dataDir, songs, graph, neighbors, minimum);
+                app.results.push_back({generation, std::move(songs), std::move(graph)});
+            }
+            PostMessage(app.main, SCANNED, 0, 0);
+        },
+        [generation] {
+            if (!app.closing)
+                PostMessage(app.main, TASK_FAILURE, 1, LPARAM(generation));
+        });
+    if (!accepted)
+    {
+        app.busy = false;
+        toast(L"Background work is busy. Refresh again when it finishes.");
+    }
 }
 void gains()
 {

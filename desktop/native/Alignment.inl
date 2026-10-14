@@ -10,31 +10,41 @@ void alignStack()
     for (auto &slot : app.slots)
         paths.push_back(slot.song.path);
     invalidate();
-    app.scans.emplace_back([generation, paths] {
-        SetThreadPriority(GetCurrentThread(), THREAD_PRIORITY_BELOW_NORMAL);
-        auto cancelled = [generation] { return app.closing || app.alignmentGeneration != generation; };
-        App::AlignmentResult result{generation, paths, {}, {}};
-        auto primary = analyseAudio(paths[0], cancelled);
-        if (!primary.error.empty())
-            result.error = primary.error;
-        for (std::size_t i = 1; i < paths.size() && !cancelled() && result.error.empty(); ++i)
-        {
-            auto voice = analyseAudio(paths[i], cancelled);
-            if (!voice.error.empty())
+    bool accepted = app.scans.emplace_back(
+        [generation, paths] {
+            SetThreadPriority(GetCurrentThread(), THREAD_PRIORITY_BELOW_NORMAL);
+            auto cancelled = [generation] { return app.closing || app.alignmentGeneration != generation; };
+            App::AlignmentResult result{generation, paths, {}, {}};
+            auto primary = analyseAudio(paths[0], cancelled);
+            if (!primary.error.empty())
+                result.error = primary.error;
+            for (std::size_t i = 1; i < paths.size() && !cancelled() && result.error.empty(); ++i)
             {
-                result.error = voice.error;
-                break;
+                auto voice = analyseAudio(paths[i], cancelled);
+                if (!voice.error.empty())
+                {
+                    result.error = voice.error;
+                    break;
+                }
+                result.matches.push_back(matchAudio(primary, voice));
             }
-            result.matches.push_back(matchAudio(primary, voice));
-        }
-        if (cancelled())
-            return;
-        {
-            std::lock_guard<std::mutex> lock(app.alignmentMutex);
-            app.alignments.push_back(std::move(result));
-        }
-        PostMessage(app.main, ALIGN_READY, 0, 0);
-    });
+            if (cancelled())
+                return;
+            {
+                std::lock_guard<std::mutex> lock(app.alignmentMutex);
+                app.alignments.push_back(std::move(result));
+            }
+            PostMessage(app.main, ALIGN_READY, 0, 0);
+        },
+        [generation] {
+            if (!app.closing)
+                PostMessage(app.main, TASK_FAILURE, 2, LPARAM(generation));
+        });
+    if (!accepted)
+    {
+        app.aligning = false;
+        toast(L"Background work is busy. Try alignment again shortly.");
+    }
 }
 void alignmentReady()
 {

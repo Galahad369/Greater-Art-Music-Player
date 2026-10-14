@@ -10,7 +10,7 @@ void prepareShare(std::vector<std::wstring> paths)
 {
     if (paths.empty() || paths.size() > 1000)
         return;
-    app.scans.emplace_back([paths] {
+    bool accepted = app.scans.emplace_back([paths] {
         std::vector<winrt::Windows::Storage::IStorageItem> items;
         std::wstring error;
         try
@@ -48,6 +48,8 @@ void prepareShare(std::vector<std::wstring> paths)
         }
         PostMessage(app.main, SHARE_READY, 0, 0);
     });
+    if (!accepted)
+        toast(L"Share preparation is busy. Try again shortly.");
 }
 void showWindowsShare(HWND owner)
 {

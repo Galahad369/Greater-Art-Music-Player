@@ -27,7 +27,20 @@ jobs:
       - name: Build pinned offline codec libraries from source
         shell: pwsh
         run: |
-          $vcpkg = (Get-Command vcpkg.exe -ErrorAction Stop).Source
+          $vcpkg = (Get-Command vcpkg.exe -ErrorAction SilentlyContinue).Source
+          if (-not $vcpkg -and $env:VCPKG_INSTALLATION_ROOT) {
+            $candidate = Join-Path $env:VCPKG_INSTALLATION_ROOT 'vcpkg.exe'
+            if (Test-Path -LiteralPath $candidate) { $vcpkg = $candidate }
+          }
+          if (-not $vcpkg) {
+            $vswhere = Join-Path ${env:ProgramFiles(x86)} 'Microsoft Visual Studio/Installer/vswhere.exe'
+            $vs = & $vswhere -latest -products '*' -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath
+            if ($vs) {
+              $candidate = Join-Path $vs 'VC/vcpkg/vcpkg.exe'
+              if (Test-Path -LiteralPath $candidate) { $vcpkg = $candidate }
+            }
+          }
+          if (-not $vcpkg) { throw 'Source-build vcpkg tool is unavailable; no unreviewed binary fallback is allowed.' }
           ./desktop/native/build-codecs.ps1 -VcpkgExe $vcpkg
       - name: Build Windows-native application
         shell: pwsh

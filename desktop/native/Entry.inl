@@ -55,6 +55,41 @@ int tests(const std::filesystem::path &directory)
         if (condition)
             ++passed;
     };
+    {
+        WorkQueue queue(1, 2);
+        std::promise<void> entered, release, drained, failureReported, afterFailure;
+        auto gate = release.get_future().share();
+        auto workerEntered = entered.get_future();
+        auto allDone = drained.get_future();
+        std::atomic<int> completed{0};
+        queue.emplace_back([&] {
+            entered.set_value();
+            gate.wait();
+        });
+        bool running = workerEntered.wait_for(std::chrono::seconds(5)) == std::future_status::ready;
+        auto job = [&] {
+            if (++completed == 2)
+                drained.set_value();
+        };
+        bool first = queue.emplace_back(job), second = queue.emplace_back(job),
+             overflow = queue.emplace_back([] {});
+        release.set_value();
+        expect(running && first && second && !overflow,
+               "full worker queue rejects admission without dropping existing tasks");
+        expect(allDone.wait_for(std::chrono::seconds(5)) == std::future_status::ready && completed == 2,
+               "all admitted background operations complete");
+        auto failed = failureReported.get_future();
+        queue.emplace_back([] { throw std::runtime_error("test failure"); },
+                           [&] { failureReported.set_value(); });
+        expect(failed.wait_for(std::chrono::seconds(5)) == std::future_status::ready,
+               "worker exceptions report failure completion");
+        auto recovered = afterFailure.get_future();
+        queue.emplace_back([&] { afterFailure.set_value(); });
+        expect(recovered.wait_for(std::chrono::seconds(5)) == std::future_status::ready,
+               "worker continues after an operation fails");
+        queue.shutdown();
+        expect(!queue.emplace_back([] {}), "closed queue rejects rather than silently swallowing work");
+    }
     expect(similarity(filenameFeatures(L"Caravan.mp3"), filenameFeatures(L"Gambling.mp4")) > 0,
            "shared-letter similarity");
     expect(similarity(filenameFeatures(L"孤独毒毒.mp4"), filenameFeatures(L"孤独毒毒.mp3")) == 1,

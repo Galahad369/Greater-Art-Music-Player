@@ -52,13 +52,14 @@ struct AudioFallback::Impl
         av_channel_layout_describe(&layout, name, sizeof(name));
         av_channel_layout_uninit(&layout);
         char arguments[256]{};
-        sprintf_s(arguments, "time_base=1/%d:sample_rate=%d:sample_fmt=flt:channel_layout=%s", rate, rate, name);
-        if (avfilter_graph_create_filter(&source, avfilter_get_by_name("abuffer"), "source", arguments, nullptr,
+        sprintf_s(arguments, "time_base=1/%d:sample_rate=%d:sample_fmt=flt:channel_layout=%s", rate, rate,
+                  name);
+        if (avfilter_graph_create_filter(&source, avfilter_get_by_name("abuffer"), "source", arguments,
+                                         nullptr, graph) < 0 ||
+            avfilter_graph_create_filter(&tempo, avfilter_get_by_name("atempo"), "tempo", "tempo=1", nullptr,
                                          graph) < 0 ||
-            avfilter_graph_create_filter(&tempo, avfilter_get_by_name("atempo"), "tempo", "tempo=1", nullptr, graph) <
-                0 ||
-            avfilter_graph_create_filter(&sink, avfilter_get_by_name("abuffersink"), "sink", nullptr, nullptr, graph) <
-                0)
+            avfilter_graph_create_filter(&sink, avfilter_get_by_name("abuffersink"), "sink", nullptr, nullptr,
+                                         graph) < 0)
             return false;
         return avfilter_link(source, 0, tempo, 0) >= 0 && avfilter_link(tempo, 0, sink, 0) >= 0 &&
                avfilter_graph_config(graph, nullptr) >= 0;
@@ -92,8 +93,8 @@ struct AudioFallback::Impl
             ComPtr<IMMDevice> device;
             ComPtr<IAudioClient> client;
             ComPtr<IAudioRenderClient> renderer;
-            HRESULT result =
-                CoCreateInstance(__uuidof(MMDeviceEnumerator), nullptr, CLSCTX_INPROC_SERVER, IID_PPV_ARGS(&devices));
+            HRESULT result = CoCreateInstance(__uuidof(MMDeviceEnumerator), nullptr, CLSCTX_INPROC_SERVER,
+                                              IID_PPV_ARGS(&devices));
             if (SUCCEEDED(result))
                 result = devices->GetDefaultAudioEndpoint(eRender, eMultimedia, &device);
             if (SUCCEEDED(result))
@@ -107,14 +108,15 @@ struct AudioFallback::Impl
                 update(7, 0, 0);
                 return;
             }
-            bool floating =
-                format->wFormatTag == WAVE_FORMAT_IEEE_FLOAT ||
-                (format->wFormatTag == WAVE_FORMAT_EXTENSIBLE &&
-                 reinterpret_cast<WAVEFORMATEXTENSIBLE *>(format)->SubFormat == KSDATAFORMAT_SUBTYPE_IEEE_FLOAT);
+            bool floating = format->wFormatTag == WAVE_FORMAT_IEEE_FLOAT ||
+                            (format->wFormatTag == WAVE_FORMAT_EXTENSIBLE &&
+                             reinterpret_cast<WAVEFORMATEXTENSIBLE *>(format)->SubFormat ==
+                                 KSDATAFORMAT_SUBTYPE_IEEE_FLOAT);
             int sampleRate = int(format->nSamplesPerSec), channels = int(format->nChannels),
                 bits = format->wBitsPerSample;
-            if (sampleRate < 8000 || sampleRate > 768000 || channels < 1 || channels > 32 || (floating && bits != 32) ||
-                (!floating && bits != 16 && bits != 24 && bits != 32) || format->nBlockAlign != channels * bits / 8)
+            if (sampleRate < 8000 || sampleRate > 768000 || channels < 1 || channels > 32 ||
+                (floating && bits != 32) || (!floating && bits != 16 && bits != 24 && bits != 32) ||
+                format->nBlockAlign != channels * bits / 8)
             {
                 CoTaskMemFree(format);
                 update(7, 0, 0);
@@ -145,11 +147,17 @@ struct AudioFallback::Impl
                 update(7, 0, metadata.duration);
                 return;
             }
-            AVFrame *input = av_frame_alloc(), *output = av_frame_alloc();
+            struct FrameOwner
+            {
+                AVFrame *value = av_frame_alloc();
+                ~FrameOwner()
+                {
+                    av_frame_free(&value);
+                }
+            } inputOwner, outputOwner;
+            AVFrame *input = inputOwner.value, *output = outputOwner.value;
             if (!input || !output)
             {
-                av_frame_free(&input);
-                av_frame_free(&output);
                 update(7, 0, metadata.duration);
                 return;
             }
@@ -222,8 +230,8 @@ struct AudioFallback::Impl
                     spans.pop_front();
                 }
                 double time = spans.empty() ? origin
-                                            : spans.front().time - double(spans.front().end - consumed) / sampleRate *
-                                                                       spans.front().rate;
+                                            : spans.front().time - double(spans.front().end - consumed) /
+                                                                       sampleRate * spans.front().rate;
                 if (paused)
                 {
                     if (started)
@@ -241,8 +249,9 @@ struct AudioFallback::Impl
                     double timestamp = 0;
                     if (decoder.read(pcm, timestamp))
                     {
-                        std::size_t skip =
-                            timestamp < seekStart ? std::size_t((seekStart - timestamp) * sampleRate) * channels : 0;
+                        std::size_t skip = timestamp < seekStart
+                                               ? std::size_t((seekStart - timestamp) * sampleRate) * channels
+                                               : 0;
                         if (skip < pcm.size())
                         {
                             av_frame_unref(input);
@@ -305,7 +314,8 @@ struct AudioFallback::Impl
                        frames = queued.empty()
                                     ? 0
                                     : UINT32(std::min(std::size_t(available),
-                                                      (queued.front().pcm.size() - queued.front().head) / channels));
+                                                      (queued.front().pcm.size() - queued.front().head) /
+                                                          channels));
                 if (frames)
                 {
                     BYTE *buffer = nullptr;
@@ -372,8 +382,6 @@ struct AudioFallback::Impl
             }
             if (started)
                 client->Stop();
-            av_frame_free(&input);
-            av_frame_free(&output);
         }
     }
 };

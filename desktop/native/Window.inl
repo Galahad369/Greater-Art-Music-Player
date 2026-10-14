@@ -437,7 +437,7 @@ void probeTick()
         layout();
         capture(app.main, app.probeOutput / L"returned-dock.png");
         std::ofstream report(app.probeOutput / L"verification.txt");
-        report << "PASS version=0.1.4 code=5\nvoices=" << app.slots.size()
+        report << "PASS version=0.1.5 code=6\nvoices=" << app.slots.size()
                << "\nsource=" << app.playback.width << "x" << app.playback.height
                << "\nframes=" << app.playback.frames
                << "\nfullscreen_monitor_bounds=true\nmini_and_dock_transfer=true\nmsaa_named_controls="
@@ -563,6 +563,26 @@ LRESULT CALLBACK WindowProc(HWND window, UINT message, WPARAM w, LPARAM l)
         SetTextColor(reinterpret_cast<HDC>(w), colors.text);
         SetBkColor(reinterpret_cast<HDC>(w), colors.raised);
         return reinterpret_cast<LRESULT>(app.editBrush);
+    }
+    if (message == TASK_FAILURE && main)
+    {
+        unsigned generation = unsigned(l);
+        bool current = false;
+        if (w == 1 && generation == app.generation)
+        {
+            app.busy = false;
+            current = true;
+        }
+        if (w == 2 && generation == app.alignmentGeneration)
+        {
+            app.aligning = false;
+            current = true;
+        }
+        if (w == 3 && generation == app.assetGeneration)
+            current = true;
+        if (current && !app.closing)
+            toast(L"Background operation failed. Playback was not changed; please retry.");
+        return 0;
     }
     if (message == SCANNED)
     {
