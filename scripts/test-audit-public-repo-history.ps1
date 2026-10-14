@@ -6,7 +6,7 @@ $ErrorActionPreference = "Stop"
 if (Get-Variable PSNativeCommandUseErrorActionPreference -ErrorAction SilentlyContinue) { $PSNativeCommandUseErrorActionPreference = $false }
 $audit = Join-Path $PSScriptRoot "audit-public-repo.ps1"
 $repo = Join-Path ([IO.Path]::GetTempPath()) ("ga-audit-" + [guid]::NewGuid().ToString("N"))
-function Git { param([Parameter(ValueFromRemainingArguments = $true)][string[]]$Args) & git -C $repo @Args | Out-Null; if ($LASTEXITCODE -ne 0) { throw "Synthetic git operation failed" } }
+function Git { param([Parameter(ValueFromRemainingArguments = $true)][string[]]$Arguments) & git -C $repo @Arguments | Out-Null; if ($LASTEXITCODE -ne 0) { throw "Synthetic git operation failed" } }
 function Check { $out = (& pwsh -NoProfile -NonInteractive -File $audit $repo 2>&1 | Out-String); return [pscustomobject]@{ code = $LASTEXITCODE; output = $out } }
 try {
     New-Item -ItemType Directory $repo | Out-Null
