@@ -1,0 +1,41 @@
+name: PR24 Disposable History Rewrite Rehearsal
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - scripts/pr24-rehearse-history.py
+      - .github/workflows/pr24-history-rehearsal.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  rehearse:
+    if: github.event_name == 'pull_request' && github.head_ref == 'security/pr24-historical-privacy-fix-v1'
+    runs-on: ubuntu-latest
+    timeout-minutes: 55
+    steps:
+      - name: Fetch rewrite script (never persist credentials)
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+          fetch-depth: 1
+      - name: Install pinned history rewrite dependency
+        shell: bash
+        run: python3 -m pip install --disable-pip-version-check 'git-filter-repo==2.47.0'
+      - name: Clone a disposable full mirror of public heads and tags
+        shell: bash
+        run: |
+          git clone --quiet --mirror --no-local \
+            https://github.com/Galahad369/Greater-Art-Music-Player.git \
+            "$RUNNER_TEMP/pr24-original.git"
+      - name: Rehearse all-ref history sanitization; NEVER PUSH
+        shell: bash
+        run: |
+          python3 scripts/pr24-rehearse-history.py \
+            --mirror "$RUNNER_TEMP/pr24-original.git" \
+            --output "$RUNNER_TEMP/pr24-rewritten.git"
+      # No artifact upload: Git history and ref maps may contain personal data.
+      # Ephemeral rehearsal is not a persistent encrypted backup or owner approval.

@@ -7,7 +7,7 @@ This file is the authoritative version policy for Greater Art. If any handoff no
 ## Machine-checkable state
 
 
-Current source: **1.21.40 (code 263)**
+Current source: **1.21.41 (code 264)**
 Allowed consumed transition: **1.21.38 (code 261) -> 1.21.40 (code 263)**
 
 1.21.39/code262 was consumed on desktop integration branch codex/desktop-integration-review. The present audit-only maintenance branch does not import unfinished desktop application changes or reuse that version identity.
@@ -332,3 +332,4 @@ Previous baseline: 1.13.26 (code 115).
 
 - 1.21.39 (code 262) — Consumed by concurrent desktop integration branch; source-only, not an independently verified Android APK. This security branch does not duplicate that source identity.
 - 1.21.40 (code 263) — Historical privacy-audit hardening and deleted-log regression fixture (#24). The scanner now detects workstation paths in reachable Git history and reports only file/commit identifiers; a protected-tag rewrite remains owner-controlled and pending. Android runtime and verified 1.21.37 APK are unchanged; SOURCE_ONLY pending CI and coordinated remediation.
+- 1.21.41 (code 264) — Add a disposal-only full-ref Git-history rewrite rehearsal with `git-filter-repo`, a no-push GitHub Actions preview, release APK blob preservation checks and sanitized post-rewrite audit. No user history/tag rewrite or production release. SOURCE_ONLY.

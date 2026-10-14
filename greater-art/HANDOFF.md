@@ -3,7 +3,7 @@
 This file describes the **current repository state only**. Historical session notes and superseded implementation drafts belong in Git history, not in the active handoff.
 
 **Project:** `greater-art/` in the repository checkout
-**Current source:** `1.21.40 (code 263)` — SOURCE_ONLY; historical privacy-audit enforcement and protected-tag rewrite preflight (#24), no Android runtime change
+**Current source:** `1.21.41 (code 264)` — SOURCE_ONLY; adds a disposable full-history privacy rewrite rehearsal and isolated CI preview (#24), no Android runtime change
 **Current version:** `1.21.37 (code 260)`
 **Latest APK:** `releases/GreaterArt-1.21.37.apk` (`27,862,370 bytes`; SHA-256 `4047097d81f999fe8f62d843e753975746f50d2b1d409362cd96ba4d78694fb6`)
 **Application ID:** `com.local.listentomusic`
@@ -13,6 +13,13 @@ This file describes the **current repository state only**. Historical session no
 **Verification boundary:** Exact committed source `b47d96c620a9ed5db0fd8c8e1e92df8857c99c6e`; 358 JVM tests, 23 API36 emulator tests, zero lint errors; signature, pinned certificate, version/package, 16KiB ZIP alignment and upgrade installation checked. Native PiP retains the player and source size; No Floating Home keeps playback. Nine storage/cache tests pass with All Files Access denied. No app fatal in inspected crash buffer. This is a debug sideload build, not production signing, physical-phone acceptance, full security assessment or a universal bug-free guarantee.
 
 ## Repository state
+
+### October 14 — Disposable Git history rewrite rehearsal (1.21.41/code264)
+
+- Added an offline-only rehearsal tool that works from a separate bare mirror into an entirely new disposable mirror; verifies old/new tag and branch refs, unchanged APK blobs and no remaining workstation-path matches before claiming rehearsal success.
+- The GitHub Actions preview uses a temporary full mirror and **does not publish**, force-push, move tags or modify GitHub protections. It cannot replace an access-controlled persistent backup or owner-approved cutover.
+- All earlier privacy findings remain open until live history is remediated. Android runtime stays unchanged; latest verified APK is 1.21.37/code260.
+
 
 ### October 14 — Historical privacy-audit preflight (1.21.40/code263)
 
