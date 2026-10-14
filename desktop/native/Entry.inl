@@ -227,6 +227,7 @@ int tests(const std::filesystem::path &directory)
     saveSettings(directory, original);
     expect(loadSettings(directory).stacks[0].tracks[0].offset == 1.25, "saved Stack offset persists");
     expect(audioDecodeTest(directory.wstring()), "real offline decoder and 500ms waveform alignment");
+    expect(videoAmbientTests(directory.wstring()), "decoded-frame color tap preserves payload and transport");
     if (codecsAvailable())
     {
         CodecReader decoder;
@@ -386,9 +387,14 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE, PWSTR, int)
     app.dataDir = std::filesystem::path(data ? data : L".") / L"GreaterArtDesktopNative";
     if (data)
         CoTaskMemFree(data);
-    if (argc == 4 && wcscmp(argv[1], L"--verify") == 0)
+    if (argc == 4 && (wcscmp(argv[1], L"--verify") == 0 || wcscmp(argv[1], L"--verify-ambient") == 0 ||
+                      wcscmp(argv[1], L"--verify-ambient-fault") == 0))
     {
         app.probe = true;
+        app.probeFault = wcscmp(argv[1], L"--verify-ambient-fault") == 0;
+        app.probeAmbient = wcscmp(argv[1], L"--verify-ambient") == 0 || app.probeFault;
+        if (app.probeAmbient)
+            app.features.background = 2;
         app.probeFixture = argv[2];
         app.probeOutput = std::filesystem::absolute(argv[3]);
         std::filesystem::create_directories(app.probeOutput);
@@ -399,6 +405,8 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE, PWSTR, int)
     std::filesystem::create_directories(app.dataDir);
     enableCrashRecord(app.dataDir.wstring());
     app.features = loadFeatures(app.dataDir);
+    if (app.probeAmbient)
+        app.features.background = 2;
     app.speed = app.features.speed;
     loadCustomBackground();
     HANDLE instanceMutex = nullptr;
@@ -463,6 +471,8 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE, PWSTR, int)
     DwmSetWindowAttribute(app.main, 20, &dark, sizeof(dark));
     layout();
     initializeSystemMedia();
+    if (app.probeAmbient)
+        ShowWindow(app.main, SW_SHOWNOACTIVATE);
     if (app.probe)
     {
         app.settings.roots = {std::filesystem::path(app.probeFixture).parent_path().wstring()};

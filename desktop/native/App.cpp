@@ -166,6 +166,13 @@ struct App
     std::atomic<bool> assetPermit{false};
     std::wstring artist, album;
     COLORREF ambient[2]{RGB(60, 110, 95), RGB(38, 65, 96)};
+    COLORREF artworkColors[2]{RGB(60, 110, 95), RGB(38, 65, 96)};
+    COLORREF ambientFrom[2]{RGB(60, 110, 95), RGB(38, 65, 96)},
+        ambientTarget[2]{RGB(60, 110, 95), RGB(38, 65, 96)};
+    std::uint64_t ambientAt = 0, ambientGeneration = 0, ambientSamples = 0;
+    void *ambientPlayer = nullptr;
+    bool ambientEnabled = false;
+    float ambientBrightness = .15f, ambientSaturation = .3f;
     std::atomic<unsigned> assetGeneration{0};
     std::mutex assetMutex;
     struct AssetResult
@@ -217,6 +224,11 @@ struct App
     int previousState = 0, graphReveal = -1;
     WINDOWPLACEMENT placement{sizeof(WINDOWPLACEMENT)};
     bool probe = false;
+    bool probeAmbient = false;
+    bool probeFault = false;
+    void *probePlayer = nullptr;
+    std::uint64_t probeSamples = 0;
+    double probeTime = 0;
     std::wstring probeFixture;
     std::filesystem::path probeOutput;
     int probeStage = 0;
@@ -297,6 +309,32 @@ void fill(HDC dc, Rect rect, COLORREF color)
                                COLOR16(GetGValue(bottom) << 8), COLOR16(GetBValue(bottom) << 8), 0}};
         GRADIENT_RECT gradient{0, 1};
         GradientFill(dc, vertices, 2, &gradient, 1, GRADIENT_FILL_RECT_V);
+        if (app.features.background == 2)
+        {
+            Gdiplus::Graphics graphics(dc);
+            graphics.SetClip(
+                Gdiplus::Rect(int(r.left), int(r.top), int(r.right - r.left), int(r.bottom - r.top)));
+            BOOL motion = TRUE;
+            SystemParametersInfo(SPI_GETCLIENTAREAANIMATION, 0, &motion, 0);
+            double phase = motion && app.playback.state == 3 ? app.now / 19000.0 : 0;
+            float width = float(px(app.clientW)), height = float(px(app.clientH));
+            for (int i = 0; i < 2; ++i)
+            {
+                float x = width * float(.25 + .5 * i + .025 * std::sin(phase + i));
+                float y = height * float(.28 + .35 * i + .025 * std::cos(phase + i));
+                float radius = std::max(width, height) * .65f;
+                Gdiplus::GraphicsPath path;
+                path.AddEllipse(x - radius, y - radius, 2 * radius, 2 * radius);
+                Gdiplus::PathGradientBrush brush(&path);
+                int alpha = int(10 + 17 * app.ambientBrightness + 12 * app.ambientSaturation);
+                auto c = app.ambient[i];
+                brush.SetCenterColor(Gdiplus::Color(BYTE(alpha), GetRValue(c), GetGValue(c), GetBValue(c)));
+                Gdiplus::Color edge(0, GetRValue(c), GetGValue(c), GetBValue(c));
+                int count = 1;
+                brush.SetSurroundColors(&edge, &count);
+                graphics.FillPath(&brush, &path);
+            }
+        }
         return;
     }
     auto brush = CreateSolidBrush(color);
@@ -1890,5 +1928,6 @@ void applyDrag(HWND window, int x, int)
 } // namespace
 
 #include "Accessibility.inl"
+#include "Ambient.inl"
 #include "Window.inl"
 #include "Entry.inl"

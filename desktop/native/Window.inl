@@ -340,15 +340,124 @@ void probeTick()
 {
     if (!app.probe)
         return;
-    auto fail = [&](const std::wstring &) {
+    auto fail = [&](const std::wstring &reason) {
         std::ofstream report(app.probeOutput / L"verification.txt", std::ios::app);
-        report << "FAIL stage=" << app.probeStage << "\n";
+        report << "FAIL stage=" << app.probeStage << " reason=" << toUtf8(reason)
+               << " playerState=" << app.playback.state << " frames=" << app.playback.frames
+               << " tapFrames=" << app.playback.palette.framesSeen
+               << " samples=" << app.playback.palette.samples << " enabled=" << app.ambientEnabled
+               << " videoError=" << app.playback.videoError << " videoStatus=" << std::hex
+               << app.playback.videoStatus << "\n";
         app.probeFailed = true;
         PostMessage(app.main, WM_CLOSE, 0, 0);
     };
     if (GetTickCount64() - app.probeAt > 45000)
     {
         fail(L"timeout");
+        return;
+    }
+    if (app.probeAmbient)
+    {
+        if (app.slots.empty())
+            return;
+        auto palette = app.playback.palette;
+        if (app.probePlayer && app.probePlayer != app.slots[0].player)
+        {
+            fail(L"primary replaced");
+            return;
+        }
+        auto red = GetRValue(palette.colors[0]), green = GetGValue(palette.colors[0]),
+             blue = GetBValue(palette.colors[0]);
+        auto advance = [&](int stage) {
+            app.probeStage = stage;
+            app.probeAt = GetTickCount64();
+        };
+        if (app.probeStage == 0 && palette.samples && red > blue + 60 && app.playback.frames > 6)
+        {
+            app.probePlayer = app.slots[0].player;
+            advance(10);
+        }
+        else if (app.probeStage == 10 && GetTickCount64() - app.probeAt > 1800 && red > blue + 60)
+        {
+            capture(app.main, app.probeOutput / L"ambient-warm.png");
+            mediaSeek(app.probePlayer, 10);
+            advance(1);
+        }
+        else if (app.probeStage == 1 && palette.samples && blue > red + 60)
+        {
+            mediaPause(app.probePlayer, true);
+            advance(2);
+        }
+        else if (app.probeStage == 2 && GetTickCount64() - app.probeAt > 800)
+        {
+            app.probeSamples = palette.samples;
+            app.probeTime = app.playback.time;
+            advance(3);
+        }
+        else if (app.probeStage == 3 && GetTickCount64() - app.probeAt > 1000)
+        {
+            capture(app.main, app.probeOutput / L"ambient-cool.png");
+            if (palette.samples != app.probeSamples || std::abs(app.playback.time - app.probeTime) > .08)
+            {
+                fail(L"pause moved");
+                return;
+            }
+            app.features.background = 0;
+            mediaAmbientEnable(app.probePlayer, false);
+            mediaSeek(app.probePlayer, 18);
+            mediaPlay(app.probePlayer);
+            advance(4);
+        }
+        else if (app.probeStage == 4 && GetTickCount64() - app.probeAt > 1500)
+        {
+            if (palette.samples != app.probeSamples || app.playback.state != 3)
+            {
+                fail(L"disabled analysis or playback");
+                return;
+            }
+            app.features.background = 2;
+            advance(5);
+        }
+        else if (app.probeStage == 5 && palette.samples > app.probeSamples && green > red + 60 &&
+                 green > blue + 30)
+        {
+            if (app.probeFault)
+            {
+                app.probeTime = app.playback.time;
+                mediaAmbientFaultForTest(app.probePlayer);
+                advance(6);
+                return;
+            }
+            if (app.playback.width != 1280 || app.playback.height != 720)
+            {
+                fail(L"source size");
+                return;
+            }
+            std::ofstream report(app.probeOutput / L"verification.txt");
+            report << "PASS "
+                      "live_decoded_colors=red,blue,green\nprimary_identity_unchanged=true\npause_holds="
+                      "true\ndisabled_analysis_holds=true\nsource=1280x720\nframes="
+                   << app.playback.frames << "\npalette_samples=" << palette.samples
+                   << "\nno_second_decoder=true\n";
+            report << "tap_frames=" << palette.framesSeen << "\ngpu_samples=" << palette.gpuSamples << "\n";
+            capture(app.main, app.probeOutput / L"ambient-green.png");
+            PostMessage(app.main, WM_CLOSE, 0, 0);
+        }
+        else if (app.probeStage == 6 && app.playback.ambientUnavailable && app.playback.state == 3 &&
+                 app.playback.frames > 6)
+        {
+            if (app.playback.width != 1280 || app.playback.height != 720 ||
+                app.playback.time < app.probeTime - .5)
+            {
+                fail(L"native recovery lost source/position");
+                return;
+            }
+            std::ofstream report(app.probeOutput / L"verification.txt");
+            report << "PASS "
+                      "optional_effect_fault_recovers_native_video=true\nprimary_identity_unchanged="
+                      "true\nposition_preserved=true\nsource=1280x720\nquality_caps=false\n";
+            PostMessage(app.main, WM_CLOSE, 0, 0);
+        }
         return;
     }
     if (app.probeStage == 0 && !app.busy && !app.slots.empty() && app.playback.state == 3 &&
@@ -437,7 +546,7 @@ void probeTick()
         layout();
         capture(app.main, app.probeOutput / L"returned-dock.png");
         std::ofstream report(app.probeOutput / L"verification.txt");
-        report << "PASS version=0.1.8 code=9\nvoices=" << app.slots.size()
+        report << "PASS version=0.1.9 code=10\nvoices=" << app.slots.size()
                << "\nsource=" << app.playback.width << "x" << app.playback.height
                << "\nframes=" << app.playback.frames
                << "\nfullscreen_monitor_bounds=true\nmini_and_dock_transfer=true\nmsaa_named_controls="
@@ -701,6 +810,7 @@ LRESULT CALLBACK WindowProc(HWND window, UINT message, WPARAM w, LPARAM l)
             auto oldWidth = app.playback.width, oldHeight = app.playback.height;
             app.playback = mediaState(app.slots[0].player);
             app.playbackReadAt = app.now;
+            updateAmbient();
             if (oldWidth != app.playback.width || oldHeight != app.playback.height)
                 layout();
             if (app.playback.state == 7 && app.previousState != 7)

@@ -37,6 +37,10 @@ struct Player
     bool audioOnly = false, desiredPause = true, fallbackAttempted = false;
     double rate = 1, gain = 1, lastSeek = 0;
     std::unique_ptr<AudioFallback> fallback;
+    std::shared_ptr<VideoAmbientTap> ambient = std::make_shared<VideoAmbientTap>();
+    ComPtr<IMFTransform> colorEffect;
+    bool colorBypassed = false;
+    double lastGoodTime = 0;
     ~Player()
     {
         if (engine)
@@ -142,6 +146,33 @@ bool startAudioFallback(Player *p)
     p->fallback->pause(p->desiredPause);
     return true;
 }
+bool retryWithoutColorEffect(Player *p)
+{
+    // A decoration must never become a playback dependency. Retry at most once
+    // per media resource, retaining the native engine/source/rate/gain/intent.
+    if (p->colorBypassed || !p->colorEffect || p->path.empty() || !p->engine->HasVideo())
+        return false;
+    p->colorBypassed = true;
+    p->ambient->enabled = false;
+    p->ambient->reset();
+    if (FAILED(p->extended->RemoveAllEffects()))
+        return false;
+    p->engine->Pause();
+    BSTR source = SysAllocString(p->path.c_str());
+    if (!source)
+        return false;
+    HRESULT result = p->engine->SetSource(source);
+    SysFreeString(source);
+    if (FAILED(result) || FAILED(p->engine->Load()))
+        return false;
+    p->pendingSeek = p->lastGoodTime;
+    p->width = 0;
+    p->engine->SetPlaybackRate(p->rate);
+    p->engine->SetVolume(p->gain);
+    if (!p->desiredPause)
+        p->engine->Play();
+    return true;
+}
 void fit(Player *p)
 {
     if (!p || !p->host || !p->video || !IsWindow(p->host))
@@ -225,10 +256,12 @@ bool mediaInitialize()
                     {
                         ComPtr<IMFMediaError> error;
                         p->engine->GetError(&error);
-                        if (!p->fallbackAttempted && !p->path.empty() && error && error->GetErrorCode() &&
-                            codecsAvailable())
+                        if (!p->fallbackAttempted && !p->path.empty() && error && error->GetErrorCode())
                         {
-                            startAudioFallback(p);
+                            if (retryWithoutColorEffect(p))
+                                continue;
+                            if (codecsAvailable())
+                                startAudioFallback(p);
                         }
                         if (p->fallback)
                         {
@@ -311,6 +344,24 @@ HRESULT mediaLoad(void *handle, const std::wstring &path)
             if (!p)
                 return E_HANDLE;
             p->engine->Pause();
+            // An old pipeline may still complete a callback after a new load.
+            // Give each resource its own tap; old callbacks cannot publish into it.
+            bool wanted = p->ambient->enabled.load();
+            p->ambient->enabled = false;
+            auto removed = p->extended->RemoveAllEffects();
+            p->colorEffect.Reset();
+            p->ambient = std::make_shared<VideoAmbientTap>();
+            p->ambient->enabled = wanted;
+            p->ambient->reset();
+            p->colorBypassed = false;
+            if (!p->audioOnly)
+            {
+                p->colorBypassed =
+                    FAILED(removed) || FAILED(createVideoAmbientEffect(p->ambient, &p->colorEffect));
+                if (!p->colorBypassed)
+                    p->colorBypassed = FAILED(p->extended->InsertVideoEffect(p->colorEffect.Get(), TRUE));
+            }
+            p->lastGoodTime = 0;
             p->fallback.reset();
             p->fallbackAttempted = false;
             p->path = path;
@@ -457,12 +508,22 @@ MediaState mediaState(void *handle)
             MediaState s;
             if (!p)
                 return s;
+            s.ambientUnavailable = p->colorBypassed;
             ComPtr<IMFMediaError> error;
             p->engine->GetError(&error);
             // State reads and timer reconciliation use the same handoff. Never
             // expose native failure as terminal while an eligible fallback starts.
             if (!p->fallback && error && error->GetErrorCode())
+            {
+                if (retryWithoutColorEffect(p))
+                {
+                    s.state = 1;
+                    s.time = p->lastGoodTime;
+                    s.ambientUnavailable = true;
+                    return s;
+                }
                 startAudioFallback(p);
+            }
             if (p->fallback)
             {
                 auto state = p->fallback->state();
@@ -472,9 +533,16 @@ MediaState mediaState(void *handle)
                 return state;
             }
             s.time = p->engine->GetCurrentTime();
+            if (error)
+            {
+                s.videoError = error->GetErrorCode();
+                s.videoStatus = error->GetExtendedErrorCode();
+            }
             s.duration = p->engine->GetDuration();
             if (!std::isfinite(s.time))
                 s.time = 0;
+            if (!error || !error->GetErrorCode())
+                p->lastGoodTime = s.time;
             if (!std::isfinite(s.duration))
                 s.duration = 0;
             s.state = error && error->GetErrorCode()                                         ? 7
@@ -490,6 +558,7 @@ MediaState mediaState(void *handle)
                            : frames.vt == VT_UI8 ? frames.uhVal.QuadPart
                                                  : 0;
             PropVariantClear(&frames);
+            s.palette = p->ambient->snapshot();
             return s;
         },
         {});
@@ -504,6 +573,26 @@ void mediaRelease(void *handle)
                 players.erase(p);
                 delete p;
             }
+            return 0;
+        },
+        0);
+}
+void mediaAmbientEnable(void *handle, bool enabled)
+{
+    invoke<int>(
+        [=] {
+            if (auto p = valid(handle))
+                p->ambient->enabled = enabled;
+            return 0;
+        },
+        0);
+}
+void mediaAmbientFaultForTest(void *handle)
+{
+    invoke<int>(
+        [=] {
+            if (auto p = valid(handle))
+                p->ambient->failOnceForTest = true;
             return 0;
         },
         0);

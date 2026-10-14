@@ -334,15 +334,16 @@ void toolsMenu(HWND owner)
         break;
     case 8: {
         menu = CreatePopupMenu();
-        const wchar_t *names[]{L"Solid", L"Ambient — artwork colors", L"Custom image…"};
-        for (int i = 0; i < 3; ++i)
-            AppendMenu(menu, MF_STRING, i + 1, names[i]);
+        const wchar_t *names[]{L"Solid", L"Classic Ambient — video / artwork",
+                               L"Adaptive Ambient — video / artwork", L"Custom image…"};
+        for (int i = 0; i < 4; ++i)
+            AppendMenu(menu, MF_STRING, i + 1, translate(names[i], app.features.language).c_str());
         int value = TrackPopupMenu(menu, TPM_RETURNCMD | TPM_NONOTIFY, p.x, p.y, 0, owner, nullptr);
         DestroyMenu(menu);
         if (value)
         {
-            app.features.background = value == 3 ? 3 : value - 1;
-            if (value == 3)
+            app.features.background = value - 1;
+            if (value == 4)
             {
                 auto image = chooseTextFile(false, L"png");
                 if (!image.empty())

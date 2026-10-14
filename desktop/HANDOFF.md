@@ -1,5 +1,17 @@
 # Greater Art Desktop handoff
 
+## Live-video Ambient stage — October 15, 2026
+
+Current working source **0.1.9/code10 — implementation candidate**, local main. No new worktree. Android **1.21.39/code262 VERIFIED debug sideload** and every immutable release are unchanged. PR #172 merged normally as b4bf1ac after every check, including the complete Windows installer pipeline, passed; local main was aligned and the integration branch removed.
+
+Original optional video pass-through MFT now reads sparse colors from the existing primary decoder. The exact input sample, payload/time/duration and native presentation remain unchanged. GPU readback is bounded, reused and nonblocking; paused/hidden/disabled/high-contrast states stop sampling. Classic/Adaptive video-or-artwork options use smooth palette transitions and localized labels. No second decoder, screen capture, FPS/resolution/bitrate cap or source proxy. Details and limits: [LIVE_VIDEO_AMBIENT.md](docs/LIVE_VIDEO_AMBIENT.md).
+
+Final source checks passed: native compilation; core **57/57**, including detailed frame-contract, lifecycle, retained-buffer and synthetic HDR precision checks; real 1280×720 GPU red→blue→green colors with unchanged player/source, pause/disabled holds (5 GPU palette publications, 158 input frames); explicit optional-effect fault recovered native video with identity/position/size preserved; six-voice fullscreen/Mini/dock/MSAA transfer probe passed (224 rendered frames). Evidence is native/build/reviewed-019-*. Installed/CI results must still be recorded, not assumed. Complete Android Adaptive controls, real HDR display acceptance and tiled backgrounds are not claimed ported.
+
+Prevention: advertise input formats before a type is configured; support output-first negotiation and declare retained sample ownership; create a separate tap/epoch per resource so late old callbacks cannot recolor new media; preserve tagged HDR precision. Fixture preferences must be set after persisted settings load; visible-presentation tests must use visible owned windows. A synthetic decoded-buffer test alone missed the first real integration failure. Optional decorative pipeline failure retries native playback at most once per source and exposes artwork fallback instead of sacrificing quality.
+
+Next is one shared WASAPI sample clock for Stack, then the remaining parity inventory. Independent voices and analysis-fit residuals are not sample-output/acoustic proof. Security PR #174 stays blocked by owner direction; no history rewrite/protection bypass.
+
 ## PR review source — October 14, 2026
 
 Current source **0.1.8/code9 — SOURCE_ONLY**, on temporary integration branch codex/desktop-integration-review, PR #172. Verified/frozen 0.1.4 artifacts remain unchanged. Hosted Windows CI passed pinned codec compilation, native compilation and core tests on 0.1.7, then exposed a source-packaging assumption: a registry at pinned HEAD builds from ports/ffmpeg, not the cached git-tree directory. Packaging now accepts the exact registry path, verifies its approved port tree and rejects dirty source. All stages must pass together before integration; no runtime codec version changed.

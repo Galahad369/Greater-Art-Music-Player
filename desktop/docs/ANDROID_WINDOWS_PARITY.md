@@ -1,6 +1,6 @@
 # Android → Windows control inventory
 
-Desktop **0.1.4/code5**, DEVELOPMENT. Android source **1.21.39/code262** remains unchanged. This is a baseline source/control inventory, **not a completed exhaustive parity audit**. No feature is accepted merely because a button exists. Windows uses original C++/Win32 rather than the superseded Compose/VLC prototype, as subsequently requested by the owner.
+Desktop **0.1.9/code10 implementation candidate**; latest frozen development installer remains 0.1.4/code5. Android **1.21.39/code262** is an emulator-verified debug sideload. This is a source/control inventory, **not a completed exhaustive parity audit**. No feature is accepted merely because a button exists. Windows uses original C++/Win32 rather than the superseded Compose/VLC prototype, as subsequently requested by the owner.
 
 Android paths below are relative to `greater-art/app/src/main/java/com/local/listentomusic/`; Windows paths are relative to `desktop/native/`. “Implemented” means the described narrow behavior exists; the evidence column limits what was actually tested. “Missing” is an explicit unfinished requirement, not permission to drop it. Final artifact evidence is in ../RELEASE_0.1.4.md.
 
@@ -57,8 +57,8 @@ Android paths below are relative to `greater-art/app/src/main/java/com/local/lis
 | Filename graph | graph/FilenameSimilarity.kt; graph/GraphBuilder.kt | Core.h filenameFeatures/buildGraph | Partial | Latin/CJK/shared-letter/sparse tests; full Unicode normalization/candidate-index parity missing |
 | Force graph/tap/drag/zoom/wand | graph/GraphLayout.kt; ui/NodesScreen.kt | Core.h + App.cpp | Partial | Real nodes/weighted rendering; complete gesture/large-library acceptance pending |
 | Graph options/cache | graph/GraphOptions.kt; data/GraphRepository.kt | Core.h graph-v2 + Tools.inl | Partial | Invalidation, neighbor/threshold settings; labels/orphans/edge/group options missing |
-| Classic artwork Ambient | ui/components/VideoAmbientColors.kt | Assets.inl artwork palette + App.cpp | Partial | Artwork-derived gradient; live video colors and temporal smoothing missing |
-| Aurora/Bloom/Flow | ui/components/AdaptiveAmbientEngine.kt; ui/components/AdaptiveAmbientBackdrop.kt | None | Missing | Do not present the simple gradient as Adaptive Dynamic parity |
+| Classic video/artwork Ambient | ui/components/VideoAmbientColors.kt | VideoAmbient.cpp read-only MFT + Ambient.inl + Assets.inl | Partial | Actual GPU red/blue/green, unchanged input sample/player/source, pause/disabled hold and smooth palette; broad format/HDR acceptance pending |
+| Aurora/Bloom/Flow | ui/components/AdaptiveAmbientEngine.kt; ui/components/AdaptiveAmbientBackdrop.kt | Ambient.inl + App.cpp lighting | Partial | Restrained brightness/chroma-reactive broad lighting; complete four-layer intensity/react/motion controls remain unfinished |
 | Custom image Crop/Fit | data/AppPreferences.kt; ui/SettingsScreen.kt | Assets.inl + App.cpp | Partial | Aspect-preserving custom image; dim/intensity controls and background decode scheduling pending |
 | Custom/current video + Stack tiles | ui/SettingsScreen.kt; playback/ParallelPlayback.kt | None | Missing | No extra video decoder introduced as a fake color/background workaround |
 | Themes/fonts/high contrast | ui/theme/Theme.kt; data/AppPreferences.kt | App.cpp + Features.h | Partial | Three palettes, light/dark/high contrast, four fonts; system theme/all eight accents/Void parity missing |
@@ -72,7 +72,7 @@ Android paths below are relative to `greater-art/app/src/main/java/com/local/lis
 
 ## Next implementation stages
 
-1. Connect reviewed bundled **video** decode/output to the original renderer without losing hardware/native source quality, then establish a source-frame color feed for Dynamic Ambient. No secondary decoder solely for colors.
+1. The original decoder now supplies live colors through an optional pass-through effect, with no secondary decoder or renderer replacement. Complete its hardware/format/recovery acceptance and the full Adaptive controls; bundled **video** output/format parity remains separate work.
 2. Add queue Search/Locate/editing, all-row artwork, filesystem observation and full translated settings with backup/cache controls.
 3. Port instrumental timing maps/shared-clock architecture only with decoded-media tests and physical acoustic evidence; then tiled Stack video and missing presentation choices.
 4. Complete native accessibility, clean-machine/mixed-DPI/endpoint tests and owner-approved signing. Audit every remaining Android control before claiming 1.0.0 parity.
