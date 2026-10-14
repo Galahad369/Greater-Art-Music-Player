@@ -17,4 +17,11 @@ Native code compiles. Core **56/56**, including five queue regressions; real Opu
 
 ## Explicit boundaries
 
+## Published review evidence
+
+- Integration PR: https://github.com/Galahad369/Greater-Art-Music-Player/pull/172
+- Reviewed source commit: `f6601c7d93a46fdf131aebdb1ce2fe0f7fb219af`.
+- Local public-repository audit passed: reachable history, current files, sensitive filenames, public author identities and APK containers reported no high-confidence findings. This is not a complete security assessment.
+- GitHub version guard and dependency review passed. Android, privacy audit, CodeQL and native Windows CI were still running at this checkpoint. Merge and branch cleanup are not yet complete.
+
 This is not full Android feature parity or sample-perfect real-cover synchronization. Missing features are listed in ANDROID_WINDOWS_PARITY.md. Fresh GitHub Android/security/version/desktop jobs must pass before merging. PR identity, final commit, checks and branch cleanup will be appended after completion. Signing/clean-machine/Narrator/physical acoustic acceptance remain unfinished.
