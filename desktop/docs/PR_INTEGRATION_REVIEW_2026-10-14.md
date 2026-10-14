@@ -8,6 +8,8 @@ No open PRs existed at review start. Protected main requires a PR and status che
 
 ## Findings repaired
 
+Second hosted CI repair, 0.1.7/code8: vcpkg uses registry HEAD for its versions database even after fetching a manifest baseline. The runner's old HEAD listed 9.0.2 but not port revision 1. The pinned official commit contains both baseline and database entry for 9.0.2#1; CI now checks out that exact baseline without force. Android CI/privacy/version/dependency checks passed on 0.1.6; acceptance must be repeated on the new head.
+
 | Finding | Repair | Verification |
 | --- | --- | --- |
 | P1: full background queue popped an admitted job; alignment/scan could stay busy forever | Explicit nonblocking admission rejection; retain admitted jobs; caller clears its busy state on rejection | Saturate a real one-worker queue, reject overflow, prove both accepted jobs finish |

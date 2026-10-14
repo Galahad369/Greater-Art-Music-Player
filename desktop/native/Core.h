@@ -14,8 +14,8 @@
 
 namespace ga
 {
-inline constexpr wchar_t VERSION[] = L"0.1.6";
-inline constexpr int VERSION_CODE = 7;
+inline constexpr wchar_t VERSION[] = L"0.1.7";
+inline constexpr int VERSION_CODE = 8;
 struct Song
 {
     std::wstring path, title, format;

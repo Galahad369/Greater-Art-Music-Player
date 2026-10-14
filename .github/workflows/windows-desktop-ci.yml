@@ -50,6 +50,10 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw 'Unable to fetch pinned official codec registry baseline' }
           & git -C $registry cat-file -e "${baseline}:versions/baseline.json"
           if ($LASTEXITCODE -ne 0) { throw 'Pinned codec baseline is missing its registry manifest' }
+          # vcpkg reads the versions database from registry HEAD, not just the
+          # manifest baseline. Align this disposable hosted checkout as well.
+          & git -C $registry checkout --detach $baseline
+          if ($LASTEXITCODE -ne 0) { throw 'Unable to align hosted registry HEAD with the pinned baseline' }
           ./desktop/native/build-codecs.ps1 -VcpkgExe $vcpkg
       - name: Build Windows-native application
         shell: pwsh
