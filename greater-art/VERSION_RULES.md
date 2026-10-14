@@ -7,7 +7,10 @@ This file is the authoritative version policy for Greater Art. If any handoff no
 ## Machine-checkable state
 
 
-Current source: **1.21.38 (code 261)**
+Current source: **1.21.40 (code 263)**
+Allowed consumed transition: **1.21.38 (code 261) -> 1.21.40 (code 263)**
+
+1.21.39/code262 was consumed on desktop integration branch codex/desktop-integration-review. The present audit-only maintenance branch does not import unfinished desktop application changes or reuse that version identity.
 Allowed consumed transition: **1.21.32 (code 255) -> 1.21.36 (code 259)**
 
 PR #168 separately consumed 1.21.33/code256 (5aae831), 1.21.34/code257
@@ -326,3 +329,6 @@ Previous baseline: 1.13.26 (code 115).
 - 1.21.37 (code 260) — Reviewed integration of native PiP/three floating modes, queue Locate and Adaptive Ambient, preserving both histories; bounded PiP readiness, localized mode descriptions and independent High Contrast. Emulator-verified sideload; physical/production-signing acceptance remain open.
 
 - 1.21.38 (code 261) — Add a prominently visible one-tap “Turn off Developer Mode” control inside the local diagnostics inspector, available in Library and expanded Now Playing. The action clears inspector interaction state and persists the existing Developer Mode preference; the DEV badge/panel disappear reactively. Add a measured Compose UI regression for one-tap dismissal. SOURCE_ONLY pending CI and device acceptance; verified 1.21.37 APK remains untouched.
+
+- 1.21.39 (code 262) — Consumed by concurrent desktop integration branch; source-only, not an independently verified Android APK. This security branch does not duplicate that source identity.
+- 1.21.40 (code 263) — Historical privacy-audit hardening and deleted-log regression fixture (#24). The scanner now detects workstation paths in reachable Git history and reports only file/commit identifiers; a protected-tag rewrite remains owner-controlled and pending. Android runtime and verified 1.21.37 APK are unchanged; SOURCE_ONLY pending CI and coordinated remediation.

@@ -3,7 +3,7 @@
 This file describes the **current repository state only**. Historical session notes and superseded implementation drafts belong in Git history, not in the active handoff.
 
 **Project:** `greater-art/` in the repository checkout
-**Current source:** `1.21.38 (code 261)` — SOURCE_ONLY; one-tap Developer Mode off in the diagnostics panel
+**Current source:** `1.21.40 (code 263)` — SOURCE_ONLY; historical privacy-audit enforcement and protected-tag rewrite preflight (#24), no Android runtime change
 **Current version:** `1.21.37 (code 260)`
 **Latest APK:** `releases/GreaterArt-1.21.37.apk` (`27,862,370 bytes`; SHA-256 `4047097d81f999fe8f62d843e753975746f50d2b1d409362cd96ba4d78694fb6`)
 **Application ID:** `com.local.listentomusic`
@@ -13,6 +13,14 @@ This file describes the **current repository state only**. Historical session no
 **Verification boundary:** Exact committed source `b47d96c620a9ed5db0fd8c8e1e92df8857c99c6e`; 358 JVM tests, 23 API36 emulator tests, zero lint errors; signature, pinned certificate, version/package, 16KiB ZIP alignment and upgrade installation checked. Native PiP retains the player and source size; No Floating Home keeps playback. Nine storage/cache tests pass with All Files Access denied. No app fatal in inspected crash buffer. This is a debug sideload build, not production signing, physical-phone acceptance, full security assessment or a universal bug-free guarantee.
 
 ## Repository state
+
+### October 14 — Historical privacy-audit preflight (1.21.40/code263)
+
+- New security scanner examines reachable commits for workstation-home paths, including deleted logs; reports only affected file paths and example commit IDs, not matched username values.
+- Synthetic regression proves deleted historical logs are detected; protected branch/tag rewrite remains owner-controlled and **has not occurred**.
+- 1.21.39/code262 is consumed on the concurrent desktop-integration branch; this change records the exact 1.21.38→1.21.40 transition without importing unfinished desktop code.
+- Android app runtime remains unchanged. Current version is SOURCE_ONLY; latest verified sideload APK remains 1.21.37/code260. See security/plans/history-remediation-execution.md and issue #24.
+
 
 ### October 13 — Developer Mode quick disable (1.21.38/code261)
 

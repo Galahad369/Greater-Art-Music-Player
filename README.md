@@ -9,7 +9,7 @@ Greater Art is a local-first Android audio and video player. This repository con
 - [App documentation](greater-art/README.md) · [Handoff and verification](greater-art/HANDOFF.md)
 - [User demonstration](greater-art-user-demo.html) · [Technical demonstration](greater-art-technical-demo.html)
 
-Current source: **1.21.38 / code 261 — SOURCE_ONLY**, Developer Mode can be disabled directly from its Inspector dialog.
+Current source: **1.21.40 / code 263 — SOURCE_ONLY**, historical privacy-audit tooling strengthened (history rewrite remains pending); Developer Mode can still be disabled directly from its Inspector dialog.
 Integrated Mini/Android PiP/No Floating, queue Locate, readiness-gated PiP startup
 and independent High Contrast. [Full engineering evidence and remaining gates](greater-art/docs/QUALITY_PASS_2026-10-12.md).
 Classic/Aurora/Bloom/Flow coexist without another video decoder; see the

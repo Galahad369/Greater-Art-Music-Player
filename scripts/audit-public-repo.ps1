@@ -43,16 +43,33 @@ $localPathPatterns = @(
 )
 $localPathPattern = $localPathPatterns -join "|"
 
-Write-Host "Scanning reachable Git history for credentials..."
+Write-Host "Scanning reachable Git history for credentials and workstation paths..."
 $commits = @(Invoke-Git rev-list --all)
+# Report one representative commit for each affected pathname. Every reachable
+# commit is still examined, but a long-lived leak must not flood CI annotations.
+$historicalHomePaths = @{}
 foreach ($commit in $commits) {
     $matches = @(& git @gitArgs grep -I -l -E $credentialPattern $commit -- ":!*.apk" 2>$null)
     if ($LASTEXITCODE -eq 0) {
         foreach ($match in $matches) { Add-Finding "Credential pattern in $match" }
-    } elseif ($LASTEXITCODE -gt 1) { throw "git grep failed while scanning $commit" }
+    } elseif ($LASTEXITCODE -gt 1) { throw "git grep failed while scanning credentials in $commit" }
+
+    $pathMatches = @(& git @gitArgs grep -I -l -E $localPathPattern $commit -- ":!*.apk" 2>$null)
+    if ($LASTEXITCODE -eq 0) {
+        foreach ($match in $pathMatches) {
+            $separator = $match.IndexOf(":")
+            $relativePath = if ($separator -ge 0) { $match.Substring($separator + 1) } else { $match }
+            if (-not $historicalHomePaths.ContainsKey($relativePath)) {
+                $historicalHomePaths[$relativePath] = $commit
+            }
+        }
+    } elseif ($LASTEXITCODE -gt 1) { throw "git grep failed while scanning workstation paths in $commit" }
+}
+foreach ($relativePath in @($historicalHomePaths.Keys | Sort-Object)) {
+    Add-Finding "Workstation home path in reachable history: $relativePath (example commit $($historicalHomePaths[$relativePath]))"
 }
 
-Write-Host "Scanning current working files for credentials..."
+Write-Host "Scanning current working files for credentials and workstation paths..."
 $workingFiles = @(Invoke-Git ls-files --cached --others --exclude-standard)
 foreach ($relativePath in $workingFiles) {
     try {
