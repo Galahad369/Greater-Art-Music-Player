@@ -1,10 +1,10 @@
 # Greater Art Desktop — native Windows edition
 
-Desktop **0.1.2 / code3**, development checkpoint on local main. Original C++/Win32 application: activity rail, resizable Stack / Library / Nodes panes, collapsed Settings, fixed dock. Expanded Now Playing and detached Mini transfer the same primary renderer without reloading media.
+Desktop **0.1.3 / code4**, development checkpoint on local main. Original C++/Win32 application: activity rail, resizable Stack / Library / Nodes panes, collapsed Settings, fixed dock. Expanded Now Playing and detached Mini transfer the same primary renderer without reloading media.
 
 ## Install and run
 
-Use **GreaterArt-Desktop-Setup-0.1.2.exe**. Double-click, leave **Create desktop shortcut** selected, then Install. The per-user setup also creates a Start menu entry. Installation and playback are offline. Add a local folder to populate Library.
+Use **GreaterArt-Desktop-Setup-0.1.3.exe**. Double-click, leave **Create desktop shortcut** selected, then Install. The per-user setup also creates a Start menu entry. Installation and playback are offline. Add a local folder to populate Library.
 
 Installed app: `%LOCALAPPDATA%/Programs/GreaterArtDesktop/GreaterArt.exe`.
 Settings/cache: `%LOCALAPPDATA%/GreaterArtDesktopNative/`.

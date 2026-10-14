@@ -457,9 +457,17 @@ MediaState mediaState(void *handle)
             MediaState s;
             if (!p)
                 return s;
+            ComPtr<IMFMediaError> error;
+            p->engine->GetError(&error);
+            // State reads and timer reconciliation use the same handoff. Never
+            // expose native failure as terminal while an eligible fallback starts.
+            if (!p->fallback && error && error->GetErrorCode())
+                startAudioFallback(p);
             if (p->fallback)
             {
                 auto state = p->fallback->state();
+                if (state.state == 0)
+                    state.state = 1;
                 state.bundledAudio = true;
                 return state;
             }
@@ -469,8 +477,6 @@ MediaState mediaState(void *handle)
                 s.time = 0;
             if (!std::isfinite(s.duration))
                 s.duration = 0;
-            ComPtr<IMFMediaError> error;
-            p->engine->GetError(&error);
             s.state = error && error->GetErrorCode()                                         ? 7
                       : p->engine->IsEnded()                                                 ? 6
                       : p->engine->GetReadyState() < MF_MEDIA_ENGINE_READY_HAVE_CURRENT_DATA ? 1
