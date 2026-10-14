@@ -2,7 +2,7 @@
 
 ## PR review source — October 14, 2026
 
-Current source **0.1.5/code6 — SOURCE_ONLY**, on temporary integration branch codex/desktop-integration-review. Verified/frozen 0.1.4 artifacts remain unchanged. No open PR existed at the start; an integration PR is required by protected main.
+Current source **0.1.6/code7 — SOURCE_ONLY**, on temporary integration branch codex/desktop-integration-review, PR #172. Verified/frozen 0.1.4 artifacts remain unchanged. Hosted Windows CI lacked the pinned vcpkg registry commit; the workflow now fetches that exact commit from the official registry and checks its baseline manifest before building. CI acceptance is still pending; no runtime codec version changed.
 
 Review found and repaired: (1) a saturated worker queue discarded admitted operations, potentially stranding scan/alignment busy flags; admission now returns false without dropping accepted jobs, and callers clear flags/report rejection; (2) worker exceptions only logged, leaving callers without failure completion; generation-checked UI messages now clear current busy state; (3) raw FFmpeg frame allocations leaked on exceptional exits; frames are now scope-owned; (4) CI assumed vcpkg was on PATH; it also checks the runner installation root and Visual Studio tool path, with no prebuilt-codec fallback.
 

@@ -41,6 +41,15 @@ jobs:
             }
           }
           if (-not $vcpkg) { throw 'Source-build vcpkg tool is unavailable; no unreviewed binary fallback is allowed.' }
+          # Hosted runners may ship a shallow/older registry. Fetch only our
+          # immutable manifest baseline from the official registry; never float it.
+          $baseline = (Get-Content ./desktop/native/vcpkg.json -Raw | ConvertFrom-Json).'builtin-baseline'
+          if ($baseline -notmatch '^[0-9a-f]{40}$') { throw 'Invalid pinned codec baseline' }
+          $registry = Split-Path $vcpkg
+          & git -C $registry fetch --no-tags https://github.com/microsoft/vcpkg.git $baseline
+          if ($LASTEXITCODE -ne 0) { throw 'Unable to fetch pinned official codec registry baseline' }
+          & git -C $registry cat-file -e "${baseline}:versions/baseline.json"
+          if ($LASTEXITCODE -ne 0) { throw 'Pinned codec baseline is missing its registry manifest' }
           ./desktop/native/build-codecs.ps1 -VcpkgExe $vcpkg
       - name: Build Windows-native application
         shell: pwsh

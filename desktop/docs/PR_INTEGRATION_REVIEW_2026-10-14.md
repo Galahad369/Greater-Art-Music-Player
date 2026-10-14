@@ -2,6 +2,8 @@
 
 Current review source: desktop **0.1.5/code6**, SOURCE_ONLY. Latest verified installer/portable ZIP remains 0.1.4/code5. No immutable artifact is overwritten. Android runtime and verified APK remain untouched.
 
+Follow-up source: **0.1.6/code7** repairs a real Windows CI failure: the hosted vcpkg checkout lacked the pinned registry commit. The workflow fetches the exact manifest SHA from microsoft/vcpkg and verifies its baseline JSON before building. A fresh isolated local Git repository successfully fetched that exact official SHA and verified the object. The version guard and its six tests pass. Fresh Windows CI remains the acceptance gate; no new installer has been frozen.
+
 No open PRs existed at review start. Protected main requires a PR and status checks; direct/admin bypass is not permitted. The existing local desktop history is being published on the temporary codex/desktop-integration-review branch for normal integration. No new worktree is created.
 
 ## Findings repaired
