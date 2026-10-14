@@ -6,24 +6,24 @@ $ErrorActionPreference = "Stop"
 if (Get-Variable PSNativeCommandUseErrorActionPreference -ErrorAction SilentlyContinue) { $PSNativeCommandUseErrorActionPreference = $false }
 $audit = Join-Path $PSScriptRoot "audit-public-repo.ps1"
 $repo = Join-Path ([IO.Path]::GetTempPath()) ("ga-audit-" + [guid]::NewGuid().ToString("N"))
-function Git { param([Parameter(ValueFromRemainingArguments = $true)][string[]]$Arguments) & git -C $repo @Arguments | Out-Null; if ($LASTEXITCODE -ne 0) { throw "Synthetic git operation failed" } }
+function Invoke-TestGit { param([Parameter(ValueFromRemainingArguments = $true)][string[]]$Arguments) & git -C $repo @Arguments | Out-Null; if ($LASTEXITCODE -ne 0) { throw "Synthetic git operation failed" } }
 function Check { $out = (& pwsh -NoProfile -NonInteractive -File $audit $repo 2>&1 | Out-String); return [pscustomobject]@{ code = $LASTEXITCODE; output = $out } }
 try {
     New-Item -ItemType Directory $repo | Out-Null
-    Git init -q
-    Git config user.name "Synthetic Test"
-    Git config user.email "123456+privacy-test@users.noreply.github.com"
+    Invoke-TestGit init -q
+    Invoke-TestGit config user.name "Synthetic Test"
+    Invoke-TestGit config user.email "123456+privacy-test@users.noreply.github.com"
     Set-Content (Join-Path $repo "README.txt") "clean test"
-    Git add -- README.txt
-    Git commit -q -m "clean"
+    Invoke-TestGit add -- README.txt
+    Invoke-TestGit commit -q -m "clean"
     if ((Check).code -ne 0) { throw "Clean history did not pass" }
     # Construct only at runtime to avoid matching this regression's source.
     $fake = "C:" + [char]92 + "Users" + [char]92 + "synthetic-person" + [char]92 + "Documents" + [char]92
     Set-Content (Join-Path $repo "old-build.log") ("Test log: " + $fake)
-    Git add -- old-build.log
-    Git commit -q -m "historical test"
-    Git rm -q -- old-build.log
-    Git commit -q -m "remove log"
+    Invoke-TestGit add -- old-build.log
+    Invoke-TestGit commit -q -m "historical test"
+    Invoke-TestGit rm -q -- old-build.log
+    Invoke-TestGit commit -q -m "remove log"
     if (Test-Path (Join-Path $repo "old-build.log")) { throw "Log was not removed at HEAD" }
     $historical = Check
     if ($historical.code -eq 0 -or $historical.output -notmatch "Workstation home path in reachable history: old-build.log") {
