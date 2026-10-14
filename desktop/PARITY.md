@@ -1,21 +1,24 @@
 # Desktop parity and acceptance
 
-Desktop 0.1.1/code2 is an original native Windows development application, not a finished port of all Android features.
+Desktop **0.1.2/code3** is an original native Windows **development checkpoint**, not full Android parity. The Android source/runtime remains independently versioned.
 
-| Area | Implemented | Acceptance boundary |
+| Area | Implemented now | Still needed |
 | --- | --- | --- |
-| Workspace | IDE activity rail, resizable Stack/Library/Nodes, collapsed Settings, fixed dock | Owned-window screenshot review at this workstation; mixed DPI and all small layouts not accepted |
-| Local Library | Selected folders, cancellation, duplicates, Unicode, favorites, sort/filter | Native tests; no URI/Android permission equivalence claim |
-| Playback | Windows Media Foundation primary video/audio, seek/rate/volume | Generated 1280×720/30fps fixture rendered; source quality uncapped |
-| Stack | Up to eight independent sources, gain/mute/solo, save/load/delete | Six copies of generated fixture played; six different covers and acoustic synchronization NOT verified |
-| Nodes | Offline filename graph, sparse edges, caching, gestures and reveal | Math/cache tests; full physical interaction matrix pending |
-| Presentations | Dock, expanded, whole-frame fullscreen, borderless detached Mini | Native transition probe passed without media reload |
-| Installer | Per-user self-contained setup EXE, Desktop and Programs-group shortcuts | Local install/hash/shortcut and uninstall checks; clean host and signing pending |
-| Persistence | Atomic settings, separate saved Stacks, bounded input/cache | Unicode, malformed input and invalidation tests passed |
-| Accessibility | Native edit/dialog controls, shortcuts, scalable fonts | Custom GDI controls need UIA/Narrator and complete keyboard-navigation acceptance |
-| Localization | Unicode filenames | English interface only; translation parity pending |
-| Metadata/artwork | File format/size and placeholders | Embedded artwork, artist extraction and waveform pending |
-| Extras | Clipboard path sharing, recoverable exact-file recycling | Lyrics, Ambient, history, full playlists, A–B/sleep and advanced features pending |
-| Security | No application networking, selected local sources, static runtime, checked MSI payload | Unsigned; not audited/certified; system-codec and clean-host tests pending |
+| Workspace | IDE rail, resizable Library/Stack/Nodes, collapsed Settings, fixed dock | Small-layout, mixed-DPI and multi-monitor acceptance |
+| Library/lists | Local chosen folders, Unicode, favorites, sort/search/reset, separate M3U8 playlists, recoverable triple-confirm deletion | Multi-select, reorder/editor, smart lists, backups, exclusions, CUE and metadata overrides |
+| Playback | Native video/audio; bundled source-built audio decoder and original WASAPI fallback; seek/rate/volume | Bundled video-renderer output, format matrix, endpoint reconnection, EQ/ReplayGain |
+| Stack | Up to eight sources, gain/mute/solo, saved offsets, readiness barrier, drift trim, confidence-gated RMS/onset alignment | Shared-sample mixing, instrumental/chroma time-warp, different-cover acoustic tests, primary switching, recommendations |
+| Presentations | Stable renderer dock/expanded/fullscreen/Mini; same compact metrics and direct transfers | Touch/pull-down, YouTube seek feedback, lock in fullscreen, tray and all monitor scenarios |
+| Artwork/cache | Selected artwork/metadata, source-keyed disk waveform cache, bounded worker queue and pressure pause | All-row artwork parity, user cache management, complete memory-pressure/performance acceptance |
+| Background | Artwork-color Ambient, custom image Crop(default)/Fit, no Stretch | Dynamic video color sampling, CURRENT_VIDEO and tiled Stack wallpaper |
+| Extras | Local LRC, A–B, sleep, resume, history opt-in/burn, audio disc, shuffle | Full Android advanced controls and settings integration |
+| Sharing/system | Unified Windows Share options and system media transport | Actual target-app transfer and all media-key scenarios |
+| Accessibility | MSAA names/roles/bounds, focus/hit-test alignment, keyboard buttons/sliders, high contrast | Native Narrator/UIA acceptance, graph-node semantics, complete dialog flow |
+| Localization/design | Partial English/ZH-TW/JA/DE/FR/YUE labels, fonts/themes, rectangular rows, current-only tap effect | All dialogs/services translated, full appearance/token parity and native-reader review |
+| Installer/security | Offline per-user setup/shortcuts, replaceable codec DLLs with exact source/licenses, corruption checks, local crash report | Publisher signing, clean machine, independent license/security review; no certification claim |
 
-Do not promote this to full-parity 1.0.0 or claim perfect Stack synchronization. Read the recorded artifact receipt and handoff rather than assuming Android tests validate this implementation.
+## Evidence boundary
+
+Core tests use generated local fixtures. The waveform test detects a known 500 ms delay, and WASAPI tests validate the real endpoint clock/controls. The own-window video probe checks rendered frames, six voices, fullscreen bounds, named control hit tests and dock/Mini transfers. None proves phase-perfect real-world Stack sound.
+
+Final artifact hashes, exact source commit and installed checks are in RELEASE_0.1.2.md when completed. Previous RELEASE_0.1.1.md remains immutable historical evidence. Do not confuse implementation with acceptance or promote this development checkpoint to full-parity 1.0.0.

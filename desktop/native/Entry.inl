@@ -1,5 +1,7 @@
-namespace {
-void writeIcon(const std::filesystem::path &file) {
+namespace
+{
+void writeIcon(const std::filesystem::path &file)
+{
     int oldDpi = app.dpi;
     app.dpi = 96;
     constexpr int size = 64;
@@ -41,11 +43,14 @@ void writeIcon(const std::filesystem::path &file) {
     DeleteDC(dc);
     app.dpi = oldDpi;
 }
-int tests(const std::filesystem::path &directory) {
+int tests(const std::filesystem::path &directory)
+{
     std::filesystem::create_directories(directory);
     std::ofstream report(directory / L"unit-tests.txt");
     int passed = 0;
+    int total = 0;
     auto expect = [&](bool condition, const char *name) {
+        ++total;
         report << (condition ? "PASS " : "FAIL ") << name << "\n";
         if (condition)
             ++passed;
@@ -92,26 +97,250 @@ int tests(const std::filesystem::path &directory) {
            "canonical presentation identity");
     std::ofstream(directory / L"settings-v1.bin", std::ios::binary | std::ios::trunc) << "malformed";
     expect(loadSettings(directory).roots.empty(), "malformed settings fail safely");
-    report << "total=" << passed << "/18\n";
-    return passed == 18 ? 0 : 2;
+    UserFeatures features;
+    features.playlists.push_back({L"合唱", {canonicalPath((directory / L"scan/孤独毒毒.mp3").wstring())}});
+    recordHistory(features, L"ignored", 42);
+    expect(features.history.empty(), "history is off by default");
+    features.historyEnabled = true;
+    recordHistory(features, L"孤独毒毒", 42);
+    expect(saveFeatures(directory, features), "atomic feature persistence");
+    auto loadedFeatures = loadFeatures(directory);
+    expect(loadedFeatures.playlists.size() == 1 && loadedFeatures.playlists[0].name == L"合唱" &&
+               loadedFeatures.history.size() == 1,
+           "Unicode playlists and opted-in history persist separately");
+    features.historyEnabled = false;
+    saveFeatures(directory, features);
+    expect(loadFeatures(directory).history.empty(), "disabled history is not written");
+    for (int i = 0; i < 2100; ++i)
+    {
+        features.historyEnabled = true;
+        recordHistory(features, L"track", i);
+    }
+    expect(features.history.size() == 2000 && features.history[0].at == 100,
+           "history bounded to 2000 entries");
+    auto lrc = parseLyrics(L"[offset:100]\n[00:01.50][00:02.50]孤独毒毒\n[00:04.00]歌\n");
+    expect(lrc.size() == 3 && std::abs(lrc[0].time - 1.6) < 1e-9 && lrc[1].text == L"孤独毒毒",
+           "LRC Unicode multi-stamp and global offset");
+    expect(activeLyric(lrc, 2.7) == 1 && activeLyric(lrc, .1) == -1, "lyrics follow playback timeline");
+    expect(parseLyrics(L"[99:99.00]bad\n[NaN:02]bad").empty(), "invalid LRC timestamps rejected");
+    expect(!localMediaPath(L"https://example.com/x.mp3") && !localMediaPath(L"\\\\server\\track.mp3") &&
+               !localMediaPath(L"C:\\file.mp3:stream"),
+           "network and alternate stream playlist paths rejected");
+    expect(fromUtf8(toUtf8(L"歌𠮷")) == L"歌𠮷", "UTF-8 CJK and supplementary characters roundtrip");
+    auto exportPath = directory / L"roundtrip.m3u8";
+    std::error_code cleanup;
+    std::filesystem::remove(exportPath, cleanup);
+    expect(exportPlaylist(exportPath, features.playlists[0]) &&
+               importPlaylist(exportPath).paths == features.playlists[0].paths,
+           "portable local M3U8 roundtrip");
+    expect(!exportPlaylist(exportPath, features.playlists[0]), "playlist export never overwrites");
+    auto invalidExport = directory / L"invalid.m3u8";
+    expect(!exportPlaylist(invalidExport, {L"Bad", {L"https://example.com/file.mp3"}}) &&
+               !std::filesystem::exists(invalidExport),
+           "invalid playlist export creates no partial file");
+    auto cacheTest = directory / L"cache-prune";
+    std::filesystem::create_directories(cacheTest);
+    for (int i = 0; i < 130; ++i)
+        std::ofstream(cacheTest / (L"wave-" + std::to_wstring(i) + L".bin"), std::ios::binary).put('x');
+    std::ofstream(cacheTest / L"settings-v1.bin", std::ios::binary).put('s');
+    std::ofstream(cacheTest / L"wave-not-a-cache.bin", std::ios::binary).put('u');
+    pruneWaveCache(cacheTest);
+    int cachedFiles = 0;
+    for (auto &entry : std::filesystem::directory_iterator(cacheTest))
+        if (entry.path().filename().wstring().rfind(L"wave-", 0) == 0)
+            ++cachedFiles;
+    expect(cachedFiles == 129, "waveform cache bounded to 128 generated entries");
+    expect(std::filesystem::exists(cacheTest / L"settings-v1.bin") &&
+               std::filesystem::exists(cacheTest / L"wave-not-a-cache.bin"),
+           "cache eviction preserves settings and unrecognized files");
+    Practice practice;
+    practice.mark(1);
+    practice.mark(3);
+    expect(practice.shouldLoop(3) && !practice.shouldLoop(2.9), "A-B end loops to A");
+    practice.mark(4);
+    expect(practice.a < 0 && practice.b < 0, "A-B third tap clears markers");
+    expect(correctionRate(.1) < 1 && correctionRate(-.1) > 1 && correctionRate(.005) == 1,
+           "drift corrected in the right direction without tiny seeks");
+    AudioFeatures primaryAudio, delayedAudio;
+    for (int i = 0; i < 1600; ++i)
+    {
+        float value =
+            float(std::exp(-std::pow((i - 180) / 8.0, 2)) + .7 * std::exp(-std::pow((i - 510) / 11.0, 2)) +
+                  .8 * std::exp(-std::pow((i - 980) / 6.0, 2)));
+        primaryAudio.energy.push_back(value);
+        primaryAudio.attacks.push_back(i ? std::max(0.0f, value - primaryAudio.energy[i - 1]) : 0);
+    }
+    delayedAudio.energy.resize(1600);
+    delayedAudio.attacks.resize(1600);
+    for (int i = 75; i < 1600; ++i)
+    {
+        delayedAudio.energy[i] = primaryAudio.energy[i - 75] * .7f;
+        delayedAudio.attacks[i] = primaryAudio.attacks[i - 75] * .7f;
+    }
+    auto match = matchAudio(primaryAudio, delayedAudio);
+    expect(match.accepted && std::abs(match.offset - 1.5) < .025,
+           "attack weighted alignment detects positive delay");
+    auto inverse = matchAudio(delayedAudio, primaryAudio);
+    expect(inverse.accepted && std::abs(inverse.offset + 1.5) < .025, "alignment lag sign is symmetric");
+    AudioFeatures silence;
+    silence.energy.resize(1600);
+    silence.attacks.resize(1600);
+    expect(!matchAudio(primaryAudio, silence).accepted, "silence does not invent an offset");
+    for (int language = 1; language <= 5; ++language)
+        expect(translate(L"Library", language) != L"Library", "library translated for supported language");
+    original.stacks[0].tracks[0].offset = 1.25;
+    saveSettings(directory, original);
+    expect(loadSettings(directory).stacks[0].tracks[0].offset == 1.25, "saved Stack offset persists");
+    expect(audioDecodeTest(directory.wstring()), "real offline decoder and 500ms waveform alignment");
+    if (codecsAvailable())
+    {
+        CodecReader decoder;
+        expect(decoder.open((directory / L"analysis-primary.wav").wstring(), [] { return false; }),
+               "in-process bundled codec opens Unicode local WAV");
+        std::vector<float> samples;
+        double timestamp = 0;
+        expect(decoder.read(samples, timestamp) && !samples.empty(), "bundled codec decodes real float PCM");
+        expect(decoder.seek(2), "bundled codec seeks without network or subprocess");
+        expect(codecLicense().find(L"LGPL") != std::wstring::npos, "bundled codec reports LGPL license");
+        CodecReader rejected;
+        expect(!rejected.open(L"https://example.com/song.mp3", [] { return false; }),
+               "bundled decoder rejects URL sources");
+    }
+    report << "total=" << passed << "/" << total << "\n";
+    return passed == total ? 0 : 2;
+}
+int audioPlaybackTests(const std::wstring &file, const std::filesystem::path &directory)
+{
+    std::filesystem::create_directories(directory);
+    std::ofstream report(directory / L"audio-playback-tests.txt");
+    int total = 0, passed = 0;
+    auto expect = [&](bool condition, const char *name) {
+        ++total;
+        if (condition)
+            ++passed;
+        report << (condition ? "PASS " : "FAIL ") << name << "\n";
+    };
+    AudioFallback player(file, true);
+    auto wait = [&](auto predicate, int timeout) {
+        auto end = GetTickCount64() + timeout;
+        do
+        {
+            auto s = player.state();
+            if (predicate(s))
+                return true;
+            if (s.state == 7)
+                return false;
+            Sleep(10);
+        } while (GetTickCount64() < end);
+        return false;
+    };
+    expect(wait([](auto s) { return s.state == 4 && s.duration > 0; }, 5000),
+           "bundled codec and WASAPI ready without auto-play");
+    player.volume(.05);
+    player.pause(false);
+    expect(wait([](auto s) { return s.state == 3 && s.time > .2; }, 5000), "actual output clock advances");
+    player.pause(true);
+    wait([](auto s) { return s.state == 4; }, 2000);
+    auto paused = player.state().time;
+    Sleep(180);
+    expect(std::abs(player.state().time - paused) < .02, "pause holds endpoint timeline");
+    player.seek(2);
+    expect(wait([](auto s) { return s.state == 4 && std::abs(s.time - 2) < .03; }, 3000),
+           "seek while paused preserves requested start");
+    player.pause(false);
+    expect(wait([](auto s) { return s.state == 3 && s.time > 2.2; }, 3000), "seek resumes real audio");
+    auto before = player.state().time;
+    player.rate(2);
+    Sleep(100);
+    auto after = player.state().time;
+    expect(after >= before && after - before < .5, "speed change does not rescale elapsed history");
+    before = after;
+    Sleep(650);
+    after = player.state().time;
+    expect(after - before > .8 && after - before < 1.65, "pitch-preserving 2x processes output continuously");
+    player.rate(.5);
+    Sleep(220);
+    before = player.state().time;
+    Sleep(650);
+    after = player.state().time;
+    expect(after - before > .15 && after - before < .6, "half-speed returns without timeline jump");
+    expect(FAILED(player.rate(0)) && FAILED(player.seek(NAN)), "invalid playback commands rejected");
+    player.pause(true);
+    report << "total=" << passed << "/" << total << "\n";
+    return passed == total ? 0 : 2;
+}
+int audioRoutingTest(const std::wstring &file, const std::filesystem::path &directory)
+{
+    std::filesystem::create_directories(directory);
+    std::ofstream report(directory / L"audio-routing.txt");
+    if (!mediaInitialize())
+    {
+        report << "FAIL initialize\n";
+        return 2;
+    }
+    void *player = mediaCreate(true);
+    bool passed = player && SUCCEEDED(mediaLoad(player, file)) && SUCCEEDED(mediaPlay(player));
+    auto end = GetTickCount64() + 8000;
+    MediaState state;
+    while (passed && GetTickCount64() < end)
+    {
+        state = mediaState(player);
+        if (state.state == 3 && state.time > .25)
+            break;
+        if (state.state == 7)
+        {
+            passed = false;
+            break;
+        }
+        Sleep(15);
+    }
+    passed = passed && state.state == 3 && state.time > .25;
+    if (passed)
+    {
+        mediaPause(player, true);
+        Sleep(120);
+        passed = mediaState(player).state == 4;
+    }
+    report << (passed ? "PASS" : "FAIL") << " media actor route; backend="
+           << (state.bundledAudio ? "bundled-WASAPI" : "native-MediaFoundation") << " time=" << state.time
+           << " state=" << state.state << "\n";
+    if (player)
+        mediaRelease(player);
+    mediaShutdown();
+    return passed ? 0 : 2;
 }
 } // namespace
 
-int WINAPI wWinMain(HINSTANCE instance, HINSTANCE, PWSTR, int) {
+int WINAPI wWinMain(HINSTANCE instance, HINSTANCE, PWSTR, int)
+{
     SetProcessDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2);
     int argc = 0;
     auto argv = CommandLineToArgvW(GetCommandLine(), &argc);
-    if (argc == 3 && wcscmp(argv[1], L"--write-icon") == 0) {
+    if (argc == 3 && wcscmp(argv[1], L"--write-icon") == 0)
+    {
         writeIcon(argv[2]);
         LocalFree(argv);
         return 0;
     }
-    if (argc == 3 && wcscmp(argv[1], L"--self-test") == 0) {
+    if (argc == 3 && wcscmp(argv[1], L"--self-test") == 0)
+    {
         int result = tests(argv[2]);
         LocalFree(argv);
         return result;
     }
-    CoInitializeEx(nullptr, COINIT_APARTMENTTHREADED);
+    if (argc == 4 && wcscmp(argv[1], L"--verify-audio") == 0)
+    {
+        int result = audioPlaybackTests(argv[2], argv[3]);
+        LocalFree(argv);
+        return result;
+    }
+    if (argc == 4 && wcscmp(argv[1], L"--verify-routing") == 0)
+    {
+        int result = audioRoutingTest(argv[2], argv[3]);
+        LocalFree(argv);
+        return result;
+    }
+    winrt::init_apartment(winrt::apartment_type::single_threaded);
     INITCOMMONCONTROLSEX controls{sizeof(controls), ICC_STANDARD_CLASSES};
     InitCommonControlsEx(&controls);
     ULONG_PTR gdiToken = 0;
@@ -122,7 +351,8 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE, PWSTR, int) {
     app.dataDir = std::filesystem::path(data ? data : L".") / L"GreaterArtDesktopNative";
     if (data)
         CoTaskMemFree(data);
-    if (argc == 4 && wcscmp(argv[1], L"--verify") == 0) {
+    if (argc == 4 && wcscmp(argv[1], L"--verify") == 0)
+    {
         app.probe = true;
         app.probeFixture = argv[2];
         app.probeOutput = std::filesystem::absolute(argv[3]);
@@ -131,21 +361,29 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE, PWSTR, int) {
         app.probeAt = GetTickCount64();
     }
     app.settings = loadSettings(app.dataDir);
+    std::filesystem::create_directories(app.dataDir);
+    enableCrashRecord(app.dataDir.wstring());
+    app.features = loadFeatures(app.dataDir);
+    app.speed = app.features.speed;
+    loadCustomBackground();
     HANDLE instanceMutex = nullptr;
-    if (!app.probe) {
+    if (!app.probe)
+    {
         instanceMutex = CreateMutex(nullptr, TRUE, L"Local\\GreaterArtDesktop.Native");
-        if (GetLastError() == ERROR_ALREADY_EXISTS) {
+        if (GetLastError() == ERROR_ALREADY_EXISTS)
+        {
             auto existing = FindWindow(L"GreaterArtPlayer", nullptr);
             if (!existing)
                 existing = FindWindow(L"GreaterArtMain", nullptr);
-            if (existing) {
+            if (existing)
+            {
                 ShowWindow(existing, SW_RESTORE);
                 SetForegroundWindow(existing);
             }
             if (instanceMutex)
                 CloseHandle(instanceMutex);
             LocalFree(argv);
-            CoUninitialize();
+            winrt::uninit_apartment();
             return 0;
         }
     }
@@ -153,7 +391,8 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE, PWSTR, int) {
     fonts();
     theme();
     app.icon = LoadIcon(instance, MAKEINTRESOURCE(101));
-    if (!mediaInitialize()) {
+    if (!mediaInitialize())
+    {
         MessageBox(nullptr,
                    L"Windows Media Foundation is unavailable. On Windows N, enable the Windows Media Feature "
                    L"Pack. No external-player fallback is used.",
@@ -188,7 +427,9 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE, PWSTR, int) {
     BOOL dark = TRUE;
     DwmSetWindowAttribute(app.main, 20, &dark, sizeof(dark));
     layout();
-    if (app.probe) {
+    initializeSystemMedia();
+    if (app.probe)
+    {
         app.settings.roots = {std::filesystem::path(app.probeFixture).parent_path().wstring()};
         Song song;
         song.path = app.probeFixture;
@@ -205,26 +446,29 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE, PWSTR, int) {
                  {BYTE(FCONTROL | FVIRTKEY), VK_OEM_COMMA, 403}};
     HACCEL accelerator = CreateAcceleratorTable(keys, 3);
     MSG message{};
-    while (GetMessage(&message, nullptr, 0, 0) > 0) {
-        if (!TranslateAccelerator(app.main, accelerator, &message)) {
+    while (GetMessage(&message, nullptr, 0, 0) > 0)
+    {
+        if (!TranslateAccelerator(app.main, accelerator, &message))
+        {
             TranslateMessage(&message);
             DispatchMessage(&message);
         }
     }
-    for (auto &worker : app.scans)
-        if (worker.joinable())
-            worker.join();
+    app.scans.shutdown();
     DestroyAcceleratorTable(accelerator);
     for (auto font : {app.small, app.body, app.title, app.heading, app.icons})
         if (font)
             DeleteObject(font);
     if (app.editBrush)
         DeleteObject(app.editBrush);
+    app.artwork.reset();
+    app.customBackground.reset();
+    app.assetResults.clear();
+    removeSystemMedia();
     Gdiplus::GdiplusShutdown(gdiToken);
-    CoUninitialize();
+    winrt::uninit_apartment();
     LocalFree(argv);
     if (instanceMutex)
         CloseHandle(instanceMutex);
     return app.probeFailed ? 2 : 0;
 }
-

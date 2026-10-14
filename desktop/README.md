@@ -1,51 +1,53 @@
 # Greater Art Desktop — native Windows edition
 
-Desktop **0.1.1 / code2**, development build. Original C++ application with an IDE/Codex-style workspace: activity rail, resizable Stack pane, Library editor area, Nodes pane and fixed playback dock. Expanded Now Playing and detached Mini use the same native video renderer.
+Desktop **0.1.2 / code3**, development checkpoint on local main. Original C++/Win32 application: activity rail, resizable Stack / Library / Nodes panes, collapsed Settings, fixed dock. Expanded Now Playing and detached Mini transfer the same primary renderer without reloading media.
 
 ## Install and run
 
-Use the locally delivered **GreaterArt-Desktop-Setup-0.1.1.exe**. Double-click it, keep **Create desktop shortcut** selected and press Install. Setup creates a Start menu entry too. It installs for the current user without an app-runtime download. Add a local folder in the app to populate Library.
+Use **GreaterArt-Desktop-Setup-0.1.2.exe**. Double-click, leave **Create desktop shortcut** selected, then Install. The per-user setup also creates a Start menu entry. Installation and playback are offline. Add a local folder to populate Library.
 
-Installed executable: `%LOCALAPPDATA%/Programs/GreaterArtDesktop/GreaterArt.exe`.
-Settings and graph cache: `%LOCALAPPDATA%/GreaterArtDesktopNative/`.
-Uninstall through Windows Installed apps; your settings and media are retained.
+Installed app: `%LOCALAPPDATA%/Programs/GreaterArtDesktop/GreaterArt.exe`.
+Settings/cache: `%LOCALAPPDATA%/GreaterArtDesktopNative/`.
+Uninstall through Windows Installed apps; original media and preferences are retained.
 
-The separately delivered **GreaterArt-Desktop-0.1.1.exe** is also directly runnable. It stores preferences in LocalAppData; “single EXE” does not mean it writes settings beside itself. Do not run an obsolete prototype at the same time.
+The portable edition is a **ZIP**, not an isolated EXE: extract the whole folder and run GreaterArt.exe beside its six codec DLLs. The previous 0.1.1 single-EXE build stays preserved; do not replace or relabel it.
 
-## Dependencies and offline boundary
+## Original, offline playback
 
-The application uses Windows SDK/system components only: Win32/GDI, Windows Media Foundation, COM, shell and DWM. Static C++ runtime. **No VLC, Java, Electron, browser shell, NuGet, accounts, telemetry, updater or URL playback.** Only selected local folders are scanned; UNC/network roots and reparse-point traversal are rejected.
+No VLC, external player, Java, Electron, browser shell, accounts, telemetry, updater or runtime download. Native Windows Media Foundation remains the primary video renderer. Approved FFmpeg 9.0.2 libraries are built from pinned source, dynamically linked in-process for audio decoding/analysis and WASAPI output. Compatible modified libraries are replaceable. Exact corresponding source and LGPL notices accompany the package; see [codec boundary](native/CODECS.md).
 
-It still relies on Windows codecs. Unsupported media shows an error; it is never silently transcoded, proxy-played or quality-capped. Windows N installations without media components are not supported by this build. No resolution, bitrate or FPS limit is added.
+No source resolution, bitrate or FPS constraints, proxies, thumbnail-video substitution or transcoding. Unsupported native video remains an explicit limitation; bundled video rendering is not yet wired. Windows N still needs its system media components. Selected local folders only; UNC/network roots, URL playback, alternate streams and reparse traversal are rejected.
 
-Build tools are different from runtime dependencies: Visual Studio C++ desktop workload + Windows SDK build the app; WiX 3 builds the embedded MSI. WiX is not an installed app dependency.
+Build-time dependencies are not installed app dependencies: Visual Studio C++/Windows SDK, source-build vcpkg and WiX 3.
 
-## Working features
+## Working scope
 
-- Rectangular Library rows, search/reset, favorites, name/newest/oldest sort, chosen-folder recursive scan and Unicode filenames.
-- Primary video/audio plus up to seven independent audio-only companions; master and per-voice volume, mute/solo, play/pause, seek, speed and whole-Stack loop.
-- Saved Stacks separate from the Library, add-track picker, restore/delete saved Stacks, copy current/Stack paths.
-- Exact-file Recycle Bin action behind three confirmations; never a blanket delete.
-- Offline filename-similarity Nodes graph, sparse edges, strength-aware sizes, pan/zoom/drag, Fit and wand reveal; cached by media identity, size and modification time.
-- Fixed transport, direct speed control, expanded player, monitor-bound fullscreen preserving the entire video frame, and borderless Mini on minimize.
-- Collapsed settings groups, three restrained palettes, row/Mini sizing and persistent pane widths.
-- Ctrl+Space playback, Ctrl+O folder, Ctrl+, settings, F11 fullscreen, Escape exit fullscreen.
+- Rectangular Library rows, current-only playing marker/tap nudge, search/reset, favorites, chosen folders, Unicode, sort; local M3U8 import/export and separate playlists.
+- Up to eight simultaneous sources, per-voice gain/mute/solo, master volume, coordinated start/seek/loop, drift trim, confidence-gated offline sound alignment and saved offsets. This is structural alignment, **not sample-perfect mixing**.
+- Filename-similarity Nodes graph, sparse weighted edges, natural clusters, pan/zoom/drag/tap, wand reveal, neighbor/link threshold controls and versioned cache.
+- Fixed seek/transport, first-class speed, lock, whole-frame monitor fullscreen, borderless Mini, direct Mini↔expanded transfer.
+- Selected-media metadata/artwork, bounded waveform disk cache, local synchronized LRC, A–B repeat, sleep timer, resume, opt-in history/burn, optional spinning audio disc.
+- Artwork-color Ambient and aspect-preserving custom image Crop(default)/Fit; no Stretch. Continuous video-derived Ambient and tiled Stack video wallpaper remain pending.
+- One native Share button offers current original file, queue M3U8 or queue files. Windows Share/media keys are implemented; full target-application acceptance remains pending.
+- Native accessible button names/roles/bounds and keyboard transport/slider navigation; high contrast, fonts, partial six-language UI. Ctrl+click inspects a drawn control when Developer mode is enabled.
 
-## Build and check
+## Build and verify
 
 ```powershell
-./desktop/native/build.ps1
+./desktop/native/build-codecs.ps1 -VcpkgExe 'C:/path/to/vcpkg.exe'
+./desktop/native/build.ps1 -RequireCodecs
 ./desktop/native/package.ps1 -WixPath 'C:/path/to/wix3'
 python desktop/packaging/validate_version.py
 python desktop/packaging/test_version.py
 ./desktop/native/build/GreaterArt.exe --self-test 'C:/owned/test-output'
+./desktop/native/build/GreaterArt.exe --verify-audio 'C:/owned/audio-fixture.wav' 'C:/owned/audio-output'
 ./desktop/native/build/GreaterArt.exe --verify 'C:/owned/video-fixture.mp4' 'C:/owned/probe-output'
 ```
 
-The interactive verification probe uses an isolated settings directory and captures only its owned windows. Never substitute desktop screen capture. It checks real rendered video, six playing media engines, fullscreen monitor bounds and dock/expanded/Mini handoff; it does **not** prove acoustic alignment.
+Tests isolate all generated settings. The video probe captures **only owned HWNDs**, checks real rendering, six voices, fullscreen bounds and renderer handoffs. The audio probe checks actual WASAPI timeline behavior; neither proves what six real covers sound like.
 
-## Honest limitations
+## Remaining gates
 
-Not full Android parity. Independent Media Foundation voices are not sample/phase-locked, and no offline arrangement aligner is offered yet. Current interface labels are English; Unicode media titles work. Artwork/metadata extraction, waveform/lyrics, Ambient, history, deeper queue features and UIA/Narrator acceptance remain unfinished. Mixed-DPI/multi-monitor, unsupported-codec and clean-machine coverage is incomplete.
+Not full Android parity or production release. Bundled video-renderer coverage, shared-sample mixing/time-warp alignment, all translations, full queue editing/smart playlists/recommendations, ReplayGain/EQ, URI-platform equivalents, continuous video/tiled backgrounds, touch/gesture parity, Narrator, endpoint changes, clean-machine and mixed-DPI acceptance remain open.
 
-Binaries are unsigned. Embedded MSI SHA-256 validation detects payload mismatch, not publisher authenticity. Do not disable Windows security protections to run them. See [handoff](HANDOFF.md), [parity](PARITY.md) and [version policy](VERSION_DESKTOP.md). This local development delivery is not a public production release.
+Unsigned: embedded payload hashes detect corruption, not publisher identity. Never disable Windows protections. See [handoff](HANDOFF.md), [parity matrix](PARITY.md), [version policy](VERSION_DESKTOP.md) and the versioned artifact receipt. Android source/APKs are independent and unchanged by this desktop checkpoint.

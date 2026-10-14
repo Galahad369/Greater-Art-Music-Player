@@ -1,5 +1,5 @@
-BasedOnStyle: LLVM
+BasedOnStyle: Microsoft
 IndentWidth: 4
 ColumnLimit: 110
+# These implementation fragments depend on declarations from preceding fragments.
 SortIncludes: Never
-

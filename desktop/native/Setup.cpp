@@ -1,22 +1,23 @@
 #define WIN32_LEAN_AND_MEAN
 #define NOMINMAX
 #include <windows.h>
-#include <windowsx.h>
-#include <msi.h>
+#include <atomic>
 #include <bcrypt.h>
-#include <shlobj.h>
-#include <shellapi.h>
 #include <dwmapi.h>
 #include <filesystem>
-#include <vector>
-#include <string>
-#include <thread>
 #include <fstream>
 #include <iomanip>
+#include <msi.h>
+#include <shellapi.h>
+#include <shlobj.h>
 #include <sstream>
-#include <atomic>
+#include <string>
+#include <thread>
+#include <vector>
+#include <windowsx.h>
 
-namespace {
+namespace
+{
 HWND mainWindow = nullptr, shortcut = nullptr, launch = nullptr, installButton = nullptr;
 HFONT titleFont = nullptr, bodyFont = nullptr;
 HBRUSH background = nullptr;
@@ -26,8 +27,12 @@ UINT result = ERROR_INSTALL_FAILURE;
 int dpi = 96;
 std::filesystem::path payload;
 bool createShortcut = true, launchApp = true;
-int px(int n) { return MulDiv(n, dpi, 96); }
-std::filesystem::path installFolder() {
+int px(int n)
+{
+    return MulDiv(n, dpi, 96);
+}
+std::filesystem::path installFolder()
+{
     PWSTR local = nullptr;
     SHGetKnownFolderPath(FOLDERID_LocalAppData, 0, nullptr, &local);
     auto folder = std::filesystem::path(local ? local : L".") / L"Programs/GreaterArtDesktop";
@@ -35,7 +40,8 @@ std::filesystem::path installFolder() {
         CoTaskMemFree(local);
     return folder;
 }
-bool extract(const std::filesystem::path &directory) {
+bool extract(const std::filesystem::path &directory)
+{
     auto module = GetModuleHandle(nullptr);
     auto resource = FindResource(module, MAKEINTRESOURCE(11), RT_RCDATA),
          hashResource = FindResource(module, MAKEINTRESOURCE(12), RT_RCDATA);
@@ -56,7 +62,8 @@ bool extract(const std::filesystem::path &directory) {
     if (okay)
         okay = BCryptGetProperty(algorithm, BCRYPT_OBJECT_LENGTH, reinterpret_cast<PUCHAR>(&objectSize),
                                  sizeof(objectSize), &written, 0) == 0;
-    if (okay) {
+    if (okay)
+    {
         object.resize(objectSize);
         okay = BCryptCreateHash(algorithm, &hash, object.data(), objectSize, nullptr, 0, 0) == 0;
     }
@@ -87,7 +94,8 @@ bool extract(const std::filesystem::path &directory) {
     output.close();
     return bool(output);
 }
-std::filesystem::path temporary() {
+std::filesystem::path temporary()
+{
     wchar_t root[MAX_PATH]{};
     GetTempPath(MAX_PATH, root);
     GUID id{};
@@ -96,24 +104,28 @@ std::filesystem::path temporary() {
     StringFromGUID2(id, guid, 40);
     return std::filesystem::path(root) / (std::wstring(L"GreaterArt-Install-") + guid);
 }
-void removePayload() {
+void removePayload()
+{
     if (payload.empty())
         return;
     std::error_code error;
     std::filesystem::remove(payload, error);
     std::filesystem::remove(payload.parent_path(), error);
 }
-void doInstall() {
+void doInstall()
+{
     MsiSetInternalUI(INSTALLUILEVEL_NONE, nullptr);
     result = MsiInstallProduct(payload.c_str(),
                                createShortcut ? L"CREATE_DESKTOP_SHORTCUT=1" : L"CREATE_DESKTOP_SHORTCUT=0");
 }
-void beginInstall() {
+void beginInstall()
+{
     if (busy)
         return;
     createShortcut = SendMessage(shortcut, BM_GETCHECK, 0, 0) == BST_CHECKED;
     launchApp = SendMessage(launch, BM_GETCHECK, 0, 0) == BST_CHECKED;
-    if (!extract(temporary())) {
+    if (!extract(temporary()))
+    {
         MessageBox(mainWindow, L"The embedded installer failed its integrity check. Nothing was installed.",
                    L"Greater Art", MB_OK | MB_ICONERROR);
         return;
@@ -128,8 +140,10 @@ void beginInstall() {
         PostMessage(mainWindow, WM_APP + 1, 0, 0);
     });
 }
-LRESULT CALLBACK procedure(HWND window, UINT message, WPARAM w, LPARAM l) {
-    switch (message) {
+LRESULT CALLBACK procedure(HWND window, UINT message, WPARAM w, LPARAM l)
+{
+    switch (message)
+    {
     case WM_CREATE: {
         shortcut =
             CreateWindow(L"BUTTON", L"Create a desktop shortcut", WS_CHILD | WS_VISIBLE | BS_AUTOCHECKBOX,
@@ -168,7 +182,7 @@ LRESULT CALLBACK procedure(HWND window, UINT message, WPARAM w, LPARAM l) {
                  -1, &detail, DT_LEFT | DT_WORDBREAK);
         SetTextColor(dc, RGB(170, 179, 174));
         RECT version{px(28), px(280), px(230), px(350)};
-        DrawText(dc, L"Desktop 0.1.1\nDevelopment edition", -1, &version, DT_LEFT | DT_WORDBREAK);
+        DrawText(dc, L"Desktop 0.1.2\nDevelopment edition", -1, &version, DT_LEFT | DT_WORDBREAK);
         EndPaint(window, &paint);
         return 0;
     }
@@ -186,15 +200,19 @@ LRESULT CALLBACK procedure(HWND window, UINT message, WPARAM w, LPARAM l) {
             installer.join();
         busy = false;
         removePayload();
-        if (result == ERROR_SUCCESS || result == ERROR_SUCCESS_REBOOT_REQUIRED) {
-            if (launchApp) {
+        if (result == ERROR_SUCCESS || result == ERROR_SUCCESS_REBOOT_REQUIRED)
+        {
+            if (launchApp)
+            {
                 auto executable = (installFolder() / L"GreaterArt.exe").wstring();
                 ShellExecute(window, L"open", executable.c_str(), nullptr, nullptr, SW_SHOWNORMAL);
             }
             MessageBox(window, L"Greater Art is installed. Its Start menu shortcut is ready.", L"Greater Art",
                        MB_OK);
             DestroyWindow(window);
-        } else {
+        }
+        else
+        {
             std::wstring error = L"Windows Installer returned error " + std::to_wstring(result) +
                                  L". Nothing was reported as successfully installed.";
             MessageBox(window, error.c_str(), L"Greater Art installation", MB_OK | MB_ICONERROR);
@@ -215,18 +233,21 @@ LRESULT CALLBACK procedure(HWND window, UINT message, WPARAM w, LPARAM l) {
     return DefWindowProc(window, message, w, l);
 }
 } // namespace
-int WINAPI wWinMain(HINSTANCE instance, HINSTANCE, PWSTR, int) {
+int WINAPI wWinMain(HINSTANCE instance, HINSTANCE, PWSTR, int)
+{
     SetProcessDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2);
     CoInitializeEx(nullptr, COINIT_APARTMENTTHREADED);
     int argc = 0;
     auto argv = CommandLineToArgvW(GetCommandLine(), &argc);
-    if (argc == 3 && wcscmp(argv[1], L"--extract-msi") == 0) {
+    if (argc == 3 && wcscmp(argv[1], L"--extract-msi") == 0)
+    {
         bool okay = extract(argv[2]);
         LocalFree(argv);
         CoUninitialize();
         return okay ? 0 : 2;
     }
-    if (argc == 2 && wcscmp(argv[1], L"--silent") == 0) {
+    if (argc == 2 && wcscmp(argv[1], L"--silent") == 0)
+    {
         if (!extract(temporary()))
             return 2;
         doInstall();
@@ -256,7 +277,8 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE, PWSTR, int) {
     DwmSetWindowAttribute(mainWindow, 20, &dark, sizeof(dark));
     ShowWindow(mainWindow, SW_SHOWNORMAL);
     MSG message{};
-    while (GetMessage(&message, nullptr, 0, 0) > 0) {
+    while (GetMessage(&message, nullptr, 0, 0) > 0)
+    {
         TranslateMessage(&message);
         DispatchMessage(&message);
     }
@@ -269,4 +291,3 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE, PWSTR, int) {
     CoUninitialize();
     return 0;
 }
-
