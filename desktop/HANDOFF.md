@@ -15,6 +15,8 @@ Desktop **0.1.4/code5**, DEVELOPMENT, local **main**. Existing desktop branch wa
 
 ### Tests and delivery boundary
 
+Final local delivery: **0.1.4/code5**, source **227c7fe101bb1a8a7d4ed297ac00adc09d59e5d6**. Installed 51/51 core, 9/9 WAV + 9/9 Opus, 8/8 AIFF fallback, deliberately minimized fullscreen/six-voice transfer probe passed. Setup and frozen portable ZIP are in desktop/releases; hashes and detailed acceptance limits are in [RELEASE_0.1.4.md](RELEASE_0.1.4.md). A source/control parity inventory now lives at docs/ANDROID_WINDOWS_PARITY.md. Main is local; no public push/CI result is claimed.
+
 Core and real-decoder tests, WAV/Opus WASAPI control tests, owned-window six-voice/fullscreen/Mini transfer probe, version/history tests and installer extraction/hash checks are required. Final results, immutable artifact paths, hashes and source commit belong in **RELEASE_0.1.4.md**, not guesses in this handoff. Current source-build evidence is in ignored native/build/codecs; distribution includes exact patched source/configuration/license files in Codecs.
 
 ### New mistakes and prevention
@@ -30,9 +32,9 @@ Core and real-decoder tests, WAV/Opus WASAPI control tests, owned-window six-voi
 
 9. **Installed-only routing race:** the state query could expose a native error before the timer started fallback. State query and timer must use the same idempotent handoff; pending fallback reports Loading, not Error. Verify the installed EXE with AIFF repeatedly, not only the raw decoder. 0.1.2 failed this acceptance; preserve its source commit and consume 0.1.3/code4 for the fix.
 
-### Still incomplete
-
 10. **Iconic destination bounds:** one installed 0.1.3 capture showed a minimized Now Playing window (237×39); the next run passed. Do not assume SetWindowPos restores an iconic window or silently discard the failed run. 0.1.4 explicitly restores on expanded/fullscreen requests; its regression probe deliberately minimizes before fullscreen, and two source-build runs passed. Final installed evidence is recorded separately.
+
+### Still incomplete
 
 Full Android parity: native output for bundled video formats, shared-sample/instrumental time-warp alignment, continuous video Ambient/tiled Stack wallpapers, complete translations/queue editing/smart playlists/recommendations, full touch gestures, EQ/ReplayGain, all cache controls, endpoint changes, clean-machine/mixed-DPI testing, Narrator/Share target acceptance and signing. Do not label this finished, phase-perfect, crash-free or production-ready. See PARITY.md.
 

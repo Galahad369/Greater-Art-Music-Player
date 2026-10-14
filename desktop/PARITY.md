@@ -21,4 +21,4 @@ Desktop **0.1.4/code5** is an original native Windows **development checkpoint**
 
 Core tests use generated local fixtures. The waveform test detects a known 500 ms delay, and WASAPI tests validate the real endpoint clock/controls. The own-window video probe checks rendered frames, six voices, fullscreen bounds, named control hit tests and dock/Mini transfers. None proves phase-perfect real-world Stack sound.
 
-Final artifact hashes, exact source commit and installed checks are in RELEASE_0.1.4.md when completed. Previous RELEASE_0.1.1.md remains immutable historical evidence. Do not confuse implementation with acceptance or promote this development checkpoint to full-parity 1.0.0.
+Final hashes/source/installed checks are in [RELEASE_0.1.4.md](RELEASE_0.1.4.md); the [source/control inventory](docs/ANDROID_WINDOWS_PARITY.md) records individual parity gaps. Previous RELEASE_0.1.1.md remains immutable historical evidence. Do not confuse implementation with acceptance or promote this development checkpoint to full-parity 1.0.0.

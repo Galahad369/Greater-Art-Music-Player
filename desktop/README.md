@@ -4,6 +4,8 @@ Desktop **0.1.4 / code5**, development checkpoint on local main. Original C++/Wi
 
 ## Install and run
 
+[Artifact hashes and installed test receipt](RELEASE_0.1.4.md) · [Android-to-Windows source/control inventory](docs/ANDROID_WINDOWS_PARITY.md).
+
 Use **GreaterArt-Desktop-Setup-0.1.4.exe**. Double-click, leave **Create desktop shortcut** selected, then Install. The per-user setup also creates a Start menu entry. Installation and playback are offline. Add a local folder to populate Library.
 
 Installed app: `%LOCALAPPDATA%/Programs/GreaterArtDesktop/GreaterArt.exe`.
