@@ -8,9 +8,9 @@ Enter-VsDevShell -VsInstallPath $installation -SkipAutomaticLocation -DevCmdArgu
 Push-Location $PSScriptRoot
 try {
     New-Item -ItemType Directory -Force -Path build | Out-Null
-    $sources=@('App.cpp','Media.cpp','VideoAmbient.cpp','AudioAnalysis.cpp','AccessibilityGuids.cpp','CodecReader.cpp','AudioFallback.cpp')
+    $sources=@('App.cpp','Media.cpp','VideoAmbient.cpp','AudioAnalysis.cpp','AccessibilityGuids.cpp','CodecReader.cpp','AudioFallback.cpp','StackPcm.cpp','StackPcmTests.cpp','StackOutputTests.cpp')
     $options=@('/nologo','/std:c++20','/EHsc','/O2','/MT','/W4','/utf-8','/DUNICODE','/D_UNICODE')
-    $libraries=@('mfreadwrite.lib','mfplat.lib','mf.lib','mfuuid.lib','ole32.lib','oleaut32.lib','user32.lib','gdi32.lib','propsys.lib','shell32.lib','comctl32.lib','dwmapi.lib','gdiplus.lib','msimg32.lib','oleacc.lib','windowsapp.lib','uuid.lib')
+    $libraries=@('mfreadwrite.lib','mfplat.lib','mf.lib','mfuuid.lib','ole32.lib','oleaut32.lib','user32.lib','gdi32.lib','propsys.lib','shell32.lib','comctl32.lib','dwmapi.lib','gdiplus.lib','msimg32.lib','oleacc.lib','windowsapp.lib','uuid.lib','mmdevapi.lib','avrt.lib')
     $codecs=Join-Path $PSScriptRoot 'build/codecs/installed/greater-art-x64-windows'
     if(Test-Path (Join-Path $codecs 'lib/avcodec.lib')) {
         $options+=@('/DGA_HAS_CODECS=1',('/I'+(Join-Path $codecs 'include')))

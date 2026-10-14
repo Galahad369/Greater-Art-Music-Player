@@ -245,6 +245,16 @@ std::wstring diagnosticText()
         << formatTime(app.playback.time) << L" / " << formatTime(app.playback.duration) << L"\r\nSpeed: "
         << app.speed << L"×\r\nVoices: " << app.slots.size()
         << L" / 8\r\nOffline. No source-resolution, bitrate or FPS limit.\r\n";
+    if (app.stackOutput)
+    {
+        out << L"\r\nStack audio: one PCM bus / one WASAPI clock\r\nEndpoint: " << app.playback.pcmRate
+            << L" Hz / " << app.playback.pcmChannels << L" channels\r\nUnderruns: "
+            << app.playback.pcmUnderruns
+            << L"\r\nFractional offsets precede mixing. Musical matching is confidence-gated.\r\n";
+        for (std::size_t i = 0; i < app.slots.size(); ++i)
+            out << L"Voice " << i + 1 << L": offset=" << app.slots[i].offset << L"s\r\n";
+        return out.str();
+    }
     for (std::size_t i = 0; i < app.slots.size(); ++i)
     {
         auto &slot = app.slots[i];

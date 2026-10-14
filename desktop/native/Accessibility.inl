@@ -10,7 +10,7 @@ std::wstring actionName(const Hit &hit)
             return (hit.action == ADD_SONG ? L"Add to Stack: " : L"Play: ") + app.songs[hit.data].title;
         return L"Track";
     case PLAY_PAUSE:
-        return app.playback.state == 3 ? L"Pause" : L"Play";
+        return app.playback.state == 3 || (app.stackOutput && app.stackWanted) ? L"Pause" : L"Play";
     case SEEK:
         return L"Playback timeline";
     case PREVIOUS:
@@ -92,6 +92,8 @@ std::wstring actionName(const Hit &hit)
         return L"Offset plus 100 milliseconds";
     case OFFSET_RESET:
         return L"Reset offset";
+    case OFFSET_OPTIONS:
+        return L"Audio offset options";
     case PALETTE:
         return L"Color theme " + std::to_wstring(hit.data + 1);
     case ROW_SIZE:

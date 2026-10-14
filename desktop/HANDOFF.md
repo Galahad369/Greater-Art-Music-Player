@@ -1,5 +1,13 @@
 # Greater Art Desktop handoff
 
+## Shared-clock Stack stage — October 15, 2026
+
+Current working candidate **0.1.10/code11**, local main. The preceding live-video Ambient milestone is committed as cf1b53b. Android 1.21.39/code262 verified sideload and immutable releases are unchanged. No additional worktree. Protected-main PR/CI integration remains required; security PR #174 stays blocked by owner direction.
+
+Windows Stack now prepares one bounded PCM producer and one WASAPI output for all voices, with fractional-sample offsets before mixing and one post-mix tempo stage. Primary video remains full-quality on the same native player; it is silent during Stack. Companions no longer create independent playback clients. Saved-Stack loads prepare once after restoring parameters. Primary-ended group looping appends the next opening on the same output stream. Details, explicit output proof and limitations: [SHARED_CLOCK_STACK.md](docs/SHARED_CLOCK_STACK.md).
+
+Initial core 58/58 and calibrated own-process capture passed, including detecting a one-sample sabotage. Six-source speed/seek testing caught endpoint starvation (17 underruns), despite passing time/state assertions. Repair: prebuffer, batch ready PCM instead of feeding one small block per Sleep(3), event-driven WASAPI and MMCSS scheduling. Final rebuilt/installed/capture/CI acceptance is pending and must be recorded honestly. Independent timestamps or an analysis-fit residual are not acoustic proof. Full instrumental time-warp alignment and remaining parity inventory are still unfinished.
+
 ## Live-video Ambient stage — October 15, 2026
 
 Current working source **0.1.9/code10 — implementation candidate**, local main. No new worktree. Android **1.21.39/code262 VERIFIED debug sideload** and every immutable release are unchanged. PR #172 merged normally as b4bf1ac after every check, including the complete Windows installer pipeline, passed; local main was aligned and the integration branch removed.

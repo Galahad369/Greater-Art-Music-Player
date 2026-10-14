@@ -84,50 +84,41 @@ void alignmentReady()
 }
 void syncStack()
 {
-    if (app.barrier)
+    if (app.stackOutput)
     {
-        bool ready = std::all_of(app.slots.begin(), app.slots.end(), [](auto &slot) {
-            int state = mediaState(slot.player).state;
-            return state == 3 || state == 4 || state == 6 || state == 7;
-        });
-        if (ready || app.now - app.barrierAt > 2500)
+        auto audio = app.stackOutput->state();
+        auto video = mediaState(app.slots[0].player);
+        if (audio.state == 7 || (app.slots[0].song.video && video.state == 7))
         {
-            app.barrier = false;
-            for (auto &slot : app.slots)
-                if (app.playback.time + slot.offset >= 0)
-                    mediaPlay(slot.player);
+            app.stackOutput->pause(true);
+            mediaPause(app.slots[0].player, true);
+            app.stackWanted = false;
+            if (app.stackPending)
+                toast(L"Stack could not prepare every voice. No partial independent playback was started.");
+            app.stackPending = false;
+            return;
+        }
+        if (app.stackPending && audio.state == 4 &&
+            (!app.slots[0].song.video || video.state == 3 || video.state == 4 || video.state == 6))
+        {
+            mediaSeek(app.slots[0].player, audio.time);
+            app.stackOutput->pause(!app.stackWanted);
+            mediaPause(app.slots[0].player, !app.stackWanted);
+            app.stackPending = false;
+            app.syncAt = app.now;
+        }
+        // Only the silent video presentation follows the PCM master. Audible
+        // voices never seek or trim independently: they share one output block.
+        if (!app.stackPending && audio.state == 3 && app.slots[0].song.video && app.now - app.syncAt >= 2000)
+        {
+            app.syncAt = app.now;
+            if (video.state == 6 || std::abs(video.time - audio.time) > .25)
+            {
+                mediaSeek(app.slots[0].player, audio.time);
+                mediaPlay(app.slots[0].player);
+            }
         }
         return;
-    }
-    if (app.slots.size() < 2 || app.playback.state != 3 || app.now - app.syncAt < 500)
-        return;
-    app.syncAt = app.now;
-    for (std::size_t i = 1; i < app.slots.size(); ++i)
-    {
-        auto &slot = app.slots[i];
-        auto state = mediaState(slot.player);
-        double desired = app.playback.time + slot.offset;
-        if (desired < 0)
-        {
-            mediaPause(slot.player, true);
-            continue;
-        }
-        if (state.state == 4)
-        {
-            mediaSeek(slot.player, desired);
-            mediaPlay(slot.player);
-            continue;
-        }
-        if (state.state != 3)
-            continue;
-        double drift = state.time - desired;
-        if (std::abs(drift) > .5)
-        {
-            mediaSeek(slot.player, desired);
-            mediaRate(slot.player, app.speed);
-        }
-        else
-            mediaRate(slot.player, app.speed * correctionRate(drift));
     }
 }
 } // namespace

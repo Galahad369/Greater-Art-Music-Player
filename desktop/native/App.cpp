@@ -106,6 +106,7 @@ enum Action
     OFFSET_LESS,
     OFFSET_MORE,
     OFFSET_RESET,
+    OFFSET_OPTIONS,
     SHARE_FILES
 };
 struct Hit
@@ -155,6 +156,8 @@ struct App
     Graph graph;
     std::vector<int> filtered;
     std::vector<Slot> slots;
+    std::unique_ptr<AudioFallback> stackOutput;
+    bool stackPending = false, stackWanted = false, loadingStack = false;
     MediaState playback;
     std::vector<Hit> mainHits, playerHits, miniHits, pickerHits;
     std::wstring query, nodeQuery, pickerQuery, status;
@@ -237,6 +240,7 @@ struct App
 } app;
 void requestAssets(const Song &);
 void loadCustomBackground();
+void seek(double);
 Point compactMetrics()
 {
     double height = 80 + app.settings.miniSize * 16;
@@ -536,19 +540,105 @@ void scan()
         toast(L"Background work is busy. Refresh again when it finishes.");
     }
 }
-void gains()
+std::vector<PcmVoice> pcmVoices()
 {
     bool solo = std::any_of(app.slots.begin(), app.slots.end(), [](auto &slot) { return slot.solo; });
+    std::vector<PcmVoice> voices;
     for (auto &slot : app.slots)
-        mediaVolume(slot.player, mixedGain(app.master, slot.gain, slot.mute, slot.solo, solo) / 100.0);
+        voices.push_back(
+            {slot.song.path, mixedGain(100, slot.gain, slot.mute, slot.solo, solo) / 100.0, slot.offset});
+    return voices;
+}
+void gains()
+{
+    if (app.stackOutput)
+    {
+        app.stackOutput->voices(pcmVoices());
+        app.stackOutput->volume(app.master / 100.0);
+        return;
+    }
+    if (app.slots.size() > 1)
+    {
+        mediaVolume(app.slots[0].player, 0);
+        return;
+    }
+    bool solo = std::any_of(app.slots.begin(), app.slots.end(), [](auto &slot) { return slot.solo; });
+    for (auto &slot : app.slots)
+        if (slot.player)
+            mediaVolume(slot.player, mixedGain(app.master, slot.gain, slot.mute, slot.solo, solo) / 100.0);
+}
+void rebuildStackOutput()
+{
+    if (app.loadingStack || app.slots.empty())
+        return;
+    bool playing = app.stackOutput
+                       ? (app.stackPending ? app.stackWanted : app.stackOutput->state().state == 3)
+                       : (app.playback.state == 3 || app.barrier || app.stackWanted);
+    double position = app.stackOutput ? app.stackOutput->state().time : app.playback.time;
+    if (app.stackOutput)
+        app.stackOutput->pause(true);
+    // The native primary remains the video presentation, never a second audible
+    // singer. Companions have no Media Engine/audio endpoint at all.
+    mediaPause(app.slots[0].player, true);
+    app.stackOutput.reset();
+    app.barrier = false;
+    app.stackWanted = playing;
+    if (app.slots.size() == 1)
+    {
+        app.stackPending = false;
+        mediaSeek(app.slots[0].player, position);
+        gains();
+        mediaPause(app.slots[0].player, !playing);
+        return;
+    }
+    mediaVolume(app.slots[0].player, 0);
+    try
+    {
+        app.stackOutput = std::make_unique<AudioFallback>(pcmVoices());
+    }
+    catch (...)
+    {
+        app.stackPending = app.stackWanted = false;
+        toast(L"Stack output could not start. Remove a voice or reload the Stack to retry.");
+        return;
+    }
+    app.stackOutput->loop(app.settings.loop);
+    app.stackOutput->rate(app.speed);
+    app.stackOutput->seek(position);
+    app.stackPending = true;
+    gains();
+}
+MediaState playbackSnapshot()
+{
+    if (app.slots.empty())
+        return {};
+    auto presentation = mediaState(app.slots[0].player);
+    if (!app.stackOutput)
+    {
+        if (app.slots.size() > 1)
+            presentation.state = 7;
+        return presentation;
+    }
+    auto audio = app.stackOutput->state();
+    presentation.time = audio.time;
+    presentation.duration = audio.duration;
+    presentation.state = app.stackPending && audio.state != 7 ? 1 : audio.state;
+    presentation.sharedClock = true;
+    presentation.pcmRate = audio.pcmRate;
+    presentation.pcmChannels = audio.pcmChannels;
+    presentation.pcmUnderruns = audio.pcmUnderruns;
+    return presentation;
 }
 void releaseSlots()
 {
     ++app.assetGeneration;
     ++app.alignmentGeneration;
     app.aligning = false;
+    app.stackOutput.reset();
+    app.stackPending = app.stackWanted = false;
     for (auto &slot : app.slots)
-        mediaRelease(slot.player);
+        if (slot.player)
+            mediaRelease(slot.player);
     app.slots.clear();
     app.playback = {};
     app.previousState = 0;
@@ -593,6 +683,7 @@ void playSong(const Song &input)
     }
     else
     {
+        app.stackWanted = true;
         mediaRate(player, app.speed);
         gains();
         app.features.lastPath = song.path;
@@ -615,43 +706,45 @@ void addSong(const Song &song)
         toast(L"Stack holds up to eight tracks.");
         return;
     }
-    void *player = mediaCreate(true);
-    if (!player)
+    if (!codecsAvailable() || !localMediaPath(song.path))
     {
-        toast(L"Another voice could not start.");
-        return;
-    }
-    HRESULT result = mediaLoad(player, song.path);
-    if (SUCCEEDED(result))
-        result = mediaPlay(player);
-    if (FAILED(result))
-    {
-        mediaRelease(player);
-        toast(L"Windows could not open this source.");
+        toast(L"Stack needs the bundled local audio codecs. No independent-player fallback is used.");
         return;
     }
     Song normalized = song;
     normalized.path = canonicalPath(song.path);
-    app.slots.push_back({normalized, player, 70, false, false});
-    mediaRate(player, app.speed);
-    mediaSeek(player, app.playback.time);
-    if (app.playback.state != 3)
-        mediaPause(player, true);
-    gains();
-    if (app.playback.state == 3 || app.barrier)
-    {
-        app.barrier = true;
-        app.barrierAt = GetTickCount64();
-        for (auto &voice : app.slots)
-            mediaPause(voice.player, true);
-    }
+    app.slots.push_back({normalized, nullptr, 70, false, false});
+    rebuildStackOutput();
     invalidate();
 }
 void toggle()
 {
     if (app.slots.empty())
         return;
+    if (app.slots.size() > 1 && !app.stackOutput)
+    {
+        toast(L"Stack output is unavailable. Remove a voice or reload to retry.");
+        return;
+    }
+    if (app.stackOutput)
+    {
+        if (!app.stackPending && app.stackOutput->state().state == 6)
+        {
+            seek(0);
+            app.stackWanted = true;
+            return;
+        }
+        bool pause = app.stackWanted;
+        app.stackWanted = !pause;
+        if (!app.stackPending)
+        {
+            app.stackOutput->pause(pause);
+            mediaPause(app.slots[0].player, pause);
+        }
+        return;
+    }
     bool pause = app.playback.state == 3 || app.barrier;
+    app.stackWanted = !pause;
     app.barrier = false;
     if (!pause && app.slots.size() > 1)
     {
@@ -666,6 +759,16 @@ void toggle()
 }
 void seek(double position)
 {
+    if (app.stackOutput)
+    {
+        app.stackWanted = app.stackPending ? app.stackWanted : app.stackOutput->state().state == 3;
+        app.stackOutput->pause(true);
+        mediaPause(app.slots[0].player, true);
+        app.stackOutput->voices(pcmVoices());
+        app.stackOutput->seek(std::clamp(position, 0.0, std::max(.01, app.playback.duration)));
+        app.stackPending = true;
+        return;
+    }
     bool restart = app.playback.state == 3 || app.barrier;
     if (restart && app.slots.size() > 1)
     {
@@ -1144,9 +1247,10 @@ void paintStack(HDC dc)
         {
             button(dc, app.mainHits, {card.x + 12, card.y + 132, 44, 28}, OFFSET_LESS, int(i), L"−.1s");
             wchar_t offset[40]{};
-            swprintf_s(offset, L"%+.2fs", slot.offset);
-            text(dc, offset, {card.x + 60, card.y + 132, card.w - 124, 28}, app.small, colors.muted,
-                 DT_CENTER | DT_VCENTER | DT_SINGLELINE);
+            swprintf_s(offset, L"%+.3f ms", slot.offset * 1000);
+            Rect offsetBox{card.x + 60, card.y + 132, card.w - 124, 28};
+            text(dc, offset, offsetBox, app.small, colors.accent, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
+            app.mainHits.push_back({offsetBox, OFFSET_OPTIONS, int(i)});
             button(dc, app.mainHits, {card.x + card.w - 56, card.y + 132, 44, 28}, OFFSET_MORE, int(i),
                    L"+.1s");
         }
@@ -1225,7 +1329,7 @@ void paintNodes(HDC dc)
 }
 void transport(HDC dc, std::vector<Hit> &hits, Rect r, bool compact = false)
 {
-    bool playing = app.playback.state == 3;
+    bool playing = app.playback.state == 3 || (app.stackOutput && app.stackWanted);
     int center = r.x + r.w / 2, cy = r.y + 72;
     if (compact)
     {
@@ -1496,6 +1600,7 @@ void loadStack(int index)
         files.push_back(*found);
     }
     playSong(files[0]);
+    app.loadingStack = true;
     for (std::size_t i = 1; i < files.size(); ++i)
         addSong(files[i]);
     for (std::size_t i = 0; i < app.slots.size() && i < saved.tracks.size(); ++i)
@@ -1505,6 +1610,8 @@ void loadStack(int index)
         app.slots[i].solo = saved.tracks[i].solo;
         app.slots[i].offset = saved.tracks[i].offset;
     }
+    app.loadingStack = false;
+    rebuildStackOutput();
     gains();
     seek(0);
     toast(L"Loaded Stack: " + saved.name);
@@ -1672,6 +1779,31 @@ void action(Hit hit, HWND window)
             invalidate();
         }
         break;
+    case OFFSET_OPTIONS:
+        if (hit.data > 0 && hit.data < int(app.slots.size()))
+        {
+            auto menu = CreatePopupMenu();
+            const wchar_t *names[]{L"Reset offset", L"−1 ms",     L"+1 ms",    L"−0.1 ms",
+                                   L"+0.1 ms",      L"−1 sample", L"+1 sample"};
+            for (int i = 0; i < 7; ++i)
+                AppendMenu(menu, MF_STRING | (i >= 5 && !app.playback.pcmRate ? MF_GRAYED : 0), i + 1,
+                           translate(names[i], app.features.language).c_str());
+            POINT position{};
+            GetCursorPos(&position);
+            int choice = TrackPopupMenu(menu, TPM_RETURNCMD | TPM_NONOTIFY, position.x, position.y, 0, window,
+                                        nullptr);
+            DestroyMenu(menu);
+            if (choice)
+            {
+                auto &slot = app.slots[hit.data];
+                double sample = app.playback.pcmRate > 0 ? 1.0 / app.playback.pcmRate : 0;
+                double steps[]{0, -.001, .001, -.0001, .0001, -sample, sample};
+                slot.offset = choice == 1 ? 0 : std::clamp(slot.offset + steps[choice - 1], -30.0, 30.0);
+                seek(app.playback.time);
+                invalidate();
+            }
+        }
+        break;
     case ADD_FOLDER:
         addFolder();
         break;
@@ -1788,6 +1920,7 @@ void action(Hit hit, HWND window)
             app.aligning = false;
             mediaRelease(app.slots[hit.data].player);
             app.slots.erase(app.slots.begin() + hit.data);
+            rebuildStackOutput();
             gains();
             invalidate();
         }
@@ -1804,6 +1937,8 @@ void action(Hit hit, HWND window)
     case REPEAT:
         app.features.repeat = (app.features.repeat + 1) % 3;
         app.settings.loop = app.features.repeat != 0;
+        if (app.stackOutput)
+            app.stackOutput->loop(app.settings.loop);
         persist();
         invalidate();
         break;
@@ -1822,13 +1957,19 @@ void action(Hit hit, HWND window)
             const double requested = rates[selected - 1];
             bool accepted = true;
             for (auto &slot : app.slots)
-                accepted = SUCCEEDED(mediaRate(slot.player, requested)) && accepted;
+                if (slot.player)
+                    accepted = SUCCEEDED(mediaRate(slot.player, requested)) && accepted;
+            if (app.stackOutput)
+                accepted = SUCCEEDED(app.stackOutput->rate(requested)) && accepted;
             if (accepted)
                 app.speed = requested;
             else
             {
                 for (auto &slot : app.slots)
-                    mediaRate(slot.player, app.speed);
+                    if (slot.player)
+                        mediaRate(slot.player, app.speed);
+                if (app.stackOutput)
+                    app.stackOutput->rate(app.speed);
                 toast(L"This source does not support the chosen speed. Previous speed restored.");
             }
             invalidate();

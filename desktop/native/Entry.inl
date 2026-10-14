@@ -90,6 +90,7 @@ int tests(const std::filesystem::path &directory)
         queue.shutdown();
         expect(!queue.emplace_back([] {}), "closed queue rejects rather than silently swallowing work");
     }
+    expect(stackPcmTests(directory.wstring()), "shared-clock Stack PCM and fractional offsets");
     expect(similarity(filenameFeatures(L"Caravan.mp3"), filenameFeatures(L"Gambling.mp4")) > 0,
            "shared-letter similarity");
     expect(similarity(filenameFeatures(L"孤独毒毒.mp4"), filenameFeatures(L"孤独毒毒.mp3")) == 1,
@@ -226,6 +227,10 @@ int tests(const std::filesystem::path &directory)
     original.stacks[0].tracks[0].offset = 1.25;
     saveSettings(directory, original);
     expect(loadSettings(directory).stacks[0].tracks[0].offset == 1.25, "saved Stack offset persists");
+    original.stacks[0].tracks[0].offset = 22 + .5 / 48000;
+    saveSettings(directory, original);
+    expect(loadSettings(directory).stacks[0].tracks[0].offset == original.stacks[0].tracks[0].offset,
+           "saved Stack preserves fractional-sample precision without decimal rounding");
     expect(audioDecodeTest(directory.wstring()), "real offline decoder and 500ms waveform alignment");
     expect(videoAmbientTests(directory.wstring()), "decoded-frame color tap preserves payload and transport");
     if (codecsAvailable())
@@ -245,7 +250,7 @@ int tests(const std::filesystem::path &directory)
     report << "total=" << passed << "/" << total << "\n";
     return passed == total ? 0 : 2;
 }
-int audioPlaybackTests(const std::wstring &file, const std::filesystem::path &directory)
+int audioPlaybackTests(const std::wstring &file, const std::filesystem::path &directory, bool stack = false)
 {
     std::filesystem::create_directories(directory);
     std::ofstream report(directory / L"audio-playback-tests.txt");
@@ -256,7 +261,12 @@ int audioPlaybackTests(const std::wstring &file, const std::filesystem::path &di
             ++passed;
         report << (condition ? "PASS " : "FAIL ") << name << "\n";
     };
-    AudioFallback player(file, true);
+    std::unique_ptr<AudioFallback> output;
+    if (stack)
+        output = std::make_unique<AudioFallback>(std::vector<PcmVoice>(6, {file, .7, 0}));
+    else
+        output = std::make_unique<AudioFallback>(file, true);
+    auto &player = *output;
     auto wait = [&](auto predicate, int timeout) {
         auto end = GetTickCount64() + timeout;
         do
@@ -301,6 +311,15 @@ int audioPlaybackTests(const std::wstring &file, const std::filesystem::path &di
     after = player.state().time;
     expect(after - before > .15 && after - before < .6, "half-speed returns without timeline jump");
     expect(FAILED(player.rate(0)) && FAILED(player.seek(NAN)), "invalid playback commands rejected");
+    if (stack)
+    {
+        auto state = player.state();
+        expect(state.sharedClock && state.pcmRate > 0 && state.pcmChannels > 0,
+               "six singers use one WASAPI client at the actual endpoint format");
+        expect(state.pcmUnderruns == 0, "six-voice seek and speed controls do not underrun the endpoint");
+        report << "endpointRate=" << state.pcmRate << " channels=" << state.pcmChannels
+               << " underruns=" << state.pcmUnderruns << "\n";
+    }
     player.pause(true);
     report << "total=" << passed << "/" << total << "\n";
     return passed == total ? 0 : 2;
@@ -367,6 +386,18 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE, PWSTR, int)
     if (argc == 4 && wcscmp(argv[1], L"--verify-audio") == 0)
     {
         int result = audioPlaybackTests(argv[2], argv[3]);
+        LocalFree(argv);
+        return result;
+    }
+    if (argc == 4 && wcscmp(argv[1], L"--verify-stack-audio") == 0)
+    {
+        int result = audioPlaybackTests(argv[2], argv[3], true);
+        LocalFree(argv);
+        return result;
+    }
+    if (argc == 3 && wcscmp(argv[1], L"--verify-stack-output") == 0)
+    {
+        int result = stackOutputTests(argv[2]) ? 0 : 2;
         LocalFree(argv);
         return result;
     }

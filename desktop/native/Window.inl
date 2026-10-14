@@ -477,9 +477,8 @@ void probeTick()
     }
     else if (app.probeStage == 1 && GetTickCount64() - app.probeAt > 1800)
     {
-        if (app.slots.size() != 6 || std::any_of(app.slots.begin(), app.slots.end(), [](auto &slot) {
-                return mediaState(slot.player).state != 3;
-            }))
+        if (app.slots.size() != 6 || !app.stackOutput || app.stackPending ||
+            app.stackOutput->state().state != 3)
         {
             fail(L"voices");
             return;
@@ -546,7 +545,7 @@ void probeTick()
         layout();
         capture(app.main, app.probeOutput / L"returned-dock.png");
         std::ofstream report(app.probeOutput / L"verification.txt");
-        report << "PASS version=0.1.9 code=10\nvoices=" << app.slots.size()
+        report << "PASS version=0.1.10 code=11\nvoices=" << app.slots.size()
                << "\nsource=" << app.playback.width << "x" << app.playback.height
                << "\nframes=" << app.playback.frames
                << "\nfullscreen_monitor_bounds=true\nmini_and_dock_transfer=true\nmsaa_named_controls="
@@ -808,7 +807,7 @@ LRESULT CALLBACK WindowProc(HWND window, UINT message, WPARAM w, LPARAM l)
         if (!app.slots.empty())
         {
             auto oldWidth = app.playback.width, oldHeight = app.playback.height;
-            app.playback = mediaState(app.slots[0].player);
+            app.playback = playbackSnapshot();
             app.playbackReadAt = app.now;
             updateAmbient();
             if (oldWidth != app.playback.width || oldHeight != app.playback.height)
@@ -820,13 +819,17 @@ LRESULT CALLBACK WindowProc(HWND window, UINT message, WPARAM w, LPARAM l)
                 if (app.settings.loop && (app.features.repeat == 1 || app.slots.size() > 1))
                 {
                     seek(0);
+                    if (app.stackOutput)
+                    {
+                        app.stackWanted = true;
+                    }
                     if (app.slots.size() > 1)
                     {
                         app.barrier = true;
                         app.barrierAt = app.now;
                     }
                     for (auto &slot : app.slots)
-                        if (!app.barrier)
+                        if (!app.barrier && slot.player && !app.stackOutput)
                             mediaPlay(slot.player);
                 }
                 else
@@ -842,8 +845,12 @@ LRESULT CALLBACK WindowProc(HWND window, UINT message, WPARAM w, LPARAM l)
                 seek(app.practice.a);
             if (app.sleepUntil && app.now >= app.sleepUntil)
             {
+                if (app.stackOutput)
+                    app.stackOutput->pause(true);
+                app.stackWanted = false;
                 for (auto &slot : app.slots)
-                    mediaPause(slot.player, true);
+                    if (slot.player)
+                        mediaPause(slot.player, true);
                 app.sleepUntil = 0;
                 toast(L"Sleep timer finished.");
             }

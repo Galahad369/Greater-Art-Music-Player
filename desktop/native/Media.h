@@ -14,6 +14,9 @@ struct MediaState
     DWORD width = 0, height = 0;
     std::uint64_t frames = 0;
     bool bundledAudio = false;
+    bool sharedClock = false;
+    int pcmRate = 0, pcmChannels = 0;
+    std::uint64_t pcmUnderruns = 0;
     VideoPalette palette;
     unsigned videoError = 0;
     HRESULT videoStatus = S_OK;
