@@ -275,12 +275,40 @@ bool stackOutputTests(const std::wstring &directory)
         result = record(bad, sabotaged, badUnderruns, root / L"captured-one-sample-sabotage.wav");
     int badLag = 0;
     double badError = difference(calibration, sabotaged, badLag);
+    std::vector<float> loopSignal(5760);
+    for (std::size_t i = 0; i < loopSignal.size(); ++i)
+        loopSignal[i] = float(.2 * std::sin(double(i) * .04));
+    auto loopFile = root / L"output-loop.wav";
+    wave(loopFile, loopSignal);
+    AudioFallback loopPlayer(std::vector<PcmVoice>(2, {loopFile.wstring(), 1, 0}));
+    loopPlayer.volume(.01);
+    loopPlayer.loop(true);
+    auto deadline = GetTickCount64() + 5000;
+    while (loopPlayer.state().state != 4 && loopPlayer.state().state != 7 && GetTickCount64() < deadline)
+        Sleep(10);
+    bool loopPassed = loopPlayer.state().state == 4;
+    loopPlayer.pause(false);
+    deadline = GetTickCount64() + 1000;
+    while (GetTickCount64() < deadline)
+    {
+        auto state = loopPlayer.state();
+        loopPassed = loopPassed && state.state != 7 && state.time >= 0 && state.time <= state.duration + .001;
+        Sleep(10);
+    }
+    loopPlayer.loop(false);
+    deadline = GetTickCount64() + 2000;
+    while (loopPlayer.state().state != 6 && loopPlayer.state().state != 7 && GetTickCount64() < deadline)
+        Sleep(10);
+    auto loopState = loopPlayer.state();
+    loopPassed = loopPassed && loopState.state == 6 && loopState.pcmUnderruns == 0 &&
+                 std::abs(loopState.time - .12) < .0001;
     bool passed = SUCCEEDED(result) && error < .015 && badError > .04 && badError > error * 5 &&
-                  firstUnderruns == 0 && actualUnderruns == 0;
+                  firstUnderruns == 0 && actualUnderruns == 0 && loopPassed;
     report << (passed ? "PASS" : "FAIL") << " own_process_WASAPI_loopback\nHRESULT=" << std::hex << result
            << std::dec << "\nnormalizedError=" << error << "\nglobalCaptureLagFrames=" << lag
            << "\noneSampleSabotageError=" << badError << "\nunderruns=" << firstUnderruns << ','
-           << actualUnderruns
+           << actualUnderruns << "\ncontinuous_loop_and_stop=" << (loopPassed ? "PASS" : "FAIL")
+           << "\nloopUnderruns=" << loopState.pcmUnderruns
            << "\nother_app_audio_captured=false\nmicrophone_used=false\nphysical_acoustic_proof=false\n";
     return passed;
 }

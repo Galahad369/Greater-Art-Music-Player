@@ -101,7 +101,8 @@ void syncStack()
         if (app.stackPending && audio.state == 4 &&
             (!app.slots[0].song.video || video.state == 3 || video.state == 4 || video.state == 6))
         {
-            mediaSeek(app.slots[0].player, audio.time);
+            if (video.state == 6 || std::abs(video.time - audio.time) > .03)
+                mediaSeek(app.slots[0].player, audio.time);
             app.stackOutput->pause(!app.stackWanted);
             mediaPause(app.slots[0].player, !app.stackWanted);
             app.stackPending = false;

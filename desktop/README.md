@@ -1,6 +1,6 @@
 # Greater Art Desktop — native Windows edition
 
-Current review source: **0.1.10/code11**, SOURCE_ONLY. Latest verified development installer: **0.1.4/code5**; its immutable links below remain valid. Original C++/Win32 application: activity rail, resizable Stack / Library / Nodes panes, collapsed Settings, fixed dock. Expanded Now Playing and detached Mini transfer the same primary renderer without reloading media.
+Current review source: **0.1.11/code12**, SOURCE_ONLY. Latest verified development installer: **0.1.4/code5**; its immutable links below remain valid. Original C++/Win32 application: activity rail, resizable Stack / Library / Nodes panes, collapsed Settings, fixed dock. Expanded Now Playing and detached Mini transfer the same primary renderer without reloading media.
 
 ## Install and run
 
@@ -25,13 +25,14 @@ Build-time dependencies are not installed app dependencies: Visual Studio C++/Wi
 ## Working scope
 
 - Rectangular Library rows, current-only playing marker/tap nudge, search/reset, favorites, chosen folders, Unicode, sort; local M3U8 import/export and separate playlists.
-- Up to eight simultaneous sources, per-voice gain/mute/solo, master volume, coordinated start/seek/loop, drift trim, confidence-gated offline sound alignment and saved offsets. This is structural alignment, **not sample-perfect mixing**.
+- Up to eight sources mixed on one sample clock and WASAPI output, fractional-sample offsets, gain/mute/solo, primary-bounded group loop and fine nudges. Calibrated process-specific output tests detect a one-sample error. Automatic musical matching remains simpler, confidence-gated RMS/onset alignment—not a guarantee that different performances align perfectly.
 - Filename-similarity Nodes graph, sparse weighted edges, natural clusters, pan/zoom/drag/tap, wand reveal, neighbor/link threshold controls and versioned cache.
 - Fixed seek/transport, first-class speed, lock, whole-frame monitor fullscreen, borderless Mini, direct Mini↔expanded transfer.
 - Selected-media metadata/artwork, bounded waveform disk cache, local synchronized LRC, A–B repeat, sleep timer, resume, opt-in history/burn, optional spinning audio disc.
-- Artwork-color Ambient and aspect-preserving custom image Crop(default)/Fit; no Stretch. Continuous video-derived Ambient and tiled Stack video wallpaper remain pending.
+- Live-video/artwork Classic and Adaptive Ambient, using the original decoder with no second video player. Aspect-preserving custom image Crop(default)/Fit; no Stretch. Complete Android Adaptive controls and tiled Stack video wallpaper remain pending.
 - One native Share button offers current original file, queue M3U8 or queue files. Windows Share/media keys are implemented; full target-application acceptance remains pending.
 - Native accessible button names/roles/bounds and keyboard transport/slider navigation; high contrast, fonts, partial six-language UI. Ctrl+click inspects a drawn control when Developer mode is enabled.
+- Original antialiased vector icons at physical DPI, multi-size application icon, compositor-paced marquee/control presentation and reused paint buffers. [Render checks and 180 Hz acceptance boundary](docs/HIGH_DPI_ICONS.md).
 
 ## Build and verify
 
@@ -43,6 +44,9 @@ python desktop/packaging/validate_version.py
 python desktop/packaging/test_version.py
 ./desktop/native/build/GreaterArt.exe --self-test 'C:/owned/test-output'
 ./desktop/native/build/GreaterArt.exe --verify-audio 'C:/owned/audio-fixture.wav' 'C:/owned/audio-output'
+./desktop/native/build/GreaterArt.exe --verify-stack-audio 'C:/owned/video-fixture.mp4' 'C:/owned/stack-output'
+./desktop/native/build/GreaterArt.exe --verify-stack-output 'C:/owned/calibrated-output'
+./desktop/native/build/GreaterArt.exe --verify-ambient 'C:/owned/red-blue-green.mp4' 'C:/owned/ambient-output'
 ./desktop/native/build/GreaterArt.exe --verify 'C:/owned/video-fixture.mp4' 'C:/owned/probe-output'
 ```
 
@@ -50,6 +54,6 @@ Tests isolate all generated settings. The video probe captures **only owned HWND
 
 ## Remaining gates
 
-Not full Android parity or production release. Bundled video-renderer coverage, shared-sample mixing/time-warp alignment, all translations, full queue editing/smart playlists/recommendations, ReplayGain/EQ, URI-platform equivalents, continuous video/tiled backgrounds, touch/gesture parity, Narrator, endpoint changes, clean-machine and mixed-DPI acceptance remain open.
+Not full Android parity or production release. Bundled video-renderer coverage, instrumental/time-warp matching, all translations, full queue editing/smart playlists/recommendations, ReplayGain/EQ, URI-platform equivalents, full Adaptive controls/tiled backgrounds, touch/gesture parity, Narrator, endpoint changes, clean-machine, mixed-DPI and physical 180 Hz acceptance remain open.
 
 Unsigned: embedded payload hashes detect corruption, not publisher identity. Never disable Windows protections. See [handoff](HANDOFF.md), [parity matrix](PARITY.md), [version policy](VERSION_DESKTOP.md) and the versioned artifact receipt. Android source/APKs are independent and unchanged by this desktop checkpoint.

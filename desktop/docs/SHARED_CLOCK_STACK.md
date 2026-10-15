@@ -1,6 +1,6 @@
 # Windows Stack — one audible clock
 
-Desktop 0.1.10/code11 implementation candidate, October 15, 2026. Android source/APKs are unchanged. This stage replaces independent audible Windows players; it does not certify arbitrary cover-song matching or full Windows parity.
+Desktop **0.1.11/code12** acceptance candidate, October 16, 2026; the production shared-clock implementation began in 0.1.10/code11. Android source/APKs are unchanged. This replaces independent audible Windows players; it does not certify arbitrary cover-song matching or full Windows parity.
 
 ## Production route
 
@@ -19,11 +19,15 @@ Add/remove and saved-Stack load prepare a new common source set. Saved loads bat
 - `--verify-stack-output <directory>` generates six independent deterministic local signals plus a calibrated sum. Windows process-loopback captures only this test process, never the microphone or other applications. It compares the six-source output against calibration and must detect a deliberately introduced **one-sample error** in one voice. Capture latency may differ globally; relative voice errors may not.
 - Existing real-video Ambient, effect-fault and fullscreen/Mini/dock probes must still pass with the same primary source dimensions/identity. Output captures are digital Windows-path evidence, not a physical speaker/microphone measurement.
 
-Initial captured output passed: normalized comparison error 1.3411e-7; one-sample sabotage error 0.550466; zero output underruns during that capture. The separate six-MP4 speed/seek test then exposed 17 underruns. These failed results remain under native/build/pcm-011-controls; they are not discarded as noise. Final acceptance after the scheduling repair must be recorded separately.
+Initial captured output passed: normalized comparison error 1.3411e-7; one-sample sabotage error 0.550466; zero output underruns during that capture. The separate six-MP4 speed/seek test then exposed 17 underruns. These failed results remain under native/build/pcm-011-controls; they are not discarded as noise.
+
+After event-driven scheduling/prebuffer repair, installed 0.1.10 digital capture passed: normalized error **1.62211e-7**, deliberate one-sample error **0.550466**, zero calibration/Stack underruns. Six-source controls passed 11/11. Subsequent rapid-add acceptance exposed a different presentation bug: a preparing bus reported zero, losing the prior seek target. 0.1.11 retains that target independently, requires a prebuffered paused endpoint before video starts, and verifies rapid addition after seeking to eight seconds. Source checks for 0.1.11 currently pass **62/62 core** and **11/11 six-source controls**, zero underruns at 48 kHz stereo. Final packaged/installed proof must be recorded separately in the versioned release receipt.
 
 ## Mistake and prevention
 
 Feeding only one 1024-frame block per `Sleep(3)` loop is not a 3ms scheduling guarantee. Windows timer granularity can stretch that wait, starving a 2×/4× stream even when decoder throughput is sufficient. The renderer now batches ready input ahead, prebuffers the endpoint before starting, and follows WASAPI events with MMCSS Audio scheduling. No resolution, bitrate, sample-rate, FPS or decoder-quality reduction is used to hide the problem. Buffer thresholds and final underrun results must be exercised on an actual endpoint, not inferred from a model.
+
+Readiness is now reported only after approximately 75% endpoint prebuffer, not merely opening the decoder. Control commands wake the endpoint event immediately. Master volume uses IAudioStreamVolume so queued samples react without applying one shared session gain to unrelated streams. The very-short-loop regression runs a 120ms primary repeatedly, disables Repeat during playback and requires the entire group to end with a bounded master time and no underruns.
 
 References: [WASAPI buffer ownership](https://learn.microsoft.com/en-us/windows/win32/api/audioclient/nf-audioclient-iaudiorenderclient-getbuffer), [Microsoft process-specific loopback API/sample](https://learn.microsoft.com/en-us/samples/microsoft/windows-classic-samples/applicationloopbackaudio-sample/).
 

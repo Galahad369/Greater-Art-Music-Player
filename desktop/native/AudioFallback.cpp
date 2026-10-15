@@ -33,15 +33,20 @@ struct AudioFallback::Impl
     std::vector<PcmVoice> voiceConfiguration;
     std::uint64_t voiceRevision = 1;
     MediaState snapshot;
+    HANDLE ready = CreateEventW(nullptr, FALSE, FALSE, nullptr);
     std::thread worker;
     AVFilterGraph *graph = nullptr;
     AVFilterContext *source = nullptr, *tempo = nullptr, *sink = nullptr;
     ~Impl()
     {
         closing = true;
+        if (ready)
+            SetEvent(ready);
         if (worker.joinable())
             worker.join();
         avfilter_graph_free(&graph);
+        if (ready)
+            CloseHandle(ready);
     }
     bool filter(int rate, int channels)
     {
@@ -72,7 +77,7 @@ struct AudioFallback::Impl
     {
         std::lock_guard<std::mutex> lock(mutex);
         snapshot.state = state;
-        snapshot.time = snapshot.sharedClock && looping && duration > 0 ? std::fmod(time, duration) : time;
+        snapshot.time = snapshot.sharedClock && state != 6 && duration > 0 ? std::fmod(time, duration) : time;
         snapshot.duration = duration;
     }
     void run(std::wstring path, bool audioOnly)
@@ -103,16 +108,7 @@ struct AudioFallback::Impl
                         AvRevertMmThreadCharacteristics(handle);
                 }
             } scheduling;
-            struct ReadyEvent
-            {
-                HANDLE handle = CreateEventW(nullptr, FALSE, FALSE, nullptr);
-                ~ReadyEvent()
-                {
-                    if (handle)
-                        CloseHandle(handle);
-                }
-            } ready;
-            if (!ready.handle)
+            if (!ready)
             {
                 update(7, 0, 0);
                 return;
@@ -121,6 +117,7 @@ struct AudioFallback::Impl
             ComPtr<IMMDevice> device;
             ComPtr<IAudioClient> client;
             ComPtr<IAudioRenderClient> renderer;
+            ComPtr<IAudioStreamVolume> streamVolume;
             HRESULT result = CoCreateInstance(__uuidof(MMDeviceEnumerator), nullptr, CLSCTX_INPROC_SERVER,
                                               IID_PPV_ARGS(&devices));
             if (SUCCEEDED(result))
@@ -160,12 +157,14 @@ struct AudioFallback::Impl
                                         0, format, nullptr);
             CoTaskMemFree(format);
             if (SUCCEEDED(result))
-                result = client->SetEventHandle(ready.handle);
+                result = client->SetEventHandle(ready);
             UINT32 capacity = 0;
             if (SUCCEEDED(result))
                 result = client->GetBufferSize(&capacity);
             if (SUCCEEDED(result))
                 result = client->GetService(IID_PPV_ARGS(&renderer));
+            if (SUCCEEDED(result))
+                client->GetService(IID_PPV_ARGS(&streamVolume));
             CodecReader decoder;
             std::vector<PcmVoice> voices;
             std::uint64_t revision = 0;
@@ -253,9 +252,11 @@ struct AudioFallback::Impl
             std::size_t queuedSamples = 0;
             double origin = 0, rate = 1, timeline = 0, seekStart = 0;
             std::uint64_t submitted = 0, sourceSamples = 0;
-            bool ended = false, started = false, flushed = false;
+            bool ended = false, started = false, flushed = false, prepared = false;
             bool emptyEndpoint = false;
-            update(4, 0, metadata.duration);
+            double appliedGain = -1;
+            std::vector<float> channelGains(channels);
+            update(1, 0, metadata.duration);
             while (!closing)
             {
                 double seek = -1;
@@ -289,6 +290,7 @@ struct AudioFallback::Impl
                         client->Stop();
                     result = client->Reset();
                     started = false;
+                    prepared = false;
                     queued.clear();
                     spans.clear();
                     queuedSamples = 0;
@@ -314,6 +316,17 @@ struct AudioFallback::Impl
                     }
                     rate = nextRate;
                 }
+                double nextGain = gain;
+                if (streamVolume && nextGain != appliedGain)
+                {
+                    std::fill(channelGains.begin(), channelGains.end(), float(nextGain));
+                    if (FAILED(streamVolume->SetAllVolumes(UINT32(channels), channelGains.data())))
+                    {
+                        update(7, timeline, metadata.duration);
+                        break;
+                    }
+                    appliedGain = nextGain;
+                }
                 UINT32 padding = 0;
                 if (FAILED(client->GetCurrentPadding(&padding)))
                 {
@@ -329,15 +342,15 @@ struct AudioFallback::Impl
                 double time = spans.empty() ? origin
                                             : spans.front().time - double(spans.front().end - consumed) /
                                                                        sampleRate * spans.front().rate;
-                if (paused)
+                if (paused && (started || prepared))
                 {
                     if (started)
                     {
                         client->Stop();
                         started = false;
                     }
-                    update(stack && !stack->state().ready ? 1 : 4, time, metadata.duration);
-                    Sleep(5);
+                    update(4, time, metadata.duration);
+                    WaitForSingleObject(ready, 50);
                     continue;
                 }
                 if (stack && started && !padding && !ended && !emptyEndpoint)
@@ -429,7 +442,9 @@ struct AudioFallback::Impl
                         update(7, time, metadata.duration);
                         break;
                     }
-                    double volume = gain;
+                    // Stream-local gain affects already-buffered audio too;
+                    // never change the application's global mixer session.
+                    double volume = streamVolume ? 1 : gain.load();
                     auto &chunk = queued.front();
                     for (std::size_t i = 0; i < std::size_t(frames) * channels; ++i)
                     {
@@ -466,15 +481,17 @@ struct AudioFallback::Impl
                     queuedSamples -= std::size_t(frames) * channels;
                     if (chunk.head == chunk.pcm.size())
                         queued.pop_front();
-                    if (!started && (padding + frames >= capacity * 3 / 4 || (ended && queued.empty())))
+                    padding += frames;
+                    prepared = prepared || padding >= capacity * 3 / 4 || (ended && queued.empty());
+                }
+                if (!paused && !started && prepared)
+                {
+                    if (FAILED(client->Start()))
                     {
-                        if (FAILED(client->Start()))
-                        {
-                            update(7, time, metadata.duration);
-                            break;
-                        }
-                        started = true;
+                        update(7, time, metadata.duration);
+                        break;
                     }
+                    started = true;
                 }
                 if (ended && flushed && queued.empty() && !padding)
                 {
@@ -484,17 +501,17 @@ struct AudioFallback::Impl
                         started = false;
                     }
                     update(6, metadata.duration, metadata.duration);
-                    Sleep(5);
+                    WaitForSingleObject(ready, 50);
                     continue;
                 }
-                update(started ? 3 : 1, time, metadata.duration);
+                update(started ? 3 : prepared && paused ? 4 : 1, time, metadata.duration);
                 // Small mixed blocks at 2x/4x need more than one admission per
                 // timer tick. Fill ahead while data is ready, then follow the
                 // endpoint event. Sleep(3) may actually take a 15.6ms tick.
                 if (stack && queuedSamples < std::size_t(capacity) * channels && !ended &&
                     stack->state().queuedFrames > 0)
                     continue;
-                WaitForSingleObject(ready.handle, 10);
+                WaitForSingleObject(ready, 10);
             }
             if (started)
                 client->Stop();
@@ -532,6 +549,7 @@ AudioFallback::~AudioFallback() = default;
 HRESULT AudioFallback::pause(bool paused)
 {
     impl->paused = paused;
+    SetEvent(impl->ready);
     return S_OK;
 }
 HRESULT AudioFallback::seek(double seconds)
@@ -540,6 +558,7 @@ HRESULT AudioFallback::seek(double seconds)
         return E_INVALIDARG;
     std::lock_guard<std::mutex> lock(impl->mutex);
     impl->pendingSeek = seconds;
+    SetEvent(impl->ready);
     return S_OK;
 }
 HRESULT AudioFallback::rate(double rate)
@@ -547,6 +566,7 @@ HRESULT AudioFallback::rate(double rate)
     if (!std::isfinite(rate) || rate < .5 || rate > 4)
         return E_INVALIDARG;
     impl->requestedRate = rate;
+    SetEvent(impl->ready);
     return S_OK;
 }
 HRESULT AudioFallback::volume(double gain)
@@ -554,6 +574,7 @@ HRESULT AudioFallback::volume(double gain)
     if (!std::isfinite(gain))
         return E_INVALIDARG;
     impl->gain = std::clamp(gain, 0.0, 1.0);
+    SetEvent(impl->ready);
     return S_OK;
 }
 HRESULT AudioFallback::voices(const std::vector<PcmVoice> &voices)
@@ -574,11 +595,13 @@ HRESULT AudioFallback::voices(const std::vector<PcmVoice> &voices)
     ++impl->voiceRevision;
     if (offsetChanged)
         impl->pendingSeek = impl->snapshot.time;
+    SetEvent(impl->ready);
     return S_OK;
 }
 void AudioFallback::loop(bool enabled)
 {
     impl->looping = enabled;
+    SetEvent(impl->ready);
 }
 MediaState AudioFallback::state() const
 {

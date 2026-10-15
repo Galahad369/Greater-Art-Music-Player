@@ -1,5 +1,18 @@
 # Greater Art Desktop handoff
 
+## High-DPI icons and Stack handoff — October 16, 2026
+
+Current source **0.1.11/code12**, local main; final installer acceptance/integration pending. Android **1.21.39/code262** and immutable deliveries are unchanged. No new worktree. Remote main's intervening #175 changes only the obsolete website repository link; preserve it during integration. Security PR #174 remains explicitly blocked, not a branch to merge/delete or a reason to bypass protection.
+
+- Replaced all private font glyphs and aliased icon special cases with 31 original antialiased vector drawings. Same hitboxes, consistent 24-unit geometry, 30-unit main transport glyph, semantic names preserved. Windows resource has 16/24/32/48/64/128/256 sizes; titlebar requests select the current DPI size.
+- Replaced fixed 30 Hz marquee/16ms decorative timers with a bounded monitor-rate high-resolution worker. Only one frame message may be pending; hidden/idle/reduced-motion states stop animation. Persistent per-window paint buffers and sparse update regions replace full-window allocations/copies. Physical fractional marquee/seek presentation reduces stepping. Native full-resolution cached vector Ambient replaces expensive repeated GDI+ radial rasterization; memory is bounded to 64 MiB. Playback clocks, source resolution/bitrate/FPS and primary decoder quality are untouched.
+- Rapid voice additions retain the requested master position while a new shared source set prepares; they no longer reset to an unready bus's zero timestamp. A paused endpoint must be prebuffered before video resumes. Endpoint gain uses stream-local volume, not global session gain. Very short group loops drain correctly and stop at the primary boundary when Repeat is disabled. Explicit saved Solid preferences survive the new Adaptive default.
+- Current local source checks: core **62/62**, including all **155** actual icon drawings at 100–400% DPI; six-source WASAPI controls **11/11**, actual 48 kHz stereo, **zero underruns**. Final packaged/installed/digital output/CI results belong in RELEASE_0.1.11.md once actually performed, not inferred from these tests.
+
+Prevention: match icons optically with one path system, not a platform font plus ad-hoc aliased symbols. Test raster output, not just source dimensions. A perfectly axis-aligned rectangle can legitimately have no partially covered pixels; round-ended Pause bars now match the set. Preference roundtrip tests must create their isolated directory before saving. A ready decoder is not a prebuffered audio endpoint. Never read a still-preparing output's time as user intent, or pretend digital fixture proof guarantees arbitrary cover alignment. See [high-DPI boundary](docs/HIGH_DPI_ICONS.md) and [shared-clock evidence](docs/SHARED_CLOCK_STACK.md).
+
+High-refresh failures were retained: hidden-test inactivity, visible WM_TIMER starvation, then 8.2/4.7 events/paints per second from backdrop rasterization. A native mesh reached 60/56; final high-resolution waits/native-size layer caching need their own measured acceptance. WM_TIMER has lower queue priority than paints; service due playback polling from presentation events too. DwmFlush is not a contractual per-monitor 180 Hz pacing primitive for GDI. Do not fix decorative cost by reducing source quality.
+
 ## Shared-clock Stack stage — October 15, 2026
 
 Current working candidate **0.1.10/code11**, local main. The preceding live-video Ambient milestone is committed as cf1b53b. Android 1.21.39/code262 verified sideload and immutable releases are unchanged. No additional worktree. Protected-main PR/CI integration remains required; security PR #174 stays blocked by owner direction.

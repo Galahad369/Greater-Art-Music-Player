@@ -1,10 +1,13 @@
 #define NOMINMAX
 #include "AudioAnalysis.h"
+#include "AmbientMesh.h"
 #include "AudioFallback.h"
 #include "CodecReader.h"
 #include "Core.h"
 #include "Crash.h"
 #include "Features.h"
+#include "FrameClock.h"
+#include "Icons.h"
 #include "Language.h"
 #include "Media.h"
 #include "WorkQueue.h"
@@ -44,7 +47,7 @@ using Microsoft::WRL::ComPtr;
 namespace
 {
 constexpr UINT SCANNED = WM_APP + 1, GRAPH_READY = WM_APP + 2, ALIGN_READY = WM_APP + 8,
-               ASSET_READY = WM_APP + 9, TASK_FAILURE = WM_APP + 26;
+               ASSET_READY = WM_APP + 9, TASK_FAILURE = WM_APP + 26, VISUAL_FRAME = WM_APP + 27;
 constexpr int SEARCH = 101, GRAPH_SEARCH = 102, PICKER_SEARCH = 103;
 struct Rect
 {
@@ -138,6 +141,9 @@ struct App
     Practice practice;
     bool locked = false, lyricsPanel = false, aligning = false;
     bool exiting = false;
+    FrameClock frameClock;
+    BOOL motionEnabled = TRUE;
+    std::uint64_t visualFrames = 0, visualPaints = 0, lastPlaybackPoll = 0;
     int keyboardFocus = -1;
     std::wstring tapPath;
     std::uint64_t tapAt = 0;
@@ -158,6 +164,7 @@ struct App
     std::vector<Slot> slots;
     std::unique_ptr<AudioFallback> stackOutput;
     bool stackPending = false, stackWanted = false, loadingStack = false;
+    double stackTarget = 0;
     MediaState playback;
     std::vector<Hit> mainHits, playerHits, miniHits, pickerHits;
     std::wstring query, nodeQuery, pickerQuery, status;
@@ -207,7 +214,7 @@ struct App
         Graph graph;
     };
     std::vector<Result> results;
-    HFONT small = nullptr, body = nullptr, title = nullptr, heading = nullptr, icons = nullptr;
+    HFONT small = nullptr, body = nullptr, title = nullptr, heading = nullptr;
     HBRUSH editBrush = nullptr;
     HICON icon = nullptr;
     int dpi = 96, clientW = 1360, clientH = 820, libraryScroll = 0, stackScroll = 0, pickerScroll = 0,
@@ -229,6 +236,8 @@ struct App
     bool probe = false;
     bool probeAmbient = false;
     bool probeFault = false;
+    bool probeVisual = false;
+    std::uint64_t probeCpu = 0;
     void *probePlayer = nullptr;
     std::uint64_t probeSamples = 0;
     double probeTime = 0;
@@ -276,6 +285,8 @@ RECT physical(Rect r)
 void fill(HDC dc, Rect rect, COLORREF color)
 {
     auto r = physical(rect);
+    if (!RectVisible(dc, &r))
+        return;
     if (app.features.background == 3 && app.customBackground && !app.features.highContrast &&
         (color == colors.panel || color == colors.bg))
     {
@@ -301,6 +312,15 @@ void fill(HDC dc, Rect rect, COLORREF color)
     if (app.features.background > 0 && !app.features.highContrast &&
         (color == colors.panel || color == colors.bg))
     {
+        if (app.features.background == 2)
+        {
+            double phase = app.motionEnabled && app.playback.state == 3 ? app.now / 19000.0 : 0;
+            static AmbientLayer layers[2];
+            layers[color == colors.bg ? 0 : 1].paint(
+                dc, r, std::max(px(app.clientW), int(r.right)), std::max(px(app.clientH), int(r.bottom)),
+                color, app.ambient, app.ambientBrightness, app.ambientSaturation, phase);
+            return;
+        }
         auto mix = [](COLORREF base, COLORREF tint) {
             return RGB((GetRValue(base) * 4 + GetRValue(tint)) / 5,
                        (GetGValue(base) * 4 + GetGValue(tint)) / 5,
@@ -313,32 +333,6 @@ void fill(HDC dc, Rect rect, COLORREF color)
                                COLOR16(GetGValue(bottom) << 8), COLOR16(GetBValue(bottom) << 8), 0}};
         GRADIENT_RECT gradient{0, 1};
         GradientFill(dc, vertices, 2, &gradient, 1, GRADIENT_FILL_RECT_V);
-        if (app.features.background == 2)
-        {
-            Gdiplus::Graphics graphics(dc);
-            graphics.SetClip(
-                Gdiplus::Rect(int(r.left), int(r.top), int(r.right - r.left), int(r.bottom - r.top)));
-            BOOL motion = TRUE;
-            SystemParametersInfo(SPI_GETCLIENTAREAANIMATION, 0, &motion, 0);
-            double phase = motion && app.playback.state == 3 ? app.now / 19000.0 : 0;
-            float width = float(px(app.clientW)), height = float(px(app.clientH));
-            for (int i = 0; i < 2; ++i)
-            {
-                float x = width * float(.25 + .5 * i + .025 * std::sin(phase + i));
-                float y = height * float(.28 + .35 * i + .025 * std::cos(phase + i));
-                float radius = std::max(width, height) * .65f;
-                Gdiplus::GraphicsPath path;
-                path.AddEllipse(x - radius, y - radius, 2 * radius, 2 * radius);
-                Gdiplus::PathGradientBrush brush(&path);
-                int alpha = int(10 + 17 * app.ambientBrightness + 12 * app.ambientSaturation);
-                auto c = app.ambient[i];
-                brush.SetCenterColor(Gdiplus::Color(BYTE(alpha), GetRValue(c), GetGValue(c), GetBValue(c)));
-                Gdiplus::Color edge(0, GetRValue(c), GetGValue(c), GetBValue(c));
-                int count = 1;
-                brush.SetSurroundColors(&edge, &count);
-                graphics.FillPath(&brush, &path);
-            }
-        }
         return;
     }
     auto brush = CreateSolidBrush(color);
@@ -379,40 +373,44 @@ void marquee(HDC dc, const std::wstring &value, Rect rect, HFONT font, COLORREF 
     auto previous = SelectObject(dc, font);
     GetTextExtentPoint32(dc, value.c_str(), int(value.size()), &size);
     SelectObject(dc, previous);
-    if (size.cx <= px(rect.w))
+    if (size.cx <= px(rect.w) || !app.motionEnabled)
     {
         text(dc, value, rect, font, color);
         return;
     }
-    int saved = SaveDC(dc);
+    Gdiplus::Graphics graphics(dc);
+    graphics.SetTextRenderingHint(Gdiplus::TextRenderingHintAntiAliasGridFit);
     auto clip = physical(rect);
-    IntersectClipRect(dc, clip.left, clip.top, clip.right, clip.bottom);
+    graphics.SetClip(Gdiplus::Rect(clip.left, clip.top, clip.right - clip.left, clip.bottom - clip.top));
+    Gdiplus::Font face(dc, font);
+    Gdiplus::StringFormat format(Gdiplus::StringFormat::GenericTypographic());
+    format.SetFormatFlags(format.GetFormatFlags() | Gdiplus::StringFormatFlagsNoWrap |
+                          Gdiplus::StringFormatFlagsMeasureTrailingSpaces);
+    Gdiplus::RectF measured;
+    graphics.MeasureString(value.c_str(), int(value.size()), &face, Gdiplus::PointF(0, 0), &format,
+                           &measured);
     double seconds = std::max(0.0, double(GetTickCount64() - app.titleAt) / 1000 - 1.5);
-    int width = logical(size.cx);
-    int offset = int(std::fmod(seconds * 20, double(width + 36)));
-    text(dc, value, {rect.x - offset, rect.y, width + 2, rect.h}, font, color,
-         DT_LEFT | DT_VCENTER | DT_SINGLELINE);
-    text(dc, value, {rect.x - offset + width + 36, rect.y, width + 2, rect.h}, font, color,
-         DT_LEFT | DT_VCENTER | DT_SINGLELINE);
-    RestoreDC(dc, saved);
+    float cycle = measured.Width + 36 * app.dpi / 96.f;
+    float offset = float(std::fmod(seconds * 20 * app.dpi / 96, cycle));
+    float top = clip.top + (clip.bottom - clip.top - face.GetHeight(&graphics)) / 2;
+    Gdiplus::SolidBrush brush(Gdiplus::Color(255, GetRValue(color), GetGValue(color), GetBValue(color)));
+    for (float x : {clip.left - offset, clip.left - offset + cycle})
+        graphics.DrawString(value.c_str(), int(value.size()), &face, Gdiplus::PointF(x, top), &format,
+                            &brush);
 }
 void mark(HDC dc, Rect r)
 {
-    fill(dc, r, RGB(8, 10, 9));
-    POINT points[7]{};
-    int xs[]{22, 35, 43, 53, 64, 73, 86}, ys[]{56, 56, 39, 72, 29, 56, 56};
-    for (int i = 0; i < 7; ++i)
-        points[i] = {px(r.x + xs[i] * r.w / 108), px(r.y + ys[i] * r.h / 108)};
-    auto pen = CreatePen(PS_SOLID, px(std::max(2, r.w * 7 / 108)), RGB(221, 230, 226));
-    auto old = SelectObject(dc, pen);
-    Polyline(dc, points, 7);
-    SelectObject(dc, old);
-    DeleteObject(pen);
-    circle(dc, r.x + 67 * r.w / 108, r.y + 56 * r.h / 108, std::max(2, r.w * 5 / 108), RGB(139, 233, 211));
+    float scale = app.dpi / 96.f;
+    drawAppMark(dc, r.x * scale, r.y * scale, r.w * scale);
+}
+void uiIcon(HDC dc, Icon icon, Rect r, COLORREF color, float size = 24)
+{
+    float scale = app.dpi / 96.f;
+    drawIcon(dc, icon, (r.x + r.w / 2.f) * scale, (r.y + r.h / 2.f) * scale, size * scale, color);
 }
 void fonts()
 {
-    for (auto font : {app.small, app.body, app.title, app.heading, app.icons})
+    for (auto font : {app.small, app.body, app.title, app.heading})
         if (font)
             DeleteObject(font);
     auto make = [](int size, int weight, const wchar_t *name) {
@@ -425,7 +423,6 @@ void fonts()
     app.body = make(14, FW_NORMAL, face);
     app.title = make(15, FW_SEMIBOLD, face);
     app.heading = make(23, FW_SEMIBOLD, face);
-    app.icons = make(22, FW_NORMAL, L"Segoe MDL2 Assets");
 }
 void theme()
 {
@@ -574,7 +571,9 @@ void rebuildStackOutput()
     bool playing = app.stackOutput
                        ? (app.stackPending ? app.stackWanted : app.stackOutput->state().state == 3)
                        : (app.playback.state == 3 || app.barrier || app.stackWanted);
-    double position = app.stackOutput ? app.stackOutput->state().time : app.playback.time;
+    double position = app.stackOutput ? (app.stackPending ? app.stackTarget : app.stackOutput->state().time)
+                                      : app.playback.time;
+    app.stackTarget = position;
     if (app.stackOutput)
         app.stackOutput->pause(true);
     // The native primary remains the video presentation, never a second audible
@@ -620,9 +619,11 @@ MediaState playbackSnapshot()
         return presentation;
     }
     auto audio = app.stackOutput->state();
-    presentation.time = audio.time;
-    presentation.duration = audio.duration;
-    presentation.state = app.stackPending && audio.state != 7 ? 1 : audio.state;
+    bool videoFailed = app.slots[0].song.video && presentation.state == 7;
+    presentation.time = app.stackPending ? app.stackTarget : audio.time;
+    if (audio.duration > 0)
+        presentation.duration = audio.duration;
+    presentation.state = videoFailed ? 7 : app.stackPending && audio.state != 7 ? 1 : audio.state;
     presentation.sharedClock = true;
     presentation.pcmRate = audio.pcmRate;
     presentation.pcmChannels = audio.pcmChannels;
@@ -636,6 +637,7 @@ void releaseSlots()
     app.aligning = false;
     app.stackOutput.reset();
     app.stackPending = app.stackWanted = false;
+    app.stackTarget = 0;
     for (auto &slot : app.slots)
         if (slot.player)
             mediaRelease(slot.player);
@@ -663,7 +665,6 @@ void playSong(const Song &input)
     releaseSlots();
     app.practice = {};
     app.titleAt = GetTickCount64();
-    SetTimer(app.main, 5, 33, nullptr);
     app.lyrics = parseLyrics(readLocalText(std::filesystem::path(song.path).replace_extension(L".lrc")));
     void *player = mediaCreate(false);
     if (!player)
@@ -746,41 +747,30 @@ void toggle()
     bool pause = app.playback.state == 3 || app.barrier;
     app.stackWanted = !pause;
     app.barrier = false;
-    if (!pause && app.slots.size() > 1)
-    {
-        app.barrier = true;
-        app.barrierAt = GetTickCount64();
-        for (auto &voice : app.slots)
-            mediaPause(voice.player, true);
-        return;
-    }
     for (auto &slot : app.slots)
-        mediaPause(slot.player, pause);
+        if (slot.player)
+            mediaPause(slot.player, pause);
 }
 void seek(double position)
 {
+    position = std::clamp(position, 0.0, std::max(.01, app.playback.duration));
     if (app.stackOutput)
     {
         app.stackWanted = app.stackPending ? app.stackWanted : app.stackOutput->state().state == 3;
         app.stackOutput->pause(true);
         mediaPause(app.slots[0].player, true);
         app.stackOutput->voices(pcmVoices());
-        app.stackOutput->seek(std::clamp(position, 0.0, std::max(.01, app.playback.duration)));
+        app.stackTarget = position;
+        app.stackOutput->seek(position);
         app.stackPending = true;
         return;
     }
-    bool restart = app.playback.state == 3 || app.barrier;
-    if (restart && app.slots.size() > 1)
-    {
-        for (auto &slot : app.slots)
-            mediaPause(slot.player, true);
-        app.barrier = true;
-        app.barrierAt = GetTickCount64();
-    }
     for (auto &slot : app.slots)
-        mediaSeek(
-            slot.player,
-            (std::max)(0.0, std::clamp(position, 0.0, std::max(.01, app.playback.duration)) + slot.offset));
+        if (slot.player && SUCCEEDED(mediaSeek(slot.player, std::max(0.0, position + slot.offset))))
+        {
+            app.playback.time = position;
+            app.playbackReadAt = GetTickCount64();
+        }
 }
 void next(int direction)
 {
@@ -914,56 +904,13 @@ void button(HDC dc, std::vector<Hit> &hits, Rect r, Action action, int data, con
     if (enabled)
         hits.push_back({r, action, data});
 }
-void iconButton(HDC dc, std::vector<Hit> &hits, Rect r, Action action, int data, wchar_t glyph,
+void iconButton(HDC dc, std::vector<Hit> &hits, Rect r, Action action, int data, Icon icon,
                 bool active = false, bool enabled = true)
 {
     if (active && action != TOGGLE_STACK && action != TOGGLE_NODES)
         fill(dc, r, colors.active);
     auto color = enabled ? (active ? colors.accent : colors.muted) : colors.line;
-    int cx = r.x + r.w / 2, cy = r.y + r.h / 2;
-    if (action == TOGGLE_NODES)
-    {
-        line(dc, cx - 9, cy - 7, cx + 9, cy - 7, color, 2);
-        line(dc, cx - 9, cy - 7, cx, cy + 9, color, 2);
-        line(dc, cx + 9, cy - 7, cx, cy + 9, color, 2);
-        circle(dc, cx - 9, cy - 7, 3, color);
-        circle(dc, cx + 9, cy - 7, 3, color);
-        circle(dc, cx, cy + 9, 3, color);
-    }
-    else if (action == SCATTER_GRAPH)
-    {
-        line(dc, cx - 8, cy + 9, cx + 7, cy - 7, color, 3);
-        line(dc, cx + 8, cy - 14, cx + 8, cy - 5, color);
-        line(dc, cx + 4, cy - 10, cx + 12, cy - 10, color);
-        line(dc, cx - 8, cy - 9, cx - 8, cy - 3, color);
-        line(dc, cx - 11, cy - 6, cx - 5, cy - 6, color);
-    }
-    else if (action == FAVORITE_SONG)
-    {
-        auto pen = CreatePen(PS_SOLID, px(2), color);
-        auto old = SelectObject(dc, pen);
-        auto brush = CreateSolidBrush(active ? color : colors.panel);
-        auto oldBrush = SelectObject(dc, brush);
-        BeginPath(dc);
-        MoveToEx(dc, px(cx), px(cy - 5), nullptr);
-        POINT points[]{{px(cx), px(cy - 17)},      {px(cx - 16), px(cy - 16)}, {px(cx - 16), px(cy - 4)},
-                       {px(cx - 16), px(cy + 5)},  {px(cx), px(cy + 15)},      {px(cx), px(cy + 15)},
-                       {px(cx), px(cy + 15)},      {px(cx + 16), px(cy + 5)},  {px(cx + 16), px(cy - 4)},
-                       {px(cx + 16), px(cy - 16)}, {px(cx), px(cy - 17)},      {px(cx), px(cy - 5)}};
-        PolyBezierTo(dc, points, 12);
-        CloseFigure(dc);
-        EndPath(dc);
-        if (active)
-            StrokeAndFillPath(dc);
-        else
-            StrokePath(dc);
-        SelectObject(dc, oldBrush);
-        SelectObject(dc, old);
-        DeleteObject(brush);
-        DeleteObject(pen);
-    }
-    else
-        text(dc, std::wstring(1, glyph), r, app.icons, color, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
+    uiIcon(dc, icon, r, color);
     if (enabled)
         hits.push_back({r, action, data});
 }
@@ -981,8 +928,7 @@ void row(HDC dc, std::vector<Hit> &hits, Rect r, const Song &song, int index, bo
     int iconSize = std::min(52, r.h - 16);
     Rect art{r.x + 12, r.y + 8, iconSize, iconSize};
     fill(dc, art, colors.raised);
-    text(dc, std::wstring(1, song.video ? wchar_t(0xe714) : wchar_t(0xe8d6)), art, app.icons,
-         current ? colors.accent : colors.muted, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
+    uiIcon(dc, song.video ? Icon::Video : Icon::Music, art, current ? colors.accent : colors.muted, 26);
     int actions = picker ? 48 : 100;
     int start = r.x + iconSize + 24;
     text(dc, song.title, {start, r.y + 10, r.w - (start - r.x) - actions, 24}, app.title, colors.text);
@@ -1000,20 +946,20 @@ void row(HDC dc, std::vector<Hit> &hits, Rect r, const Song &song, int index, bo
     }
     iconButton(dc, hits, {r.x + r.w - 48, r.y + (r.h - 44) / 2, 44, 44}, picker ? ADD_SONG : FAVORITE_SONG,
                index,
-               picker                                    ? wchar_t(0xe710)
-               : app.settings.favorites.count(song.path) ? wchar_t(0xe735)
-                                                         : wchar_t(0xe734),
+               picker                                    ? Icon::Plus
+               : app.settings.favorites.count(song.path) ? Icon::HeartFilled
+                                                         : Icon::Heart,
                !picker && app.settings.favorites.count(song.path));
     if (!picker)
-        iconButton(dc, hits, {r.x + r.w - 96, r.y + (r.h - 44) / 2, 44, 44}, ADD_SONG, index, 0xe710, false,
-                   app.slots.size() < 8);
+        iconButton(dc, hits, {r.x + r.w - 96, r.y + (r.h - 44) / 2, 44, 44}, ADD_SONG, index, Icon::Plus,
+                   false, app.slots.size() < 8);
     line(dc, r.x + 12, r.y + r.h - 1, r.x + r.w - 12, r.y + r.h - 1, colors.line);
 }
 void sectionHeader(HDC dc, std::vector<Hit> &hits, Rect r, const std::wstring &title, Action action, int data)
 {
     fill(dc, r, colors.panel);
     text(dc, title, {r.x + 14, r.y, r.w - 64, r.h}, app.title, colors.text);
-    iconButton(dc, hits, {r.x + r.w - 44, r.y, 40, r.h}, action, data, 0xe710);
+    iconButton(dc, hits, {r.x + r.w - 44, r.y, 40, r.h}, action, data, Icon::Plus);
     line(dc, r.x, r.y + r.h, r.x + r.w, r.y + r.h, colors.line);
 }
 void layout()
@@ -1118,7 +1064,8 @@ void paintLibrary(HDC dc)
                 for (std::size_t j = 0; j < app.settings.roots.size(); ++j)
                 {
                     text(dc, app.settings.roots[j], {r.x + 24, y, r.w - 86, 40}, app.body, colors.text);
-                    iconButton(dc, app.mainHits, {r.x + r.w - 60, y, 40, 40}, REMOVE_FOLDER, int(j), 0xe711);
+                    iconButton(dc, app.mainHits, {r.x + r.w - 60, y, 40, 40}, REMOVE_FOLDER, int(j),
+                               Icon::Close);
                     y += 46;
                 }
                 button(dc, app.mainHits, {r.x + 24, y, 128, 38}, ADD_FOLDER, 0, L"Add folder");
@@ -1160,11 +1107,11 @@ void paintLibrary(HDC dc)
         return;
     }
     fill(dc, {r.x + 14, r.y + 48, r.w - 28, 44}, colors.raised);
-    text(dc, L"\xe721", {r.x + 18, r.y + 48, 30, 44}, app.icons, colors.muted);
-    iconButton(dc, app.mainHits, {r.x + r.w - 54, r.y + 48, 40, 44}, CLEAR_SEARCH, 0, 0xe711);
+    uiIcon(dc, Icon::Search, {r.x + 18, r.y + 48, 30, 44}, colors.muted);
+    iconButton(dc, app.mainHits, {r.x + r.w - 54, r.y + 48, 40, 44}, CLEAR_SEARCH, 0, Icon::Close);
     button(dc, app.mainHits, {r.x + 14, r.y + 102, 106, 34}, ALL_FILES, 0, L"All songs", !app.favoritesOnly);
     button(dc, app.mainHits, {r.x + 128, r.y + 102, 104, 34}, FAVORITES, 0, L"Favorites", app.favoritesOnly);
-    iconButton(dc, app.mainHits, {r.x + r.w - 56, r.y + 100, 42, 38}, SORT, 0, 0xe8cb);
+    iconButton(dc, app.mainHits, {r.x + r.w - 56, r.y + 100, 42, 38}, SORT, 0, Icon::Sort);
     int top = r.y + 148, rows = std::max(0, (r.y + r.h - top) / rowHeight);
     app.libraryScroll = std::clamp(app.libraryScroll, 0, std::max(0, int(app.filtered.size()) - rows));
     if (app.filtered.empty())
@@ -1202,11 +1149,11 @@ void paintStack(HDC dc)
         return;
     fill(dc, r, colors.panel);
     text(dc, L"STACK", {r.x + 16, r.y + 4, r.w - 150, 40}, app.title, colors.muted);
-    iconButton(dc, app.mainHits, {r.x + r.w - 132, r.y + 2, 40, 40}, LOAD_STACK, 0, 0xe8b7, false,
+    iconButton(dc, app.mainHits, {r.x + r.w - 132, r.y + 2, 40, 40}, LOAD_STACK, 0, Icon::Folder, false,
                !app.settings.stacks.empty());
-    iconButton(dc, app.mainHits, {r.x + r.w - 88, r.y + 2, 40, 40}, SAVE_STACK, 0, 0xe74e, false,
+    iconButton(dc, app.mainHits, {r.x + r.w - 88, r.y + 2, 40, 40}, SAVE_STACK, 0, Icon::Save, false,
                !app.slots.empty());
-    iconButton(dc, app.mainHits, {r.x + r.w - 44, r.y + 2, 40, 40}, ADD_STACK, 0, 0xe710, false,
+    iconButton(dc, app.mainHits, {r.x + r.w - 44, r.y + 2, 40, 40}, ADD_STACK, 0, Icon::Plus, false,
                app.slots.size() < 8);
     line(dc, r.x, r.y + 40, r.x + r.w, r.y + 40, colors.line);
     int top = r.y + 56 - app.stackScroll;
@@ -1233,7 +1180,7 @@ void paintStack(HDC dc)
              {card.x + 12, card.y + 8, card.w - 68, 22}, app.small, colors.accent);
         if (i)
             iconButton(dc, app.mainHits, {card.x + card.w - 44, card.y + 4, 40, 36}, REMOVE_SLOT, int(i),
-                       0xe711);
+                       Icon::Close);
         text(dc, slot.song.title, {card.x + 12, card.y + 32, card.w - 24, 26}, app.title, colors.text);
         button(dc, app.mainHits, {card.x + 12, card.y + 64, 62, 28}, MUTE_SLOT, int(i), L"Mute", slot.mute);
         button(dc, app.mainHits, {card.x + 82, card.y + 64, 62, 28}, SOLO_SLOT, int(i), L"Solo", slot.solo);
@@ -1284,11 +1231,11 @@ void paintNodes(HDC dc)
     fill(dc, r, colors.panel);
     line(dc, r.x, r.y, r.x, r.y + r.h, colors.line);
     text(dc, L"NODES", {r.x + 16, r.y + 4, r.w - 104, 40}, app.title, colors.muted);
-    iconButton(dc, app.mainHits, {r.x + r.w - 86, r.y + 2, 40, 40}, SCATTER_GRAPH, 0, 0xe7c3);
-    iconButton(dc, app.mainHits, {r.x + r.w - 44, r.y + 2, 40, 40}, FIT_GRAPH, 0, 0xe740);
+    iconButton(dc, app.mainHits, {r.x + r.w - 86, r.y + 2, 40, 40}, SCATTER_GRAPH, 0, Icon::Magic);
+    iconButton(dc, app.mainHits, {r.x + r.w - 44, r.y + 2, 40, 40}, FIT_GRAPH, 0, Icon::Fit);
     line(dc, r.x, r.y + 40, r.x + r.w, r.y + 40, colors.line);
     fill(dc, {r.x + 12, r.y + 48, r.w - 24, 44}, colors.raised);
-    text(dc, L"\xe721", {r.x + 14, r.y + 48, 30, 44}, app.icons, colors.muted);
+    uiIcon(dc, Icon::Search, {r.x + 14, r.y + 48, 30, 44}, colors.muted);
     RECT clipBounds{};
     GetClipBox(dc, &clipBounds);
     auto stage = physical({r.x, r.y + 100, r.w, r.h - 140});
@@ -1333,8 +1280,8 @@ void transport(HDC dc, std::vector<Hit> &hits, Rect r, bool compact = false)
     int center = r.x + r.w / 2, cy = r.y + 72;
     if (compact)
     {
-        iconButton(dc, hits, {r.x + r.w / 2 - 22, r.y, 44, r.h}, PLAY_PAUSE, 0, playing ? 0xe769 : 0xe768,
-                   true, !app.slots.empty());
+        iconButton(dc, hits, {r.x + r.w / 2 - 22, r.y, 44, r.h}, PLAY_PAUSE, 0,
+                   playing ? Icon::Pause : Icon::Play, true, !app.slots.empty());
         return;
     }
     text(dc, formatTime(app.playback.time), {r.x + 14, r.y + 4, 62, 28}, app.small, colors.accent);
@@ -1355,27 +1302,36 @@ void transport(HDC dc, std::vector<Hit> &hits, Rect r, bool compact = false)
             }
     }
     fill(dc, {timeline.x, timeline.y + 11, timeline.w, 3}, colors.line);
+    // Interpolate the visual thumb between clock polls, never playback commands or audio timestamps.
+    double visualTime = app.playback.time;
+    if (app.playback.state == 3)
+        visualTime += std::min(.2, double(GetTickCount64() - app.playbackReadAt) / 1000) * app.speed;
     double fraction =
-        app.playback.duration > 0 ? std::clamp(app.playback.time / app.playback.duration, 0.0, 1.0) : 0;
+        app.playback.duration > 0 ? std::clamp(visualTime / app.playback.duration, 0.0, 1.0) : 0;
     fill(dc, {timeline.x, timeline.y + 11, int(timeline.w * fraction), 3}, colors.accent);
     if (!app.slots.empty())
     {
         circle(dc, timeline.x + int(timeline.w * fraction), timeline.y + 12, 5, colors.accent);
         hits.push_back({timeline, SEEK, 0});
     }
-    iconButton(dc, hits, {center - 144, cy - 24, 48, 48}, REPEAT, 0, 0xe8ee, app.settings.loop);
-    if (app.features.repeat == 1)
-        text(dc, L"1", {center - 123, cy - 11, 12, 16}, app.small, colors.accent,
-             DT_CENTER | DT_VCENTER | DT_SINGLELINE);
+    iconButton(dc, hits, {center - 144, cy - 24, 48, 48}, REPEAT, 0,
+               app.features.repeat == 1 ? Icon::RepeatOne : Icon::Repeat, app.settings.loop);
     if (app.practice.a >= 0)
         text(dc, app.practice.b >= 0 ? L"A–B" : L"A", {r.x + 4, r.y + 46, 50, 30}, app.small, colors.accent);
-    iconButton(dc, hits, {center - 92, cy - 24, 48, 48}, PREVIOUS, 0, 0xe892, false, !app.slots.empty());
-    circle(dc, center, cy, 27, colors.accent);
-    text(dc, std::wstring(1, playing ? wchar_t(0xe769) : wchar_t(0xe768)), {center - 24, cy - 24, 48, 48},
-         app.icons, colors.bg, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
+    iconButton(dc, hits, {center - 92, cy - 24, 48, 48}, PREVIOUS, 0, Icon::Previous, false,
+               !app.slots.empty());
+    {
+        Gdiplus::Graphics graphics(dc);
+        graphics.SetSmoothingMode(Gdiplus::SmoothingModeAntiAlias);
+        Gdiplus::SolidBrush brush(Gdiplus::Color(255, GetRValue(colors.accent), GetGValue(colors.accent),
+                                                 GetBValue(colors.accent)));
+        float scale = app.dpi / 96.f;
+        graphics.FillEllipse(&brush, (center - 27) * scale, (cy - 27) * scale, 54 * scale, 54 * scale);
+    }
+    uiIcon(dc, playing ? Icon::Pause : Icon::Play, {center - 24, cy - 24, 48, 48}, colors.bg, 30);
     if (!app.slots.empty())
         hits.push_back({{center - 28, cy - 28, 56, 56}, PLAY_PAUSE, 0});
-    iconButton(dc, hits, {center + 44, cy - 24, 48, 48}, NEXT, 0, 0xe893, false, !app.slots.empty());
+    iconButton(dc, hits, {center + 44, cy - 24, 48, 48}, NEXT, 0, Icon::Next, false, !app.slots.empty());
     wchar_t rate[32]{};
     swprintf_s(rate, L"%.2g×", app.speed);
     button(dc, hits, {center + 98, cy - 21, 60, 42}, SPEED, 0, rate);
@@ -1387,20 +1343,22 @@ void paintMain(HDC dc)
     fill(dc, {0, 0, w, h}, colors.bg);
     fill(dc, {0, 0, 48, h}, colors.rail);
     mark(dc, {8, 12, 32, 32});
-    iconButton(dc, app.mainHits, {2, 74, 44, 44}, TOGGLE_STACK, 0, 0xe9e9, app.showStack);
-    iconButton(dc, app.mainHits, {2, 128, 44, 44}, LIBRARY_TAB, 0, 0xe8f1, !app.settingsPage);
-    iconButton(dc, app.mainHits, {2, 182, 44, 44}, TOGGLE_NODES, 0, 0xe8d9, app.showNodes);
-    iconButton(dc, app.mainHits, {2, h - 52, 44, 44}, OPEN_SETTINGS, 0, 0xe713, app.settingsPage);
+    iconButton(dc, app.mainHits, {2, 74, 44, 44}, TOGGLE_STACK, 0, Icon::Stack, app.showStack);
+    iconButton(dc, app.mainHits, {2, 128, 44, 44}, LIBRARY_TAB, 0, Icon::Library, !app.settingsPage);
+    iconButton(dc, app.mainHits, {2, 182, 44, 44}, TOGGLE_NODES, 0, Icon::Nodes, app.showNodes);
+    iconButton(dc, app.mainHits, {2, h - 52, 44, 44}, OPEN_SETTINGS, 0, Icon::Settings, app.settingsPage);
     fill(dc, {48, 0, w - 48, 62}, colors.panel);
     text(dc, L"Greater Art", {68, 7, 280, 30}, app.heading, colors.text);
     text(dc, app.busy ? L"Reading your library…" : std::to_wstring(app.songs.size()) + L" files · offline",
          {68, 36, 380, 20}, app.small, colors.muted);
     button(dc, app.mainHits, {w - 242, 12, 132, 36}, ADD_FOLDER, 0, L"+  Add folder");
-    iconButton(dc, app.mainHits, {w - 100, 8, 44, 44}, OPEN_SETTINGS, 0, 0xe713);
-    iconButton(dc, app.mainHits, {w - 52, 8, 44, 44}, REFRESH, 0, 0xe72c, false, !app.busy);
-    iconButton(dc, app.mainHits, {w - 294, 8, 44, 44}, HISTORY_MENU, 0, 0xe81c, app.features.historyEnabled);
-    iconButton(dc, app.mainHits, {w - 342, 8, 44, 44}, PLAYLIST_MENU, 0, 0xe8f1, !app.activePlaylist.empty());
-    iconButton(dc, app.mainHits, {w - 390, 8, 44, 44}, TOOLS, 0, 0xe712);
+    iconButton(dc, app.mainHits, {w - 100, 8, 44, 44}, OPEN_SETTINGS, 0, Icon::Settings);
+    iconButton(dc, app.mainHits, {w - 52, 8, 44, 44}, REFRESH, 0, Icon::Refresh, false, !app.busy);
+    iconButton(dc, app.mainHits, {w - 294, 8, 44, 44}, HISTORY_MENU, 0, Icon::History,
+               app.features.historyEnabled);
+    iconButton(dc, app.mainHits, {w - 342, 8, 44, 44}, PLAYLIST_MENU, 0, Icon::Library,
+               !app.activePlaylist.empty());
+    iconButton(dc, app.mainHits, {w - 390, 8, 44, 44}, TOOLS, 0, Icon::More);
     paintStack(dc);
     paintLibrary(dc);
     paintNodes(dc);
@@ -1431,7 +1389,8 @@ void paintMain(HDC dc)
         fill(dc, {volume.x, volume.y + 11, volume.w * app.master / 100, 3}, colors.accent);
         app.mainHits.push_back({volume, MASTER_GAIN, 0});
     }
-    iconButton(dc, app.mainHits, {w - 56, dock + 34, 48, 48}, EXPAND, 0, 0xe740, false, !app.slots.empty());
+    iconButton(dc, app.mainHits, {w - 56, dock + 34, 48, 48}, EXPAND, 0, Icon::Expand, false,
+               !app.slots.empty());
 }
 void paintPlayer(HDC dc, HWND window, bool mini)
 {
@@ -1444,17 +1403,18 @@ void paintPlayer(HDC dc, HWND window, bool mini)
     if (mini)
     {
         transport(dc, hits, {0, h - 36, w, 36}, true);
-        iconButton(dc, hits, {w - 36, h - 36, 36, 36}, EXPAND, 0, 0xe740);
+        iconButton(dc, hits, {w - 36, h - 36, 36, 36}, EXPAND, 0, Icon::Expand);
         return;
     }
     if (app.fullscreen)
         return;
-    iconButton(dc, hits, {8, 4, 44, 44}, SHRINK, 0, 0xe73f);
-    iconButton(dc, hits, {58, 4, 44, 44}, HOME, 0, 0xe80f);
-    iconButton(dc, hits, {w - 200, 4, 44, 44}, TOOLS, 0, 0xe712);
-    iconButton(dc, hits, {w - 150, 4, 44, 44}, TRANSPORT_LOCK, 0, app.locked ? 0xe72e : 0xe785, app.locked);
-    iconButton(dc, hits, {w - 100, 4, 44, 44}, FULLSCREEN, 0, 0xe740);
-    iconButton(dc, hits, {w - 50, 4, 44, 44}, CLOSE_PLAYER, 0, 0xe711);
+    iconButton(dc, hits, {8, 4, 44, 44}, SHRINK, 0, Icon::Collapse);
+    iconButton(dc, hits, {58, 4, 44, 44}, HOME, 0, Icon::Home);
+    iconButton(dc, hits, {w - 200, 4, 44, 44}, TOOLS, 0, Icon::More);
+    iconButton(dc, hits, {w - 150, 4, 44, 44}, TRANSPORT_LOCK, 0, app.locked ? Icon::Lock : Icon::Unlock,
+               app.locked);
+    iconButton(dc, hits, {w - 100, 4, 44, 44}, FULLSCREEN, 0, Icon::Expand);
+    iconButton(dc, hits, {w - 50, 4, 44, 44}, CLOSE_PLAYER, 0, Icon::Close);
     int identity = app.previewRect.y + app.previewRect.h;
     fill(dc, {0, identity, w, 80}, colors.panel);
     marquee(dc, app.slots.empty() ? L"Now Playing" : app.slots[0].song.title,
@@ -1472,9 +1432,10 @@ void paintPlayer(HDC dc, HWND window, bool mini)
                 break;
             }
     iconButton(dc, hits, {w - 144, identity + 14, 44, 44}, FAVORITE_SONG, index,
-               index >= 0 && app.settings.favorites.count(app.songs[index].path) ? 0xe735 : 0xe734,
+               index >= 0 && app.settings.favorites.count(app.songs[index].path) ? Icon::HeartFilled
+                                                                                 : Icon::Heart,
                index >= 0 && app.settings.favorites.count(app.songs[index].path), index >= 0);
-    iconButton(dc, hits, {w - 94, identity + 14, 44, 44}, SHARE_FILES, index, 0xe72d, false, index >= 0);
+    iconButton(dc, hits, {w - 94, identity + 14, 44, 44}, SHARE_FILES, index, Icon::Share, false, index >= 0);
     int top = identity + 88, rowHeight = 64, rows = std::max(0, (h - 126 - top) / rowHeight);
     for (int i = 0; i < rows && i + app.libraryScroll < int(app.filtered.size()); ++i)
     {
@@ -1872,7 +1833,7 @@ void action(Hit hit, HWND window)
         {
             app.tapPath = app.songs[hit.data].path;
             app.tapAt = GetTickCount64();
-            SetTimer(app.main, 4, 16, nullptr);
+            app.frameClock.active(app.motionEnabled);
         }
         if (hit.data >= 0 && hit.data < int(app.songs.size()))
             playSong(app.songs[hit.data]);

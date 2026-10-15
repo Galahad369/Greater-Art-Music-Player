@@ -22,7 +22,7 @@ struct UserFeatures
     std::vector<History> history;
     bool historyEnabled = false, resume = true, disc = false, developer = false;
     bool light = false, highContrast = false, shuffle = false;
-    int language = 0, background = 0, scale = 0, repeat = 1, font = 0;
+    int language = 0, background = 2, scale = 0, repeat = 1, font = 0;
     int graphNeighbors = 6, graphThreshold = 8;
     std::wstring lastPath, customImage;
     double lastPosition = 0, speed = 1;

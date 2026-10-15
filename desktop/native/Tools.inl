@@ -337,10 +337,6 @@ void toolsMenu(HWND owner)
         break;
     case 7:
         app.features.disc = !app.features.disc;
-        if (app.features.disc)
-            SetTimer(app.preview, 7, 16, nullptr);
-        else
-            KillTimer(app.preview, 7);
         break;
     case 8: {
         menu = CreatePopupMenu();

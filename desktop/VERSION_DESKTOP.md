@@ -1,6 +1,6 @@
 # Greater Art Desktop version policy
 
-Current desktop: **0.1.10 (code 11)**
+Current desktop: **0.1.11 (code 12)**
 Release state: **SOURCE_ONLY — PR review fixes; latest verified installer 0.1.4/code5**
 Android remains independent: 1.21.39/code262 VERIFIED debug sideload; no Android source or artifact changes in this stage.
 
@@ -19,5 +19,6 @@ Every committed desktop executable/build/workflow change increments PATCH and co
 | 0.1.8 / 9 | Installer CI repair source; not a new frozen release | Package exact verified port source from the pinned registry when vcpkg builds directly from HEAD rather than cached git trees. Reject dirty or mismatched port trees. |
 | 0.1.9 / 10 | Live Ambient implementation candidate | Optional decoded-frame pass-through color tap; nonblocking bounded GPU analysis; video/artwork palette with smooth Classic/Adaptive backgrounds. Verification in progress, not full parity. |
 | 0.1.10 / 11 | Shared-clock Stack implementation candidate | One bounded PCM producer and one WASAPI audio output for all voices; fractional offsets before mixing. Verification in progress; not full parity or perfect performance matching. |
+| 0.1.11 / 12 | Stack handoff/high-DPI acceptance candidate | Preserve rapid-add target/prebuffer/loop boundaries; original scalable vector icons and multi-size app mark; bounded compositor-paced controls and reused paint buffers. Native source checks 62/62, real six-source controls 11/11; final installed/CI acceptance pending. Not full parity. |
 
 The native source/resource/MSI/artifact identities are checked by packaging/validate_version.py. The guard also validates the historical Compose checkpoint. Installer signing, clean-machine testing, full accessibility and full mobile feature parity remain open gates. No APK is rebuilt or relabelled for desktop work.
