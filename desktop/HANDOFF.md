@@ -1,5 +1,15 @@
 # Greater Art Desktop handoff
 
+## Verified local delivery — October 16, 2026
+
+Current **0.1.12/code13**, exact native build source **22590bf2d04aba8474fa7c5b0e3fbd748f048e04**. Frozen local setup/portable files, installed hashes and full limits: [RELEASE_0.1.12.md](RELEASE_0.1.12.md). Installed and separately extracted portable core **62/62**; 155 icon raster checks; single-source **9/9**, six-source **11/11**, zero underruns; calibrated digital output error **1.56285e-7**, one-sample sabotage **0.550466**; short group-loop stop passes. Installed 1280×720/194-frame rapid-add/fullscreen/Mini/dock/MSAA, real GPU colors and native fault recovery pass. Enabled-motion run: **120.08 events / 114.115 paints per second** on the 180.002 Hz compositor; reduced-motion draw shutdown passes. This is not a promise of 180FPS scanout, physical acoustic proof, full parity or production signing.
+
+PR [#176](https://github.com/Galahad369/Greater-Art-Music-Player/pull/176) tracks protected-main integration and current CI; do not infer its live state from this local acceptance receipt. Security #174 remains owner-blocked; no rewrite/bypass. No new worktree. Android 1.21.39/code262 and all older frozen artifacts are unchanged. The records below preserve earlier candidates/failures, not conflicting current versions.
+
+## Final acceptance correction — October 16, 2026
+
+Current candidate **0.1.12/code13**, temporary protected-main integration PR #176. 0.1.11 installed core 62/62, six-source controls 11/11, single controls 9/9, digital output (error 1.56285e-7; one-sample sabotage 0.550466; zero underruns), 120ms loop stop, six-voice rapid-add/fullscreen/Mini/dock/MSAA, live GPU colors and effect recovery passed. Its enabled-motion run measured **120.8 events / 114 paints per second** on the 180 Hz compositor, not guaranteed 180FPS. Final reduced-motion assertion exposed a counter race: the callback that disables motion plus one already-queued callback were counted as new visual activity despite neither drawing. 0.1.12 increments the accepted-visual counter only after the reduced-motion guard. This is not a new audio/surface reload path. Final installed and frozen receipt follows after actual verification. No old release or Android artifact is changed.
+
 ## High-DPI icons and Stack handoff — October 16, 2026
 
 Current source **0.1.11/code12**, local main; final installer acceptance/integration pending. Android **1.21.39/code262** and immutable deliveries are unchanged. No new worktree. Remote main's intervening #175 changes only the obsolete website repository link; preserve it during integration. Security PR #174 remains explicitly blocked, not a branch to merge/delete or a reason to bypass protection.

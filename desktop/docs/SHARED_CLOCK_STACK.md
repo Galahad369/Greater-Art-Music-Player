@@ -1,6 +1,6 @@
 # Windows Stack — one audible clock
 
-Desktop **0.1.11/code12** acceptance candidate, October 16, 2026; the production shared-clock implementation began in 0.1.10/code11. Android source/APKs are unchanged. This replaces independent audible Windows players; it does not certify arbitrary cover-song matching or full Windows parity.
+Desktop **0.1.12/code13** verified local development delivery, October 16, 2026; the production shared-clock implementation began in 0.1.10/code11. Android source/APKs are unchanged. This replaces independent audible Windows players; it does not certify arbitrary cover-song matching or full Windows parity. Exact installed/portable acceptance: [RELEASE_0.1.12.md](../RELEASE_0.1.12.md).
 
 ## Production route
 
@@ -24,6 +24,8 @@ Initial captured output passed: normalized comparison error 1.3411e-7; one-sampl
 After event-driven scheduling/prebuffer repair, installed 0.1.10 digital capture passed: normalized error **1.62211e-7**, deliberate one-sample error **0.550466**, zero calibration/Stack underruns. Six-source controls passed 11/11. Subsequent rapid-add acceptance exposed a different presentation bug: a preparing bus reported zero, losing the prior seek target. 0.1.11 retains that target independently, requires a prebuffered paused endpoint before video starts, and verifies rapid addition after seeking to eight seconds. Source checks for 0.1.11 currently pass **62/62 core** and **11/11 six-source controls**, zero underruns at 48 kHz stereo. Final packaged/installed proof must be recorded separately in the versioned release receipt.
 
 ## Mistake and prevention
+
+Final installed 0.1.12: **62/62 core**, **11/11 six-source / 9/9 single-source controls**, zero underruns at 48 kHz stereo. Own-process calibrated six-source error **1.56285e-7**, deliberate one-sample error **0.550466**, zero calibration/Stack/short-loop underruns. Rapid-add position and 120ms group-loop stop checks pass. Global capture-latency difference is normalized, not mistaken for relative voice drift. These are actual digital-output checks, not physical acoustic or arbitrary-cover matching proof.
 
 Feeding only one 1024-frame block per `Sleep(3)` loop is not a 3ms scheduling guarantee. Windows timer granularity can stretch that wait, starving a 2×/4× stream even when decoder throughput is sufficient. The renderer now batches ready input ahead, prebuffers the endpoint before starting, and follows WASAPI events with MMCSS Audio scheduling. No resolution, bitrate, sample-rate, FPS or decoder-quality reduction is used to hide the problem. Buffer thresholds and final underrun results must be exercised on an actual endpoint, not inferred from a model.
 

@@ -1,8 +1,8 @@
 # Android → Windows control inventory
 
-Desktop **0.1.11/code12 acceptance candidate**; latest frozen installer remains 0.1.4 until acceptance. Android **1.21.39/code262** is an emulator-verified debug sideload. This is a source/control inventory, **not a completed exhaustive parity audit**. No feature is accepted merely because a button exists. Windows uses original C++/Win32, not the superseded Compose/VLC prototype.
+Desktop **0.1.12/code13 verified local development delivery**; frozen installer/portable evidence is in RELEASE_0.1.12.md. Android **1.21.39/code262** remains an emulator-verified debug sideload. This is a source/control inventory, **not a completed exhaustive parity audit**. No feature is accepted merely because a button exists. Windows uses original C++/Win32, not the superseded Compose/VLC prototype.
 
-Android paths below are relative to `greater-art/app/src/main/java/com/local/listentomusic/`; Windows paths are relative to `desktop/native/`. “Implemented” means the described narrow behavior exists; the evidence column limits what was actually tested. “Missing” is an explicit unfinished requirement, not permission to drop it. Final artifact evidence is in ../RELEASE_0.1.4.md.
+Android paths below are relative to `greater-art/app/src/main/java/com/local/listentomusic/`; Windows paths are relative to `desktop/native/`. “Implemented” means the described narrow behavior exists; the evidence column limits what was actually tested. “Missing” is an explicit unfinished requirement, not permission to drop it. Final artifact evidence is in ../RELEASE_0.1.12.md.
 
 | Feature/control | Android source | Windows implementation | Parity status | Actual evidence / missing acceptance |
 | --- | --- | --- | --- | --- |

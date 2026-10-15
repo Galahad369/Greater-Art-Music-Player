@@ -1,6 +1,6 @@
 # Desktop parity and acceptance
 
-Desktop **0.1.11/code12** is an original native Windows **development candidate**, not full Android parity. Latest frozen installer remains 0.1.4 until final acceptance. Android source/runtime remains independently versioned.
+Desktop **0.1.12/code13** is an original native Windows **verified local development delivery**, not full Android parity. Frozen installer/portable evidence is in [RELEASE_0.1.12.md](RELEASE_0.1.12.md). Android source/runtime remains independently versioned.
 
 | Area | Implemented now | Still needed |
 | --- | --- | --- |
@@ -21,4 +21,4 @@ Desktop **0.1.11/code12** is an original native Windows **development candidate*
 
 Core tests use generated local fixtures. The waveform test detects a known 500 ms delay; WASAPI tests validate the real endpoint clock/controls. Process-specific digital loopback compares six signals against calibration and catches one-sample sabotage. The owned-window video probe checks rendered frames, six voices, fullscreen bounds, named control hit tests and dock/Mini transfers. None proves perfectly matched real-cover musical timing or physical acoustic output.
 
-Final hashes/source/installed checks are in [RELEASE_0.1.4.md](RELEASE_0.1.4.md); the [source/control inventory](docs/ANDROID_WINDOWS_PARITY.md) records individual parity gaps. Previous RELEASE_0.1.1.md remains immutable historical evidence. Do not confuse implementation with acceptance or promote this development checkpoint to full-parity 1.0.0.
+Final hashes/source/installed checks are in [RELEASE_0.1.12.md](RELEASE_0.1.12.md); the [source/control inventory](docs/ANDROID_WINDOWS_PARITY.md) records individual parity gaps. Previous versioned receipts remain historical evidence. Do not confuse implementation with acceptance or promote this development checkpoint to full-parity 1.0.0.

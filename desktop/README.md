@@ -1,12 +1,12 @@
 # Greater Art Desktop — native Windows edition
 
-Current review source: **0.1.11/code12**, SOURCE_ONLY. Latest verified development installer: **0.1.4/code5**; its immutable links below remain valid. Original C++/Win32 application: activity rail, resizable Stack / Library / Nodes panes, collapsed Settings, fixed dock. Expanded Now Playing and detached Mini transfer the same primary renderer without reloading media.
+Current **0.1.12/code13**, locally verified development delivery. Original C++/Win32 application: activity rail, resizable Stack / Library / Nodes panes, collapsed Settings, fixed dock. Expanded Now Playing and detached Mini transfer the same primary renderer without reloading media. Older frozen artifacts are preserved.
 
 ## Install and run
 
-[Artifact hashes and installed test receipt](RELEASE_0.1.4.md) · [Android-to-Windows source/control inventory](docs/ANDROID_WINDOWS_PARITY.md).
+[Artifact hashes and installed test receipt](RELEASE_0.1.12.md) · [Android-to-Windows source/control inventory](docs/ANDROID_WINDOWS_PARITY.md).
 
-Use **GreaterArt-Desktop-Setup-0.1.4.exe**. Double-click, leave **Create desktop shortcut** selected, then Install. The per-user setup also creates a Start menu entry. Installation and playback are offline. Add a local folder to populate Library.
+Use **GreaterArt-Desktop-Setup-0.1.12.exe** from the local desktop/releases directory. Double-click, leave **Create desktop shortcut** selected, then Install. The per-user setup also creates a Start menu entry. Installation and playback are offline. Add a local folder to populate Library.
 
 Installed app: `%LOCALAPPDATA%/Programs/GreaterArtDesktop/GreaterArt.exe`.
 Settings/cache: `%LOCALAPPDATA%/GreaterArtDesktopNative/`.

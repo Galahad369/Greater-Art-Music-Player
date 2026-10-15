@@ -1,6 +1,6 @@
 # Native Windows icons and visual pacing
 
-Desktop **0.1.11/code12**, October 16, 2026. Original vector paths replace every Segoe MDL2 private glyph and the old GDI heart/graph/wand special cases. No external icon pack, bitmap upscaling, web font or new runtime dependency.
+Desktop **0.1.12/code13**, October 16, 2026. Original vector paths replace every Segoe MDL2 private glyph and the old GDI heart/graph/wand special cases. No external icon pack, bitmap upscaling, web font or new runtime dependency.
 
 ## Drawing contract
 
@@ -18,6 +18,8 @@ This does **not** set source video resolution, bitrate or FPS, alter audio clock
 
 The initial hidden-window probe correctly produced no animation; visible acceptance must explicitly show its owned HWND. Enabling animation then exposed WM_TIMER starvation under continuous paints. The visual-event path now services due playback polling independently of that lower-priority timer. Actual visible measurement exposed only **8.2 visual events / 4.7 paints per second**, despite a 180 Hz display: repeated GDI+ radial backdrop rasterization dominated CPU. Native 16-bit interpolated gradient geometry and sparse clipping improved this to **60.0 events / 56.0 paints**; DwmFlush itself was not a reliable 180 Hz clock for this GDI window.
 
-The final candidate uses monitor-derived high-resolution waits plus two bounded **native-destination-resolution** background layers. Soft light centers share cached coverage only within one-eighth of a physical pixel; no video frame or resolution is reduced. Cached layers are limited to 8,388,608 pixels each (64 MiB total at 32-bit); larger destinations use the same full-resolution vector gradient directly. No input media bitmap or proxy is involved. Final measured/installed results must be recorded separately, not extrapolated from the earlier 56 Hz run.
+The final implementation uses monitor-derived high-resolution waits plus two bounded **native-destination-resolution** background layers. Soft light centers share cached coverage only within one-eighth of a physical pixel; no video frame or resolution is reduced. Cached layers are limited to 8,388,608 pixels each (64 MiB total at 32-bit); larger destinations use the same full-resolution vector gradient directly. No input media bitmap or proxy is involved.
+
+Installed 0.1.12 measured **120.08 accepted events / 114.115 owned paints per second**, compositor **180.002 Hz**, process CPU **0.6834 cores** in the short isolated fixture. Reduced-motion drawing stops; Windows preferences are unchanged. This is materially faster than the retained failed runs, but not guaranteed 180FPS or physical scanout proof. The 0.1.11 diagnostic counted in-flight disabled callbacks as animation; 0.1.12 counts only accepted visual draws. Full installed/portable receipt: [RELEASE_0.1.12.md](../RELEASE_0.1.12.md).
 
 API contracts: [CreateWaitableTimerEx](https://learn.microsoft.com/en-us/windows/win32/api/synchapi/nf-synchapi-createwaitabletimerexw) supports process-local high-resolution timers on Windows 10 1803+; older sessions fall back gracefully. [DwmGetCompositionTimingInfo](https://learn.microsoft.com/en-us/windows/win32/api/dwmapi/nf-dwmapi-dwmgetcompositiontiminginfo) is used only for diagnostics, with a null HWND as required on modern Windows.
