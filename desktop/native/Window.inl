@@ -602,7 +602,7 @@ void probeTick()
         layout();
         capture(app.main, app.probeOutput / L"returned-dock.png");
         std::ofstream report(app.probeOutput / L"verification.txt");
-        report << "PASS version=0.1.11 code=12\nvoices=" << app.slots.size()
+        report << "PASS version=0.1.12 code=13\nvoices=" << app.slots.size()
                << "\nsource=" << app.playback.width << "x" << app.playback.height
                << "\nframes=" << app.playback.frames
                << "\nfullscreen_monitor_bounds=true\nmini_and_dock_transfer=true\nmsaa_named_controls="
@@ -934,9 +934,9 @@ LRESULT CALLBACK WindowProc(HWND window, UINT message, WPARAM w, LPARAM l)
         if (GetTickCount64() - app.lastPlaybackPoll >= 100)
             SendMessage(window, WM_TIMER, 1, 0);
         app.now = GetTickCount64();
-        ++app.visualFrames;
         if (!app.motionEnabled)
             return 0;
+        ++app.visualFrames;
         if (!app.tapPath.empty() && app.now - app.tapAt >= 180)
             app.tapPath.clear();
         if (IsWindowVisible(window) && !IsIconic(window))
