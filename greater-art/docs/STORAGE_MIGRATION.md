@@ -1,6 +1,44 @@
 # Storage migration — stages A, B and C core
 
-Current source target: 1.21.32 / 255. Not a permission cutover.
+Current source target: 1.21.42 / 265. Latest verified APK remains 1.21.39 / 262.
+Not a permission cutover.
+
+## Stage C foundation follow-up — October 16
+
+Reviewed import of Claude's supplied commit 96760a2, preserved as
+`docs/imported-patches/claude-scoped-storage-96760a2.patch`. Its proposed version
+1.21.39 was already consumed, so integration uses 1.21.42/code265 after the
+separately consumed security-branch 1.21.40 and 1.21.41. That branch is untouched.
+
+- `scan(excludedFolders)` prunes relative subtrees without querying them or
+  reporting intentional exclusion as partial discovery.
+- `ScopedMediaRecord.sidecars` holds lyrics/artwork URIs from its own folder.
+  `SidecarIndex` shares thumbnail candidate constants and indexes once per folder.
+  Only content locations are retained. No sidecar bytes are read here.
+- `LegacyDocumentMapping` maps known volume paths to document identities for a
+  **plan**, not a grant or a filesystem adapter. `LegacyRelink` reports matched
+  records or reasons for abstention without changing any stored preference.
+- Review fixes preserve literal supplementary Unicode; reject decorated/malformed
+  identity URIs; prevent cue clips capturing whole-file IDs; deduplicate repeated
+  listings before case ambiguity checks; and use Windows-portable path/file tests.
+- The original patch's "Library is still File-only" claim was stale: selected
+  SAF folders already supply production Library/playback. The new optional
+  exclusion argument and relink planner are not yet connected to production
+  settings/preferences. New sidecar metadata is not yet consumed by readers.
+
+Still open: production exclusions/relink wiring, sidecar streams/CUE, grant-safe
+sharing/deletion and permission cutover. Broad access stays declared. This does
+not close #148, enable a write grant or alter playback quality.
+
+Local Java21 unit tests, lint and both Android APK builds pass: 390 JVM tests,
+zero failures/skips and zero lint errors (43 warnings, three hints). Eleven API36
+identity/discovery/thumbnail tests pass with broad access denied; the original
+AppOps setting was restored. Two tests cover actual Android URI encoding and
+StorageManager volume roots. No physical phone or API26 provider parity is claimed.
+The separate audio-toolbar fix has four passing Compose tests and inspected
+portrait/landscape screenshots. The source remains SOURCE_ONLY, not a promoted
+release. The author's 14 existing +26 harness tests are historical claims retained
+only in the preserved mail patch, not a substitute for these Android checks.
 
 ## Stage C core — selected-folder Library and URI readers
 

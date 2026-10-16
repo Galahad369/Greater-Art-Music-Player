@@ -461,40 +461,54 @@ fun NowPlayingScreen(
                                 }
             }
         } else {
-            AudioPlayer(
-                            playback = playback.copy(appLanguage = language),
-                            artwork = artwork,
-                            queue = queue,
-                            lyrics = lyrics,
-                            showFileDetails = showFileDetails,
-                            editableQueue = editableQueue,
-                            blackDiscMode = blackDiscMode,
-                            language = language,
-                            onTogglePlay = onTogglePlay,
-                            onPrevious = onPrevious,
-                            onNext = onNext,
-                            onSeek = onSeek,
-                            onSpeed = onSpeed,
-                            onRepeat = onRepeat,
-                            onSleepTimer = onSleepTimer,
-                            sleepTimer = sleepTimer,
-                            seekOffsetMs = seekOffsetMs,
-                            onSeekBy = onSeekBy,
-                            onPlayQueueItem = onPlayQueueItem,
-                            onLoadThumbnail = onLoadThumbnail,
-                            onLoadWaveform = onLoadWaveform,
-                            onMoveQueueItem = onMoveQueueItem,
-                            onRemoveQueueItem = onRemoveQueueItem,
-                            onShareQueue = onShareQueue,
-                            onAddQueueItemToList = onAddQueueItemToList,
-                            isFavourite = isFavourite,
-                            onToggleFavourite = { playback.currentPath?.let(onToggleFavourite) },
-                            onShareCurrentMedia = onShareCurrentMedia,
-                            queueListState = queueListState,
-                            locateTrigger = locateTrigger,
-                            onLocateCurrent = onLocateCurrent,
-                            onLockAnchorBoundsChanged = reportLockAnchor,
-                        )
+            // Audio uses the same presentation actions as video. Keep them outside
+            // artwork/loading branches and consume safe insets only once.
+            Column(Modifier.fillMaxSize().windowInsetsPadding(playerStatusInsets())
+                .windowInsetsPadding(playerNavigationInsets())) {
+                NowPlayingTopBar(
+                    language = language,
+                    onPictureInPicture = onPictureInPicture,
+                    onHome = onHome,
+                    onFullscreen = { fullscreen = !fullscreen },
+                    onClose = onClose,
+                    fullscreen = fullscreen,
+                    onLockAnchorBoundsChanged = reportLockAnchor,
+                )
+                AudioPlayer(
+                    playback = playback.copy(appLanguage = language),
+                    artwork = artwork,
+                    queue = queue,
+                    lyrics = lyrics,
+                    showFileDetails = showFileDetails,
+                    editableQueue = editableQueue,
+                    blackDiscMode = blackDiscMode,
+                    language = language,
+                    onTogglePlay = onTogglePlay,
+                    onPrevious = onPrevious,
+                    onNext = onNext,
+                    onSeek = onSeek,
+                    onSpeed = onSpeed,
+                    onRepeat = onRepeat,
+                    onSleepTimer = onSleepTimer,
+                    sleepTimer = sleepTimer,
+                    seekOffsetMs = seekOffsetMs,
+                    onSeekBy = onSeekBy,
+                    onPlayQueueItem = onPlayQueueItem,
+                    onLoadThumbnail = onLoadThumbnail,
+                    onLoadWaveform = onLoadWaveform,
+                    onMoveQueueItem = onMoveQueueItem,
+                    onRemoveQueueItem = onRemoveQueueItem,
+                    onShareQueue = onShareQueue,
+                    onAddQueueItemToList = onAddQueueItemToList,
+                    isFavourite = isFavourite,
+                    onToggleFavourite = { playback.currentPath?.let(onToggleFavourite) },
+                    onShareCurrentMedia = onShareCurrentMedia,
+                    queueListState = queueListState,
+                    locateTrigger = locateTrigger,
+                    onLocateCurrent = onLocateCurrent,
+                    modifier = Modifier.fillMaxWidth().weight(1f),
+                )
+            }
         }
         }
         if (controlsLocked) {
@@ -923,7 +937,7 @@ private fun AudioPlayer(
     queueListState: androidx.compose.foundation.lazy.LazyListState,
     locateTrigger: Int,
     onLocateCurrent: () -> Unit,
-    onLockAnchorBoundsChanged: (androidx.compose.ui.geometry.Rect) -> Unit,
+    modifier: Modifier,
 ) {
     var waveformLoading by remember(playback.currentPath) { mutableStateOf(true) }
     var searchOpen by rememberSaveable { mutableStateOf(false) }
@@ -935,13 +949,14 @@ private fun AudioPlayer(
         waveformLoading = false
     }
     BoxWithConstraints(
-        modifier = Modifier.fillMaxSize().windowInsetsPadding(playerStatusInsets())
-            .windowInsetsPadding(playerNavigationInsets()),
+        modifier = modifier,
     ) {
-        val artSize = minOf(maxWidth * 0.72f, maxHeight * 0.30f)
+        val compactHeight = maxWidth > maxHeight
+        val artSize = if (compactHeight) minOf(maxWidth * 0.25f, maxHeight * 0.65f)
+            else minOf(maxWidth * 0.72f, maxHeight * 0.30f)
         val artworkShape = if (blackDiscMode) CircleShape else RoundedCornerShape(GaRadius.panel)
         var seekFeedback by remember { mutableStateOf(0L to 0L) }
-        Column(Modifier.fillMaxSize(), horizontalAlignment = Alignment.CenterHorizontally) {
+        val artworkContent: @Composable () -> Unit = {
         Box(
             modifier = Modifier
                 .padding(vertical = 6.dp)
@@ -1006,8 +1021,10 @@ private fun AudioPlayer(
             }
             SeekFeedback(seekFeedback.first, seekFeedback.second, Modifier.align(if (seekFeedback.first < 0) Alignment.CenterStart else Alignment.CenterEnd))
         }
+        }
+        val playbackContent: @Composable (Modifier) -> Unit = { bodyModifier ->
         Column(
-            modifier = Modifier.fillMaxWidth().weight(1f)
+            modifier = bodyModifier
                 .padding(start = 16.dp, end = 16.dp, top = 10.dp, bottom = 0.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
@@ -1055,15 +1072,19 @@ private fun AudioPlayer(
             PlayerBottomControls(playback, onRepeat, onPrevious, onTogglePlay, onNext, onSpeed)
         }
         }
-
-        Spacer(
-            Modifier
-                .align(Alignment.TopEnd)
-                .padding(end = GaSpacing.md, top = GaSpacing.xs)
-                .size(GaControl.touchTarget)
-                .onGloballyPositioned { onLockAnchorBoundsChanged(it.boundsInWindow()) }
-                .inspectElement("PLAYER_LOCK_ANCHOR", "Measured audio lock slot"),
-        )
+        // Short landscape windows put artwork beside the controls instead of
+        // spending the transport's fixed height on another vertical section.
+        if (compactHeight) {
+            Row(Modifier.fillMaxSize(), verticalAlignment = Alignment.CenterVertically) {
+                artworkContent()
+                playbackContent(Modifier.weight(1f).fillMaxHeight())
+            }
+        } else {
+            Column(Modifier.fillMaxSize(), horizontalAlignment = Alignment.CenterHorizontally) {
+                artworkContent()
+                playbackContent(Modifier.fillMaxWidth().weight(1f))
+            }
+        }
     }
 }
 
@@ -2127,7 +2148,7 @@ private fun NowPlayingTopBar(
             Modifier
                 .size(GaControl.touchTarget)
                 .onGloballyPositioned { onLockAnchorBoundsChanged(it.boundsInWindow()) }
-                .inspectElement("PLAYER_LOCK_ANCHOR", "Measured video top-bar lock slot"),
+                .inspectElement("PLAYER_LOCK_ANCHOR", "Measured top-bar lock slot"),
         )
         IconButton(onClick = onFullscreen, modifier = Modifier.size(GaControl.touchTarget).inspectElement("FULLSCREEN_BUTTON", if (fullscreen) "Exit fullscreen" else "Enter fullscreen")) {
             Icon(

@@ -3,7 +3,7 @@
 This file describes the **current repository state only**. Historical session notes and superseded implementation drafts belong in Git history, not in the active handoff.
 
 **Project:** `greater-art/` in the repository checkout
-**Current source:** `1.21.39 (code 262)` — VERIFIED debug sideload; desktop policy plus the 1.21.38 Developer Mode change
+**Current source:** `1.21.42 (code 265)` — SOURCE_ONLY; reviewed scoped-storage foundations and MP3 player toolbar fix
 **Current version:** `1.21.39 (code 262)`
 **Latest APK:** `releases/GreaterArt-1.21.39.apk` (`26,877,593 bytes`; SHA-256 `e636fb7c1bfdbdf5500d48863a9f6c778aec47bb2090e433bb2e86037e468104`)
 **Application ID:** `com.local.listentomusic`
@@ -13,6 +13,44 @@ This file describes the **current repository state only**. Historical session no
 **Verification boundary:** Exact build source `b20489581b6125ce3963c767ed8e419c979a6820`; 358 JVM tests, 21 API36 emulator tests, zero lint errors; signature, pinned certificate, version/package, 16KiB ZIP alignment and upgrade installation checked. Emulator tests cover scoped URI discovery/access, live primary-video Dynamic Ambient colors and retained player identity, floating presentations and accessibility/Developer Mode interactions. No app fatal in the inspected crash buffer. This is a debug sideload build, not production signing, physical-phone acceptance, full security assessment or a universal bug-free guarantee. The prior 1.21.37 artifact and its evidence remain unchanged in history.
 
 ## Repository state
+
+### October 16 — reviewed Claude scoped-storage foundation (1.21.42/code265)
+
+- Original mail patch 96760a2 is preserved under docs/imported-patches and credited
+  to Claude. Its proposed 1.21.39 is already consumed; PR #174 also consumed 40/41.
+  Those unrelated Windows/privacy branches are not merged or modified.
+- Scoped discovery accepts relative exclusion paths and selects same-folder sidecar
+  URIs through a bounded per-folder index. It does not read sidecar bytes. Main's
+  selected-folder URI Library already exists; the patch's claim it is File-only
+  was outdated. New optional exclusions are not yet wired to production settings.
+- Relink planning preserves data, rejects malformed URI identities, handles Unicode,
+  isolates cue segments from whole-file matches and deduplicates repeated listings
+  before judging ambiguity. No automatic stored-ID rewrite or permission changes.
+- Windows parity tests compare relative paths and real file identity rather than
+  Linux separators or returned filename casing. Initial exact-case lyric assertion
+  failed on Windows; compare physical identity for parity, and test candidate name
+  priority separately. Immutable verified 1.21.39 APK/signing identity are unchanged.
+- MP3 toolbar root cause: the audio branch never composed `NowPlayingTopBar`;
+  artwork/cache state was not responsible. Audio now shares video's presentation
+  actions and measured lock anchor, consumes safe insets once, and puts artwork
+  beside the controls in short landscape windows. No decoder/session changes.
+- Local Java21 unit/lint/app/test builds pass: 390 JVM tests, zero failures/skips;
+  lint zero errors (43 warnings, three hints). API36 A55-sized emulator: 11 scoped
+  identity/discovery/cache tests pass with All Files Access denied and restored;
+  four actual MP3 Compose tests pass for missing/late artwork, disc, narrow portrait,
+  short landscape, callbacks, lock/unlock and fullscreen state. Screenshots inspected.
+  Final combined run: all 22 scoped/cache/MP3/accessibility tests pass in 29.286s
+  against the rebuilt app, with broad access denied and restored afterward.
+  No app fatal in inspected crash buffer; an unrelated emulator Bluetooth abort was
+  present. No physical-phone/API26 acceptance or new remote CI result is claimed.
+- Prevention: keep host actions independent of media/artwork branches; exercise
+  both audio and video presentations rather than assuming one layout covers both.
+  Local verification screenshots live under app/build/verification/audio-toolbar.
+  Changes are local only; remote publication requires explicit owner approval.
+- Test-runner lesson: use fully qualified class names from the source package.
+  A mistyped thumbnail-test selector caused an initialization failure, not an app
+  failure. Corrected the selector and reran the whole 22-test suite. Require its
+  explicit `OK (22 tests)` result; ADB's process exit code alone does not prove pass.
 
 ### October 14 — current Android release re-verification
 

@@ -7,7 +7,13 @@ This file is the authoritative version policy for Greater Art. If any handoff no
 ## Machine-checkable state
 
 
-Current source: **1.21.39 (code 262)**
+Current source: **1.21.42 (code 265)**
+Allowed consumed transition: **1.21.39 (code 262) -> 1.21.42 (code 265)**
+
+PR #174 consumed 1.21.40/code263 (eeb06d9) and 1.21.41/code264 (8b81e82).
+That blocked historical-privacy branch is not imported or altered. Claude's
+96760a2 patch proposed 1.21.39, already consumed on main; preserve its original
+mail patch and credit without reusing that identity.
 Allowed consumed transition: **1.21.32 (code 255) -> 1.21.36 (code 259)**
 
 PR #168 separately consumed 1.21.33/code256 (5aae831), 1.21.34/code257
@@ -32,7 +38,7 @@ Allowed consumed transition: **1.21.22 (code 245) -> 1.21.24 (code 247)**
 1.21.23/code246 is consumed by the separate PR #153 PCM prototype (`881f39c`).
 Claude's supplied adaptive-sync patch proposed that identity too; integration
 used 1.21.24/code247 in its preserved history. Adaptive sync is model-backed, not acoustically verified.
-Current release state: **VERIFIED**
+Current release state: **SOURCE_ONLY**
 Latest verified APK: **1.21.39 (code 262)**
 Allowed series transition: **1.14.15 -> 1.15.1**
 Allowed series transition: **1.15.89 -> 1.20.2**
@@ -334,3 +340,6 @@ Previous baseline: 1.13.26 (code 115).
 
 - 1.21.38 (code 261) — Add a prominently visible one-tap “Turn off Developer Mode” control inside the local diagnostics inspector, available in Library and expanded Now Playing. The action clears inspector interaction state and persists the existing Developer Mode preference; the DEV badge/panel disappear reactively. Add a measured Compose UI regression for one-tap dismissal. SOURCE_ONLY pending CI and device acceptance; verified 1.21.37 APK remains untouched.
 - 1.21.39 (code 262) — Owner-approved tooling-policy separation for independent Windows desktop versions and CI. Only the owned desktop workflow is exempt from Android bumps; shared workflows remain versioned, with regression tests. Android runtime and immutable verified 1.21.37 APK unchanged. SOURCE_ONLY.
+- 1.21.40 (code 263) — Consumed by separate blocked PR #174 commit eeb06d9; not imported.
+- 1.21.41 (code 264) — Consumed by separate blocked PR #174 commit 8b81e82; not imported.
+- 1.21.42 (code 265) — Integrate Claude 96760a2 scoped exclusions/sidecar-index/relink foundation with Unicode, strict identity parsing, cue isolation and duplicate-listing regressions. Restore the missing audio Now Playing toolbar independently of artwork, with shared lock anchoring and compact landscape layout. No automatic preference rewrite, sidecar byte reads, permission cutover or shared playback changes. SOURCE_ONLY; verified 1.21.39 APK preserved.
