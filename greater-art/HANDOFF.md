@@ -3,7 +3,7 @@
 This file describes the **current repository state only**. Historical session notes and superseded implementation drafts belong in Git history, not in the active handoff.
 
 **Project:** `greater-art/` in the repository checkout
-**Current source:** `1.21.43 (code 266)` — SOURCE_ONLY; portrait-first fullscreen and explicit rotation control
+**Current source:** `1.21.44 (code 267)` — SOURCE_ONLY; Settings clarity refactor
 **Current version:** `1.21.39 (code 262)`
 **Latest APK:** `releases/GreaterArt-1.21.39.apk` (`26,877,593 bytes`; SHA-256 `e636fb7c1bfdbdf5500d48863a9f6c778aec47bb2090e433bb2e86037e468104`)
 **Application ID:** `com.local.listentomusic`
@@ -13,6 +13,36 @@ This file describes the **current repository state only**. Historical session no
 **Verification boundary:** Exact build source `b20489581b6125ce3963c767ed8e419c979a6820`; 358 JVM tests, 21 API36 emulator tests, zero lint errors; signature, pinned certificate, version/package, 16KiB ZIP alignment and upgrade installation checked. Emulator tests cover scoped URI discovery/access, live primary-video Dynamic Ambient colors and retained player identity, floating presentations and accessibility/Developer Mode interactions. No app fatal in the inspected crash buffer. This is a debug sideload build, not production signing, physical-phone acceptance, full security assessment or a universal bug-free guarantee. The prior 1.21.37 artifact and its evidence remain unchanged in history.
 
 ## Repository state
+
+### October 16 — Settings clarity (1.21.44/code267)
+
+- User clarified that Settings is confusing, not that values fail to save. Replace
+  expanding chip walls with a category index and focused pages. Current values
+  remain visible; choices open one accessible radio dialog and apply immediately.
+  Back returns to the category list before leaving Settings; category scroll is
+  preserved. Language changes retain page identity via stable section keys.
+- Library row size/thumbnails/details live under Library & lists; Mini window
+  size lives beside floating playback controls; excluded folders live under Media
+  folders. Playlist names no longer compete with four side-by-side action buttons.
+- Use an opaque theme surface for reading, reserve header room for DEV, and stop
+  decorative wallpaper rendering while Settings covers it. Do not pause/replace
+  the actual player or alter source quality. New explanatory copy is translated.
+- Keep preference setters/defaults, permission gates, reset confirmation, share,
+  backup/restore and all other existing callbacks. No data reset or migration.
+- Local Java21 unit/lint/app/instrumentation builds pass. 390 JVM tests pass with
+  zero failures/skips; lint has zero errors, 45 warnings and three hints. All 20
+  A55-sized API36 emulator tests pass in 83.25s, including Settings category/back
+  navigation, theme persistence, Japanese language changes, reset cancellation,
+  same-choice callbacks, 2x-font/small-width controls, playlist actions and existing
+  audio/fullscreen/native-PiP/accessibility checks. Test preferences are restored.
+- The first UI run caught 40dp default playlist icon-button bounds and padded
+  create/reset labels. Fixes specify 48dp targets and use real layout spacing,
+  not leading spaces. Prevention: measure actual semantics/layout and exercise
+  production navigation rather than relying on source heuristics.
+- Inspected dark index and light Appearance/Library screenshots under
+  app/build/verification/settings-refactor. Screenshots taken immediately after
+  clicks can include ripple/system-bar transitions; they are not physical-phone
+  acceptance. No new release promotion/publication; verified 1.21.39 is unchanged.
 
 ### October 16 — portrait-first fullscreen (1.21.43/code266)
 

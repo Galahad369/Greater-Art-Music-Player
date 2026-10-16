@@ -307,7 +307,7 @@ fun GreaterArtApp(
                 currentPath = playback.currentPath,
                 isVideo = playback.isVideo,
                 controller = controller,
-                visible = !expandedPlayerVisible,
+                visible = !expandedPlayerVisible && screen != Screen.SETTINGS,
                 // CUSTOM_VIDEO still yields its independent decorative decoder while
                 // Stack is active. CURRENT_VIDEO is now the primary player's own surface,
                 // so it adds no decoder and can remain available.
