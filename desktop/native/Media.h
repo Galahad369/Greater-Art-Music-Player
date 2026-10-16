@@ -3,6 +3,7 @@
 #include <cstdint>
 #include <string>
 #include <windows.h>
+#include "VideoAmbient.h"
 
 namespace ga
 {
@@ -13,6 +14,13 @@ struct MediaState
     DWORD width = 0, height = 0;
     std::uint64_t frames = 0;
     bool bundledAudio = false;
+    bool sharedClock = false;
+    int pcmRate = 0, pcmChannels = 0;
+    std::uint64_t pcmUnderruns = 0;
+    VideoPalette palette;
+    unsigned videoError = 0;
+    HRESULT videoStatus = S_OK;
+    bool ambientUnavailable = false;
 };
 bool mediaInitialize();
 void mediaShutdown();
@@ -27,4 +35,7 @@ HRESULT mediaVolume(void *player, double volume);
 HRESULT mediaAttach(void *player, HWND host);
 void mediaDetach(void *player);
 MediaState mediaState(void *player);
+void mediaAmbientEnable(void *player, bool enabled);
+// Owned-fixture verification only; never called by normal UI or file metadata.
+void mediaAmbientFaultForTest(void *player);
 } // namespace ga

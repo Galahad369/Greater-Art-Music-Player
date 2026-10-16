@@ -2,46 +2,53 @@ namespace
 {
 void writeIcon(const std::filesystem::path &file)
 {
-    int oldDpi = app.dpi;
-    app.dpi = 96;
-    constexpr int size = 64;
-    BITMAPINFO info{};
-    info.bmiHeader.biSize = 40;
-    info.bmiHeader.biWidth = size;
-    info.bmiHeader.biHeight = -size;
-    info.bmiHeader.biPlanes = 1;
-    info.bmiHeader.biBitCount = 32;
-    info.bmiHeader.biCompression = BI_RGB;
-    void *pixels = nullptr;
-    HDC dc = CreateCompatibleDC(nullptr);
-    HBITMAP bitmap = CreateDIBSection(dc, &info, DIB_RGB_COLORS, &pixels, nullptr, 0);
-    auto old = SelectObject(dc, bitmap);
-    mark(dc, {0, 0, size, size});
-    GdiFlush();
-    auto bytes = static_cast<unsigned char *>(pixels);
-    for (int i = 0; i < size * size; ++i)
-        bytes[i * 4 + 3] = 255;
+    ULONG_PTR token = 0;
+    Gdiplus::GdiplusStartupInput startup;
+    if (Gdiplus::GdiplusStartup(&token, &startup, nullptr) != Gdiplus::Ok)
+        throw std::runtime_error("Icon renderer initialization failed.");
+    constexpr int sizes[]{16, 24, 32, 48, 64, 128, 256};
     std::ofstream output(file, std::ios::binary);
-    std::uint16_t header[]{0, 1, 1};
+    std::uint16_t header[]{0, 1, 7};
     output.write(reinterpret_cast<char *>(header), 6);
-    unsigned char dimensions[]{64, 64, 0, 0};
-    output.write(reinterpret_cast<char *>(dimensions), 4);
-    std::uint16_t fields[]{1, 32};
-    output.write(reinterpret_cast<char *>(fields), 4);
-    std::uint32_t count = 40 + size * size * 4 + size * 8, offset = 22;
-    output.write(reinterpret_cast<char *>(&count), 4);
-    output.write(reinterpret_cast<char *>(&offset), 4);
-    auto dib = info.bmiHeader;
-    dib.biHeight = size * 2;
-    output.write(reinterpret_cast<char *>(&dib), 40);
-    for (int y = size - 1; y >= 0; --y)
-        output.write(reinterpret_cast<char *>(pixels) + y * size * 4, size * 4);
-    std::array<char, size * 8> mask{};
-    output.write(mask.data(), mask.size());
-    SelectObject(dc, old);
-    DeleteObject(bitmap);
-    DeleteDC(dc);
-    app.dpi = oldDpi;
+    std::uint32_t offset = 6 + 7 * 16;
+    for (int size : sizes)
+    {
+        unsigned char dimensions[]{BYTE(size == 256 ? 0 : size), BYTE(size == 256 ? 0 : size), 0, 0};
+        std::uint16_t fields[]{1, 32};
+        std::uint32_t bytes = 40 + size * size * 4 + ((size + 31) / 32) * 4 * size;
+        output.write(reinterpret_cast<char *>(dimensions), 4);
+        output.write(reinterpret_cast<char *>(fields), 4);
+        output.write(reinterpret_cast<char *>(&bytes), 4);
+        output.write(reinterpret_cast<char *>(&offset), 4);
+        offset += bytes;
+    }
+    for (int size : sizes)
+    {
+        BITMAPINFO info{};
+        info.bmiHeader = {40, size, -size, 1, 32, BI_RGB};
+        void *pixels = nullptr;
+        HDC dc = CreateCompatibleDC(nullptr);
+        HBITMAP bitmap = CreateDIBSection(dc, &info, DIB_RGB_COLORS, &pixels, nullptr, 0);
+        auto old = SelectObject(dc, bitmap);
+        drawAppMark(dc, 0, 0, float(size));
+        GdiFlush();
+        auto bytes = static_cast<unsigned char *>(pixels);
+        for (int i = 0; i < size * size; ++i)
+            bytes[i * 4 + 3] = 255;
+        auto dib = info.bmiHeader;
+        dib.biHeight = size * 2;
+        output.write(reinterpret_cast<char *>(&dib), 40);
+        for (int y = size - 1; y >= 0; --y)
+            output.write(reinterpret_cast<char *>(pixels) + y * size * 4, size * 4);
+        std::vector<char> mask(((size + 31) / 32) * 4 * size);
+        output.write(mask.data(), std::streamsize(mask.size()));
+        SelectObject(dc, old);
+        DeleteObject(bitmap);
+        DeleteDC(dc);
+    }
+    Gdiplus::GdiplusShutdown(token);
+    if (!output)
+        throw std::runtime_error("Icon resource write failed.");
 }
 int tests(const std::filesystem::path &directory)
 {
@@ -90,6 +97,15 @@ int tests(const std::filesystem::path &directory)
         queue.shutdown();
         expect(!queue.emplace_back([] {}), "closed queue rejects rather than silently swallowing work");
     }
+    expect(stackPcmTests(directory.wstring()), "shared-clock Stack PCM and fractional offsets");
+    expect(iconTests(directory), "all vector icons draw antialiased and unclipped at 100–400% DPI");
+    expect(UserFeatures{}.background == 2, "fresh preferences select Adaptive Ambient");
+    UserFeatures solid;
+    solid.background = 0;
+    std::filesystem::create_directories(directory / L"saved-solid");
+    expect(saveFeatures(directory / L"saved-solid", solid) &&
+               loadFeatures(directory / L"saved-solid").background == 0,
+           "saved explicit Solid background survives the new default");
     expect(similarity(filenameFeatures(L"Caravan.mp3"), filenameFeatures(L"Gambling.mp4")) > 0,
            "shared-letter similarity");
     expect(similarity(filenameFeatures(L"孤独毒毒.mp4"), filenameFeatures(L"孤独毒毒.mp3")) == 1,
@@ -226,7 +242,12 @@ int tests(const std::filesystem::path &directory)
     original.stacks[0].tracks[0].offset = 1.25;
     saveSettings(directory, original);
     expect(loadSettings(directory).stacks[0].tracks[0].offset == 1.25, "saved Stack offset persists");
+    original.stacks[0].tracks[0].offset = 22 + .5 / 48000;
+    saveSettings(directory, original);
+    expect(loadSettings(directory).stacks[0].tracks[0].offset == original.stacks[0].tracks[0].offset,
+           "saved Stack preserves fractional-sample precision without decimal rounding");
     expect(audioDecodeTest(directory.wstring()), "real offline decoder and 500ms waveform alignment");
+    expect(videoAmbientTests(directory.wstring()), "decoded-frame color tap preserves payload and transport");
     if (codecsAvailable())
     {
         CodecReader decoder;
@@ -244,7 +265,7 @@ int tests(const std::filesystem::path &directory)
     report << "total=" << passed << "/" << total << "\n";
     return passed == total ? 0 : 2;
 }
-int audioPlaybackTests(const std::wstring &file, const std::filesystem::path &directory)
+int audioPlaybackTests(const std::wstring &file, const std::filesystem::path &directory, bool stack = false)
 {
     std::filesystem::create_directories(directory);
     std::ofstream report(directory / L"audio-playback-tests.txt");
@@ -255,7 +276,12 @@ int audioPlaybackTests(const std::wstring &file, const std::filesystem::path &di
             ++passed;
         report << (condition ? "PASS " : "FAIL ") << name << "\n";
     };
-    AudioFallback player(file, true);
+    std::unique_ptr<AudioFallback> output;
+    if (stack)
+        output = std::make_unique<AudioFallback>(std::vector<PcmVoice>(6, {file, .7, 0}));
+    else
+        output = std::make_unique<AudioFallback>(file, true);
+    auto &player = *output;
     auto wait = [&](auto predicate, int timeout) {
         auto end = GetTickCount64() + timeout;
         do
@@ -300,6 +326,15 @@ int audioPlaybackTests(const std::wstring &file, const std::filesystem::path &di
     after = player.state().time;
     expect(after - before > .15 && after - before < .6, "half-speed returns without timeline jump");
     expect(FAILED(player.rate(0)) && FAILED(player.seek(NAN)), "invalid playback commands rejected");
+    if (stack)
+    {
+        auto state = player.state();
+        expect(state.sharedClock && state.pcmRate > 0 && state.pcmChannels > 0,
+               "six singers use one WASAPI client at the actual endpoint format");
+        expect(state.pcmUnderruns == 0, "six-voice seek and speed controls do not underrun the endpoint");
+        report << "endpointRate=" << state.pcmRate << " channels=" << state.pcmChannels
+               << " underruns=" << state.pcmUnderruns << "\n";
+    }
     player.pause(true);
     report << "total=" << passed << "/" << total << "\n";
     return passed == total ? 0 : 2;
@@ -369,6 +404,18 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE, PWSTR, int)
         LocalFree(argv);
         return result;
     }
+    if (argc == 4 && wcscmp(argv[1], L"--verify-stack-audio") == 0)
+    {
+        int result = audioPlaybackTests(argv[2], argv[3], true);
+        LocalFree(argv);
+        return result;
+    }
+    if (argc == 3 && wcscmp(argv[1], L"--verify-stack-output") == 0)
+    {
+        int result = stackOutputTests(argv[2]) ? 0 : 2;
+        LocalFree(argv);
+        return result;
+    }
     if (argc == 4 && wcscmp(argv[1], L"--verify-routing") == 0)
     {
         int result = audioRoutingTest(argv[2], argv[3]);
@@ -386,9 +433,16 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE, PWSTR, int)
     app.dataDir = std::filesystem::path(data ? data : L".") / L"GreaterArtDesktopNative";
     if (data)
         CoTaskMemFree(data);
-    if (argc == 4 && wcscmp(argv[1], L"--verify") == 0)
+    if (argc == 4 &&
+        (wcscmp(argv[1], L"--verify") == 0 || wcscmp(argv[1], L"--verify-ambient") == 0 ||
+         wcscmp(argv[1], L"--verify-ambient-fault") == 0 || wcscmp(argv[1], L"--verify-visual") == 0))
     {
         app.probe = true;
+        app.probeVisual = wcscmp(argv[1], L"--verify-visual") == 0;
+        app.probeFault = wcscmp(argv[1], L"--verify-ambient-fault") == 0;
+        app.probeAmbient = wcscmp(argv[1], L"--verify-ambient") == 0 || app.probeFault;
+        if (app.probeAmbient)
+            app.features.background = 2;
         app.probeFixture = argv[2];
         app.probeOutput = std::filesystem::absolute(argv[3]);
         std::filesystem::create_directories(app.probeOutput);
@@ -399,6 +453,8 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE, PWSTR, int)
     std::filesystem::create_directories(app.dataDir);
     enableCrashRecord(app.dataDir.wstring());
     app.features = loadFeatures(app.dataDir);
+    if (app.probeAmbient)
+        app.features.background = 2;
     app.speed = app.features.speed;
     loadCustomBackground();
     HANDLE instanceMutex = nullptr;
@@ -463,6 +519,8 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE, PWSTR, int)
     DwmSetWindowAttribute(app.main, 20, &dark, sizeof(dark));
     layout();
     initializeSystemMedia();
+    if (app.probeAmbient || app.probeVisual)
+        ShowWindow(app.main, SW_SHOWNOACTIVATE);
     if (app.probe)
     {
         app.settings.roots = {std::filesystem::path(app.probeFixture).parent_path().wstring()};
@@ -491,7 +549,7 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE, PWSTR, int)
     }
     app.scans.shutdown();
     DestroyAcceleratorTable(accelerator);
-    for (auto font : {app.small, app.body, app.title, app.heading, app.icons})
+    for (auto font : {app.small, app.body, app.title, app.heading})
         if (font)
             DeleteObject(font);
     if (app.editBrush)

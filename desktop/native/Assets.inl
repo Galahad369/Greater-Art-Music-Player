@@ -22,6 +22,13 @@ void loadCustomBackground()
 void requestAssets(const Song &song)
 {
     unsigned generation = ++app.assetGeneration;
+    app.ambientPlayer = nullptr;
+    app.ambientSamples = 0;
+    app.ambientGeneration = 0;
+    app.ambientAt = app.now;
+    for (int i = 0; i < 2; ++i)
+        app.artworkColors[i] = app.ambient[i] = app.ambientFrom[i] = app.ambientTarget[i] =
+            i ? RGB(38, 65, 96) : RGB(60, 110, 95);
     app.artwork.reset();
     app.waveform.clear();
     app.artist.clear();
@@ -192,8 +199,17 @@ void assetReady()
                 app.waveform.empty() ? 0 : *std::max_element(app.waveform.begin(), app.waveform.end());
             app.artist = std::move(result.artist);
             app.album = std::move(result.album);
-            app.ambient[0] = result.ambient[0];
-            app.ambient[1] = result.ambient[1];
+            for (int i = 0; i < 2; ++i)
+                app.artworkColors[i] = result.ambient[i];
+            if (!app.playback.palette.samples)
+            {
+                app.ambientAt = app.now;
+                for (int i = 0; i < 2; ++i)
+                {
+                    app.ambientFrom[i] = app.ambient[i];
+                    app.ambientTarget[i] = result.ambient[i];
+                }
+            }
         }
     invalidate();
     if (app.preview)

@@ -174,13 +174,6 @@ LRESULT CALLBACK PreviewProc(HWND window, UINT message, WPARAM w, LPARAM l)
     }
     if (message == WM_ERASEBKGND)
         return 1;
-    if (message == WM_TIMER && w == 7)
-    {
-        if (app.features.disc && app.playback.width == 0 && app.playback.state == 3 &&
-            IsWindowVisible(window))
-            InvalidateRect(window, nullptr, FALSE);
-        return 0;
-    }
     if (message == WM_PAINT)
     {
         PAINTSTRUCT paint{};
@@ -340,15 +333,186 @@ void probeTick()
 {
     if (!app.probe)
         return;
-    auto fail = [&](const std::wstring &) {
+    auto fail = [&](const std::wstring &reason) {
         std::ofstream report(app.probeOutput / L"verification.txt", std::ios::app);
-        report << "FAIL stage=" << app.probeStage << "\n";
+        report << "FAIL stage=" << app.probeStage << " reason=" << toUtf8(reason)
+               << " playerState=" << app.playback.state << " frames=" << app.playback.frames
+               << " tapFrames=" << app.playback.palette.framesSeen
+               << " samples=" << app.playback.palette.samples << " enabled=" << app.ambientEnabled
+               << " videoError=" << app.playback.videoError << " videoStatus=" << std::hex
+               << app.playback.videoStatus << "\n";
         app.probeFailed = true;
         PostMessage(app.main, WM_CLOSE, 0, 0);
     };
     if (GetTickCount64() - app.probeAt > 45000)
     {
         fail(L"timeout");
+        return;
+    }
+    if (app.probeVisual)
+    {
+        auto cpuTime = [] {
+            FILETIME created{}, exited{}, kernel{}, user{};
+            GetProcessTimes(GetCurrentProcess(), &created, &exited, &kernel, &user);
+            return (std::uint64_t(kernel.dwHighDateTime) << 32 | kernel.dwLowDateTime) +
+                   (std::uint64_t(user.dwHighDateTime) << 32 | user.dwLowDateTime);
+        };
+        if (app.probeStage == 0 && !app.busy && app.playback.state == 3 && app.playback.frames > 6)
+        {
+            // Override only this isolated app instance, never the user's Windows preference.
+            app.motionEnabled = TRUE;
+            app.slots[0].song.title += L" — high-DPI compositor-paced long-title presentation test";
+            app.probeCpu = cpuTime();
+            app.probeSamples = app.visualFrames;
+            app.probeTime = double(app.visualPaints);
+            app.probeAt = GetTickCount64();
+            app.probeStage = 1;
+        }
+        else if (app.probeStage == 1 && GetTickCount64() - app.probeAt >= 2500)
+        {
+            double seconds = double(GetTickCount64() - app.probeAt) / 1000;
+            auto frames = app.visualFrames - app.probeSamples;
+            auto paints = app.visualPaints - std::uint64_t(app.probeTime);
+            DWM_TIMING_INFO timing{};
+            timing.cbSize = sizeof(timing);
+            DwmGetCompositionTimingInfo(nullptr, &timing);
+            std::ofstream report(app.probeOutput / L"visual-pacing.txt");
+            report << "compositor_hz="
+                   << (timing.rateRefresh.uiDenominator
+                           ? double(timing.rateRefresh.uiNumerator) / timing.rateRefresh.uiDenominator
+                           : 0)
+                   << "\nvisual_events_per_second=" << frames / seconds
+                   << "\nowned_paints_per_second=" << paints / seconds
+                   << "\nprocess_cpu_cores=" << double(cpuTime() - app.probeCpu) / 1e7 / seconds
+                   << "\nno_video_quality_caps=true\nwindows_preferences_changed=false\n";
+            if (frames < 30 || paints < 20)
+            {
+                fail(L"visual clock did not render");
+                return;
+            }
+            app.motionEnabled = FALSE;
+            app.frameClock.active(false);
+            app.probeSamples = app.visualFrames;
+            app.probeStage = 2;
+            app.probeAt = GetTickCount64();
+        }
+        else if (app.probeStage == 2 && GetTickCount64() - app.probeAt >= 600)
+        {
+            if (app.visualFrames > app.probeSamples + 1)
+            {
+                fail(L"reduced-motion clock kept running");
+                return;
+            }
+            std::ofstream report(app.probeOutput / L"verification.txt");
+            report << "PASS display_paced_controls=true\nreduced_motion_stops_visual_clock=true\n"
+                      "source_quality_unchanged=true\nwindows_preferences_changed=false\n";
+            SystemParametersInfo(SPI_GETCLIENTAREAANIMATION, 0, &app.motionEnabled, 0);
+            PostMessage(app.main, WM_CLOSE, 0, 0);
+        }
+        return;
+    }
+    if (app.probeAmbient)
+    {
+        if (app.slots.empty())
+            return;
+        auto palette = app.playback.palette;
+        if (app.probePlayer && app.probePlayer != app.slots[0].player)
+        {
+            fail(L"primary replaced");
+            return;
+        }
+        auto red = GetRValue(palette.colors[0]), green = GetGValue(palette.colors[0]),
+             blue = GetBValue(palette.colors[0]);
+        auto advance = [&](int stage) {
+            app.probeStage = stage;
+            app.probeAt = GetTickCount64();
+        };
+        if (app.probeStage == 0 && palette.samples && red > blue + 60 && app.playback.frames > 6)
+        {
+            app.probePlayer = app.slots[0].player;
+            advance(10);
+        }
+        else if (app.probeStage == 10 && GetTickCount64() - app.probeAt > 1800 && red > blue + 60)
+        {
+            capture(app.main, app.probeOutput / L"ambient-warm.png");
+            mediaSeek(app.probePlayer, 10);
+            advance(1);
+        }
+        else if (app.probeStage == 1 && palette.samples && blue > red + 60)
+        {
+            mediaPause(app.probePlayer, true);
+            advance(2);
+        }
+        else if (app.probeStage == 2 && GetTickCount64() - app.probeAt > 800)
+        {
+            app.probeSamples = palette.samples;
+            app.probeTime = app.playback.time;
+            advance(3);
+        }
+        else if (app.probeStage == 3 && GetTickCount64() - app.probeAt > 1000)
+        {
+            capture(app.main, app.probeOutput / L"ambient-cool.png");
+            if (palette.samples != app.probeSamples || std::abs(app.playback.time - app.probeTime) > .08)
+            {
+                fail(L"pause moved");
+                return;
+            }
+            app.features.background = 0;
+            mediaAmbientEnable(app.probePlayer, false);
+            mediaSeek(app.probePlayer, 18);
+            mediaPlay(app.probePlayer);
+            advance(4);
+        }
+        else if (app.probeStage == 4 && GetTickCount64() - app.probeAt > 1500)
+        {
+            if (palette.samples != app.probeSamples || app.playback.state != 3)
+            {
+                fail(L"disabled analysis or playback");
+                return;
+            }
+            app.features.background = 2;
+            advance(5);
+        }
+        else if (app.probeStage == 5 && palette.samples > app.probeSamples && green > red + 60 &&
+                 green > blue + 30)
+        {
+            if (app.probeFault)
+            {
+                app.probeTime = app.playback.time;
+                mediaAmbientFaultForTest(app.probePlayer);
+                advance(6);
+                return;
+            }
+            if (app.playback.width != 1280 || app.playback.height != 720)
+            {
+                fail(L"source size");
+                return;
+            }
+            std::ofstream report(app.probeOutput / L"verification.txt");
+            report << "PASS "
+                      "live_decoded_colors=red,blue,green\nprimary_identity_unchanged=true\npause_holds="
+                      "true\ndisabled_analysis_holds=true\nsource=1280x720\nframes="
+                   << app.playback.frames << "\npalette_samples=" << palette.samples
+                   << "\nno_second_decoder=true\n";
+            report << "tap_frames=" << palette.framesSeen << "\ngpu_samples=" << palette.gpuSamples << "\n";
+            capture(app.main, app.probeOutput / L"ambient-green.png");
+            PostMessage(app.main, WM_CLOSE, 0, 0);
+        }
+        else if (app.probeStage == 6 && app.playback.ambientUnavailable && app.playback.state == 3 &&
+                 app.playback.frames > 6)
+        {
+            if (app.playback.width != 1280 || app.playback.height != 720 ||
+                app.playback.time < app.probeTime - .5)
+            {
+                fail(L"native recovery lost source/position");
+                return;
+            }
+            std::ofstream report(app.probeOutput / L"verification.txt");
+            report << "PASS "
+                      "optional_effect_fault_recovers_native_video=true\nprimary_identity_unchanged="
+                      "true\nposition_preserved=true\nsource=1280x720\nquality_caps=false\n";
+            PostMessage(app.main, WM_CLOSE, 0, 0);
+        }
         return;
     }
     if (app.probeStage == 0 && !app.busy && !app.slots.empty() && app.playback.state == 3 &&
@@ -361,6 +525,8 @@ void probeTick()
             return;
         }
         Song song = app.slots[0].song;
+        seek(8);
+        app.probeTime = 8;
         for (int i = 0; i < 5; ++i)
             addSong(song);
         app.probeStage = 1;
@@ -368,9 +534,8 @@ void probeTick()
     }
     else if (app.probeStage == 1 && GetTickCount64() - app.probeAt > 1800)
     {
-        if (app.slots.size() != 6 || std::any_of(app.slots.begin(), app.slots.end(), [](auto &slot) {
-                return mediaState(slot.player).state != 3;
-            }))
+        if (app.slots.size() != 6 || !app.stackOutput || app.stackPending ||
+            app.stackOutput->state().state != 3 || app.playback.time < app.probeTime)
         {
             fail(L"voices");
             return;
@@ -437,18 +602,105 @@ void probeTick()
         layout();
         capture(app.main, app.probeOutput / L"returned-dock.png");
         std::ofstream report(app.probeOutput / L"verification.txt");
-        report << "PASS version=0.1.8 code=9\nvoices=" << app.slots.size()
+        report << "PASS version=0.1.12 code=13\nvoices=" << app.slots.size()
                << "\nsource=" << app.playback.width << "x" << app.playback.height
                << "\nframes=" << app.playback.frames
                << "\nfullscreen_monitor_bounds=true\nmini_and_dock_transfer=true\nmsaa_named_controls="
-                  "true\nno_vlc=true\nacoustic_"
+                  "true\nrapid_add_preserves_position=true\nno_vlc=true\nacoustic_"
                   "alignment=NOT_VERIFIED\n";
+        MONITORINFOEX monitor{};
+        monitor.cbSize = sizeof(monitor);
+        GetMonitorInfo(MonitorFromWindow(app.main, MONITOR_DEFAULTTONEAREST), &monitor);
+        DEVMODE mode{};
+        mode.dmSize = sizeof(mode);
+        EnumDisplaySettings(monitor.szDevice, ENUM_CURRENT_SETTINGS, &mode);
+        DWM_TIMING_INFO timing{};
+        timing.cbSize = sizeof(timing);
+        auto timingResult = DwmGetCompositionTimingInfo(nullptr, &timing);
+        report << "font_icons=false\nvisual_frames=" << app.visualFrames
+               << "\nmonitor_refresh_hz=" << mode.dmDisplayFrequency << "\ncompositor_refresh_hz="
+               << (SUCCEEDED(timingResult) && timing.rateRefresh.uiDenominator
+                       ? double(timing.rateRefresh.uiNumerator) / timing.rateRefresh.uiDenominator
+                       : 0)
+               << "\nphysical_180hz_acceptance=false\n";
         app.probeStage = 6;
         PostMessage(app.main, WM_CLOSE, 0, 0);
     }
 }
+struct PaintBuffer
+{
+    HDC dc = nullptr;
+    HBITMAP bitmap = nullptr;
+    HGDIOBJ previous = nullptr;
+    int width = 0, height = 0;
+    void clear()
+    {
+        if (dc && previous)
+            SelectObject(dc, previous);
+        if (bitmap)
+            DeleteObject(bitmap);
+        if (dc)
+            DeleteDC(dc);
+        dc = nullptr;
+        bitmap = nullptr;
+        previous = nullptr;
+    }
+    ~PaintBuffer()
+    {
+        clear();
+    }
+    HDC ensure(HDC target, int w, int h)
+    {
+        if (w != width || h != height || !dc)
+        {
+            clear();
+            dc = CreateCompatibleDC(target);
+            bitmap = CreateCompatibleBitmap(target, std::max(1, w), std::max(1, h));
+            if (!dc || !bitmap)
+            {
+                clear();
+                return nullptr;
+            }
+            previous = SelectObject(dc, bitmap);
+            width = w;
+            height = h;
+        }
+        return dc;
+    }
+};
+std::unordered_map<HWND, std::unique_ptr<PaintBuffer>> paintBuffers;
+void refreshVisualClock()
+{
+    bool visible = (IsWindowVisible(app.main) && !IsIconic(app.main)) ||
+                   (app.player && IsWindowVisible(app.player) && !IsIconic(app.player) && !app.fullscreen);
+    if (app.features.disc && app.preview && IsWindowVisible(app.preview) &&
+        !IsIconic(GetAncestor(app.preview, GA_ROOT)))
+        visible = true;
+    bool longTitle = false;
+    if (visible && !app.slots.empty())
+    {
+        auto dc = GetDC(app.main);
+        auto old = SelectObject(dc, app.title);
+        SIZE size{};
+        auto &title = app.slots[0].song.title;
+        GetTextExtentPoint32(dc, title.c_str(), int(title.size()), &size);
+        longTitle = size.cx > px(230);
+        SelectObject(dc, old);
+        ReleaseDC(app.main, dc);
+    }
+    app.frameClock.active(
+        app.motionEnabled && visible &&
+        ((!app.slots.empty() && app.playback.state == 3) || longTitle || !app.tapPath.empty()));
+}
 LRESULT CALLBACK WindowProc(HWND window, UINT message, WPARAM w, LPARAM l)
 {
+    if (message == WM_GETICON)
+    {
+        UINT dpi = l ? UINT(l) : GetDpiForWindow(window);
+        int pixels = GetSystemMetricsForDpi(w == ICON_BIG ? SM_CXICON : SM_CXSMICON, dpi);
+        return reinterpret_cast<LRESULT>(
+            LoadImage(GetModuleHandle(nullptr), MAKEINTRESOURCE(101), IMAGE_ICON, pixels, pixels, LR_SHARED));
+    }
     if (message == WM_GETOBJECT)
         return accessibilityObject(window, w, l);
     bool main = window == app.main || (!app.main && message == WM_CREATE);
@@ -470,24 +722,41 @@ LRESULT CALLBACK WindowProc(HWND window, UINT message, WPARAM w, LPARAM l)
         accessibleName(app.nodeSearch, translate(L"Find a node", app.features.language).c_str());
         app.preview = CreateWindowEx(0, L"GreaterArtPreview", L"", WS_CHILD | WS_VISIBLE | WS_CLIPSIBLINGS, 0,
                                      0, 1, 1, window, nullptr, GetModuleHandle(nullptr), nullptr);
-        if (app.features.disc)
-            SetTimer(app.preview, 7, 16, nullptr);
+        SystemParametersInfo(SPI_GETCLIENTAREAANIMATION, 0, &app.motionEnabled, 0);
+        app.frameClock.start(window, VISUAL_FRAME);
         SetTimer(window, 1, 100, nullptr);
         return 0;
     }
     if (message == WM_PAINT)
     {
         PAINTSTRUCT paint{};
+        auto update = CreateRectRgn(0, 0, 0, 0);
+        int regionType = GetUpdateRgn(window, update, FALSE);
         auto dc = BeginPaint(window, &paint);
         RECT r{};
         GetClientRect(window, &r);
-        auto buffer = CreateCompatibleDC(dc);
-        auto bitmap = CreateCompatibleBitmap(dc, std::max(1L, r.right), std::max(1L, r.bottom));
-        auto old = SelectObject(buffer, bitmap);
-        IntersectClipRect(buffer, paint.rcPaint.left, paint.rcPaint.top, paint.rcPaint.right,
-                          paint.rcPaint.bottom);
+        auto &storage = paintBuffers[window];
+        if (!storage)
+            storage = std::make_unique<PaintBuffer>();
+        auto buffer = storage->ensure(dc, int(r.right), int(r.bottom));
+        if (!buffer)
+        {
+            DeleteObject(update);
+            EndPaint(window, &paint);
+            return 0;
+        }
+        auto saved = SaveDC(buffer);
+        if (regionType == SIMPLEREGION || regionType == COMPLEXREGION)
+            SelectClipRgn(buffer, update);
+        else
+            IntersectClipRect(buffer, paint.rcPaint.left, paint.rcPaint.top, paint.rcPaint.right,
+                              paint.rcPaint.bottom);
+        DeleteObject(update);
         if (main)
+        {
+            ++app.visualPaints;
             paintMain(buffer);
+        }
         else
             paintPlayer(buffer, window, mini);
         if (GetFocus() == window && app.keyboardFocus >= 0 && app.keyboardFocus < int(hitsFor(window).size()))
@@ -495,10 +764,10 @@ LRESULT CALLBACK WindowProc(HWND window, UINT message, WPARAM w, LPARAM l)
             auto focus = physical(hitsFor(window)[app.keyboardFocus].box);
             DrawFocusRect(buffer, &focus);
         }
-        BitBlt(dc, 0, 0, r.right, r.bottom, buffer, 0, 0, SRCCOPY);
-        SelectObject(buffer, old);
-        DeleteObject(bitmap);
-        DeleteDC(buffer);
+        auto dirty = paint.rcPaint;
+        BitBlt(dc, dirty.left, dirty.top, dirty.right - dirty.left, dirty.bottom - dirty.top, buffer,
+               dirty.left, dirty.top, SRCCOPY);
+        RestoreDC(buffer, saved);
         EndPaint(window, &paint);
         return 0;
     }
@@ -657,50 +926,71 @@ LRESULT CALLBACK WindowProc(HWND window, UINT message, WPARAM w, LPARAM l)
             next(-1);
         return 0;
     }
-    if (message == WM_TIMER && main && w == 4)
+    if (message == VISUAL_FRAME && main)
     {
-        if (GetTickCount64() - app.tapAt >= 180)
-        {
-            app.tapPath.clear();
-            KillTimer(window, 4);
-        }
-        auto region = physical(app.libraryRect);
-        InvalidateRect(window, &region, FALSE);
-        if (app.player)
-            InvalidateRect(app.player, nullptr, FALSE);
-        return 0;
-    }
-    if (message == WM_TIMER && main && w == 5)
-    {
-        if (app.slots.empty())
-        {
-            KillTimer(window, 5);
+        app.frameClock.consume();
+        // WM_TIMER has lower queue priority than WM_PAINT. Continuous high-refresh
+        // painting must not starve playback/lifecycle polling or the acceptance probe.
+        if (GetTickCount64() - app.lastPlaybackPoll >= 100)
+            SendMessage(window, WM_TIMER, 1, 0);
+        app.now = GetTickCount64();
+        if (!app.motionEnabled)
             return 0;
-        }
-        if (!IsIconic(window))
+        ++app.visualFrames;
+        if (!app.tapPath.empty() && app.now - app.tapAt >= 180)
+            app.tapPath.clear();
+        if (IsWindowVisible(window) && !IsIconic(window))
         {
-            auto region = physical({48, app.clientH - dockHeight(), app.clientW - 48, dockHeight()});
-            InvalidateRect(window, &region, FALSE);
+            auto dock = physical({48, app.clientH - dockHeight(), app.clientW - 48, dockHeight()});
+            InvalidateRect(window, &dock, FALSE);
+            for (auto &hit : app.mainHits)
+                if (hit.action == PLAY_SONG && hit.data >= 0 && hit.data < int(app.songs.size()) &&
+                    (primary(app.songs[hit.data]) || app.songs[hit.data].path == app.tapPath))
+                {
+                    auto box = hit.box;
+                    if (app.songs[hit.data].path != app.tapPath)
+                        box = {box.x + box.w - 112, box.y + box.h / 2 - 9, 14, 18};
+                    auto rect = physical(box);
+                    InvalidateRect(window, &rect, FALSE);
+                }
         }
-        if (app.player && !app.fullscreen)
+        if (app.player && IsWindowVisible(app.player) && !IsIconic(app.player) && !app.fullscreen)
         {
-            auto region = physical(
-                {0, app.previewRect.y + app.previewRect.h, logical(GetSystemMetrics(SM_CXSCREEN)), 80});
-            InvalidateRect(app.player, &region, FALSE);
+            RECT client{};
+            GetClientRect(app.player, &client);
+            auto rect = physical({0, app.previewRect.y + app.previewRect.h, logical(client.right), 80});
+            InvalidateRect(app.player, &rect, FALSE);
+            rect = physical({0, logical(client.bottom) - 116, logical(client.right), 116});
+            InvalidateRect(app.player, &rect, FALSE);
+            if (!app.tapPath.empty())
+                for (auto &hit : app.playerHits)
+                    if (hit.action == PLAY_SONG && hit.data >= 0 && hit.data < int(app.songs.size()) &&
+                        app.songs[hit.data].path == app.tapPath)
+                    {
+                        auto row = physical(hit.box);
+                        InvalidateRect(app.player, &row, FALSE);
+                    }
         }
+        if (app.features.disc && app.playback.width == 0 && app.playback.state == 3 &&
+            IsWindowVisible(app.preview) && !IsIconic(GetAncestor(app.preview, GA_ROOT)))
+            InvalidateRect(app.preview, nullptr, FALSE);
         return 0;
     }
-    if (message == WM_TIMER && main)
+    if (message == WM_TIMER && main && w == 1)
     {
         app.now = GetTickCount64();
+        if (app.now - app.lastPlaybackPoll < 80)
+            return 0;
+        app.lastPlaybackPoll = app.now;
         app.assetPermit = app.slots.size() < 2 && !app.aligning &&
                           (app.playback.state == 4 ||
                            (app.playback.state == 3 && (app.playback.width == 0 || app.playback.frames > 2)));
         if (!app.slots.empty())
         {
             auto oldWidth = app.playback.width, oldHeight = app.playback.height;
-            app.playback = mediaState(app.slots[0].player);
+            app.playback = playbackSnapshot();
             app.playbackReadAt = app.now;
+            updateAmbient();
             if (oldWidth != app.playback.width || oldHeight != app.playback.height)
                 layout();
             if (app.playback.state == 7 && app.previousState != 7)
@@ -710,14 +1000,23 @@ LRESULT CALLBACK WindowProc(HWND window, UINT message, WPARAM w, LPARAM l)
                 if (app.settings.loop && (app.features.repeat == 1 || app.slots.size() > 1))
                 {
                     seek(0);
+                    if (app.stackOutput)
+                    {
+                        app.stackWanted = true;
+                    }
                     if (app.slots.size() > 1)
                     {
                         app.barrier = true;
                         app.barrierAt = app.now;
                     }
                     for (auto &slot : app.slots)
-                        if (!app.barrier)
+                        if (!app.barrier && slot.player && !app.stackOutput)
                             mediaPlay(slot.player);
+                }
+                else if (app.stackOutput)
+                {
+                    app.stackWanted = false;
+                    mediaPause(app.slots[0].player, true);
                 }
                 else
                 {
@@ -732,8 +1031,12 @@ LRESULT CALLBACK WindowProc(HWND window, UINT message, WPARAM w, LPARAM l)
                 seek(app.practice.a);
             if (app.sleepUntil && app.now >= app.sleepUntil)
             {
+                if (app.stackOutput)
+                    app.stackOutput->pause(true);
+                app.stackWanted = false;
                 for (auto &slot : app.slots)
-                    mediaPause(slot.player, true);
+                    if (slot.player)
+                        mediaPause(slot.player, true);
                 app.sleepUntil = 0;
                 toast(L"Sleep timer finished.");
             }
@@ -765,6 +1068,7 @@ LRESULT CALLBACK WindowProc(HWND window, UINT message, WPARAM w, LPARAM l)
             if (app.graphReveal >= int(app.graph.points.size()))
                 app.graphReveal = -1;
         }
+        refreshVisualClock();
         invalidate();
         probeTick();
         publishSystemMedia();
@@ -984,6 +1288,12 @@ LRESULT CALLBACK WindowProc(HWND window, UINT message, WPARAM w, LPARAM l)
         }
         return result;
     }
+    if (message == WM_SETTINGCHANGE && main)
+    {
+        SystemParametersInfo(SPI_GETCLIENTAREAANIMATION, 0, &app.motionEnabled, 0);
+        refreshVisualClock();
+        invalidate();
+    }
     if (message == WM_DPICHANGED && main)
     {
         app.dpi = HIWORD(w);
@@ -1017,6 +1327,7 @@ LRESULT CALLBACK WindowProc(HWND window, UINT message, WPARAM w, LPARAM l)
                 return 0;
             }
             app.closing = true;
+            app.frameClock.stop();
             ++app.generation;
             KillTimer(window, 1);
             if (!app.slots.empty())
@@ -1053,6 +1364,8 @@ LRESULT CALLBACK WindowProc(HWND window, UINT message, WPARAM w, LPARAM l)
             closePlayer();
         return 0;
     }
+    if (message == WM_NCDESTROY)
+        paintBuffers.erase(window);
     if (message == WM_DESTROY && main)
     {
         PostQuitMessage(0);

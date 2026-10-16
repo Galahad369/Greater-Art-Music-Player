@@ -1,8 +1,8 @@
 # Android → Windows control inventory
 
-Desktop **0.1.4/code5**, DEVELOPMENT. Android source **1.21.39/code262** remains unchanged. This is a baseline source/control inventory, **not a completed exhaustive parity audit**. No feature is accepted merely because a button exists. Windows uses original C++/Win32 rather than the superseded Compose/VLC prototype, as subsequently requested by the owner.
+Desktop **0.1.12/code13 verified local development delivery**; frozen installer/portable evidence is in RELEASE_0.1.12.md. Android **1.21.39/code262** remains an emulator-verified debug sideload. This is a source/control inventory, **not a completed exhaustive parity audit**. No feature is accepted merely because a button exists. Windows uses original C++/Win32, not the superseded Compose/VLC prototype.
 
-Android paths below are relative to `greater-art/app/src/main/java/com/local/listentomusic/`; Windows paths are relative to `desktop/native/`. “Implemented” means the described narrow behavior exists; the evidence column limits what was actually tested. “Missing” is an explicit unfinished requirement, not permission to drop it. Final artifact evidence is in ../RELEASE_0.1.4.md.
+Android paths below are relative to `greater-art/app/src/main/java/com/local/listentomusic/`; Windows paths are relative to `desktop/native/`. “Implemented” means the described narrow behavior exists; the evidence column limits what was actually tested. “Missing” is an explicit unfinished requirement, not permission to drop it. Final artifact evidence is in ../RELEASE_0.1.12.md.
 
 | Feature/control | Android source | Windows implementation | Parity status | Actual evidence / missing acceptance |
 | --- | --- | --- | --- | --- |
@@ -17,7 +17,7 @@ Android paths below are relative to `greater-art/app/src/main/java/com/local/lis
 | Extended search/local overrides | data/AppPreferences.kt | None | Missing | Artist/lyrics search and display overrides not ported |
 | CUE/virtual clips | model/CueSheet.kt | None | Missing | Segment identities/clip-boundary playback not ported |
 | Metadata/artwork | data/MediaScanner.kt; data/ThumbnailRepository.kt | Assets.inl shell metadata/artwork | Partial | Selected artwork/artist only; all-row, embedded/folder cover matrix pending |
-| Row sizes/current marker/tap | ui/LibraryScreen.kt | App.cpp row + Window.inl tap timer | Partial | Rectangular rows/current-only marker; thumbnail/detail toggles missing |
+| Row sizes/current marker/tap | ui/LibraryScreen.kt | App.cpp row + compositor-paced Window.inl | Partial | Rectangular rows/current-only marker, 155 DPI icon render checks; thumbnail/detail toggles missing |
 | Duplicate/excluded folders/moved files | data/AppPreferences.kt; MainViewModel.kt | Core.h path dedup + load failures | Partial | Same-title files preserved; content duplicate tools/exclusions/recovery UI missing |
 | Exact-file deletion | MainViewModel.kt; ui/LibraryScreen.kt | App.cpp sourceMenu/Recycle Bin | Implemented | Three confirmations in source; native Recycle Bin/undo scenario not accepted |
 | Real native video | playback/PlaybackService.kt | Media.cpp Media Foundation | Partial | Generated 1280×720 video renders; broad format/device matrix pending |
@@ -39,26 +39,26 @@ Android paths below are relative to `greater-art/app/src/main/java/com/local/lis
 | Synced lyrics | model/TimedLyrics.kt; model/LocalLyrics.kt | Features.h LRC + Tools.inl | Partial | Unicode/multistamp/offset/follow tests; richer highlighting/editor missing |
 | Black Disc | ui/NowPlayingScreen.kt | App.cpp/Window.inl disc | Partial | Optional rotating audio artwork exists; live artwork/style acceptance pending |
 | Fixed controls/first-class speed | ui/NowPlayingScreen.kt | App.cpp fixed footer | Implemented | Owned-window Now Playing screenshot; flexible list never owns transport height |
-| Marquee | ui/NowPlayingScreen.kt | App.cpp + Window.inl | Partial | Timer/title reveal exists; reduced-motion and all widths pending |
+| Marquee | ui/NowPlayingScreen.kt | App.cpp + FrameClock.h | Partial | Fractional physical positioning, DWM-paced dirty-region redraw, reduced-motion static fallback; physical 180 Hz/mixed-monitor acceptance pending |
 | Expanded/fullscreen/lock | playback/FullscreenVideoActivity.kt; ui/NowPlayingScreen.kt | Window.inl + App.cpp | Partial | Deliberately minimized fullscreen regression passes; fullscreen unlock overlay missing |
 | Mini same player/no reload | playback/MiniWindowOverlayService.kt | Window.inl stable renderer transfer | Implemented | Six-voice dock/expanded/Mini probe |
 | Mini S/M/L, borders, bounds | playback/FloatingOverlaySize.kt | App.cpp compactMetrics + Window.inl | Partial | Borderless size adaptation; full multi-monitor/DPI/resize matrix pending |
 | PiP-equivalent/No Floating | playback/PlayerWindowMode.kt | Mini only | Missing | Three persisted presentation choices and tray restore missing |
-| Stack up to eight/mute/solo/gain | playback/StackPlaybackCoordinator.kt; ui/StackScreen.kt | App.cpp + Media.cpp | Partial | Six real media engines; gain/mute/solo math tests; eight heterogeneous sources pending |
+| Stack up to eight/mute/solo/gain | playback/StackPlaybackCoordinator.kt; ui/StackScreen.kt | StackPcm.cpp + AudioFallback.cpp | Partial | Eight-source/headroom and mute/solo/gain tests; six real decoded sources and own-process WASAPI output; heterogeneous acoustic acceptance pending |
 | Stack primary/enable/stop | playback/StackPlayback.kt; ui/StackScreen.kt | First slot primary | Partial | Primary switching and full track enable/stop UI missing |
 | Saved Stacks/offsets | data/AppPreferences.kt; ui/StackScreen.kt | Core.h schema02 + App.cpp | Partial | Unicode/gain/mute/offset roundtrip; rename/full editing and all legacy fixtures pending |
-| Manual offset controls/shared seek | ui/StackScreen.kt | App.cpp + Alignment.inl | Partial | ±100ms and shared seek exist; fractional maps/UI acceptance missing |
+| Manual offset controls/shared seek | ui/StackScreen.kt | App.cpp + Alignment.inl + StackPcm.cpp | Partial | Fine offset menu ±1ms/0.1ms/one actual-endpoint sample, fractional-sample persistence/interpolation, epoch-safe shared seek; full interaction acceptance pending |
 | Structural sound align | playback/StackAudioAlign.kt | AudioAnalysis.cpp + Alignment.inl | Partial | Actual decoded 500ms delay and ±lag tests; simpler than Android instrument engine |
 | Instrument/chroma/fine timing maps | playback/StackInstrumentAlign.kt; playback/StackFineTiming.kt; playback/StackAlignmentMath.kt | None | Missing | No instrumental separation, chroma or linear/nonlinear time-warp parity |
-| Start barrier/drift trim | playback/StackSyncControl.kt | Alignment.inl | Partial | Readiness barrier and small-rate trim; not acoustically/sample-clock accepted |
-| Shared-clock prototype | playback/SharedClockPcmPrototype.kt; playback/StackPcmStream.kt | Independent native/WASAPI voices | Missing/experimental | Android prototype remains experimental; desktop has no shared-sample mixer |
+| Start barrier/drift trim | playback/StackSyncControl.kt | Alignment.inl + one prebuffered endpoint | Implemented differently | One audible PCM clock replaces independent rate trims/seeks; only silent primary video follows; rapid-add position/prebuffer checks |
+| Shared-clock prototype | playback/SharedClockPcmPrototype.kt; playback/StackPcmStream.kt | StackPcm.cpp + one WASAPI client | Windows production implementation | Calibrated own-process digital capture catches one-sample sabotage; physical acoustic acceptance and automatic cover matching remain separate |
 | Alignment progress/cancel/confidence | playback/StackAlignmentController.kt | Alignment.inl generation cancel | Partial | Uncertain offsets preserved; no detailed progress/confidence/cancel UI |
 | Stack recommendations | playback/StackRecommend.kt | None | Missing | Not replaced by filename graph |
 | Filename graph | graph/FilenameSimilarity.kt; graph/GraphBuilder.kt | Core.h filenameFeatures/buildGraph | Partial | Latin/CJK/shared-letter/sparse tests; full Unicode normalization/candidate-index parity missing |
 | Force graph/tap/drag/zoom/wand | graph/GraphLayout.kt; ui/NodesScreen.kt | Core.h + App.cpp | Partial | Real nodes/weighted rendering; complete gesture/large-library acceptance pending |
 | Graph options/cache | graph/GraphOptions.kt; data/GraphRepository.kt | Core.h graph-v2 + Tools.inl | Partial | Invalidation, neighbor/threshold settings; labels/orphans/edge/group options missing |
-| Classic artwork Ambient | ui/components/VideoAmbientColors.kt | Assets.inl artwork palette + App.cpp | Partial | Artwork-derived gradient; live video colors and temporal smoothing missing |
-| Aurora/Bloom/Flow | ui/components/AdaptiveAmbientEngine.kt; ui/components/AdaptiveAmbientBackdrop.kt | None | Missing | Do not present the simple gradient as Adaptive Dynamic parity |
+| Classic video/artwork Ambient | ui/components/VideoAmbientColors.kt | VideoAmbient.cpp read-only MFT + Ambient.inl + Assets.inl | Partial | Actual GPU red/blue/green, unchanged input sample/player/source, pause/disabled hold and smooth palette; broad format/HDR acceptance pending |
+| Aurora/Bloom/Flow | ui/components/AdaptiveAmbientEngine.kt; ui/components/AdaptiveAmbientBackdrop.kt | Ambient.inl + App.cpp lighting | Partial | Restrained brightness/chroma-reactive broad lighting; complete four-layer intensity/react/motion controls remain unfinished |
 | Custom image Crop/Fit | data/AppPreferences.kt; ui/SettingsScreen.kt | Assets.inl + App.cpp | Partial | Aspect-preserving custom image; dim/intensity controls and background decode scheduling pending |
 | Custom/current video + Stack tiles | ui/SettingsScreen.kt; playback/ParallelPlayback.kt | None | Missing | No extra video decoder introduced as a fake color/background workaround |
 | Themes/fonts/high contrast | ui/theme/Theme.kt; data/AppPreferences.kt | App.cpp + Features.h | Partial | Three palettes, light/dark/high contrast, four fonts; system theme/all eight accents/Void parity missing |
@@ -72,7 +72,7 @@ Android paths below are relative to `greater-art/app/src/main/java/com/local/lis
 
 ## Next implementation stages
 
-1. Connect reviewed bundled **video** decode/output to the original renderer without losing hardware/native source quality, then establish a source-frame color feed for Dynamic Ambient. No secondary decoder solely for colors.
+1. The original decoder now supplies live colors through an optional pass-through effect, with no secondary decoder or renderer replacement. Complete its hardware/format/recovery acceptance and the full Adaptive controls; bundled **video** output/format parity remains separate work.
 2. Add queue Search/Locate/editing, all-row artwork, filesystem observation and full translated settings with backup/cache controls.
-3. Port instrumental timing maps/shared-clock architecture only with decoded-media tests and physical acoustic evidence; then tiled Stack video and missing presentation choices.
+3. The Windows shared-clock output now exists and has calibrated digital fixture proof. Port multi-anchor instrumental timing maps only with decoded-media tests and acoustic acceptance; then tiled Stack video and missing presentation choices.
 4. Complete native accessibility, clean-machine/mixed-DPI/endpoint tests and owner-approved signing. Audit every remaining Android control before claiming 1.0.0 parity.

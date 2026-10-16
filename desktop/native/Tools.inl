@@ -245,6 +245,16 @@ std::wstring diagnosticText()
         << formatTime(app.playback.time) << L" / " << formatTime(app.playback.duration) << L"\r\nSpeed: "
         << app.speed << L"×\r\nVoices: " << app.slots.size()
         << L" / 8\r\nOffline. No source-resolution, bitrate or FPS limit.\r\n";
+    if (app.stackOutput)
+    {
+        out << L"\r\nStack audio: one PCM bus / one WASAPI clock\r\nEndpoint: " << app.playback.pcmRate
+            << L" Hz / " << app.playback.pcmChannels << L" channels\r\nUnderruns: "
+            << app.playback.pcmUnderruns
+            << L"\r\nFractional offsets precede mixing. Musical matching is confidence-gated.\r\n";
+        for (std::size_t i = 0; i < app.slots.size(); ++i)
+            out << L"Voice " << i + 1 << L": offset=" << app.slots[i].offset << L"s\r\n";
+        return out.str();
+    }
     for (std::size_t i = 0; i < app.slots.size(); ++i)
     {
         auto &slot = app.slots[i];
@@ -327,22 +337,19 @@ void toolsMenu(HWND owner)
         break;
     case 7:
         app.features.disc = !app.features.disc;
-        if (app.features.disc)
-            SetTimer(app.preview, 7, 16, nullptr);
-        else
-            KillTimer(app.preview, 7);
         break;
     case 8: {
         menu = CreatePopupMenu();
-        const wchar_t *names[]{L"Solid", L"Ambient — artwork colors", L"Custom image…"};
-        for (int i = 0; i < 3; ++i)
-            AppendMenu(menu, MF_STRING, i + 1, names[i]);
+        const wchar_t *names[]{L"Solid", L"Classic Ambient — video / artwork",
+                               L"Adaptive Ambient — video / artwork", L"Custom image…"};
+        for (int i = 0; i < 4; ++i)
+            AppendMenu(menu, MF_STRING, i + 1, translate(names[i], app.features.language).c_str());
         int value = TrackPopupMenu(menu, TPM_RETURNCMD | TPM_NONOTIFY, p.x, p.y, 0, owner, nullptr);
         DestroyMenu(menu);
         if (value)
         {
-            app.features.background = value == 3 ? 3 : value - 1;
-            if (value == 3)
+            app.features.background = value - 1;
+            if (value == 4)
             {
                 auto image = chooseTextFile(false, L"png");
                 if (!image.empty())
