@@ -7,7 +7,7 @@ This file is the authoritative version policy for Greater Art. If any handoff no
 ## Machine-checkable state
 
 
-Current source: **1.21.42 (code 265)**
+Current source: **1.21.43 (code 266)**
 Allowed consumed transition: **1.21.39 (code 262) -> 1.21.42 (code 265)**
 
 PR #174 consumed 1.21.40/code263 (eeb06d9) and 1.21.41/code264 (8b81e82).
@@ -343,3 +343,4 @@ Previous baseline: 1.13.26 (code 115).
 - 1.21.40 (code 263) — Consumed by separate blocked PR #174 commit eeb06d9; not imported.
 - 1.21.41 (code 264) — Consumed by separate blocked PR #174 commit 8b81e82; not imported.
 - 1.21.42 (code 265) — Integrate Claude 96760a2 scoped exclusions/sidecar-index/relink foundation with Unicode, strict identity parsing, cue isolation and duplicate-listing regressions. Restore the missing audio Now Playing toolbar independently of artwork, with shared lock anchoring and compact landscape layout. No automatic preference rewrite, sidecar byte reads, permission cutover or shared playback changes. SOURCE_ONLY; verified 1.21.39 APK preserved.
+- 1.21.43 (code 266) — Fullscreen opens portrait-first. Add explicit portrait/landscape rotation action with destination-shaped phone icon, arrow and localized accessibility labels; retain the shared player and native video quality. SOURCE_ONLY; verified 1.21.39 APK preserved.

@@ -3,7 +3,7 @@
 This file describes the **current repository state only**. Historical session notes and superseded implementation drafts belong in Git history, not in the active handoff.
 
 **Project:** `greater-art/` in the repository checkout
-**Current source:** `1.21.42 (code 265)` — SOURCE_ONLY; reviewed scoped-storage foundations and MP3 player toolbar fix
+**Current source:** `1.21.43 (code 266)` — SOURCE_ONLY; portrait-first fullscreen and explicit rotation control
 **Current version:** `1.21.39 (code 262)`
 **Latest APK:** `releases/GreaterArt-1.21.39.apk` (`26,877,593 bytes`; SHA-256 `e636fb7c1bfdbdf5500d48863a9f6c778aec47bb2090e433bb2e86037e468104`)
 **Application ID:** `com.local.listentomusic`
@@ -13,6 +13,33 @@ This file describes the **current repository state only**. Historical session no
 **Verification boundary:** Exact build source `b20489581b6125ce3963c767ed8e419c979a6820`; 358 JVM tests, 21 API36 emulator tests, zero lint errors; signature, pinned certificate, version/package, 16KiB ZIP alignment and upgrade installation checked. Emulator tests cover scoped URI discovery/access, live primary-video Dynamic Ambient colors and retained player identity, floating presentations and accessibility/Developer Mode interactions. No app fatal in the inspected crash buffer. This is a debug sideload build, not production signing, physical-phone acceptance, full security assessment or a universal bug-free guarantee. The prior 1.21.37 artifact and its evidence remain unchanged in history.
 
 ## Repository state
+
+### October 16 — portrait-first fullscreen (1.21.43/code266)
+
+- Owner changed the fullscreen preference: enter portrait, not landscape. The
+  Activity declares portrait at launch; Compose requests portrait on each fresh
+  fullscreen entry. Rotation is deliberate, not a change to the selected media.
+- Fullscreen top chrome exposes a rotate action in both orientations. The phone
+  outline shows the destination orientation, accompanied by a circular arrow;
+  accessibility labels name the destination in all six app languages. Wide bars
+  keep the floating-mode selector; narrow fullscreen bars prioritize rotation
+  in that slot, leaving floating-mode selection available outside fullscreen.
+- Rotation changes orientation only, without player prepare/restart/seek, new
+  quality limits or a new Activity. Existing surface handoff/exit policy remains.
+- The audio-only expanded system overlay cannot request device orientation, so
+  it does not advertise an inert rotate button. Rotation belongs to the real
+  fullscreen Activity; its narrow toolbar keeps 48dp targets without clipping.
+- Local Java21 build, lint and both APK builds pass; 390 JVM tests pass, zero
+  failures/skips. Lint has zero errors, 45 warnings and three hints. All 15 API36
+  emulator tests pass in 59.448s: real portrait/landscape/portrait rotation retains
+  player/view identity and native1280x720; native PiP, audio controls, small-screen
+  toolbar and accessibility regressions pass. Device preferences are restored.
+- Screenshots are under app/build/verification/fullscreen-rotation. The landscape
+  capture was taken during compositor resize, so it is not settled-layout proof.
+  Physical-phone acceptance remains unavailable. Verified 1.21.39 APK is untouched.
+- Verification lesson: freeze Kotlin sources during lint. The first analysis hit
+  an internal FIR error while edits were ongoing; the frozen-source full rerun
+  passed. Never treat a failed analysis as a successful lint result.
 
 ### October 16 — reviewed Claude scoped-storage foundation (1.21.42/code265)
 

@@ -1,6 +1,6 @@
 # Storage migration — stages A, B and C core
 
-Current source target: 1.21.42 / 265. Latest verified APK remains 1.21.39 / 262.
+Current source: 1.21.43 / 266 (rotation UI follow-up; storage foundation imported in 1.21.42 / 265). Latest verified APK remains 1.21.39 / 262.
 Not a permission cutover.
 
 ## Stage C foundation follow-up — October 16

@@ -73,6 +73,9 @@ import androidx.compose.material.icons.rounded.Bedtime
 import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.Fullscreen
 import androidx.compose.material.icons.rounded.FullscreenExit
+import androidx.compose.material.icons.rounded.StayCurrentLandscape
+import androidx.compose.material.icons.rounded.StayCurrentPortrait
+import androidx.compose.material.icons.automirrored.rounded.RotateRight
 import androidx.compose.material.icons.rounded.MusicNote
 import androidx.compose.material.icons.rounded.Movie
 import androidx.compose.material.icons.rounded.Pause
@@ -307,7 +310,6 @@ fun NowPlayingScreen(
     onAddQueueItemToList: (MediaFile) -> Unit = {},
     systemOverlay: Boolean = false,
     initialFullscreen: Boolean = false,
-    forceLandscapeFullscreen: Boolean = false,
     onFullscreenChanged: (Boolean) -> Unit = {},
     sharedVideoView: PlayerView? = null,
     onSharedVideoReleased: () -> Unit = {},
@@ -319,6 +321,11 @@ fun NowPlayingScreen(
         LocalFloatingModeChange provides onFloatingWindowModeChange,
     ) {
     var fullscreen by rememberSaveable { mutableStateOf(initialFullscreen) }
+    var fullscreenLandscape by rememberSaveable { mutableStateOf(false) }
+    val toggleFullscreen = {
+        if (!fullscreen) fullscreenLandscape = false
+        fullscreen = !fullscreen
+    }
     var controlsLocked by rememberSaveable { mutableStateOf(false) }
     // The lock and the fullscreen video chrome share one visibility source.
     var videoControlsVisible by rememberSaveable { mutableStateOf(true) }
@@ -346,7 +353,7 @@ fun NowPlayingScreen(
 
         val backdrop = if (ambientPreferences?.backgroundMode == com.local.listentomusic.data.AppBackgroundMode.ADAPTIVE_DYNAMIC)
             Modifier.adaptiveAmbientBackdrop(artwork, playback.currentPath, ambientPreferences,
-                visible = !fullscreen && !forceLandscapeFullscreen,
+                visible = !fullscreen,
                 extraDim = ambientPreferences.backgroundDim,
                 scrolling = queueListState.isScrollInProgress) else Modifier.ambientBackdrop(
         artwork,
@@ -364,13 +371,17 @@ fun NowPlayingScreen(
         val landscape = maxWidth > maxHeight
         val portraitVideoHeight = minOf(maxWidth / playback.videoAspectRatio.coerceIn(0.75f, 2.25f), maxHeight * 0.34f)
         val immersiveVideo = playback.isVideo && (fullscreen || landscape)
+        val rotateFullscreen = {
+            fullscreenLandscape = if (fullscreen) !fullscreenLandscape else !landscape
+            fullscreen = true
+        }
         var lockAnchorBounds by remember(playback.isVideo, immersiveVideo) {
             mutableStateOf<androidx.compose.ui.geometry.Rect?>(null)
         }
         val reportLockAnchor: (androidx.compose.ui.geometry.Rect) -> Unit = { lockAnchorBounds = it }
 
         FullscreenEffect(enabled = fullscreen || (playback.isVideo && landscape),
-            forceLandscape = forceLandscapeFullscreen)
+            landscape = if (fullscreen) fullscreenLandscape else null)
         BackHandler(enabled = fullscreen) { fullscreen = false }
         BackHandler(enabled = controlsLocked) { controlsLocked = false }
 
@@ -392,7 +403,7 @@ fun NowPlayingScreen(
                                         language = language,
                                         onPictureInPicture = onPictureInPicture,
                                         onHome = onHome,
-                                        onFullscreen = { fullscreen = true },
+                                        onFullscreen = toggleFullscreen,
                                         onClose = onClose,
                                         onLockAnchorBoundsChanged = reportLockAnchor,
                                     )
@@ -407,7 +418,9 @@ fun NowPlayingScreen(
                     onHome = onHome,
                     onClose = onClose,
                     onPictureInPicture = onPictureInPicture,
-                    onFullscreen = { fullscreen = !fullscreen },
+                    onFullscreen = toggleFullscreen,
+                    onRotate = rotateFullscreen,
+                    landscape = if (fullscreen) fullscreenLandscape else landscape,
                     onTogglePlay = onTogglePlay,
                     onPrevious = onPrevious,
                     onNext = onNext,
@@ -469,7 +482,9 @@ fun NowPlayingScreen(
                     language = language,
                     onPictureInPicture = onPictureInPicture,
                     onHome = onHome,
-                    onFullscreen = { fullscreen = !fullscreen },
+                    onFullscreen = toggleFullscreen,
+                    onRotate = if (fullscreen && !systemOverlay) rotateFullscreen else null,
+                    landscape = fullscreenLandscape,
                     onClose = onClose,
                     fullscreen = fullscreen,
                     onLockAnchorBoundsChanged = reportLockAnchor,
@@ -566,6 +581,8 @@ private fun VideoPlayerStage(
     onClose: () -> Unit,
     onPictureInPicture: () -> Unit,
     onFullscreen: () -> Unit,
+    onRotate: () -> Unit,
+    landscape: Boolean,
     onTogglePlay: () -> Unit,
     onPrevious: () -> Unit,
     onNext: () -> Unit,
@@ -839,6 +856,8 @@ private fun VideoPlayerStage(
                                         onClose = onClose,
                                         overlay = true,
                                         fullscreen = true,
+                                        onRotate = onRotate,
+                                        landscape = landscape,
                                         onLockAnchorBoundsChanged = onLockAnchorBoundsChanged,
                                         modifier = Modifier.align(Alignment.TopCenter)
                                             .windowInsetsPadding(playerStatusInsets()),
@@ -2080,7 +2099,7 @@ private fun PlaybackError(message: String?) {
 }
 
 @Composable
-private fun NowPlayingTopBar(
+internal fun NowPlayingTopBar(
     language: AppLanguage,
     onPictureInPicture: () -> Unit,
     onHome: () -> Unit,
@@ -2089,14 +2108,20 @@ private fun NowPlayingTopBar(
     modifier: Modifier = Modifier,
     overlay: Boolean = false,
     fullscreen: Boolean = false,
+    onRotate: (() -> Unit)? = null,
+    landscape: Boolean = false,
     onLockAnchorBoundsChanged: (androidx.compose.ui.geometry.Rect) -> Unit = {},
 ) {
     val foreground = if (overlay) GaVideoOverlay.foreground else MaterialTheme.colorScheme.onSurface
     val background = if (overlay) GaVideoOverlay.scrim
         else MaterialTheme.colorScheme.surface.copy(alpha = NOW_PLAYING_AMBIENT_PANEL_ALPHA)
     val topBarShape = RoundedCornerShape(GaRadius.chrome)
+    BoxWithConstraints(modifier.fillMaxWidth()) {
+    // Fullscreen's compact portrait toolbar gives rotation the mode-selector slot.
+    // Wider bars show both; floating mode remains available outside fullscreen.
+    val showFloatingMode = onRotate == null || maxWidth >= 368.dp
     Row(
-        modifier = modifier.fillMaxWidth()
+        modifier = Modifier.fillMaxWidth()
             .padding(horizontal = 12.dp, vertical = 6.dp)
             .height(52.dp)
             .clip(topBarShape)
@@ -2124,7 +2149,7 @@ private fun NowPlayingTopBar(
         val selectedMode = LocalFloatingMode.current
         val onModeChange = LocalFloatingModeChange.current
         val modeLabel = floatingModeLabel(language, selectedMode)
-        IconButton(
+        if (showFloatingMode) IconButton(
             onClick = { onModeChange(selectedMode.nextFloatingMode()) },
             modifier = Modifier.size(GaControl.touchTarget)
                 .inspectElement("FLOATING_MODE_BUTTON", "Switch floating playback mode: $modeLabel"),
@@ -2141,6 +2166,22 @@ private fun NowPlayingTopBar(
             )
         }
         Spacer(Modifier.weight(1f))
+        if (onRotate != null) IconButton(
+            onClick = onRotate,
+            modifier = Modifier.size(GaControl.touchTarget)
+                .inspectElement("ROTATE_SCREEN_BUTTON", fullscreenRotationLabel(language, landscape)),
+        ) {
+            Box(Modifier.size(32.dp)) {
+                Icon(
+                    if (landscape) Icons.Rounded.StayCurrentPortrait else Icons.Rounded.StayCurrentLandscape,
+                    fullscreenRotationLabel(language, landscape),
+                    modifier = Modifier.size(26.dp).align(Alignment.Center), tint = foreground,
+                )
+                Icon(Icons.AutoMirrored.Rounded.RotateRight, null,
+                    modifier = Modifier.size(14.dp).align(Alignment.TopEnd)
+                        .background(background, CircleShape), tint = foreground)
+            }
+        }
         // The button itself stays above the global input blocker, but its position
         // comes from this real toolbar slot. Padding/action-count changes therefore
         // move it automatically instead of requiring another magic offset.
@@ -2163,6 +2204,16 @@ private fun NowPlayingTopBar(
             Icon(Icons.Rounded.Close, uiText(language, "Close player", "關閉播放器"), Modifier.size(30.dp), tint = foreground)
         }
     }
+    }
+}
+
+internal fun fullscreenRotationLabel(language: AppLanguage, landscape: Boolean): String = when (language) {
+    AppLanguage.ENGLISH -> if (landscape) "Rotate to portrait" else "Rotate to landscape"
+    AppLanguage.TRADITIONAL_CHINESE -> if (landscape) "旋轉至直向" else "旋轉至橫向"
+    AppLanguage.CANTONESE -> if (landscape) "轉返直向" else "轉做橫向"
+    AppLanguage.JAPANESE -> if (landscape) "縦向きに回転" else "横向きに回転"
+    AppLanguage.GERMAN -> if (landscape) "Ins Hochformat drehen" else "Ins Querformat drehen"
+    AppLanguage.FRENCH -> if (landscape) "Passer en portrait" else "Passer en paysage"
 }
 
 @Composable
@@ -2289,7 +2340,10 @@ internal fun enforceImmersiveWindow(window: Window) {
 }
 
 @Composable
-private fun FullscreenEffect(enabled: Boolean, forceLandscape: Boolean = false) {
+private fun FullscreenEffect(enabled: Boolean, landscape: Boolean? = null) {
+    // A WindowManager presentation delegates fullscreen to its real Activity;
+    // it must not rotate an incidental Activity supplied through a wrapped context.
+    if (LocalSystemPlayer.current) return
     val activity = LocalContext.current.findActivity() ?: return
     val systemDark = MaterialTheme.colorScheme.background.luminance() < 0.5f
     val orientation = LocalConfiguration.current.orientation
@@ -2297,14 +2351,19 @@ private fun FullscreenEffect(enabled: Boolean, forceLandscape: Boolean = false) 
     // MainActivity handles orientation itself via configChanges, so the Activity is not
     // recreated. Reassert the fullscreen contract after the landscape/portrait relayout
     // instead of relying only on the original enter-fullscreen call.
-    LaunchedEffect(activity, enabled, orientation) {
+    LaunchedEffect(activity, enabled, orientation, landscape) {
         if (enabled) {
+            activity.requestedOrientation = when (landscape) {
+                true -> ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE
+                false -> ActivityInfo.SCREEN_ORIENTATION_SENSOR_PORTRAIT
+                null -> ActivityInfo.SCREEN_ORIENTATION_FULL_SENSOR
+            }
             enforceImmersiveWindow(activity.window)
             ViewCompat.requestApplyInsets(activity.window.decorView)
         }
     }
 
-    DisposableEffect(activity, enabled, systemDark, forceLandscape) {
+    DisposableEffect(activity, enabled, systemDark) {
         val window = activity.window
         val decorView = window.decorView
         val insets = WindowCompat.getInsetsController(window, decorView)
@@ -2319,8 +2378,6 @@ private fun FullscreenEffect(enabled: Boolean, forceLandscape: Boolean = false) 
         }
 
         if (enabled) {
-            activity.requestedOrientation = if (forceLandscape) ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE
-                else ActivityInfo.SCREEN_ORIENTATION_FULL_SENSOR
             enforceImmersiveBars()
             decorView.viewTreeObserver.addOnWindowFocusChangeListener(focusListener)
             ViewCompat.setOnApplyWindowInsetsListener(decorView) { view, applied ->

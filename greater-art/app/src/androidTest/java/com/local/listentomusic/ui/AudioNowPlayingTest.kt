@@ -36,7 +36,8 @@ class AudioNowPlayingTest {
     private var shrinkCalls = 0
     private var playCalls = 0
 
-    private fun show(size: DpSize = DpSize(384.dp, 760.dp), disc: Boolean = false) {
+    private fun show(size: DpSize = DpSize(384.dp, 760.dp), disc: Boolean = false,
+        initialFullscreen: Boolean = false) {
         compose.setContent {
             DeviceConfigurationOverride(DeviceConfigurationOverride.ForcedSize(size)) {
                 MaterialTheme {
@@ -67,7 +68,8 @@ class AudioNowPlayingTest {
                         onBeginTemporaryDoubleSpeed = { false }, onEndTemporaryDoubleSpeed = {},
                         onLockTemporaryDoubleSpeed = { false }, isFavourite = false,
                         onToggleFavourite = {}, onShareCurrentMedia = {}, onShareQueue = {},
-                        systemOverlay = true, onFullscreenChanged = { fullscreen.add(it) },
+                        systemOverlay = true, initialFullscreen = initialFullscreen,
+                        onFullscreenChanged = { fullscreen.add(it) },
                     )
                 }
             }
@@ -150,5 +152,35 @@ class AudioNowPlayingTest {
         show(DpSize(320.dp, 640.dp), disc = true)
         assertChrome()
         capture("disc")
+    }
+
+    @Test fun narrowOverlayFullscreenDoesNotOfferUnusableRotation() {
+        show(DpSize(320.dp, 640.dp), initialFullscreen = true)
+        for (label in listOf("Lock player controls", "Exit fullscreen", "Close player")) {
+            compose.onNodeWithContentDescription(label).assertIsDisplayed()
+                .assertWidthIsAtLeast(48.dp).assertHeightIsAtLeast(48.dp)
+        }
+        compose.onNodeWithContentDescription("Rotate to landscape").assertDoesNotExist()
+        compose.onNodeWithContentDescription("Exit fullscreen").performClick()
+        assertChrome()
+    }
+
+    @Test fun narrowFullscreenToolbarFitsRotationAndChangesDestinationIcon() {
+        val landscape = mutableStateOf(false)
+        compose.setContent {
+            DeviceConfigurationOverride(DeviceConfigurationOverride.ForcedSize(DpSize(320.dp, 640.dp))) {
+                MaterialTheme {
+                    NowPlayingTopBar(AppLanguage.ENGLISH, {}, {}, {}, {}, fullscreen = true,
+                        landscape = landscape.value, onRotate = { landscape.value = !landscape.value })
+                }
+            }
+        }
+        for (label in listOf("Rotate to landscape", "Exit fullscreen", "Close player", "Home")) {
+            compose.onNodeWithContentDescription(label).assertIsDisplayed()
+                .assertWidthIsAtLeast(48.dp).assertHeightIsAtLeast(48.dp)
+        }
+        compose.onNodeWithContentDescription("Rotate to landscape").performClick()
+        compose.onNodeWithContentDescription("Rotate to portrait").assertIsDisplayed().performClick()
+        compose.onNodeWithContentDescription("Rotate to landscape").assertIsDisplayed()
     }
 }
