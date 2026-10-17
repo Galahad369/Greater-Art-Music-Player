@@ -10,7 +10,7 @@ Greater Art is a local-first Android audio and video player. This repository con
 - [User demonstration](greater-art-user-demo.html) · [Technical demonstration](greater-art-technical-demo.html)
 
 Current Android source: **1.21.39 / code 262 — VERIFIED debug sideload** (desktop tooling-policy separation; Android runtime unchanged). Developer Mode can be disabled directly from its Inspector dialog.
-Windows Desktop source is independently versioned at **0.1.15 / code16**, adding interactive Nodes physics and middle-mouse/Space+drag pan. Final installer acceptance is in progress; the latest frozen delivery remains **0.1.12/code13**.
+Windows Desktop source is independently versioned at **0.1.16 / code17**, adding interactive Nodes physics and middle-mouse/Space+drag pan. Final installer acceptance is in progress; the latest frozen delivery remains **0.1.12/code13**.
 The [installed/portable receipt](desktop/RELEASE_0.1.12.md) records exact hashes and remaining gates. It is an original
 native C++ IDE-style workspace with offline EXE setup and desktop shortcuts.
 No VLC/Java/Electron runtime. Approved codecs are built from pinned source and bundled

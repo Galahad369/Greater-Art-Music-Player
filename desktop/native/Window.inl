@@ -622,7 +622,8 @@ void probeTick()
         layout();
         capture(app.main, app.probeOutput / L"returned-dock.png");
         std::ofstream report(app.probeOutput / L"verification.txt");
-        report << "PASS version=0.1.12 code=13\nvoices=" << app.slots.size()
+        report << "PASS version=" << toUtf8(VERSION) << " code=" << VERSION_CODE
+               << "\nvoices=" << app.slots.size()
                << "\nsource=" << app.playback.width << "x" << app.playback.height
                << "\nframes=" << app.playback.frames
                << "\nfullscreen_monitor_bounds=true\nmini_and_dock_transfer=true\nmsaa_named_controls="
