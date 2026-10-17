@@ -1,8 +1,8 @@
 # Android → Windows control inventory
 
-Desktop **0.1.12/code13 verified local development delivery**; frozen installer/portable evidence is in RELEASE_0.1.12.md. Android **1.21.39/code262** remains an emulator-verified debug sideload. This is a source/control inventory, **not a completed exhaustive parity audit**. No feature is accepted merely because a button exists. Windows uses original C++/Win32, not the superseded Compose/VLC prototype.
+Desktop **0.1.16/code17 verified local development delivery**; frozen installer/portable evidence is in RELEASE_0.1.16.md. Android **1.21.39/code262** remains an emulator-verified debug sideload. This is a source/control inventory, **not a completed exhaustive parity audit**. No feature is accepted merely because a button exists. Windows uses original C++/Win32, not the superseded Compose/VLC prototype.
 
-Android paths below are relative to `greater-art/app/src/main/java/com/local/listentomusic/`; Windows paths are relative to `desktop/native/`. “Implemented” means the described narrow behavior exists; the evidence column limits what was actually tested. “Missing” is an explicit unfinished requirement, not permission to drop it. Final artifact evidence is in ../RELEASE_0.1.12.md.
+Android paths below are relative to `greater-art/app/src/main/java/com/local/listentomusic/`; Windows paths are relative to `desktop/native/`. “Implemented” means the described narrow behavior exists; the evidence column limits what was actually tested. “Missing” is an explicit unfinished requirement, not permission to drop it. Final artifact evidence is in ../RELEASE_0.1.16.md.
 
 | Feature/control | Android source | Windows implementation | Parity status | Actual evidence / missing acceptance |
 | --- | --- | --- | --- | --- |
@@ -55,8 +55,8 @@ Android paths below are relative to `greater-art/app/src/main/java/com/local/lis
 | Alignment progress/cancel/confidence | playback/StackAlignmentController.kt | Alignment.inl generation cancel | Partial | Uncertain offsets preserved; no detailed progress/confidence/cancel UI |
 | Stack recommendations | playback/StackRecommend.kt | None | Missing | Not replaced by filename graph |
 | Filename graph | graph/FilenameSimilarity.kt; graph/GraphBuilder.kt | Core.h filenameFeatures/buildGraph | Partial | Latin/CJK/shared-letter/sparse tests; full Unicode normalization/candidate-index parity missing |
-| Force graph/tap/drag/zoom/wand | graph/GraphLayout.kt; ui/NodesScreen.kt | Core.h + App.cpp | Partial | Real nodes/weighted rendering; complete gesture/large-library acceptance pending |
-| Graph options/cache | graph/GraphOptions.kt; data/GraphRepository.kt | Core.h graph-v2 + Tools.inl | Partial | Invalidation, neighbor/threshold settings; labels/orphans/edge/group options missing |
+| Force graph/tap/drag/zoom/wand | graph/GraphLayout.kt; ui/NodesScreen.kt | GraphMotion.h + GraphView.inl + Window.inl | Partial | Real 209-file 4K gesture/neighbor/settling probe; middle mouse/Space pan, cursor zoom and 2,000-node numerical checks pass. Full touch/large-library/graph accessibility matrix pending |
+| Graph options/cache | graph/GraphOptions.kt; data/GraphRepository.kt | Core.h graph-v2 + Features.h + GraphView.inl + Tools.inl | Partial | Invalidation, neighbor/threshold and persistent center/repel/link/distance controls; remaining labels/orphans/edge/group options missing |
 | Classic video/artwork Ambient | ui/components/VideoAmbientColors.kt | VideoAmbient.cpp read-only MFT + Ambient.inl + Assets.inl | Partial | Actual GPU red/blue/green, unchanged input sample/player/source, pause/disabled hold and smooth palette; broad format/HDR acceptance pending |
 | Aurora/Bloom/Flow | ui/components/AdaptiveAmbientEngine.kt; ui/components/AdaptiveAmbientBackdrop.kt | Ambient.inl + App.cpp lighting | Partial | Restrained brightness/chroma-reactive broad lighting; complete four-layer intensity/react/motion controls remain unfinished |
 | Custom image Crop/Fit | data/AppPreferences.kt; ui/SettingsScreen.kt | Assets.inl + App.cpp | Partial | Aspect-preserving custom image; dim/intensity controls and background decode scheduling pending |
