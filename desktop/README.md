@@ -1,12 +1,12 @@
 # Greater Art Desktop — native Windows edition
 
-Current source **0.1.16/code17**, interactive Nodes update undergoing final installed acceptance. Latest frozen delivery is **0.1.12/code13** until the new receipt is recorded. Original C++/Win32 application: activity rail, resizable Stack / Library / Nodes panes, collapsed Settings, fixed dock. Expanded Now Playing and detached Mini transfer the same primary renderer without reloading media. Older frozen artifacts are preserved.
+Current **0.1.16/code17**, locally verified interactive Nodes delivery. Original C++/Win32 application: activity rail, resizable Stack / Library / Nodes panes, collapsed Settings, fixed dock. Expanded Now Playing and detached Mini transfer the same primary renderer without reloading media. Older frozen artifacts are preserved.
 
 ## Install and run
 
-[Artifact hashes and installed test receipt](RELEASE_0.1.12.md) · [Android-to-Windows source/control inventory](docs/ANDROID_WINDOWS_PARITY.md).
+[Artifact hashes and installed test receipt](RELEASE_0.1.16.md) · [Android-to-Windows source/control inventory](docs/ANDROID_WINDOWS_PARITY.md).
 
-Use **GreaterArt-Desktop-Setup-0.1.12.exe** from the local desktop/releases directory. Double-click, leave **Create desktop shortcut** selected, then Install. The per-user setup also creates a Start menu entry. Installation and playback are offline. Add a local folder to populate Library.
+Use **GreaterArt-Desktop-Setup-0.1.16.exe** from the local desktop/releases directory. Double-click, leave **Create desktop shortcut** selected, then Install. The per-user setup also creates a Start menu entry. Installation and playback are offline. Add a local folder to populate Library.
 
 Installed app: `%LOCALAPPDATA%/Programs/GreaterArtDesktop/GreaterArt.exe`.
 Settings/cache: `%LOCALAPPDATA%/GreaterArtDesktopNative/`.

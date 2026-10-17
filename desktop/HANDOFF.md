@@ -1,8 +1,12 @@
 # Greater Art Desktop handoff
 
-## Interactive Windows Nodes — October 17, 2026
+## Verified Windows Nodes delivery — October 17, 2026
 
-Current source candidate **0.1.16/code17**. Latest frozen delivery remains 0.1.12 until installed acceptance and a new immutable receipt are recorded. Windows-only work; concurrent Android edits and local branches belong to their author and are excluded from this change. No new worktree. Security PR #174 remains blocked by owner direction.
+Current **0.1.16/code17**, exact native build source **044a9670992027a19b2909aa609abe12d4ad5734**. Immutable setup/portable delivery, exact hashes, installed/extracted **73/73** each, real-library 4K gestures (**469 frames**) and six-voice 1080p fullscreen/Mini/MSAA transfer (**136 frames**) are recorded in [RELEASE_0.1.16.md](RELEASE_0.1.16.md). Graph physics, middle mouse/Space+drag pan, force preferences and measured paint optimizations are complete for this scope. No new worktree or Android change. Paused Android refs/stashes below are preserved. Security #174 remains explicitly blocked. Live protected-main checks/integration are separate from this local receipt; do not guess their status.
+
+## Implementation log — October 17, 2026
+
+The following records the candidates leading to the verified delivery above. Windows-only work; concurrent Android edits and local branches belong to their author and are excluded from this change. No new worktree. Security PR #174 remains blocked by owner direction.
 
 - Replaced the static layout renderer with a background spring/repulsion simulation. Strong edges shorten and stiffen springs; weighted hubs grow and receive stronger centering. Node-size collision clearance keeps dense clusters readable. A spatial tree retains every node and bounds repulsion work.
 - Middle mouse and Space+drag pan even over nodes; empty-space drag also pans. Physical pointer coordinates preserve fractional logical movement on high-DPI screens. Cursor-anchored zoom, hover-neighbor highlighting and node drag capture share stable world/camera coordinates. Slow drags cannot accidentally play a song. Keyboard focus and capture loss clear gestures safely.
