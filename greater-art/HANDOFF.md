@@ -28,8 +28,22 @@ This file describes the **current repository state only**. Historical session no
   recovery evidence, not tested implementation.
 - Do not import the questionable 1.21.40 APK or rewrite any verified artifact.
   The blocked security PR #174 remains separate by explicit owner instruction.
-- Verification for the combined tree is recorded below after execution; earlier
-  branch test counts are historical evidence, not a test of this integration.
+- Exact implementation commit `b8b0acbbb6225adbccfc5268afa68cccd24c1d95`:
+  Gradle 9.8.1 / Java21 `testDebugUnitTest lintDebug assembleDebug
+  assembleDebugAndroidTest` passed. 390 JVM tests pass with no failures/skips;
+  lint has zero errors, 45 warnings and three hints. The official distribution
+  wrapper checksum and pinned setup-java tag match the imported files.
+- Installed manifest reports 1.21.45/code268. All 14 targeted tests pass on the
+  existing 1080x2340/API36 emulator in 68.566s: actual Android URI encoding/volume
+  aliases, MP3 artwork/toolbar/lock, small portrait/landscape controls, fullscreen
+  rotation with retained player/surface, translated large-font Settings controls,
+  playlist touch targets and production category/theme/language/back navigation.
+  Test preferences are restored. This is not physical-phone acceptance or a new
+  verified release: the published Android APK remains 1.21.39.
+- Fresh Android and desktop version guards and their 4+6 regression tests pass.
+  Required GitHub CI and normal protected-main merge are tracked in PR #180;
+  do not infer final live check status from this local evidence. Older branch
+  tests remain historical evidence, not a substitute for these combined-tree runs.
 
 ### October 16 — Settings clarity (1.21.44/code267)
 
