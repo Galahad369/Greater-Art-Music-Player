@@ -61,6 +61,7 @@
 
         <activity
             android:name=".playback.FullscreenVideoActivity"
+            android:screenOrientation="portrait"
             android:configChanges="screenSize|smallestScreenSize|screenLayout|orientation"
             android:exported="false"
             android:resizeableActivity="true"

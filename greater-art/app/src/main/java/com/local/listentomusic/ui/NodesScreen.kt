@@ -303,7 +303,7 @@ private fun GraphCanvas(graph: LibraryGraph, currentPath: String?, onPlay: (Stri
                             color.copy(alpha = .38f),
                             radius + 7.dp.toPx(),
                             p,
-                            style = Stroke(1.1.dp.toPx()),
+                            style = Stroke((if (playing) 2.2f else 1.6f).dp.toPx()),
                         )
                     }
                     drawCircle(if (active) color else ink.copy(alpha = if (related) .48f + importance * .4f else .18f), radius, p)
@@ -313,12 +313,11 @@ private fun GraphCanvas(graph: LibraryGraph, currentPath: String?, onPlay: (Stri
                     }
                 }
             }
-            // Dense libraries need a few useful labels, not hundreds of overlapping
-            // filenames. Priority goes to playing/selected nodes, then strong hubs.
+            // Reveal hub labels gradually without dimming the current or selected title.
             val labelCandidates = (listOf(current, selected) +
                 presentation.visibleNodes.sortedByDescending { presentation.importance[it] })
                 .distinct().filter { it in graph.nodes.indices && visible(positions[it]) }
-                .take(if (options.showLabels && scale > .8f) 10 else 2)
+                .take(if (options.showLabels && scale > .45f) 12 else 2)
             val occupied = mutableListOf<android.graphics.RectF>()
             labelCandidates.forEach { i ->
                 val p = positions[i]
@@ -337,8 +336,16 @@ private fun GraphCanvas(graph: LibraryGraph, currentPath: String?, onPlay: (Stri
                 if (occupied.none { android.graphics.RectF.intersects(it, box) }) {
                     occupied.add(box)
                     drawIntoCanvas {
+                        val fade = if (i == current || i == selected) 1f else
+                            ((scale - .35f) / .5f).coerceIn(0f, 1f)
+                        val originalBackingAlpha = backingPaint.alpha
+                        val originalLabelAlpha = labelPaint.alpha
+                        backingPaint.alpha = (originalBackingAlpha * fade).toInt()
+                        labelPaint.alpha = (originalLabelAlpha * fade).toInt()
                         it.nativeCanvas.drawRoundRect(box, 4.dp.toPx(), 4.dp.toPx(), backingPaint)
                         it.nativeCanvas.drawText(text, x + pad, p.y + 4.dp.toPx(), labelPaint)
+                        backingPaint.alpha = originalBackingAlpha
+                        labelPaint.alpha = originalLabelAlpha
                     }
                 }
             }

@@ -1,0 +1,1071 @@
+From 96760a250e3a2a667f78929290b32418b034374d Mon Sep 17 00:00:00 2001
+From: Claude <noreply@anthropic.com>
+Date: Wed, 14 Oct 2026 07:49:38 +0000
+Subject: [PATCH] 1.21.39: scoped folder exclusions, URI sidecar selection and
+ legacy relink (#148 stage C follow-up)
+
+Pure, JVM-tested logic for three items on the migration doc's "Remaining" list, built on the existing
+ScopedMediaDiscovery / MediaSource types. Not wired into any production flow; broad access is still
+declared and the File scanner is still the Library.
+
+- ScopedMediaDiscovery.scan(excludedFolders): paths relative to the granted root, slash-normalised,
+  MediaScanner.scanFolder's rule. Excluded folders are never queried (no provider round trip) and do
+  not make the result partial.
+- ScopedMediaRecord.sidecars (lyricsUri, artworkUri) chosen from each folder's own listing through a
+  per-folder hash index (SidecarIndex), same rules as findMatchingLrc and the thumbnail artwork order.
+  A first draft scanned the whole folder per media file (quadratic); the index replaced it and is
+  checked against the plain rule. ThumbnailRepository's two constants now come from SidecarNames.
+- LegacyDocumentMapping: raw path <-> ExternalStorageProvider document id (longest volume root, '..'
+  rejected, cue suffix kept). relinkLegacyMediaIds reports which scoped item a stored id now is, or why
+  not (NOT_A_KNOWN_VOLUME_PATH / NOT_IN_SCOPED_LIBRARY / CUE_TRACK_NOT_EXPANDED / UNSUPPORTED_ID); it
+  never rewrites stored data and accepts a case-insensitive match only when unique.
+  storageVolumeRoots(context) supplies the volume roots.
+
+Verified (standalone Kotlin harness, real sources, real kotlinx-coroutines): the existing 14
+ScopedMediaDiscoveryTest cases still pass; 26 new tests pass, including parity with the real
+MediaScanner.scanFolder on 40 random trees (excluded folders, hidden look-alikes, Chinese-named
+folders under a UTF-8 locale) and fast-index-vs-plain-rule on 400 random folders. Six sabotaged
+variants are each caught. Not verified: anything on Android (storageVolumeRoots is only
+syntax-checked), no device or real provider, no large-library timing.
+
+Open: reading sidecar bytes, CUE, share/delete (Stage D), exclusions UI, playlist relink wiring.
+---
+ greater-art/VERSION_RULES.md                  |   3 +-
+ greater-art/app/build.gradle.kts              |   4 +-
+ .../data/LegacyDocumentMapping.kt             | 153 ++++++++++++++++++
+ .../local/listentomusic/data/LegacyRelink.kt  |  77 +++++++++
+ .../local/listentomusic/data/SafSidecars.kt   |  66 ++++++++
+ .../data/ScopedMediaDiscovery.kt              |  42 +++--
+ .../listentomusic/data/StorageVolumes.kt      |  26 +++
+ .../listentomusic/data/ThumbnailRepository.kt |   4 +-
+ .../data/LegacyDocumentMappingTest.kt         | 114 +++++++++++++
+ .../listentomusic/data/LegacyRelinkTest.kt    |  84 ++++++++++
+ .../listentomusic/data/SafSidecarsTest.kt     | 109 +++++++++++++
+ .../data/ScopedMediaDiscoveryFoldersTest.kt   | 146 +++++++++++++++++
+ greater-art/docs/STORAGE_MIGRATION.md         |  39 +++++
+ 13 files changed, 852 insertions(+), 15 deletions(-)
+ create mode 100644 greater-art/app/src/main/java/com/local/listentomusic/data/LegacyDocumentMapping.kt
+ create mode 100644 greater-art/app/src/main/java/com/local/listentomusic/data/LegacyRelink.kt
+ create mode 100644 greater-art/app/src/main/java/com/local/listentomusic/data/SafSidecars.kt
+ create mode 100644 greater-art/app/src/main/java/com/local/listentomusic/data/StorageVolumes.kt
+ create mode 100644 greater-art/app/src/test/java/com/local/listentomusic/data/LegacyDocumentMappingTest.kt
+ create mode 100644 greater-art/app/src/test/java/com/local/listentomusic/data/LegacyRelinkTest.kt
+ create mode 100644 greater-art/app/src/test/java/com/local/listentomusic/data/SafSidecarsTest.kt
+ create mode 100644 greater-art/app/src/test/java/com/local/listentomusic/data/ScopedMediaDiscoveryFoldersTest.kt
+
+diff --git a/greater-art/VERSION_RULES.md b/greater-art/VERSION_RULES.md
+index 503cfeb..5cfb29d 100644
+--- a/greater-art/VERSION_RULES.md
++++ b/greater-art/VERSION_RULES.md
+@@ -7,7 +7,7 @@ This file is the authoritative version policy for Greater Art. If any handoff no
+ ## Machine-checkable state
+ 
+ 
+-Current source: **1.21.38 (code 261)**
++Current source: **1.21.39 (code 262)**
+ Allowed consumed transition: **1.21.32 (code 255) -> 1.21.36 (code 259)**
+ 
+ PR #168 separately consumed 1.21.33/code256 (5aae831), 1.21.34/code257
+@@ -326,3 +326,4 @@ Previous baseline: 1.13.26 (code 115).
+ - 1.21.37 (code 260) — Reviewed integration of native PiP/three floating modes, queue Locate and Adaptive Ambient, preserving both histories; bounded PiP readiness, localized mode descriptions and independent High Contrast. Emulator-verified sideload; physical/production-signing acceptance remain open.
+ 
+ - 1.21.38 (code 261) — Add a prominently visible one-tap “Turn off Developer Mode” control inside the local diagnostics inspector, available in Library and expanded Now Playing. The action clears inspector interaction state and persists the existing Developer Mode preference; the DEV badge/panel disappear reactively. Add a measured Compose UI regression for one-tap dismissal. SOURCE_ONLY pending CI and device acceptance; verified 1.21.37 APK remains untouched.
++- 1.21.39 (code 262) — issue #148 stage C follow-up, pure logic only and not wired into any production flow (broad access is still declared). ScopedMediaDiscovery.scan accepts excluded folders relative to the granted root with the File scanner's rule and never queries them; scoped records carry lyrics/artwork sidecar URIs selected from each folder's own listing through a per-folder hash index (thumbnail constants now shared); legacy raw paths map to ExternalStorageProvider document ids and relinkLegacyMediaIds reports which scoped item a stored id now is, or why not, without rewriting stored data; storageVolumeRoots supplies volume roots. Verified in a standalone Kotlin harness against the real sources: the existing 14 discovery tests still pass, 26 new tests pass including parity with MediaScanner.scanFolder on 40 random trees and a fast-index-versus-plain-rule check, and six sabotaged variants are each caught. Not verified on Android (the volume helper is only syntax-checked), no device or real-provider run. Sidecar byte reading, CUE, share/delete, exclusions UI and playlist relink wiring remain open. SOURCE_ONLY.
+diff --git a/greater-art/app/build.gradle.kts b/greater-art/app/build.gradle.kts
+index e71a6a5..263a574 100644
+--- a/greater-art/app/build.gradle.kts
++++ b/greater-art/app/build.gradle.kts
+@@ -11,8 +11,8 @@ android {
+                         applicationId = "com.local.listentomusic"
+                         minSdk = 26
+                         targetSdk = 37
+-        versionCode = 261
+-        versionName = "1.21.38"
++        versionCode = 262
++        versionName = "1.21.39"
+         buildConfigField("boolean", "STACK_PCM_PROTOTYPE", (providers.gradleProperty("stackPcmPrototype").orNull == "true").toString())
+ 
+         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+diff --git a/greater-art/app/src/main/java/com/local/listentomusic/data/LegacyDocumentMapping.kt b/greater-art/app/src/main/java/com/local/listentomusic/data/LegacyDocumentMapping.kt
+new file mode 100644
+index 0000000..2508239
+--- /dev/null
++++ b/greater-art/app/src/main/java/com/local/listentomusic/data/LegacyDocumentMapping.kt
+@@ -0,0 +1,153 @@
++package com.local.listentomusic.data
++
++import java.io.ByteArrayOutputStream
++import java.nio.ByteBuffer
++import java.nio.charset.CharacterCodingException
++import java.nio.charset.CodingErrorAction
++import java.nio.charset.StandardCharsets
++
++/*
++ * Legacy raw-path -> SAF document mapping (stage C remainder in docs/STORAGE_MIGRATION.md). Pure Kotlin.
++ *
++ * ScopedMediaDiscovery identifies a SAF document as DocumentsContract.buildDocumentUri(authority, documentId), i.e.
++ * content://<authority>/document/<encoded id>, independent of which folder grant reached it. Everything that was stored
++ * while the Library was path-based (playlists, history, Stack slots, custom order) holds raw paths. For documents on
++ * ExternalStorageProvider the two are linked by a fixed rule ("/storage/emulated/0/Music/a.mp3" is document
++ * "primary:Music/a.mp3"), so a stored path can be re-linked to the document that now represents it without any file access.
++ *
++ * Nothing here rewrites stored data: it answers "which scoped item is this legacy id?" and leaves the decision to the caller.
++ */
++
++internal const val EXTERNAL_STORAGE_AUTHORITY = "com.android.externalstorage.documents"
++private const val CUE_SUFFIX = "#ga-cue="
++
++/** One storage volume as ExternalStorageProvider names it: document ids look like "<volumeId>:<path inside the volume>". */
++internal data class StorageVolumeRoot(val volumeId: String, val rootPaths: List<String>)
++
++private const val UNRESERVED = "_-!.~'()*"
++
++/** Same character set android.net.Uri.encode leaves alone; everything else becomes UTF-8 %XX (upper-case hex). */
++internal fun encodeUriComponent(value: String): String {
++    val out = StringBuilder(value.length + 8)
++    for (byte in value.toByteArray(StandardCharsets.UTF_8)) {
++        val c = (byte.toInt() and 0xFF)
++        val ch = c.toChar()
++        if (c < 0x80 && (ch in 'a'..'z' || ch in 'A'..'Z' || ch in '0'..'9' || ch in UNRESERVED)) out.append(ch)
++        else out.append('%').append("0123456789ABCDEF"[c shr 4]).append("0123456789ABCDEF"[c and 0x0F])
++    }
++    return out.toString()
++}
++
++/** Inverse of [encodeUriComponent]; null for a malformed escape or invalid UTF-8. */
++internal fun decodeUriComponent(value: String): String? {
++    val bytes = ByteArrayOutputStream(value.length)
++    var i = 0
++    while (i < value.length) {
++        val ch = value[i]
++        if (ch == '%') {
++            if (i + 2 >= value.length) return null
++            val hi = Character.digit(value[i + 1], 16)
++            val lo = Character.digit(value[i + 2], 16)
++            if (hi < 0 || lo < 0) return null
++            bytes.write(hi * 16 + lo)
++            i += 3
++        } else {
++            val encoded = ch.toString().toByteArray(StandardCharsets.UTF_8)
++            bytes.write(encoded, 0, encoded.size)
++            i++
++        }
++    }
++    return try {
++        StandardCharsets.UTF_8.newDecoder()
++            .onMalformedInput(CodingErrorAction.REPORT).onUnmappableCharacter(CodingErrorAction.REPORT)
++            .decode(ByteBuffer.wrap(bytes.toByteArray())).toString()
++    } catch (_: CharacterCodingException) {
++        null
++    }
++}
++
++internal fun stableDocumentKey(authority: String, documentId: String): String =
++    "content://$authority/document/${encodeUriComponent(documentId)}"
++
++internal data class DocumentRef(val authority: String, val documentId: String)
++
++/** Parses a [stableDocumentKey] (with or without a cue suffix); null for anything else, including tree-qualified URIs. */
++internal fun parseStableDocumentKey(key: String): DocumentRef? {
++    val base = key.substringBefore(CUE_SUFFIX)
++    val prefix = "content://"
++    if (!base.startsWith(prefix)) return null
++    val rest = base.substring(prefix.length)
++    val slash = rest.indexOf('/')
++    if (slash <= 0) return null
++    val authority = rest.substring(0, slash)
++    val tail = rest.substring(slash)
++    val marker = "/document/"
++    if (!tail.startsWith(marker)) return null
++    val id = decodeUriComponent(tail.substring(marker.length)) ?: return null
++    return if (id.isEmpty()) null else DocumentRef(authority, id)
++}
++
++// ---- ExternalStorageProvider <-> legacy file paths -------------------------------------------------------------------
++
++private fun normalizePath(path: String): String? {
++    if (!path.startsWith("/")) return null
++    val parts = path.split('/').filter { it.isNotEmpty() }
++    if (parts.any { it == ".." || it == "." }) return null
++    return "/" + parts.joinToString("/")
++}
++
++/**
++ * "/storage/emulated/0/Music/a.mp3" -> "primary:Music/a.mp3". The longest matching volume root wins, so a nested
++ * mount point beats its parent. Null when the path is not under a known volume or tries to climb with "..".
++ */
++internal fun documentIdForLegacyPath(path: String, volumes: List<StorageVolumeRoot>): String? {
++    val normalized = normalizePath(path) ?: return null
++    var best: Pair<StorageVolumeRoot, String>? = null
++    for (volume in volumes) for (rootRaw in volume.rootPaths) {
++        val root = normalizePath(rootRaw) ?: continue
++        if ((normalized == root || normalized.startsWith("$root/")) && (best == null || root.length > best.second.length)) best = volume to root
++    }
++    val (volume, root) = best ?: return null
++    return "${volume.volumeId}:${normalized.substring(root.length).trimStart('/')}"
++}
++
++/** "primary:Music/a.mp3" -> "/storage/emulated/0/Music/a.mp3" using the volume's first (canonical) root. */
++internal fun legacyPathForDocumentId(documentId: String, volumes: List<StorageVolumeRoot>): String? {
++    val colon = documentId.indexOf(':')
++    if (colon <= 0) return null
++    val volume = volumes.firstOrNull { it.volumeId == documentId.substring(0, colon) } ?: return null
++    val relative = documentId.substring(colon + 1)
++    if (relative.split('/').any { it == ".." || it == "." }) return null
++    val root = normalizePath(volume.rootPaths.firstOrNull() ?: return null) ?: return null
++    return if (relative.isEmpty()) root else "$root/${relative.trim('/')}"
++}
++
++/**
++ * Turns a stored legacy media key (playlist, history, Stack slot, cache key) into the stable SAF key, keeping a cue
++ * suffix. Null when the key is not a path on a known ExternalStorageProvider volume.
++ */
++internal fun migrateLegacyMediaKey(legacyKey: String, volumes: List<StorageVolumeRoot>): String? {
++    val suffix = if (legacyKey.contains(CUE_SUFFIX)) CUE_SUFFIX + legacyKey.substringAfter(CUE_SUFFIX) else ""
++    val id = documentIdForLegacyPath(legacyKey.substringBefore(CUE_SUFFIX), volumes) ?: return null
++    return stableDocumentKey(EXTERNAL_STORAGE_AUTHORITY, id) + suffix
++}
++
++/** Inverse of [migrateLegacyMediaKey] for ExternalStorageProvider keys, e.g. to show a readable path. */
++internal fun legacyPathForStableKey(key: String, volumes: List<StorageVolumeRoot>): String? {
++    val ref = parseStableDocumentKey(key) ?: return null
++    if (ref.authority != EXTERNAL_STORAGE_AUTHORITY) return null
++    val suffix = if (key.contains(CUE_SUFFIX)) CUE_SUFFIX + key.substringAfter(CUE_SUFFIX) else ""
++    return (legacyPathForDocumentId(ref.documentId, volumes) ?: return null) + suffix
++}
++
++/**
++ * Path of [documentId] inside [treeDocumentId] ("" for the tree root), or null if it is outside the tree.
++ * Only valid for providers whose ids are hierarchical (ExternalStorageProvider); the library planner does not use it
++ * and walks parent links instead.
++ */
++internal fun externalStorageRelativePath(documentId: String, treeDocumentId: String): String? = when {
++    documentId == treeDocumentId -> ""
++    treeDocumentId.endsWith(":") && documentId.startsWith(treeDocumentId) -> documentId.substring(treeDocumentId.length).trim('/')
++    documentId.startsWith("$treeDocumentId/") -> documentId.substring(treeDocumentId.length + 1).trim('/')
++    else -> null
++}
+diff --git a/greater-art/app/src/main/java/com/local/listentomusic/data/LegacyRelink.kt b/greater-art/app/src/main/java/com/local/listentomusic/data/LegacyRelink.kt
+new file mode 100644
+index 0000000..8d4869b
+--- /dev/null
++++ b/greater-art/app/src/main/java/com/local/listentomusic/data/LegacyRelink.kt
+@@ -0,0 +1,77 @@
++package com.local.listentomusic.data
++
++import com.local.listentomusic.model.LegacyMediaMigration
++import com.local.listentomusic.model.MediaFile
++import com.local.listentomusic.model.MediaSource
++import com.local.listentomusic.model.cueBounds
++import com.local.listentomusic.model.migrateLegacyMediaId
++import java.util.Locale
++
++internal enum class RelinkFailure {
++    /** Not an absolute path, or not on a storage volume the app knows (so it cannot map to a document). */
++    NOT_A_KNOWN_VOLUME_PATH,
++
++    /** Maps to a document, but that document is not in the scoped library right now (other folder, deleted, no grant). */
++    NOT_IN_SCOPED_LIBRARY,
++
++    /** A cue segment: scoped discovery lists the audio file, not its tracks, so there is nothing to relink it to yet. */
++    CUE_TRACK_NOT_EXPANDED,
++
++    UNSUPPORTED_ID,
++}
++
++internal data class LegacyRelinkResult(
++    val relinked: Map<String, MediaFile>,
++    val unresolved: Map<String, RelinkFailure>,
++)
++
++/**
++ * Answers "which scoped item is this stored legacy id?" for playlists, history, Stack slots and custom order, using the
++ * fixed ExternalStorageProvider rule path <-> document id. It never opens a file, never rewrites anything, and never
++ * guesses: an id that cannot be matched is reported with the reason and left untouched.
++ *
++ * Matching compares (authority, document id) parsed from both sides, so it does not depend on how a provider happened to
++ * percent-encode the id. If no document matches exactly, a case-insensitive match is accepted only when it is unique
++ * (Android's emulated storage is case-insensitive; two different documents differing only by case are never merged).
++ */
++internal fun relinkLegacyMediaIds(
++    legacyIds: Collection<String>,
++    scoped: Collection<MediaFile>,
++    volumes: List<StorageVolumeRoot>,
++): LegacyRelinkResult {
++    val exact = HashMap<DocumentRef, MediaFile>()
++    val caseFolded = HashMap<Pair<String, String>, MutableList<MediaFile>>()
++    val byId = HashMap<String, MediaFile>()
++    for (file in scoped) {
++        byId.putIfAbsent(file.id, file)
++        val ref = parseStableDocumentKey(file.id) ?: continue
++        exact.putIfAbsent(ref, file)
++        caseFolded.getOrPut(ref.authority to ref.documentId.lowercase(Locale.ROOT)) { ArrayList() }.add(file)
++    }
++    val relinked = LinkedHashMap<String, MediaFile>()
++    val unresolved = LinkedHashMap<String, RelinkFailure>()
++    for (id in legacyIds.distinct()) {
++        if (cueBounds(id) != null) {
++            val key = migrateLegacyMediaKey(id, volumes)
++            val match = key?.let { byId[it] }
++            if (match != null) relinked[id] = match else unresolved[id] = RelinkFailure.CUE_TRACK_NOT_EXPANDED
++            continue
++        }
++        val migration = migrateLegacyMediaId(id)
++        if (migration is LegacyMediaMigration.Unsupported) { unresolved[id] = RelinkFailure.UNSUPPORTED_ID; continue }
++        val source = (migration as LegacyMediaMigration.Migrated).reference.source
++        if (source is MediaSource.ContentUri) {
++            // Already a scoped identity (stored while a folder was selected).
++            val match = byId[id]
++            if (match != null) relinked[id] = match else unresolved[id] = RelinkFailure.NOT_IN_SCOPED_LIBRARY
++            continue
++        }
++        val documentId = documentIdForLegacyPath(source.value, volumes)
++        if (documentId == null) { unresolved[id] = RelinkFailure.NOT_A_KNOWN_VOLUME_PATH; continue }
++        val ref = DocumentRef(EXTERNAL_STORAGE_AUTHORITY, documentId)
++        val match = exact[ref]
++            ?: caseFolded[EXTERNAL_STORAGE_AUTHORITY to documentId.lowercase(Locale.ROOT)]?.singleOrNull()
++        if (match != null) relinked[id] = match else unresolved[id] = RelinkFailure.NOT_IN_SCOPED_LIBRARY
++    }
++    return LegacyRelinkResult(relinked, unresolved)
++}
+diff --git a/greater-art/app/src/main/java/com/local/listentomusic/data/SafSidecars.kt b/greater-art/app/src/main/java/com/local/listentomusic/data/SafSidecars.kt
+new file mode 100644
+index 0000000..71adb67
+--- /dev/null
++++ b/greater-art/app/src/main/java/com/local/listentomusic/data/SafSidecars.kt
+@@ -0,0 +1,66 @@
++package com.local.listentomusic.data
++
++import java.util.Locale
++
++/**
++ * Sidecar files (lyrics, cover art) next to a media file, found from a FOLDER LISTING.
++ *
++ * With raw paths the app probes candidate files one by one (File.isFile). A SAF tree cannot be probed by path, only
++ * listed, so the same rules are applied to the names in the listing instead. Names compare case-insensitively, as they
++ * do on Android's case-insensitive emulated storage.
++ */
++internal object SidecarNames {
++    val IMAGE_EXTENSIONS = setOf("jpg", "jpeg", "png", "webp", "bmp")
++    val FOLDER_ART_NAMES = setOf("cover", "folder", "front", "album", "artwork")
++    val LYRICS_PRIORITY = listOf("ttml", "lrc", "srt")
++}
++
++private fun stemOf(name: String) = name.substringBeforeLast(".")
++private fun extensionOf(name: String) = name.substringAfterLast('.', "")
++private fun lower(value: String) = value.lowercase(Locale.ROOT)
++
++/**
++ * One folder's names, indexed once so each media file costs a handful of hash lookups instead of a scan of the folder
++ * (a folder of thousands of files would otherwise cost millions of comparisons).
++ *
++ * Lyrics follow findMatchingLrc(File): prefer ttml, then lrc, then srt with the media file's own stem; otherwise a
++ * lyrics file whose stem is the media's full file name. Artwork follows the thumbnail repository's candidate order:
++ * "<media stem>.<image ext>" first, then cover / folder / front / album / artwork in each image extension.
++ * When several names match, the first in listing order wins.
++ */
++internal class SidecarIndex(siblingNames: List<String>) {
++    private val byLowerName = HashMap<String, String>()
++    private val lyricsByLowerStem = HashMap<String, MutableList<String>>()
++
++    init {
++        val lyricsExtensions = SidecarNames.LYRICS_PRIORITY.toSet()
++        for (name in siblingNames) {
++            byLowerName.putIfAbsent(lower(name), name)
++            if (lower(extensionOf(name)) in lyricsExtensions) lyricsByLowerStem.getOrPut(lower(stemOf(name))) { ArrayList() }.add(name)
++        }
++    }
++
++    fun lyricsFor(mediaName: String): String? {
++        val sameStem = lyricsByLowerStem[lower(stemOf(mediaName))].orEmpty()
++        for (extension in SidecarNames.LYRICS_PRIORITY) {
++            sameStem.firstOrNull { lower(extensionOf(it)) == extension }?.let { return it }
++        }
++        return lyricsByLowerStem[lower(mediaName)]?.firstOrNull()
++    }
++
++    fun artworkFor(mediaName: String): String? {
++        val stem = lower(stemOf(mediaName))
++        for (extension in SidecarNames.IMAGE_EXTENSIONS) byLowerName["$stem.$extension"]?.let { return it }
++        for (name in SidecarNames.FOLDER_ART_NAMES) {
++            for (extension in SidecarNames.IMAGE_EXTENSIONS) byLowerName["$name.$extension"]?.let { return it }
++        }
++        return null
++    }
++
++    /** Resolves a sidecar's name back to whatever the caller keyed it by (a URI, a document id). */
++    fun <T> resolve(name: String?, valuesByName: Map<String, T>): T? = name?.let { valuesByName[lower(it)] }
++}
++
++internal fun matchLyricsSidecar(mediaName: String, siblingNames: List<String>): String? = SidecarIndex(siblingNames).lyricsFor(mediaName)
++
++internal fun matchArtworkSidecar(mediaName: String, siblingNames: List<String>): String? = SidecarIndex(siblingNames).artworkFor(mediaName)
+diff --git a/greater-art/app/src/main/java/com/local/listentomusic/data/ScopedMediaDiscovery.kt b/greater-art/app/src/main/java/com/local/listentomusic/data/ScopedMediaDiscovery.kt
+index cc2dd13..6bcde06 100644
+--- a/greater-art/app/src/main/java/com/local/listentomusic/data/ScopedMediaDiscovery.kt
++++ b/greater-art/app/src/main/java/com/local/listentomusic/data/ScopedMediaDiscovery.kt
+@@ -12,7 +12,9 @@ import kotlinx.coroutines.ensureActive
+ internal enum class ScopedOrigin { MEDIA_STORE, SAF }
+ internal enum class DiscoveryProblem { PERMISSION_DENIED, PROVIDER_UNAVAILABLE, INVALID_ROOT, LIMIT_REACHED }
+ internal data class DiscoveryIssue(val origin: ScopedOrigin, val problem: DiscoveryProblem)
+-internal data class ScopedMediaRecord(val media: MediaFile, val origin: ScopedOrigin)
++/** Sidecar documents found in the SAME folder listing as the media (MediaStore items have none: it cannot see .lrc or cover files). */
++internal data class ScopedSidecars(val lyricsUri: String? = null, val artworkUri: String? = null)
++internal data class ScopedMediaRecord(val media: MediaFile, val origin: ScopedOrigin, val sidecars: ScopedSidecars = ScopedSidecars())
+ internal data class ScopedDiscoveryResult(
+     val records: List<ScopedMediaRecord>, val issues: List<DiscoveryIssue>, val inspected: Int,
+ )
+@@ -46,20 +48,25 @@ internal fun scopedMediaKind(name: String, mime: String?): MediaKind? {
+ /** Fresh snapshots only. Never merges failed/revoked listings into an old cached result. */
+ internal class ScopedMediaDiscovery(private val access: ScopedDiscoveryAccess) {
+     suspend fun scan(trees: List<String>, includeMediaStore: Boolean = true,
+-        maxDocuments: Int = 10_000, maxFolders: Int = 512, maxDepth: Int = 24): ScopedDiscoveryResult {
++        maxDocuments: Int = 10_000, maxFolders: Int = 512, maxDepth: Int = 24,
++        excludedFolders: Set<String> = emptySet()): ScopedDiscoveryResult {
+         require(maxDocuments in 1..100_000 && maxFolders in 1..2000 && maxDepth in 1..64)
++        // Same rule as MediaScanner.scanFolder: paths relative to the granted root, slash-normalised, a folder is excluded
++        // with its whole subtree when `relative == it || relative.startsWith("$it/")`.
++        val excluded = excludedFolders.map { it.replace('\\', '/').trim('/') }.filter { it.isNotBlank() }.toSet()
+         val records = linkedMapOf<String, ScopedMediaRecord>()
+         val issues = mutableListOf<DiscoveryIssue>()
+         val completedRoots = mutableListOf<Pair<String, List<ScopedMediaRecord>>>()
+         var inspected = 0
+         var queriedFolders = 0
+-        fun add(row: ScopedRow, origin: ScopedOrigin, target: MutableMap<String, ScopedMediaRecord>) {
++        fun add(row: ScopedRow, origin: ScopedOrigin, target: MutableMap<String, ScopedMediaRecord>,
++            sidecars: ScopedSidecars = ScopedSidecars()) {
+             val kind = scopedMediaKind(row.name, row.mime) ?: return
+             if (row.directory || MediaSource.parse(row.uri) !is MediaSource.ContentUri ||
+                 MediaSource.parse(row.stableId) !is MediaSource.ContentUri) return
+             val file = MediaFile(row.stableId, row.name, row.durationMs.coerceAtLeast(0),
+                 row.size.coerceAtLeast(0), row.modifiedMs.coerceAtLeast(0), kind, sourcePath = row.uri)
+-            target.putIfAbsent(row.stableId, ScopedMediaRecord(file, origin))
++            target.putIfAbsent(row.stableId, ScopedMediaRecord(file, origin, sidecars))
+         }
+         suspend fun guarded(origin: ScopedOrigin, block: suspend () -> Unit) {
+             try { block() }
+@@ -85,13 +92,13 @@ internal class ScopedMediaDiscovery(private val access: ScopedDiscoveryAccess) {
+             if (!access.hasReadGrant(tree)) throw SecurityException()
+             // Commit a root only after its final grant check. Mid-scan revocation discards it.
+             val rootRecords = linkedMapOf<String, ScopedMediaRecord>()
+-            val pending = ArrayDeque<Pair<String, Int>>()
++            val pending = ArrayDeque<Triple<String, Int, String>>()
+             val seen = hashSetOf<String>()
+-            pending.add(root to 0)
++            pending.add(Triple(root, 0, ""))
+             var limited = false
+             while (pending.isNotEmpty()) {
+                 currentCoroutineContext().ensureActive()
+-                val (id, depth) = pending.removeFirst()
++                val (id, depth, relative) = pending.removeFirst()
+                 if (!seen.add(id)) continue
+                 if (!access.hasReadGrant(tree)) throw SecurityException()
+                 val remaining = maxDocuments - inspected
+@@ -99,13 +106,28 @@ internal class ScopedMediaDiscovery(private val access: ScopedDiscoveryAccess) {
+                 queriedFolders++
+                 val listing = access.children(tree, id, remaining)
+                 limited = limited || listing.truncated || listing.rows.size > remaining
+-                for (row in listing.rows.take(remaining)) {
++                val rows = listing.rows.take(remaining)
++                // Sidecars come from the names in this folder's own listing (SAF cannot probe paths). Truncated listings
++                // can only find sidecars among the rows that were returned.
++                val files = rows.filter { !it.directory }
++                val sidecarIndex = SidecarIndex(files.map { it.name })
++                val uriByLowerName = HashMap<String, String>()
++                for (file in files) uriByLowerName.putIfAbsent(file.name.lowercase(Locale.ROOT), file.uri)
++                for (row in rows) {
+                     currentCoroutineContext().ensureActive()
+                     if (row.directory) {
++                        val childRelative = if (relative.isEmpty()) row.name else "$relative/${row.name}"
++                        if (excluded.any { childRelative == it || childRelative.startsWith("$it/") }) continue
+                         if (depth < maxDepth && queriedFolders + pending.size < maxFolders)
+-                            pending.add(row.documentId to (depth + 1))
++                            pending.add(Triple(row.documentId, depth + 1, childRelative))
+                         else limited = true
+-                    } else add(row, ScopedOrigin.SAF, rootRecords)
++                    } else {
++                        val sidecars = if (scopedMediaKind(row.name, row.mime) == null) ScopedSidecars() else ScopedSidecars(
++                            lyricsUri = sidecarIndex.resolve(sidecarIndex.lyricsFor(row.name), uriByLowerName),
++                            artworkUri = sidecarIndex.resolve(sidecarIndex.artworkFor(row.name), uriByLowerName),
++                        )
++                        add(row, ScopedOrigin.SAF, rootRecords, sidecars)
++                    }
+                 }
+                 inspected += listing.inspected.coerceIn(0, remaining)
+             }
+diff --git a/greater-art/app/src/main/java/com/local/listentomusic/data/StorageVolumes.kt b/greater-art/app/src/main/java/com/local/listentomusic/data/StorageVolumes.kt
+new file mode 100644
+index 0000000..f17d254
+--- /dev/null
++++ b/greater-art/app/src/main/java/com/local/listentomusic/data/StorageVolumes.kt
+@@ -0,0 +1,26 @@
++package com.local.listentomusic.data
++
++import android.content.Context
++import android.os.Build
++import android.os.Environment
++import android.os.storage.StorageManager
++
++/**
++ * Storage volume roots named the way ExternalStorageProvider names them ("primary" or the volume UUID), so stored raw
++ * paths can be mapped to documents by [documentIdForLegacyPath]. API 30+ reads each volume's directory from
++ * StorageManager; on older releases only the primary volume can be mapped. Not wired into a production flow yet.
++ */
++internal fun storageVolumeRoots(context: Context): List<StorageVolumeRoot> {
++    val manager = context.getSystemService(StorageManager::class.java) ?: return primaryVolumeOnly()
++    return manager.storageVolumes.mapNotNull { volume ->
++        val directory = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) volume.directory else null
++        val path = directory?.path ?: if (volume.isPrimary) Environment.getExternalStorageDirectory().path else return@mapNotNull null
++        val id = if (volume.isPrimary) "primary" else volume.uuid ?: return@mapNotNull null
++        val roots = if (volume.isPrimary) listOf(path, "/sdcard", "/storage/self/primary") else listOf(path)
++        StorageVolumeRoot(id, roots.distinct())
++    }.ifEmpty { primaryVolumeOnly() }
++}
++
++private fun primaryVolumeOnly() = listOf(
++    StorageVolumeRoot("primary", listOf(Environment.getExternalStorageDirectory().path, "/sdcard", "/storage/self/primary").distinct()),
++)
+diff --git a/greater-art/app/src/main/java/com/local/listentomusic/data/ThumbnailRepository.kt b/greater-art/app/src/main/java/com/local/listentomusic/data/ThumbnailRepository.kt
+index d8639bb..0e10aad 100644
+--- a/greater-art/app/src/main/java/com/local/listentomusic/data/ThumbnailRepository.kt
++++ b/greater-art/app/src/main/java/com/local/listentomusic/data/ThumbnailRepository.kt
+@@ -751,8 +751,8 @@ class ThumbnailRepository(private val context: Context) {
+         const val FAILURE_RETRY_MS = 30_000L
+         const val ART_STAMP_TTL_MS = 5L * 60L * 1_000L
+         const val ART_STAMP_CACHE_LIMIT = 4_000
+-        val IMAGE_EXTENSIONS = setOf("jpg", "jpeg", "png", "webp", "bmp")
+-        val FOLDER_ART_NAMES = setOf("cover", "folder", "front", "album", "artwork")
++        val IMAGE_EXTENSIONS = SidecarNames.IMAGE_EXTENSIONS
++        val FOLDER_ART_NAMES = SidecarNames.FOLDER_ART_NAMES
+         val ARTWORK_KEY = Regex("art-[0-9a-f]{64}")
+     }
+ }
+diff --git a/greater-art/app/src/test/java/com/local/listentomusic/data/LegacyDocumentMappingTest.kt b/greater-art/app/src/test/java/com/local/listentomusic/data/LegacyDocumentMappingTest.kt
+new file mode 100644
+index 0000000..fcc819e
+--- /dev/null
++++ b/greater-art/app/src/test/java/com/local/listentomusic/data/LegacyDocumentMappingTest.kt
+@@ -0,0 +1,114 @@
++package com.local.listentomusic.data
++
++import com.local.listentomusic.model.MediaSource
++import org.junit.Assert.assertEquals
++import org.junit.Assert.assertFalse
++import org.junit.Assert.assertNull
++import org.junit.Assert.assertTrue
++import org.junit.Test
++
++class LegacyDocumentMappingTest {
++    private val volumes = listOf(
++        StorageVolumeRoot("primary", listOf("/storage/emulated/0", "/sdcard", "/storage/self/primary")),
++        StorageVolumeRoot("1A2B-3C4D", listOf("/storage/1A2B-3C4D")),
++    )
++
++    @Test
++    fun encodingMatchesAndroidUriEncode() {
++        // Values produced by android.net.Uri.encode / DocumentsContract.
++        assertEquals("primary%3AMusic%2Fa%20b.mp3", encodeUriComponent("primary:Music/a b.mp3"))
++        assertEquals("a_b-c!d.e~f'g(h)i*j", encodeUriComponent("a_b-c!d.e~f'g(h)i*j"))
++        assertEquals("100%25%20%23%2B%26%3D", encodeUriComponent("100% #+&="))
++        assertEquals("%E5%91%A8%E6%9D%B0%E5%80%AB", encodeUriComponent("周杰倫"))
++    }
++
++    @Test
++    fun decodingInvertsEncodingForAwkwardNames() {
++        for (name in listOf("primary:Music/周杰倫 - 晴天.flac", "a%b", "x+y", "tab\tname", "emoji 🎵.mp3", "", "primary:")) {
++            assertEquals(name, decodeUriComponent(encodeUriComponent(name)))
++        }
++        assertNull(decodeUriComponent("%"))
++        assertNull(decodeUriComponent("%4"))
++        assertNull(decodeUriComponent("%zz"))
++        assertNull(decodeUriComponent("%FF%FF"))   // invalid UTF-8
++    }
++
++    @Test
++    fun stableKeyMatchesWhatDocumentsContractBuilds() {
++        // content://authority/document/<Uri.encode(id)>, the same string ScopedMediaDiscovery uses as MediaFile.id.
++        val key = stableDocumentKey(EXTERNAL_STORAGE_AUTHORITY, "primary:Music/Rock/a.mp3")
++        assertEquals("content://com.android.externalstorage.documents/document/primary%3AMusic%2FRock%2Fa.mp3", key)
++        assertTrue(MediaSource.parse(key) is MediaSource.ContentUri)
++        // A tree-qualified URI is a location, never an identity.
++        assertNull(parseStableDocumentKey("content://com.android.externalstorage.documents/tree/primary%3AMusic/document/primary%3AMusic%2Fa.mp3"))
++    }
++
++    @Test
++    fun keysParseBackIncludingCueSuffixes() {
++        val id = "primary:Music/周杰倫/晴天 (live).flac"
++        val key = stableDocumentKey("com.example.provider", id)
++        assertEquals(DocumentRef("com.example.provider", id), parseStableDocumentKey(key))
++        assertEquals(DocumentRef("com.example.provider", id), parseStableDocumentKey("$key#ga-cue=1500:98000"))
++        assertNull(parseStableDocumentKey("/storage/emulated/0/Music/a.mp3"))
++        assertNull(parseStableDocumentKey("content://authority/document/"))
++        assertNull(parseStableDocumentKey("content://authority/other/abc"))
++        assertNull(parseStableDocumentKey("content://authority"))
++    }
++
++    @Test
++    fun legacyPathsMapToExternalStorageDocumentIds() {
++        assertEquals("primary:Download/a.mp3", documentIdForLegacyPath("/storage/emulated/0/Download/a.mp3", volumes))
++        assertEquals("primary:Download/a.mp3", documentIdForLegacyPath("/sdcard/Download/a.mp3", volumes))
++        assertEquals("primary:Download/a.mp3", documentIdForLegacyPath("/storage/self/primary//Download///a.mp3/", volumes))
++        assertEquals("primary:", documentIdForLegacyPath("/storage/emulated/0", volumes))
++        assertEquals("1A2B-3C4D:Music/b.flac", documentIdForLegacyPath("/storage/1A2B-3C4D/Music/b.flac", volumes))
++        assertNull(documentIdForLegacyPath("/data/data/app/files/a.mp3", volumes))
++        assertNull("sibling with a shared prefix is not inside the root", documentIdForLegacyPath("/storage/emulated/01/a.mp3", volumes))
++        assertNull(documentIdForLegacyPath("/storage/emulated/0/Download/../../etc/passwd", volumes))
++        assertNull(documentIdForLegacyPath("relative/path.mp3", volumes))
++    }
++
++    @Test
++    fun longestVolumeRootWins() {
++        val nested = listOf(
++            StorageVolumeRoot("primary", listOf("/storage/emulated/0")),
++            StorageVolumeRoot("usb", listOf("/storage/emulated/0/mnt/usb")),
++        )
++        assertEquals("usb:song.mp3", documentIdForLegacyPath("/storage/emulated/0/mnt/usb/song.mp3", nested))
++        assertEquals("primary:mnt/other/song.mp3", documentIdForLegacyPath("/storage/emulated/0/mnt/other/song.mp3", nested))
++    }
++
++    @Test
++    fun documentIdsMapBackToTheCanonicalPath() {
++        assertEquals("/storage/emulated/0/Download/a.mp3", legacyPathForDocumentId("primary:Download/a.mp3", volumes))
++        assertEquals("/storage/emulated/0", legacyPathForDocumentId("primary:", volumes))
++        assertEquals("/storage/1A2B-3C4D/Music/b.flac", legacyPathForDocumentId("1A2B-3C4D:Music/b.flac", volumes))
++        assertNull(legacyPathForDocumentId("unknown:Music/b.flac", volumes))
++        assertNull(legacyPathForDocumentId("primary:Music/../../x", volumes))
++        assertNull(legacyPathForDocumentId("no-colon", volumes))
++    }
++
++    @Test
++    fun storedLegacyKeysMigrateAndRoundTrip() {
++        val legacy = "/storage/emulated/0/Download/周杰倫/晴天.flac"
++        val migrated = migrateLegacyMediaKey(legacy, volumes)!!
++        assertEquals(DocumentRef(EXTERNAL_STORAGE_AUTHORITY, "primary:Download/周杰倫/晴天.flac"), parseStableDocumentKey(migrated))
++        assertEquals(legacy, legacyPathForStableKey(migrated, volumes))
++        // A cue track keeps its suffix through migration.
++        val cue = "$legacy#ga-cue=61000:243500"
++        val migratedCue = migrateLegacyMediaKey(cue, volumes)!!
++        assertTrue(migratedCue.endsWith("#ga-cue=61000:243500"))
++        assertEquals(cue, legacyPathForStableKey(migratedCue, volumes))
++        assertNull(migrateLegacyMediaKey("/data/x.mp3", volumes))
++        assertNull(legacyPathForStableKey(stableDocumentKey("com.other.provider", "primary:a.mp3"), volumes))
++    }
++
++    @Test
++    fun relativePathInsideATree() {
++        assertEquals("", externalStorageRelativePath("primary:Music", "primary:Music"))
++        assertEquals("Rock/a.mp3", externalStorageRelativePath("primary:Music/Rock/a.mp3", "primary:Music"))
++        assertEquals("Music/a.mp3", externalStorageRelativePath("primary:Music/a.mp3", "primary:"))
++        assertNull(externalStorageRelativePath("primary:Music2/a.mp3", "primary:Music"))
++        assertNull(externalStorageRelativePath("primary:Other/a.mp3", "primary:Music"))
++    }
++}
+diff --git a/greater-art/app/src/test/java/com/local/listentomusic/data/LegacyRelinkTest.kt b/greater-art/app/src/test/java/com/local/listentomusic/data/LegacyRelinkTest.kt
+new file mode 100644
+index 0000000..791e09b
+--- /dev/null
++++ b/greater-art/app/src/test/java/com/local/listentomusic/data/LegacyRelinkTest.kt
+@@ -0,0 +1,84 @@
++package com.local.listentomusic.data
++
++import com.local.listentomusic.model.MediaFile
++import com.local.listentomusic.model.MediaKind
++import org.junit.Assert.assertEquals
++import org.junit.Assert.assertTrue
++import org.junit.Test
++
++class LegacyRelinkTest {
++    private val volumes = listOf(
++        StorageVolumeRoot("primary", listOf("/storage/emulated/0", "/sdcard")),
++        StorageVolumeRoot("1A2B-3C4D", listOf("/storage/1A2B-3C4D")),
++    )
++
++    private fun scoped(documentId: String, authority: String = EXTERNAL_STORAGE_AUTHORITY) = MediaFile(
++        path = stableDocumentKey(authority, documentId),
++        name = documentId.substringAfterLast('/'),
++        durationMs = 0, sizeBytes = 1, modifiedMs = 1, kind = MediaKind.AUDIO,
++        sourcePath = "content://$authority/tree/primary%3AMusic/document/${encodeUriComponent(documentId)}",
++    )
++
++    @Test
++    fun relinksStoredPathsToTheDocumentsThatNowRepresentThem() {
++        val a = scoped("primary:Music/周杰倫/晴天 (live).flac")
++        val b = scoped("1A2B-3C4D:Albums/b.mp3")
++        val result = relinkLegacyMediaIds(
++            listOf("/storage/emulated/0/Music/周杰倫/晴天 (live).flac", "/sdcard/Music/周杰倫/晴天 (live).flac", "/storage/1A2B-3C4D/Albums/b.mp3"),
++            listOf(a, b), volumes,
++        )
++        assertEquals(mapOf(
++            "/storage/emulated/0/Music/周杰倫/晴天 (live).flac" to a,
++            "/sdcard/Music/周杰倫/晴天 (live).flac" to a,
++            "/storage/1A2B-3C4D/Albums/b.mp3" to b,
++        ), result.relinked)
++        assertTrue(result.unresolved.isEmpty())
++    }
++
++    @Test
++    fun reportsWhyAnIdCouldNotBeRelinked() {
++        val result = relinkLegacyMediaIds(
++            listOf("/data/data/app/files/x.mp3", "/storage/emulated/0/Music/gone.mp3", "", "/storage/emulated/0/Music/../../x.mp3", "relative.mp3"),
++            listOf(scoped("primary:Music/here.mp3")), volumes,
++        )
++        assertTrue(result.relinked.isEmpty())
++        assertEquals(RelinkFailure.NOT_A_KNOWN_VOLUME_PATH, result.unresolved["/data/data/app/files/x.mp3"])
++        assertEquals(RelinkFailure.NOT_IN_SCOPED_LIBRARY, result.unresolved["/storage/emulated/0/Music/gone.mp3"])
++        assertEquals(RelinkFailure.UNSUPPORTED_ID, result.unresolved[""])
++        assertEquals(RelinkFailure.NOT_A_KNOWN_VOLUME_PATH, result.unresolved["/storage/emulated/0/Music/../../x.mp3"])
++        assertEquals(RelinkFailure.UNSUPPORTED_ID, result.unresolved["relative.mp3"])
++    }
++
++    @Test
++    fun caseInsensitiveFallbackIsUsedOnlyWhenUnambiguous() {
++        val only = scoped("primary:Music/Song.MP3")
++        assertEquals(only, relinkLegacyMediaIds(listOf("/storage/emulated/0/Music/song.mp3"), listOf(only), volumes).relinked.values.single())
++        // Two different documents that differ only by case are never merged.
++        val twins = listOf(scoped("primary:Music/Song.mp3"), scoped("primary:Music/SONG.mp3"))
++        val result = relinkLegacyMediaIds(listOf("/storage/emulated/0/Music/song.mp3"), twins, volumes)
++        assertEquals(RelinkFailure.NOT_IN_SCOPED_LIBRARY, result.unresolved["/storage/emulated/0/Music/song.mp3"])
++        // An exact match wins over any case-folded one.
++        assertEquals(twins[1], relinkLegacyMediaIds(listOf("/storage/emulated/0/Music/SONG.mp3"), twins, volumes).relinked.values.single())
++    }
++
++    @Test
++    fun scopedIdentitiesAndCueSegmentsAreHandledHonestly() {
++        val file = scoped("primary:Music/disc.flac")
++        val alreadyScoped = file.id
++        val cueLegacy = "/storage/emulated/0/Music/disc.flac#ga-cue=61000:243500"
++        val result = relinkLegacyMediaIds(listOf(alreadyScoped, "content://other/document/zzz", cueLegacy), listOf(file), volumes)
++        assertEquals(file, result.relinked[alreadyScoped])
++        assertEquals(RelinkFailure.NOT_IN_SCOPED_LIBRARY, result.unresolved["content://other/document/zzz"])
++        assertEquals(RelinkFailure.CUE_TRACK_NOT_EXPANDED, result.unresolved[cueLegacy])
++        // If discovery ever lists the expanded cue track under the migrated id, it relinks.
++        val track = file.copy(path = migrateLegacyMediaKey(cueLegacy, volumes)!!)
++        assertEquals(track, relinkLegacyMediaIds(listOf(cueLegacy), listOf(file, track), volumes).relinked[cueLegacy])
++    }
++
++    @Test
++    fun duplicatesCollapseAndOrderIsStable() {
++        val a = scoped("primary:Music/a.mp3"); val b = scoped("primary:Music/b.mp3")
++        val ids = listOf("/storage/emulated/0/Music/b.mp3", "/storage/emulated/0/Music/a.mp3", "/storage/emulated/0/Music/b.mp3")
++        assertEquals(listOf(ids[0], ids[1]), relinkLegacyMediaIds(ids, listOf(a, b), volumes).relinked.keys.toList())
++    }
++}
+diff --git a/greater-art/app/src/test/java/com/local/listentomusic/data/SafSidecarsTest.kt b/greater-art/app/src/test/java/com/local/listentomusic/data/SafSidecarsTest.kt
+new file mode 100644
+index 0000000..d664b61
+--- /dev/null
++++ b/greater-art/app/src/test/java/com/local/listentomusic/data/SafSidecarsTest.kt
+@@ -0,0 +1,109 @@
++package com.local.listentomusic.data
++
++import com.local.listentomusic.model.findMatchingLrc
++import org.junit.Assert.assertEquals
++import org.junit.Assert.assertNull
++import org.junit.Assert.assertTrue
++import org.junit.Test
++import java.io.File
++import java.nio.file.Files
++import java.util.Locale
++import java.util.Random
++
++class SafSidecarsTest {
++    @Test
++    fun lyricsPreferTtmlThenLrcThenSrtForTheSameStem() {
++        val names = listOf("song.srt", "song.lrc", "song.ttml", "other.lrc")
++        assertEquals("song.ttml", matchLyricsSidecar("song.mp3", names))
++        assertEquals("song.lrc", matchLyricsSidecar("song.mp3", names - "song.ttml"))
++        assertEquals("song.srt", matchLyricsSidecar("song.mp3", listOf("song.srt", "other.lrc")))
++        assertNull(matchLyricsSidecar("song.mp3", listOf("other.lrc", "song.txt", "song.mp3")))
++    }
++
++    @Test
++    fun lyricsMatchCaseInsensitivelyAndByFullMediaName() {
++        assertEquals("SONG.LRC", matchLyricsSidecar("Song.mp3", listOf("SONG.LRC")))
++        assertEquals("song.mp3.lrc", matchLyricsSidecar("Song.MP3", listOf("song.mp3.lrc")))
++        assertEquals("a.b.lrc", matchLyricsSidecar("a.b.flac", listOf("a.b.lrc")))
++    }
++
++    @Test
++    fun artworkFollowsTheThumbnailRepositoryOrder() {
++        // Same-stem image beats folder art; within each group the extension order is jpg, jpeg, png, webp, bmp.
++        assertEquals("song.png", matchArtworkSidecar("song.mp3", listOf("cover.jpg", "song.png", "folder.png")))
++        assertEquals("cover.jpg", matchArtworkSidecar("song.mp3", listOf("artwork.jpg", "cover.jpg", "front.png")))
++        assertEquals("cover.jpg", matchArtworkSidecar("song.mp3", listOf("cover.png", "cover.jpg")))
++        assertEquals("Folder.JPG", matchArtworkSidecar("song.mp3", listOf("Folder.JPG", "notes.txt")))
++        assertNull(matchArtworkSidecar("song.mp3", listOf("song.gif", "photo.jpg", "cover.txt")))
++    }
++
++    @Test
++    fun theSharedConstantsAreTheOnesThumbnailsUse() {
++        assertEquals(listOf("jpg", "jpeg", "png", "webp", "bmp"), SidecarNames.IMAGE_EXTENSIONS.toList())
++        assertEquals(listOf("cover", "folder", "front", "album", "artwork"), SidecarNames.FOLDER_ART_NAMES.toList())
++    }
++
++    /** The real File-based rule and the listing-based rule must agree on a real directory. */
++    @Test
++    fun listingMatchAgreesWithTheFileBasedLyricsRule() {
++        val dir = Files.createTempDirectory("sidecars").toFile()
++        try {
++            val scenarios = listOf(
++                "a.mp3" to listOf("a.lrc"),
++                "a.mp3" to listOf("a.lrc", "a.srt"),
++                "a.mp3" to listOf("a.srt", "a.ttml"),
++                "a.mp3" to listOf("b.lrc"),
++                "Song.mp3" to listOf("song.LRC"),          // only the case-insensitive fallback can find this on Linux
++                "x.y.flac" to listOf("x.y.lrc", "x.lrc"),
++                "t.m4a" to listOf("t.m4a.lrc"),
++                "t.m4a" to emptyList(),
++            )
++            for ((media, siblings) in scenarios) {
++                dir.listFiles()!!.forEach { it.deleteRecursively() }
++                File(dir, media).writeText("x")
++                siblings.forEach { File(dir, it).writeText("x") }
++                val viaFiles = findMatchingLrc(File(dir, media).path)?.name
++                val viaListing = matchLyricsSidecar(media, dir.list()!!.sorted())
++                assertEquals("media=$media siblings=$siblings", viaFiles, viaListing)
++            }
++        } finally {
++            dir.deleteRecursively()
++        }
++    }
++
++    // The list-scanning rule the per-folder index replaced, kept as the reference it must agree with.
++    private fun stem(n: String) = n.substringBeforeLast(".")
++    private fun ext(n: String) = n.substringAfterLast('.', "")
++    private fun naiveLyrics(media: String, sib: List<String>): String? {
++        for (e in SidecarNames.LYRICS_PRIORITY) sib.firstOrNull { stem(it).equals(stem(media), true) && ext(it).equals(e, true) }?.let { return it }
++        val accepted = setOf(stem(media).lowercase(Locale.ROOT), media.lowercase(Locale.ROOT))
++        return sib.firstOrNull { ext(it).lowercase(Locale.ROOT) in SidecarNames.LYRICS_PRIORITY && stem(it).lowercase(Locale.ROOT) in accepted }
++    }
++    private fun naiveArtwork(media: String, sib: List<String>): String? {
++        val candidates = buildList {
++            SidecarNames.IMAGE_EXTENSIONS.forEach { add("${stem(media)}.$it") }
++            SidecarNames.FOLDER_ART_NAMES.forEach { n -> SidecarNames.IMAGE_EXTENSIONS.forEach { add("$n.$it") } }
++        }
++        for (c in candidates) sib.firstOrNull { it.equals(c, true) }?.let { return it }
++        return null
++    }
++
++    @Test
++    fun theFolderIndexAgreesWithTheNaiveRuleOnRandomMessyFolders() {
++        val pool = listOf("a.mp3", "A.LRC", "a.srt", "a.ttml", "b.flac", "b.lrc", "Song.mp3", "song.LRC", "song.png", "SONG.jpg", "x.y.mp3", "x.y.lrc", "x.lrc",
++            "song.mp3.lrc", "Song.MP3.srt", "cover.jpg", "Folder.PNG", "FRONT.webp", "album.bmp", "artwork.jpeg", "cover.png", "notes.txt", "noext", ".hidden.lrc", "a.b.c.lrc")
++        val media = pool.filter { ext(it).lowercase(Locale.ROOT) in setOf("mp3", "flac") }
++        var checked = 0
++        for (seed in 1L..400L) {
++            val random = Random(seed)
++            val siblings = pool.filter { random.nextInt(3) == 0 }.shuffled(random)
++            val index = SidecarIndex(siblings)
++            for (m in media) {
++                assertEquals("lyrics seed=$seed media=$m siblings=$siblings", naiveLyrics(m, siblings), index.lyricsFor(m))
++                assertEquals("artwork seed=$seed media=$m siblings=$siblings", naiveArtwork(m, siblings), index.artworkFor(m))
++                checked++
++            }
++        }
++        assertTrue(checked > 1000)
++    }
++}
+diff --git a/greater-art/app/src/test/java/com/local/listentomusic/data/ScopedMediaDiscoveryFoldersTest.kt b/greater-art/app/src/test/java/com/local/listentomusic/data/ScopedMediaDiscoveryFoldersTest.kt
+new file mode 100644
+index 0000000..f6e9c34
+--- /dev/null
++++ b/greater-art/app/src/test/java/com/local/listentomusic/data/ScopedMediaDiscoveryFoldersTest.kt
+@@ -0,0 +1,146 @@
++package com.local.listentomusic.data
++
++import com.local.listentomusic.model.MediaKind
++import kotlinx.coroutines.runBlocking
++import org.junit.Assert.assertEquals
++import org.junit.Assert.assertNull
++import org.junit.Assert.assertTrue
++import org.junit.Test
++import java.io.File
++import java.nio.file.Files
++import java.util.Random
++
++/** Scoped folder exclusions and URI sidecar selection (stage C remainder), plus parity with the real File scanner. */
++class ScopedMediaDiscoveryFoldersTest {
++    private fun doc(id: String) = "content://provider/document/${encodeUriComponent(id)}"
++    private fun uri(id: String) = "content://provider/tree/t/document/${encodeUriComponent(id)}"
++    private fun file(id: String, name: String, mime: String = "application/octet-stream", size: Long = 1) =
++        ScopedRow(id, doc(id), uri(id), name, mime, size = size)
++    private fun folder(id: String, name: String) = ScopedRow(id, "", "", name, null, directory = true)
++
++    private class Access(val children: Map<String, List<ScopedRow>>) : ScopedDiscoveryAccess {
++        var visited = mutableListOf<String>()
++        override suspend fun mediaStore(limit: Int) = ScopedListing(emptyList())
++        override fun treeRoot(tree: String) = "root"
++        override fun hasReadGrant(tree: String) = true
++        override suspend fun children(tree: String, documentId: String, limit: Int): ScopedListing {
++            visited += documentId
++            return ScopedListing(children[documentId].orEmpty().take(limit))
++        }
++    }
++
++    private val tree = mapOf(
++        "root" to listOf(file("a", "a.mp3"), folder("rock", "Rock"), folder("priv", "Private")),
++        "rock" to listOf(file("b", "b.flac"), folder("live", "Live")),
++        "live" to listOf(file("c", "c.mp3")),
++        "priv" to listOf(file("s", "secret.mp3"), folder("deep", "deep")),
++        "deep" to listOf(file("d", "also.mp3")),
++    )
++
++    private fun names(excluded: Set<String>): List<String> = runBlocking {
++        ScopedMediaDiscovery(Access(tree)).scan(listOf("content://tree"), false, excludedFolders = excluded).records.map { it.media.name }.sorted()
++    }
++
++    @Test
++    fun excludedFoldersPruneTheirWholeSubtreeLikeTheFileScanner() {
++        val all = listOf("a.mp3", "also.mp3", "b.flac", "c.mp3", "secret.mp3")
++        assertEquals(all, names(emptySet()))
++        assertEquals(listOf("a.mp3", "b.flac", "c.mp3"), names(setOf("Private")))
++        assertEquals(listOf("a.mp3", "also.mp3", "b.flac", "secret.mp3"), names(setOf("Rock/Live")))
++        assertEquals(all, names(setOf("Priv")))            // a name prefix is not a folder match
++        assertEquals(all, names(setOf("deep")))            // only paths relative to the granted root count
++        assertEquals(listOf("a.mp3", "b.flac", "c.mp3", "secret.mp3"), names(setOf("Private/deep")))
++        assertEquals(listOf("a.mp3", "b.flac", "c.mp3"), names(setOf("\\Private\\")))   // slash-normalised
++        assertEquals(all, names(setOf("", "  /", "/")))    // blanks exclude nothing
++    }
++
++    @Test
++    fun excludedFoldersAreNeverQueried() = runBlocking {
++        val access = Access(tree)
++        ScopedMediaDiscovery(access).scan(listOf("content://tree"), false, excludedFolders = setOf("Private"))
++        assertTrue("excluded folders must not cost a provider round trip", "priv" !in access.visited && "deep" !in access.visited)
++        assertEquals(listOf("root", "rock", "live"), access.visited)
++    }
++
++    @Test
++    fun exclusionDoesNotReportAPartialResult() = runBlocking {
++        val result = ScopedMediaDiscovery(Access(tree)).scan(listOf("content://tree"), false, excludedFolders = setOf("Private"))
++        assertTrue(result.issues.isEmpty())
++    }
++
++    @Test
++    fun sidecarsComeFromTheSameFolderListingAndAreGrantQualifiedUris() = runBlocking {
++        val access = Access(mapOf("root" to listOf(
++            file("m1", "song.mp3"), file("l1", "song.lrc"), file("l2", "song.srt"), file("art", "Cover.JPG"),
++            file("m2", "other.flac"), file("nm", "notes.txt"), folder("sub", "sub"),
++        ), "sub" to listOf(file("m3", "song.mp3"))))
++        val records = ScopedMediaDiscovery(access).scan(listOf("content://tree"), false).records.associateBy { it.media.name + "@" + it.media.id }
++        val song = records.getValue("song.mp3@" + doc("m1")).sidecars
++        assertEquals(uri("l1"), song.lyricsUri)           // lrc beats srt
++        assertEquals(uri("art"), song.artworkUri)         // folder art, matched case-insensitively
++        val other = records.getValue("other.flac@" + doc("m2")).sidecars
++        assertNull(other.lyricsUri); assertEquals(uri("art"), other.artworkUri)
++        // A file in another folder never borrows this folder's sidecars.
++        assertEquals(ScopedSidecars(), records.getValue("song.mp3@" + doc("m3")).sidecars)
++    }
++
++    @Test
++    fun mediaStoreRecordsHaveNoSidecars() = runBlocking {
++        val access = object : ScopedDiscoveryAccess {
++            override suspend fun mediaStore(limit: Int) = ScopedListing(listOf(file("x", "x.mp3", "audio/mpeg")))
++            override fun treeRoot(tree: String) = "root"
++            override fun hasReadGrant(tree: String) = true
++            override suspend fun children(tree: String, documentId: String, limit: Int) = ScopedListing(emptyList())
++        }
++        assertEquals(ScopedSidecars(), ScopedMediaDiscovery(access).scan(emptyList()).records.single().sidecars)
++    }
++
++    // ---- parity with the real File scanner ------------------------------------------------------------------------------
++
++    private fun mirror(root: File): Map<String, List<ScopedRow>> {
++        val out = HashMap<String, List<ScopedRow>>()
++        fun walk(dir: File, dirId: String) {
++            out[dirId] = dir.listFiles()!!.map { f ->
++                val id = if (dirId == "root") f.name else "$dirId/${f.name}"
++                if (f.isDirectory) { walk(f, id); folder(id, f.name) } else file(id, f.name, size = f.length())
++            }.shuffled(Random(dirId.hashCode().toLong()))
++        }
++        walk(root, "root")
++        return out
++    }
++
++    private fun randomTree(root: File, random: Random) {
++        val fileNames = listOf("s1.mp3", "Clip.MP4", "track.FLAC", "notes.txt", "cover.jpg", ".trashed-9-x.mp3", "._y.m4a", "album.cue",
++            "x.song.v2.ogg", "noext", "voice.aac", "movie.MKV", "lossless.ALAC", "image.png", "a.lrc", "old.wma", "UPPER.MP3")
++        val folderNames = listOf("A", "B", "c d", "周杰倫", ".hidden")
++        fun fill(dir: File, depth: Int) {
++            fileNames.filter { random.nextInt(3) == 0 }.forEach { File(dir, it).writeText("x") }
++            if (depth < 3) folderNames.filter { random.nextInt(3) == 0 }.forEach { name -> File(dir, name).also { it.mkdirs(); fill(it, depth + 1) } }
++        }
++        fill(root, 0)
++    }
++
++    @Test
++    fun discoveryMatchesTheRealFileScannerOnRandomTreesIncludingExclusions() {
++        var compared = 0
++        for (seed in 1L..40L) {
++            val random = Random(seed)
++            val root = Files.createTempDirectory("scoped$seed").toFile()
++            try {
++                randomTree(root, random)
++                val folders = root.walkTopDown().filter { it.isDirectory && it != root }.map { it.relativeTo(root).invariantSeparatorsPath }.toList()
++                val excluded = if (folders.isNotEmpty() && random.nextBoolean()) setOf(folders[random.nextInt(folders.size)]) else emptySet()
++                val viaFiles = MediaScanner.scanFolder(root, excluded)
++                    .map { Triple(it.path.removePrefix(root.path + "/"), it.kind, it.sizeBytes) }.sortedBy { it.first }
++                val viaDiscovery = runBlocking {
++                    ScopedMediaDiscovery(Access(mirror(root))).scan(listOf("content://tree"), false, excludedFolders = excluded)
++                }.records.map { Triple(parseStableDocumentKey(it.media.id)!!.documentId, it.media.kind, it.media.sizeBytes) }.sortedBy { it.first }
++                assertEquals("seed=$seed excluded=$excluded", viaFiles, viaDiscovery)
++                compared += viaFiles.size
++            } finally {
++                root.deleteRecursively()
++            }
++        }
++        assertTrue("the random trees must actually contain media", compared > 300)
++    }
++}
+diff --git a/greater-art/docs/STORAGE_MIGRATION.md b/greater-art/docs/STORAGE_MIGRATION.md
+index 7557721..7cf294c 100644
+--- a/greater-art/docs/STORAGE_MIGRATION.md
++++ b/greater-art/docs/STORAGE_MIGRATION.md
+@@ -2,6 +2,45 @@
+ 
+ Current source target: 1.21.32 / 255. Not a permission cutover.
+ 
++## Stage C follow-up — scoped exclusions, URI sidecar selection, legacy relink (1.21.39 / 262)
++
++Pure, JVM-tested logic for three items from the "Remaining" list below. **None of it is wired into a production flow:** the
++Library is still the File scanner, broad access is still declared, and this change does not reduce the requested permission.
++
++* **Scoped folder exclusions.** `ScopedMediaDiscovery.scan(..., excludedFolders)` takes paths relative to the granted root,
++  slash-normalised, with the same rule as `MediaScanner.scanFolder` (`relative == it || relative.startsWith("$it/")`).
++  An excluded folder is never queried (no provider round trip) and is not reported as a partial result.
++* **URI sidecar selection.** `ScopedMediaRecord.sidecars` (`lyricsUri`, `artworkUri`) is chosen from the names in each
++  folder's own listing with `SidecarIndex`, a per-folder hash index (a folder of thousands of files costs a few lookups per
++  media file, not a scan). Rules are the ones the File flow uses: lyrics `ttml > lrc > srt` by stem, then full media name;
++  artwork same stem, then cover/folder/front/album/artwork. The thumbnail constants are now shared (`SidecarNames`).
++  MediaStore items have no sidecars (it cannot see `.lrc` or cover files). **Reading** the sidecar bytes (ContentResolver
++  streams) and CUE sheets are not implemented.
++* **Legacy path-to-document mapping.** `LegacyDocumentMapping.kt` maps a stored raw path to the ExternalStorageProvider
++  document id and back (`/storage/emulated/0/Music/a.mp3` is `primary:Music/a.mp3`; longest volume root wins; `..` rejected;
++  cue suffix kept). `relinkLegacyMediaIds` answers "which scoped item is this stored id?" for playlists, history, Stack
++  slots and custom order, with a reason when it cannot (`NOT_A_KNOWN_VOLUME_PATH`, `NOT_IN_SCOPED_LIBRARY`,
++  `CUE_TRACK_NOT_EXPANDED`, `UNSUPPORTED_ID`). It never opens a file and never rewrites stored data; a case-insensitive match
++  is accepted only when it is unique. `storageVolumeRoots(context)` supplies the volumes (API 30+ reads `StorageVolume.directory`;
++  below that only the primary volume maps).
++
++### Follow-up verification (standalone Kotlin harness against the real source files)
++
++* The existing 14 `ScopedMediaDiscoveryTest` cases still pass with the modified discovery.
++* 26 new tests pass, including parity with the real `MediaScanner.scanFolder` on 40 random trees (hundreds of media files, excluded
++  folders, hidden look-alikes, Chinese-named folders; run under a UTF-8 locale) and the fast sidecar index against the plain
++  list-scanning rule on 400 random folders. Six deliberately broken variants (prefix-matching exclusion, exclusions never applied,
++  parent path forgotten, wrong lyrics priority, case twins merged, shortest volume root) are each caught.
++* NOT verified: anything on Android. `storageVolumeRoots` was only syntax-checked; no emulator or phone run, no real provider's
++  volume ids, no large-library timing.
++
++### Stage D notes (not started)
++
++* The folder grant persisted today is read-only. Deleting a SAF document needs write access, which is a permission-posture
++  change to decide explicitly; MediaStore items can use the system delete confirmation instead.
++* Sharing a URI item would need a temporary read grant on the intent; exported M3U lists cannot carry Android grants.
++  Both are candidate approaches, unverified.
++
+ ## Stage C core — selected-folder Library and URI readers
+ 
+ Selecting a persisted SAF folder now makes it the Library source, rather than
+-- 
+2.43.0

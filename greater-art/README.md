@@ -4,7 +4,7 @@ Greater Art is a native Kotlin/Jetpack Compose player for local music and video.
 
 ## Current release
 
-Current source: **1.21.39 / code262 — VERIFIED debug sideload** (independent desktop tooling policy; Android runtime unchanged). The DEV Inspector includes one-tap disabling of Developer Mode. Adaptive Dynamic combines
+Current source: **1.21.45 / code268 — SOURCE_ONLY**, Settings category pages with readable current values and single-choice dialogs, portrait-first fullscreen with explicit rotation, reviewed scoped-folder exclusions, sidecar URI selection and legacy relink planning, plus restored audio Now Playing top controls independent of artwork. Production sidecar reading and preference migration are not enabled. The DEV Inspector includes one-tap disabling of Developer Mode. Adaptive Dynamic combines
 Classic/Aurora/Bloom/Flow; Classic remains available. See
 [implementation/evidence](docs/ADAPTIVE_AMBIENT_2.md). Latest verified APK is 1.21.39.
 
@@ -18,7 +18,7 @@ optional video-colour gradient, with no extra decoder. See the
 [branch/issue review](docs/BRANCH_AND_ISSUE_REVIEW_2026-10-10.md) for integration,
 historical APK dispositions and unresolved physical/admin acceptance gates.
 
-The verified **1.21.37 / code260 sideload APK** is [available here](releases/GreaterArt-1.21.37.apk). Emulator/build evidence is in [HANDOFF.md](HANDOFF.md); physical-phone and production signing acceptance remain pending. A selected SAF folder can supply Library playback, metadata, embedded artwork, waveforms and Stack readers. Clearing the folder returns to recursive Download discovery. URI sidecars, sharing/deletion and the final storage-permission migration are not complete. Adaptive Stack drift control
+The verified **1.21.39 / code262 sideload APK** is [available here](releases/GreaterArt-1.21.39.apk). Emulator/build evidence is in [HANDOFF.md](HANDOFF.md); physical-phone and production signing acceptance remain pending. A selected SAF folder can supply Library playback, metadata, embedded artwork, waveforms and Stack readers. Clearing the folder returns to recursive Download discovery. URI sidecar reading, sharing/deletion and the final storage-permission migration are not complete. Adaptive Stack drift control
 is model-backed; audible improvement still requires physical listening.
 Calibrated internal-output probes now demonstrate remaining independent-player
 drift on the emulator; shared-clock output fixes the generated probe only in the

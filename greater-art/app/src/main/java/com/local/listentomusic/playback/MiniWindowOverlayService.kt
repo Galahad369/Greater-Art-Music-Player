@@ -454,7 +454,7 @@ class MiniWindowOverlayService : Service(), LifecycleOwner, ViewModelStoreOwner,
                         onClose = ::collapseExpanded,
                         onShrink = ::minimizeExpandedForSelectedMode,
                         onFullscreen = { value ->
-                            if (value && viewModel.playback.value.isVideo) openLandscapeFullscreen()
+                            if (value && viewModel.playback.value.isVideo) openVideoFullscreen()
                             else updateExpandedFullscreen(value)
                         },
                         onPull = ::dragExpanded,
@@ -981,7 +981,7 @@ class MiniWindowOverlayService : Service(), LifecycleOwner, ViewModelStoreOwner,
         }
     }
 
-    private fun openLandscapeFullscreen() {
+    private fun openVideoFullscreen() {
         if (!expanded || com.local.listentomusic.ui.components.VideoSurfaceOwner.fullscreenActivityActive) return
         com.local.listentomusic.ui.components.VideoSurfaceOwner.beginHandoff("NOW_PLAYING")
         com.local.listentomusic.ui.components.VideoSurfaceOwner.setFullscreenActivityVisible(true)
