@@ -1,6 +1,6 @@
 # Greater Art Desktop — native Windows edition
 
-Current source **0.1.13/code14**, interactive Nodes update undergoing final installed acceptance. Latest frozen delivery is **0.1.12/code13** until the new receipt is recorded. Original C++/Win32 application: activity rail, resizable Stack / Library / Nodes panes, collapsed Settings, fixed dock. Expanded Now Playing and detached Mini transfer the same primary renderer without reloading media. Older frozen artifacts are preserved.
+Current source **0.1.14/code15**, interactive Nodes update undergoing final installed acceptance. Latest frozen delivery is **0.1.12/code13** until the new receipt is recorded. Original C++/Win32 application: activity rail, resizable Stack / Library / Nodes panes, collapsed Settings, fixed dock. Expanded Now Playing and detached Mini transfer the same primary renderer without reloading media. Older frozen artifacts are preserved.
 
 ## Install and run
 

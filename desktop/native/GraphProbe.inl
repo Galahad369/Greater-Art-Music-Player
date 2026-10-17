@@ -109,13 +109,21 @@ template <class Fail> void graphProbeTick(Fail fail)
         // Messages execute in one UI turn so physics cannot move the camera's anchor.
         for (bool middle : {true, false})
         {
+            // Capture can deliver the physical cursor outside the canvas. Bring
+            // every world point back into view before starting the next gesture.
+            fitGraph();
             auto start = graphPoint(held);
             if (!middle)
                 SendMessage(app.main, WM_KEYDOWN, VK_SPACE, 0);
             mouse(middle ? WM_MBUTTONDOWN : WM_LBUTTONDOWN, start, middle ? MK_MBUTTON : MK_LBUTTON);
             if (app.graphDrag != -1 || GetCapture() != app.main)
             {
-                fail(L"pan gesture grabbed a node instead of the canvas");
+                auto stage = graphStage();
+                fail(L"pan capture failed: middle=" + std::to_wstring(middle) + L" start=" +
+                     std::to_wstring(start.x) + L"," + std::to_wstring(start.y) + L" stage=" +
+                     std::to_wstring(stage.x) + L"," + std::to_wstring(stage.y) + L"," +
+                     std::to_wstring(stage.w) + L"," + std::to_wstring(stage.h) + L" node=" +
+                     std::to_wstring(app.graphDrag) + L" space=" + std::to_wstring(app.graphSpace));
                 return;
             }
             auto pointer = app.graphPointer;

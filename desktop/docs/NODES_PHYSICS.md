@@ -1,6 +1,6 @@
 # Windows Nodes physics
 
-Desktop 0.1.13/code14. Android is outside this change.
+Desktop 0.1.14/code15 (physics introduced in 0.1.13). Android is outside this change.
 
 The reference is [Obsidian's documented graph interactions and forces](https://obsidian.md/help/plugins/graph): connected nodes respond to dragging, stronger hubs appear larger, hover emphasizes neighbors, and center/repel/link force/link distance are adjustable. Greater Art still builds edges only from local filename similarity; this does not introduce note links, tags or online metadata.
 
