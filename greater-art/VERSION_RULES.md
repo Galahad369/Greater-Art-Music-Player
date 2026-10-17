@@ -8,6 +8,12 @@ This file is the authoritative version policy for Greater Art. If any handoff no
 
 
 Current source: **1.21.46 (code 269)**
+Allowed consumed transition: **1.21.38 (code 261) -> 1.21.40 (code 263)**
+
+PR #174's initial audit commit 1.21.40/code263 preserves the intervening
+1.21.39/code262 already consumed by the separate desktop integration source.
+This exact historical transition is required by the per-commit validator
+when reviewing PR #174's full ancestry; it does not exempt future skips.
 Allowed consumed transition: **1.21.39 (code 262) -> 1.21.45 (code 268)**
 
 1.21.46 keeps 1.21.45 main as first parent and PR #174's 1.21.40/41
