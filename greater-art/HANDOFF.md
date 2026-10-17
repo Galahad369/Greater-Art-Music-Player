@@ -3,7 +3,7 @@
 This file describes the **current repository state only**. Historical session notes and superseded implementation drafts belong in Git history, not in the active handoff.
 
 **Project:** `greater-art/` in the repository checkout
-**Current source:** `1.21.45 (code 268)` — SOURCE_ONLY; reviewed branch convergence
+**Current source:** `1.21.46 (code 269)` — SOURCE_ONLY; historical privacy scanner and disposable rehearsal reconciled on security PR #174
 **Current version:** `1.21.39 (code 262)`
 **Latest APK:** `releases/GreaterArt-1.21.39.apk` (`26,877,593 bytes`; SHA-256 `e636fb7c1bfdbdf5500d48863a9f6c778aec47bb2090e433bb2e86037e468104`)
 **Application ID:** `com.local.listentomusic`
@@ -13,6 +13,14 @@ This file describes the **current repository state only**. Historical session no
 **Verification boundary:** Exact build source `b20489581b6125ce3963c767ed8e419c979a6820`; 358 JVM tests, 21 API36 emulator tests, zero lint errors; signature, pinned certificate, version/package, 16KiB ZIP alignment and upgrade installation checked. Emulator tests cover scoped URI discovery/access, live primary-video Dynamic Ambient colors and retained player identity, floating presentations and accessibility/Developer Mode interactions. No app fatal in the inspected crash buffer. This is a debug sideload build, not production signing, physical-phone acceptance, full security assessment or a universal bug-free guarantee. The prior 1.21.37 artifact and its evidence remain unchanged in history.
 
 ## Repository state
+
+### October 17 — PR #174 security preparation rebase (1.21.46/code269)
+
+- Merge PR #174's non-destructive historical scanner and disposable mirror rehearsal into current 1.21.45 source ancestry without modifying main or rewriting protected refs. Keep the complete prior main/desktop tree and the verified 1.21.39 APK.
+- Extend detection across Windows homes on alternate drives and accounts with spaces, macOS accounts and Linux home folders. Cover deleted historical files with PowerShell and Python/Git-ERE synthetic fixtures.
+- A rehearsal of ordinary branch/tag refs does not establish sanitization of pull refs, forks, caches or identity-bearing filenames. Those require owner-controlled inventory and explicit acceptance.
+- **SOURCE_ONLY**; stricter public privacy audit deliberately fails on existing reachable historical paths. No protected tag update, Git-history force-push, security-guard bypass or release publication was performed.
+
 
 ### October 17 — reviewed branch convergence (1.21.45/code268)
 
