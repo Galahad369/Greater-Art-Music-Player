@@ -7,12 +7,20 @@ This file is the authoritative version policy for Greater Art. If any handoff no
 ## Machine-checkable state
 
 
-Current source: **1.21.45 (code 268)**
+Current source: **1.21.47 (code 270)**
+Allowed consumed transition: **1.21.38 (code 261) -> 1.21.40 (code 263)**
+
+PR #174's initial audit commit 1.21.40/code263 preserves the intervening
+1.21.39/code262 already consumed by the separate desktop integration source.
+This exact historical transition is required by the per-commit validator
+when reviewing PR #174's full ancestry; it does not exempt future skips.
 Allowed consumed transition: **1.21.39 (code 262) -> 1.21.45 (code 268)**
 
-Integration retains the 1.21.42–44 commits as a merge parent. Versions 40/41
-were consumed by blocked PR #174 and overlapping local Nodes work. The latter's
-unsafe physics edits are not imported; useful focus styling is integrated at 45.
+1.21.46 keeps 1.21.45 main as first parent and PR #174's 1.21.40/41
+non-destructive security work as second parent. The original historical privacy
+exposure remains reachable and the mandatory audit still fails until an owner-
+authorized remote-history cutover. Versions 42–45 and desktop binaries remain
+unchanged; the security scanner is not a history-cleanup certification.
 Allowed consumed transition: **1.21.39 (code 262) -> 1.21.42 (code 265)**
 
 PR #174 consumed 1.21.40/code263 (eeb06d9) and 1.21.41/code264 (8b81e82).
@@ -345,9 +353,13 @@ Previous baseline: 1.13.26 (code 115).
 
 - 1.21.38 (code 261) — Add a prominently visible one-tap “Turn off Developer Mode” control inside the local diagnostics inspector, available in Library and expanded Now Playing. The action clears inspector interaction state and persists the existing Developer Mode preference; the DEV badge/panel disappear reactively. Add a measured Compose UI regression for one-tap dismissal. SOURCE_ONLY pending CI and device acceptance; verified 1.21.37 APK remains untouched.
 - 1.21.39 (code 262) — Owner-approved tooling-policy separation for independent Windows desktop versions and CI. Only the owned desktop workflow is exempt from Android bumps; shared workflows remain versioned, with regression tests. Android runtime and immutable verified 1.21.37 APK unchanged. SOURCE_ONLY.
-- 1.21.40 (code 263) — Consumed by separate blocked PR #174 commit eeb06d9; not imported.
-- 1.21.41 (code 264) — Consumed by separate blocked PR #174 commit 8b81e82; not imported.
+- 1.21.40 (code 263) — PR #174 historical path scanner commit eeb06d9, preserved as security integration second-parent ancestry.
+- 1.21.41 (code 264) — PR #174 disposable full-ref rehearsal commit 8b81e82, preserved as security integration second-parent ancestry.
 - 1.21.42 (code 265) — Integrate Claude 96760a2 scoped exclusions/sidecar-index/relink foundation with Unicode, strict identity parsing, cue isolation and duplicate-listing regressions. Restore the missing audio Now Playing toolbar independently of artwork, with shared lock anchoring and compact landscape layout. No automatic preference rewrite, sidecar byte reads, permission cutover or shared playback changes. SOURCE_ONLY; verified 1.21.39 APK preserved.
 - 1.21.43 (code 266) — Fullscreen opens portrait-first. Add explicit portrait/landscape rotation action with destination-shaped phone icon, arrow and localized accessibility labels; retain the shared player and native video quality. SOURCE_ONLY; verified 1.21.39 APK preserved.
 - 1.21.44 (code 267) — Clarify Settings with category navigation, current-value rows and accessible single-choice dialogs; group Library appearance and floating-window size logically, separate playlist actions from titles, use an opaque readable surface and stop hidden decorative backgrounds. Preference defaults, persistence, playback and permissions are unchanged. SOURCE_ONLY; verified 1.21.39 APK preserved.
 - 1.21.45 (code 268) — Reviewed branch convergence: retain storage/audio/fullscreen/Settings commits, port Dependabot Gradle 9.8.1 / Compose plugin 2.4.21 and pinned setup-java 6.1.0, selectively import Nodes focus styling without blocking layout or ignoring bounce preferences. SOURCE_ONLY; verified Android 1.21.39 and Desktop 0.1.16 artifacts unchanged.
+
+- 1.21.46 (code 269) — Reconcile PR #174's non-destructive history scanner and disposable rewrite rehearsal with main 1.21.45/code268. Extend Windows drive/username-space, macOS and Linux home matching with synthetic PowerShell/Python Git-history tests; preserve immutable verified 1.21.39 APK, desktop code and existing Android functions. SOURCE_ONLY. Real historical exposure persists; required privacy audit fails intentionally, and no protected history/tag rewrite was authorized or performed.
+
+- 1.21.47 (code 270) — Prevent historical privacy regression fixtures from embedding complete synthetic Windows workstation paths verbatim in checked-in files. Build the test paths at runtime in the PowerShell and Python fixtures. Preserve all existing audit/rehearsal behavior, keep historical findings red, and retain immutable verified 1.21.39 APK. SOURCE_ONLY.

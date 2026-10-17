@@ -4,7 +4,7 @@ Greater Art is a native Kotlin/Jetpack Compose player for local music and video.
 
 ## Current release
 
-Current source: **1.21.45 / code268 — SOURCE_ONLY**, Settings category pages with readable current values and single-choice dialogs, portrait-first fullscreen with explicit rotation, reviewed scoped-folder exclusions, sidecar URI selection and legacy relink planning, plus restored audio Now Playing top controls independent of artwork. Production sidecar reading and preference migration are not enabled. The DEV Inspector includes one-tap disabling of Developer Mode. Adaptive Dynamic combines
+Current source: **1.21.47 / code270 — SOURCE_ONLY** (historical privacy scanner/rehearsal preparation only; the live rewrite is pending), Settings category pages with readable current values and single-choice dialogs, portrait-first fullscreen with explicit rotation, reviewed scoped-folder exclusions, sidecar URI selection and legacy relink planning, plus restored audio Now Playing top controls independent of artwork. Production sidecar reading and preference migration are not enabled. The DEV Inspector includes one-tap disabling of Developer Mode. Adaptive Dynamic combines
 Classic/Aurora/Bloom/Flow; Classic remains available. See
 [implementation/evidence](docs/ADAPTIVE_AMBIENT_2.md). Latest verified APK is 1.21.39.
 
