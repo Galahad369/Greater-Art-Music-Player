@@ -10,7 +10,7 @@ ns = runpy.run_path(str(Path(__file__).with_name("pr24-rehearse-history.py")))
 regex = re.compile("|".join(ns["PATTERNS"]))
 fixtures = {
     "win-space.log": "Z:" + "\\" + "Users" + "\\" + "Synthetic Person" + "\\" + "Documents" + "\\",
-    "win-lower.log": "c:/users/synthetic-person/Documents/",
+    "win-lower.log": "c:/" + "users/" + "synthetic-person/Documents/",
     "mac-space.log": "/" + "Users" + "/Synthetic Person/Documents/",
     "linux-space.log": "/" + "home" + "/synthetic-person/Documents/",
 }

@@ -21,7 +21,7 @@ try {
     $slash = [char]92
     $fixtures = @{
         "win-space.log" = "Z:" + $slash + "Users" + $slash + "Synthetic Person" + $slash + "Documents" + $slash
-        "win-lower.log" = "c:/users/synthetic-person/Documents/"
+        "win-lower.log" = "c:/" + "users/" + "synthetic-person/Documents/"
         "mac-space.log" = "/" + "Users" + "/Synthetic Person/Documents/"
         "linux-space.log" = "/" + "home" + "/synthetic-person/Documents/"
     }

@@ -7,7 +7,7 @@ This file is the authoritative version policy for Greater Art. If any handoff no
 ## Machine-checkable state
 
 
-Current source: **1.21.46 (code 269)**
+Current source: **1.21.47 (code 270)**
 Allowed consumed transition: **1.21.38 (code 261) -> 1.21.40 (code 263)**
 
 PR #174's initial audit commit 1.21.40/code263 preserves the intervening
@@ -361,3 +361,5 @@ Previous baseline: 1.13.26 (code 115).
 - 1.21.45 (code 268) — Reviewed branch convergence: retain storage/audio/fullscreen/Settings commits, port Dependabot Gradle 9.8.1 / Compose plugin 2.4.21 and pinned setup-java 6.1.0, selectively import Nodes focus styling without blocking layout or ignoring bounce preferences. SOURCE_ONLY; verified Android 1.21.39 and Desktop 0.1.16 artifacts unchanged.
 
 - 1.21.46 (code 269) — Reconcile PR #174's non-destructive history scanner and disposable rewrite rehearsal with main 1.21.45/code268. Extend Windows drive/username-space, macOS and Linux home matching with synthetic PowerShell/Python Git-history tests; preserve immutable verified 1.21.39 APK, desktop code and existing Android functions. SOURCE_ONLY. Real historical exposure persists; required privacy audit fails intentionally, and no protected history/tag rewrite was authorized or performed.
+
+- 1.21.47 (code 270) — Prevent historical privacy regression fixtures from embedding complete synthetic Windows workstation paths verbatim in checked-in files. Build the test paths at runtime in the PowerShell and Python fixtures. Preserve all existing audit/rehearsal behavior, keep historical findings red, and retain immutable verified 1.21.39 APK. SOURCE_ONLY.
