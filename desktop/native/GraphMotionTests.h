@@ -18,7 +18,7 @@ template <class Check> void graphMotionTests(Check expect)
     run(weak, 8, 60);
     double nearDistance = strong.graph.points[1].x - strong.graph.points[0].x;
     double farDistance = weak.graph.points[1].x - weak.graph.points[0].x;
-    expect(nearDistance > 15 && farDistance > nearDistance * 1.5,
+    expect(nearDistance >= 36 && farDistance > nearDistance * 1.5,
            "graph strong links settle closer without overlapping");
     GraphSimulation fast, slow;
     fast.reset(pair(.7));

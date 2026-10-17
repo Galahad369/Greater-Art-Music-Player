@@ -371,6 +371,10 @@ void probeTick()
             app.probeCpu = cpuTime();
             app.probeSamples = app.visualFrames;
             app.probeTime = double(app.visualPaints);
+            app.graphPaintCost = {};
+            app.mainPaintParts = {};
+            app.mainPaintCost = 0;
+            app.graphPaintCount = 0;
             app.probeAt = GetTickCount64();
             app.probeStage = 1;
         }
@@ -391,6 +395,16 @@ void probeTick()
                    << "\nowned_paints_per_second=" << paints / seconds
                    << "\nprocess_cpu_cores=" << double(cpuTime() - app.probeCpu) / 1e7 / seconds
                    << "\nno_video_quality_caps=true\nwindows_preferences_changed=false\n";
+            report << "graph_paints=" << app.graphPaintCount << "\n";
+            report << "graph_nodes=" << app.graph.points.size() << "\ngraph_edges="
+                   << app.graph.edges.size() << "\n";
+            for (int part = 0; part < 4; ++part)
+                report << "graph_part_" << part << "_ms="
+                       << app.graphPaintCost[part] / std::max(std::uint64_t(1), app.graphPaintCount) << "\n";
+            report << "main_paint_ms=" << app.mainPaintCost / std::max(std::uint64_t(1), paints) << "\n";
+            for (int part = 0; part < 5; ++part)
+                report << "main_part_" << part << "_ms="
+                       << app.mainPaintParts[part] / std::max(std::uint64_t(1), paints) << "\n";
             if (frames < 30 || paints < 20)
             {
                 fail(L"visual clock did not render");
@@ -764,7 +778,12 @@ LRESULT CALLBACK WindowProc(HWND window, UINT message, WPARAM w, LPARAM l)
         if (main)
         {
             ++app.visualPaints;
+            auto measuredAt = app.probeVisual ? std::chrono::steady_clock::now()
+                                             : std::chrono::steady_clock::time_point{};
             paintMain(buffer);
+            if (app.probeVisual)
+                app.mainPaintCost += std::chrono::duration<double, std::milli>(
+                    std::chrono::steady_clock::now() - measuredAt).count();
         }
         else
             paintPlayer(buffer, window, mini);

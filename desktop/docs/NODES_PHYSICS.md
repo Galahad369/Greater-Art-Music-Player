@@ -1,6 +1,6 @@
 # Windows Nodes physics
 
-Desktop 0.1.14/code15 (physics introduced in 0.1.13). Android is outside this change.
+Desktop 0.1.15/code16 (physics introduced in 0.1.13). Android is outside this change.
 
 The reference is [Obsidian's documented graph interactions and forces](https://obsidian.md/help/plugins/graph): connected nodes respond to dragging, stronger hubs appear larger, hover emphasizes neighbors, and center/repel/link force/link distance are adjustable. Greater Art still builds edges only from local filename similarity; this does not introduce note links, tags or online metadata.
 
@@ -19,6 +19,8 @@ The reference is [Obsidian's documented graph interactions and forces](https://o
 `GraphSimulation` owns world-space positions and velocities. It integrates at 1/240-second numerical steps regardless of display refresh; this is a physics precision choice, not a video/frame-rate limit. Numerical catch-up is bounded to 50 ms while cooling follows accepted elapsed time, coalesced up to 250 ms. Springs use similarity-weighted rest lengths, softened Barnes–Hut repulsion, node-size collision clearance, damping and bounded velocity. Coincident points separate deterministically. No node is omitted for large libraries.
 
 `GraphMotion` runs below normal priority on its own worker, with one coalesced request and one replaceable result. Library generations discard stale output. UI drag positions stay authoritative. Main-thread drawing batches edges and circles into physical-DPI antialiased paths; there are no new runtime dependencies, media reloads or quality reductions.
+
+Real-library presentation profiling found about 1 ms of graph drawing but roughly 10.1 ms total main painting. Text outside the dirty region was still being shaped, and an Ambient layer was generated underneath opaque panes. 0.1.15 skips that work while preserving every visible pane background, text style and native-DPI vector. The same short 1080p run changed from 65.2 to 105.2 owned paints/second, with main painting 10.10 → 4.93 ms and CPU 1.22 → 0.85 cores. These local counters are not physical 180FPS scanout proof. Probe-only timings expose graph/main paint sections; regular UI does not log or collect them.
 
 Core regression coverage includes strong/weak equilibrium, 60/180-update equivalence, pinned drag/neighbor response, settling/reheating, coincident nodes, 2,000-node bounds, empty/singleton layout, stale generations and preference compatibility. `--verify-graph <local-video> <isolated-output>` exercises the real window with its surrounding local library, captures only the owned window and checks continued native playback. Test outputs stay local and ignored; do not commit a user's paths, filenames or media.
 

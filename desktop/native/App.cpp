@@ -171,6 +171,10 @@ struct App
     std::uint64_t graphFrameAt = 0, graphRevealAt = 0;
     double graphTravel = 0;
     double graphAge = 0;
+    std::array<double, 4> graphPaintCost{};
+    std::array<double, 5> mainPaintParts{};
+    double mainPaintCost = 0;
+    std::uint64_t graphPaintCount = 0;
     std::vector<int> filtered;
     std::vector<Slot> slots;
     std::unique_ptr<AudioFallback> stackOutput;
@@ -365,6 +369,10 @@ void text(HDC dc, std::wstring value, Rect rect, HFONT font, COLORREF color,
           UINT flags = DT_LEFT | DT_VCENTER | DT_SINGLELINE | DT_END_ELLIPSIS)
 {
     auto r = physical(rect);
+    // GDI still shapes clipped text. Skip it before font/fallback layout; graph
+    // motion must not re-layout every title in an unchanged Library or Stack.
+    if (!RectVisible(dc, &r))
+        return;
     auto old = SelectObject(dc, font);
     SetTextColor(dc, color);
     SetBkMode(dc, TRANSPARENT);
@@ -382,6 +390,9 @@ void circle(HDC dc, int x, int y, int radius, COLORREF color)
 }
 void marquee(HDC dc, const std::wstring &value, Rect rect, HFONT font, COLORREF color)
 {
+    auto clip = physical(rect);
+    if (!RectVisible(dc, &clip))
+        return;
     SIZE size{};
     auto previous = SelectObject(dc, font);
     GetTextExtentPoint32(dc, value.c_str(), int(value.size()), &size);
@@ -393,7 +404,6 @@ void marquee(HDC dc, const std::wstring &value, Rect rect, HFONT font, COLORREF 
     }
     Gdiplus::Graphics graphics(dc);
     graphics.SetTextRenderingHint(Gdiplus::TextRenderingHintAntiAliasGridFit);
-    auto clip = physical(rect);
     graphics.SetClip(Gdiplus::Rect(clip.left, clip.top, clip.right - clip.left, clip.bottom - clip.top));
     Gdiplus::Font face(dc, font);
     Gdiplus::StringFormat format(Gdiplus::StringFormat::GenericTypographic());
@@ -413,6 +423,9 @@ void marquee(HDC dc, const std::wstring &value, Rect rect, HFONT font, COLORREF 
 }
 void mark(HDC dc, Rect r)
 {
+    auto clip = physical(r);
+    if (!RectVisible(dc, &clip))
+        return;
     float scale = app.dpi / 96.f;
     drawAppMark(dc, r.x * scale, r.y * scale, r.w * scale);
 }
@@ -1286,9 +1299,23 @@ void transport(HDC dc, std::vector<Hit> &hits, Rect r, bool compact = false)
 }
 void paintMain(HDC dc)
 {
+    auto measuredAt = app.probeVisual ? std::chrono::steady_clock::now()
+                                     : std::chrono::steady_clock::time_point{};
+    auto measure = [&](int part) {
+        if (app.probeVisual)
+        {
+            auto now = std::chrono::steady_clock::now();
+            app.mainPaintParts[part] += std::chrono::duration<double, std::milli>(now - measuredAt).count();
+            measuredAt = now;
+        }
+    };
     app.mainHits.clear();
     int w = app.clientW, h = app.clientH;
-    fill(dc, {0, 0, w, h}, colors.bg);
+    // All visible panes paint their own background. Do not generate an Ambient
+    // layer underneath them; retain an opaque base for rounding gaps on resize.
+    auto base = physical({0, 0, w, h});
+    SetDCBrushColor(dc, colors.bg);
+    FillRect(dc, &base, static_cast<HBRUSH>(GetStockObject(DC_BRUSH)));
     fill(dc, {0, 0, 48, h}, colors.rail);
     mark(dc, {8, 12, 32, 32});
     iconButton(dc, app.mainHits, {2, 74, 44, 44}, TOGGLE_STACK, 0, Icon::Stack, app.showStack);
@@ -1307,9 +1334,13 @@ void paintMain(HDC dc)
     iconButton(dc, app.mainHits, {w - 342, 8, 44, 44}, PLAYLIST_MENU, 0, Icon::Library,
                !app.activePlaylist.empty());
     iconButton(dc, app.mainHits, {w - 390, 8, 44, 44}, TOOLS, 0, Icon::More);
+    measure(0);
     paintStack(dc);
+    measure(1);
     paintLibrary(dc);
+    measure(2);
     paintNodes(dc);
+    measure(3);
     if (app.stackRect.w)
         app.mainHits.push_back({{app.libraryRect.x - 3, 62, 6, std::max(0, h - 178)}, NONE, 1});
     if (app.nodesRect.w)
@@ -1339,6 +1370,7 @@ void paintMain(HDC dc)
     }
     iconButton(dc, app.mainHits, {w - 56, dock + 34, 48, 48}, EXPAND, 0, Icon::Expand, false,
                !app.slots.empty());
+    measure(4);
 }
 void paintPlayer(HDC dc, HWND window, bool mini)
 {

@@ -205,6 +205,18 @@ void paintNodes(HDC dc)
     GetClipBox(dc, &dirty);
     if (!IntersectRect(&intersection, &dirty, &clip))
         return;
+    auto measuredAt =
+        app.probeVisual ? std::chrono::steady_clock::now() : std::chrono::steady_clock::time_point{};
+    auto measure = [&](int part) {
+        if (app.probeVisual)
+        {
+            auto now = std::chrono::steady_clock::now();
+            app.graphPaintCost[part] += std::chrono::duration<double, std::milli>(now - measuredAt).count();
+            measuredAt = now;
+        }
+    };
+    if (app.probeVisual)
+        ++app.graphPaintCount;
     int saved = SaveDC(dc);
     IntersectClipRect(dc, clip.left, clip.top, clip.right, clip.bottom);
     auto n = app.graph.points.size();
@@ -242,6 +254,8 @@ void paintNodes(HDC dc)
             }
         for (int style = 0; style < 6; ++style)
         {
+            if (!style)
+                measure(0);
             BYTE alpha = BYTE(style == 5 ? 210 : style == 4 ? 22 : 55 + 24 * style);
             Gdiplus::Pen pen(color(style == 5 ? colors.accent : colors.muted, alpha),
                              float(style == 5   ? 1.5
@@ -250,6 +264,7 @@ void paintNodes(HDC dc)
                                  dpi);
             g.DrawPath(&pen, &edgePaths[style]);
         }
+        measure(1);
         Gdiplus::GraphicsPath nodePaths[3], rings;
         for (auto &path : nodePaths)
             path.SetFillMode(Gdiplus::FillModeWinding);
@@ -276,6 +291,7 @@ void paintNodes(HDC dc)
         }
         Gdiplus::Pen pen(color(colors.accent, 170), 1.2f * dpi);
         g.DrawPath(&pen, &rings);
+        measure(2);
     }
     // Labels appear with focus/zoom, with simple collision rejection at low zoom.
     std::vector<Rect> labels;
@@ -303,4 +319,5 @@ void paintNodes(HDC dc)
             labels.push_back(label);
         }
     RestoreDC(dc, saved);
+    measure(3);
 }
