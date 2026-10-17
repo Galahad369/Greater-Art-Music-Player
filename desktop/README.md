@@ -1,12 +1,12 @@
 # Greater Art Desktop — native Windows edition
 
-Current **0.1.12/code13**, locally verified development delivery. Original C++/Win32 application: activity rail, resizable Stack / Library / Nodes panes, collapsed Settings, fixed dock. Expanded Now Playing and detached Mini transfer the same primary renderer without reloading media. Older frozen artifacts are preserved.
+Current **0.1.16/code17**, locally verified interactive Nodes delivery. Original C++/Win32 application: activity rail, resizable Stack / Library / Nodes panes, collapsed Settings, fixed dock. Expanded Now Playing and detached Mini transfer the same primary renderer without reloading media. Older frozen artifacts are preserved.
 
 ## Install and run
 
-[Artifact hashes and installed test receipt](RELEASE_0.1.12.md) · [Android-to-Windows source/control inventory](docs/ANDROID_WINDOWS_PARITY.md).
+[Artifact hashes and installed test receipt](RELEASE_0.1.16.md) · [Android-to-Windows source/control inventory](docs/ANDROID_WINDOWS_PARITY.md).
 
-Use **GreaterArt-Desktop-Setup-0.1.12.exe** from the local desktop/releases directory. Double-click, leave **Create desktop shortcut** selected, then Install. The per-user setup also creates a Start menu entry. Installation and playback are offline. Add a local folder to populate Library.
+Use **GreaterArt-Desktop-Setup-0.1.16.exe** from the local desktop/releases directory. Double-click, leave **Create desktop shortcut** selected, then Install. The per-user setup also creates a Start menu entry. Installation and playback are offline. Add a local folder to populate Library.
 
 Installed app: `%LOCALAPPDATA%/Programs/GreaterArtDesktop/GreaterArt.exe`.
 Settings/cache: `%LOCALAPPDATA%/GreaterArtDesktopNative/`.
@@ -26,7 +26,7 @@ Build-time dependencies are not installed app dependencies: Visual Studio C++/Wi
 
 - Rectangular Library rows, current-only playing marker/tap nudge, search/reset, favorites, chosen folders, Unicode, sort; local M3U8 import/export and separate playlists.
 - Up to eight sources mixed on one sample clock and WASAPI output, fractional-sample offsets, gain/mute/solo, primary-bounded group loop and fine nudges. Calibrated process-specific output tests detect a one-sample error. Automatic musical matching remains simpler, confidence-gated RMS/onset alignment—not a guarantee that different performances align perfectly.
-- Filename-similarity Nodes graph, sparse weighted edges, natural clusters, pan/zoom/drag/tap, wand reveal, neighbor/link threshold controls and versioned cache.
+- Filename-similarity Nodes graph with live damped springs, node-size collision spacing and weighted hubs. Middle mouse or Space+drag pans over nodes; empty-space drag also pans. Wheel zoom stays under the cursor, dragged nodes pull their neighbors, hover highlights links, and physics settles at idle. The gear exposes center/repel/link force and link distance. Wand reveal, neighbor/link threshold controls and versioned cache remain available. See [physics and verification](docs/NODES_PHYSICS.md).
 - Fixed seek/transport, first-class speed, lock, whole-frame monitor fullscreen, borderless Mini, direct Mini↔expanded transfer.
 - Selected-media metadata/artwork, bounded waveform disk cache, local synchronized LRC, A–B repeat, sleep timer, resume, opt-in history/burn, optional spinning audio disc.
 - Live-video/artwork Classic and Adaptive Ambient, using the original decoder with no second video player. Aspect-preserving custom image Crop(default)/Fit; no Stretch. Complete Android Adaptive controls and tiled Stack video wallpaper remain pending.
@@ -48,6 +48,7 @@ python desktop/packaging/test_version.py
 ./desktop/native/build/GreaterArt.exe --verify-stack-output 'C:/owned/calibrated-output'
 ./desktop/native/build/GreaterArt.exe --verify-ambient 'C:/owned/red-blue-green.mp4' 'C:/owned/ambient-output'
 ./desktop/native/build/GreaterArt.exe --verify 'C:/owned/video-fixture.mp4' 'C:/owned/probe-output'
+./desktop/native/build/GreaterArt.exe --verify-graph 'C:/owned/local-video.mp4' 'C:/owned/graph-output'
 ```
 
 Tests isolate all generated settings. The video probe captures **only owned HWNDs**, checks real rendering, six voices, fullscreen bounds and renderer handoffs. The audio probe checks actual WASAPI timeline behavior; neither proves what six real covers sound like.

@@ -262,6 +262,22 @@ int tests(const std::filesystem::path &directory)
         expect(!rejected.open(L"https://example.com/song.mp3", [] { return false; }),
                "bundled decoder rejects URL sources");
     }
+    graphMotionTests(expect);
+    UserFeatures graphPreferences;
+    graphPreferences.resume = false;
+    graphPreferences.playlists.push_back({L"Keep this list", {std::filesystem::absolute(directory / L"analysis-primary.wav").wstring()}});
+    graphPreferences.graphRepel = 150;
+    graphPreferences.graphDistance = 50;
+    saveFeatures(directory, graphPreferences);
+    auto restoredGraphPreferences = loadFeatures(directory);
+    expect(restoredGraphPreferences.graphRepel == 150 && restoredGraphPreferences.graphDistance == 50,
+           "graph force preferences persist");
+    auto preferencesFile = directory / L"features-v1.bin";
+    std::filesystem::resize_file(preferencesFile, std::filesystem::file_size(preferencesFile) - 24);
+    auto legacyGraphPreferences = loadFeatures(directory);
+    expect(legacyGraphPreferences.graphRepel == 100 && !legacyGraphPreferences.resume &&
+               legacyGraphPreferences.playlists.size() == 1 && legacyGraphPreferences.playlists[0].name == L"Keep this list",
+           "pre-graph settings load with default forces");
     report << "total=" << passed << "/" << total << "\n";
     return passed == total ? 0 : 2;
 }
@@ -435,10 +451,12 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE, PWSTR, int)
         CoTaskMemFree(data);
     if (argc == 4 &&
         (wcscmp(argv[1], L"--verify") == 0 || wcscmp(argv[1], L"--verify-ambient") == 0 ||
-         wcscmp(argv[1], L"--verify-ambient-fault") == 0 || wcscmp(argv[1], L"--verify-visual") == 0))
+         wcscmp(argv[1], L"--verify-ambient-fault") == 0 || wcscmp(argv[1], L"--verify-visual") == 0 ||
+         wcscmp(argv[1], L"--verify-graph") == 0))
     {
         app.probe = true;
         app.probeVisual = wcscmp(argv[1], L"--verify-visual") == 0;
+        app.probeGraph = wcscmp(argv[1], L"--verify-graph") == 0;
         app.probeFault = wcscmp(argv[1], L"--verify-ambient-fault") == 0;
         app.probeAmbient = wcscmp(argv[1], L"--verify-ambient") == 0 || app.probeFault;
         if (app.probeAmbient)
@@ -519,7 +537,7 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE, PWSTR, int)
     DwmSetWindowAttribute(app.main, 20, &dark, sizeof(dark));
     layout();
     initializeSystemMedia();
-    if (app.probeAmbient || app.probeVisual)
+    if (app.probeAmbient || app.probeVisual || app.probeGraph)
         ShowWindow(app.main, SW_SHOWNOACTIVATE);
     if (app.probe)
     {

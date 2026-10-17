@@ -1,10 +1,11 @@
 # Desktop parity and acceptance
 
-Desktop **0.1.12/code13** is an original native Windows **verified local development delivery**, not full Android parity. Frozen installer/portable evidence is in [RELEASE_0.1.12.md](RELEASE_0.1.12.md). Android source/runtime remains independently versioned.
+Desktop **0.1.16/code17** is an original native Windows **verified local development delivery**, not full Android parity. Frozen installer/portable evidence is in [RELEASE_0.1.16.md](RELEASE_0.1.16.md). Android source/runtime remains independently versioned.
 
 | Area | Implemented now | Still needed |
 | --- | --- | --- |
 | Workspace | IDE rail, resizable Library/Stack/Nodes, collapsed Settings, fixed dock | Small-layout, mixed-DPI and multi-monitor acceptance |
+| Nodes | Background springs/repulsion, weighted hubs/collision spacing, hover neighbors, middle mouse/Space+drag pan, cursor zoom, force controls and idle/reduced-motion handling; real 209-file interaction and 2,000-node numerical checks | Touch gestures, graph-node accessibility, broader large-library/mixed-DPI acceptance and remaining group/display options |
 | Library/lists | Local chosen folders, Unicode, favorites, sort/search/reset, separate M3U8 playlists, recoverable triple-confirm deletion | Multi-select, reorder/editor, smart lists, backups, exclusions, CUE and metadata overrides |
 | Playback | Native video/audio; bundled source-built audio decoder and original WASAPI fallback; seek/rate/volume | Bundled video-renderer output, format matrix, endpoint reconnection, EQ/ReplayGain |
 | Stack | Up to eight sources on one PCM sample clock and one WASAPI endpoint; fractional offsets, gain/mute/solo, group loop, confidence-gated RMS/onset alignment | Instrumental/chroma time-warp matching, different-cover acoustic tests, primary switching, recommendations |
@@ -21,4 +22,4 @@ Desktop **0.1.12/code13** is an original native Windows **verified local develop
 
 Core tests use generated local fixtures. The waveform test detects a known 500 ms delay; WASAPI tests validate the real endpoint clock/controls. Process-specific digital loopback compares six signals against calibration and catches one-sample sabotage. The owned-window video probe checks rendered frames, six voices, fullscreen bounds, named control hit tests and dock/Mini transfers. None proves perfectly matched real-cover musical timing or physical acoustic output.
 
-Final hashes/source/installed checks are in [RELEASE_0.1.12.md](RELEASE_0.1.12.md); the [source/control inventory](docs/ANDROID_WINDOWS_PARITY.md) records individual parity gaps. Previous versioned receipts remain historical evidence. Do not confuse implementation with acceptance or promote this development checkpoint to full-parity 1.0.0.
+Final hashes/source/installed checks are in [RELEASE_0.1.16.md](RELEASE_0.1.16.md); the [source/control inventory](docs/ANDROID_WINDOWS_PARITY.md) records individual parity gaps. Previous versioned receipts remain historical evidence. Do not confuse implementation with acceptance or promote this development checkpoint to full-parity 1.0.0.

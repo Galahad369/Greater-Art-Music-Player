@@ -24,6 +24,7 @@ struct UserFeatures
     bool light = false, highContrast = false, shuffle = false;
     int language = 0, background = 2, scale = 0, repeat = 1, font = 0;
     int graphNeighbors = 6, graphThreshold = 8;
+    int graphCenter = 100, graphRepel = 100, graphLink = 100, graphDistance = 100;
     std::wstring lastPath, customImage;
     double lastPosition = 0, speed = 1;
 };
@@ -274,6 +275,11 @@ inline bool saveFeatures(const std::filesystem::path &directory, const UserFeatu
             writeString(output, entry.path);
             output.write(reinterpret_cast<const char *>(&entry.at), 8);
         }
+    // Optional trailing section: older readers retain their original layout,
+    // and existing files keep default forces without resetting any playlists.
+    output.write("GAFORC01", 8);
+    for (int value : {features.graphCenter, features.graphRepel, features.graphLink, features.graphDistance})
+        output.write(reinterpret_cast<const char *>(&value), 4);
     output.close();
     return output &&
            MoveFileEx(temporary.c_str(), file.c_str(), MOVEFILE_REPLACE_EXISTING | MOVEFILE_WRITE_THROUGH);
@@ -350,7 +356,19 @@ inline UserFeatures loadFeatures(const std::filesystem::path &directory)
         if (f.historyEnabled)
             f.history.push_back(std::move(entry));
     }
-    return input ? f : UserFeatures{};
+    if (!input)
+        return {};
+    char section[8]{};
+    int forces[4]{};
+    if (input.read(section, 8) && std::string(section, 8) == "GAFORC01" &&
+        input.read(reinterpret_cast<char *>(forces), sizeof(forces)))
+    {
+        f.graphCenter = std::clamp(forces[0], 25, 200);
+        f.graphRepel = std::clamp(forces[1], 25, 200);
+        f.graphLink = std::clamp(forces[2], 25, 200);
+        f.graphDistance = std::clamp(forces[3], 25, 200);
+    }
+    return f;
 }
 struct Practice
 {

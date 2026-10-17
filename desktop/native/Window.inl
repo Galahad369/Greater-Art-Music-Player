@@ -329,9 +329,10 @@ LRESULT CALLBACK PickerProc(HWND window, UINT message, WPARAM w, LPARAM l)
         return 1;
     return DefWindowProc(window, message, w, l);
 }
+#include "GraphProbe.inl"
 void probeTick()
 {
-    if (!app.probe)
+    if (!app.probe || app.probeFailed)
         return;
     auto fail = [&](const std::wstring &reason) {
         std::ofstream report(app.probeOutput / L"verification.txt", std::ios::app);
@@ -347,6 +348,11 @@ void probeTick()
     if (GetTickCount64() - app.probeAt > 45000)
     {
         fail(L"timeout");
+        return;
+    }
+    if (app.probeGraph)
+    {
+        graphProbeTick(fail);
         return;
     }
     if (app.probeVisual)
@@ -365,6 +371,10 @@ void probeTick()
             app.probeCpu = cpuTime();
             app.probeSamples = app.visualFrames;
             app.probeTime = double(app.visualPaints);
+            app.graphPaintCost = {};
+            app.mainPaintParts = {};
+            app.mainPaintCost = 0;
+            app.graphPaintCount = 0;
             app.probeAt = GetTickCount64();
             app.probeStage = 1;
         }
@@ -385,6 +395,16 @@ void probeTick()
                    << "\nowned_paints_per_second=" << paints / seconds
                    << "\nprocess_cpu_cores=" << double(cpuTime() - app.probeCpu) / 1e7 / seconds
                    << "\nno_video_quality_caps=true\nwindows_preferences_changed=false\n";
+            report << "graph_paints=" << app.graphPaintCount << "\n";
+            report << "graph_nodes=" << app.graph.points.size() << "\ngraph_edges="
+                   << app.graph.edges.size() << "\n";
+            for (int part = 0; part < 4; ++part)
+                report << "graph_part_" << part << "_ms="
+                       << app.graphPaintCost[part] / std::max(std::uint64_t(1), app.graphPaintCount) << "\n";
+            report << "main_paint_ms=" << app.mainPaintCost / std::max(std::uint64_t(1), paints) << "\n";
+            for (int part = 0; part < 5; ++part)
+                report << "main_part_" << part << "_ms="
+                       << app.mainPaintParts[part] / std::max(std::uint64_t(1), paints) << "\n";
             if (frames < 30 || paints < 20)
             {
                 fail(L"visual clock did not render");
@@ -602,7 +622,8 @@ void probeTick()
         layout();
         capture(app.main, app.probeOutput / L"returned-dock.png");
         std::ofstream report(app.probeOutput / L"verification.txt");
-        report << "PASS version=0.1.12 code=13\nvoices=" << app.slots.size()
+        report << "PASS version=" << toUtf8(VERSION) << " code=" << VERSION_CODE
+               << "\nvoices=" << app.slots.size()
                << "\nsource=" << app.playback.width << "x" << app.playback.height
                << "\nframes=" << app.playback.frames
                << "\nfullscreen_monitor_bounds=true\nmini_and_dock_transfer=true\nmsaa_named_controls="
@@ -690,7 +711,9 @@ void refreshVisualClock()
     }
     app.frameClock.active(
         app.motionEnabled && visible &&
-        ((!app.slots.empty() && app.playback.state == 3) || longTitle || !app.tapPath.empty()));
+        ((!app.slots.empty() && app.playback.state == 3) || longTitle || !app.tapPath.empty() ||
+         (app.showNodes && !app.settingsPage && app.nodesRect.w && IsWindowVisible(app.main) &&
+          !IsIconic(app.main) && (app.graphAwake || app.graphRevealAt))));
 }
 LRESULT CALLBACK WindowProc(HWND window, UINT message, WPARAM w, LPARAM l)
 {
@@ -724,6 +747,7 @@ LRESULT CALLBACK WindowProc(HWND window, UINT message, WPARAM w, LPARAM l)
                                      0, 1, 1, window, nullptr, GetModuleHandle(nullptr), nullptr);
         SystemParametersInfo(SPI_GETCLIENTAREAANIMATION, 0, &app.motionEnabled, 0);
         app.frameClock.start(window, VISUAL_FRAME);
+        app.graphMotion.start();
         SetTimer(window, 1, 100, nullptr);
         return 0;
     }
@@ -755,7 +779,12 @@ LRESULT CALLBACK WindowProc(HWND window, UINT message, WPARAM w, LPARAM l)
         if (main)
         {
             ++app.visualPaints;
+            auto measuredAt = app.probeVisual ? std::chrono::steady_clock::now()
+                                             : std::chrono::steady_clock::time_point{};
             paintMain(buffer);
+            if (app.probeVisual)
+                app.mainPaintCost += std::chrono::duration<double, std::milli>(
+                    std::chrono::steady_clock::now() - measuredAt).count();
         }
         else
             paintPlayer(buffer, window, mini);
@@ -822,6 +851,7 @@ LRESULT CALLBACK WindowProc(HWND window, UINT message, WPARAM w, LPARAM l)
             else
             {
                 app.nodeQuery = input;
+                app.graphHover = -1;
                 invalidate();
             }
             return 0;
@@ -865,15 +895,8 @@ LRESULT CALLBACK WindowProc(HWND window, UINT message, WPARAM w, LPARAM l)
             {
                 app.songs = std::move(result.songs);
                 app.graph = std::move(result.graph);
-                app.graphMinX = app.graphMinY = 0;
-                app.graphMaxX = app.graphMaxY = 1;
-                for (auto p : app.graph.points)
-                {
-                    app.graphMinX = std::min(app.graphMinX, p.x);
-                    app.graphMaxX = std::max(app.graphMaxX, p.x);
-                    app.graphMinY = std::min(app.graphMinY, p.y);
-                    app.graphMaxY = std::max(app.graphMaxY, p.y);
-                }
+                fitGraph();
+                restartGraph();
                 app.busy = false;
                 filter();
                 if (!app.probe && app.slots.empty() && app.features.resume && !app.features.lastPath.empty())
@@ -937,6 +960,7 @@ LRESULT CALLBACK WindowProc(HWND window, UINT message, WPARAM w, LPARAM l)
         if (!app.motionEnabled)
             return 0;
         ++app.visualFrames;
+        tickGraph();
         if (!app.tapPath.empty() && app.now - app.tapAt >= 180)
             app.tapPath.clear();
         if (IsWindowVisible(window) && !IsIconic(window))
@@ -1062,12 +1086,7 @@ LRESULT CALLBACK WindowProc(HWND window, UINT message, WPARAM w, LPARAM l)
                 saveFeatures(app.dataDir, app.features);
             }
         }
-        if (app.graphReveal >= 0)
-        {
-            app.graphReveal += std::max(1, int(app.graph.points.size() / 25));
-            if (app.graphReveal >= int(app.graph.points.size()))
-                app.graphReveal = -1;
-        }
+        if (!app.motionEnabled) tickGraph();
         refreshVisualClock();
         invalidate();
         probeTick();
@@ -1076,13 +1095,15 @@ LRESULT CALLBACK WindowProc(HWND window, UINT message, WPARAM w, LPARAM l)
             InvalidateRect(app.preview, nullptr, FALSE);
         return 0;
     }
-    if (message == WM_LBUTTONDOWN)
+    if (message == WM_LBUTTONDOWN || message == WM_MBUTTONDOWN)
     {
         SetFocus(window);
         int x = logical(GET_X_LPARAM(l)), y = logical(GET_Y_LPARAM(l));
-        if (app.features.developer && (GetKeyState(VK_CONTROL) & 0x8000))
+        bool middle = message == WM_MBUTTONDOWN;
+        if (!middle && app.features.developer && (GetKeyState(VK_CONTROL) & 0x8000))
             return 0;
-        if (auto hit = hitAt(window, x, y))
+        app.graphFocused = main && !app.settingsPage && app.nodesRect.w && graphStage().contains(x, y);
+        if (auto hit = hitAt(window, x, y); !middle && hit)
         {
             if (hit->action == SEEK || hit->action == GAIN_SLOT || hit->action == MASTER_GAIN)
             {
@@ -1105,27 +1126,49 @@ LRESULT CALLBACK WindowProc(HWND window, UINT message, WPARAM w, LPARAM l)
                 return 0;
             }
         }
-        if (main && app.nodesRect.contains(x, y) && y > app.nodesRect.y + 102 &&
-            y < app.nodesRect.y + app.nodesRect.h - 40)
+        if (app.graphFocused)
         {
+            app.keyboardFocus = -1;
+            app.drag = NONE;
             app.dragSlot = 200;
             app.dragStartX = x;
             app.dragStartY = y;
-            app.graphDrag = -1;
-            app.graphMoved = false;
-            for (std::size_t i = 0; i < app.graph.points.size(); ++i)
+            app.graphPointer = {GET_X_LPARAM(l) * 96.0 / app.dpi, GET_Y_LPARAM(l) * 96.0 / app.dpi};
+            app.graphMiddle = middle;
+            bool pan = middle || app.graphSpace || (GetKeyState(VK_SPACE) & 0x8000);
+            app.graphDrag = pan ? -1 : graphHit(x, y);
+            app.graphTravel = 0;
+            app.graphMoved = pan;
+            if (app.graphDrag >= 0)
             {
-                auto p = graphPoint(i);
-                if (std::hypot(p.x - x, p.y - y) < 18)
-                {
-                    app.graphDrag = int(i);
-                    break;
-                }
+                app.graphPinned = app.graph.points[app.graphDrag];
+                app.graphAwake = true;
+                app.graphFrameAt = GetTickCount64();
+                refreshVisualClock();
             }
             SetCapture(window);
             return 0;
         }
         return 0;
+    }
+    if (message == WM_MOUSELEAVE && main)
+    {
+        app.graphHover = -1;
+        invalidateGraph();
+        return 0;
+    }
+    if (message == WM_MOUSEMOVE && main && GetCapture() != window)
+    {
+        int next = !app.settingsPage && app.nodesRect.w
+                       ? graphHit(logical(GET_X_LPARAM(l)), logical(GET_Y_LPARAM(l))) : -1;
+        if (next != app.graphHover)
+        {
+            app.graphHover = next;
+            invalidateGraph();
+        }
+        TRACKMOUSEEVENT tracking{sizeof(TRACKMOUSEEVENT), TME_LEAVE, window, 0};
+        TrackMouseEvent(&tracking);
+        if (next >= 0) SetCursor(LoadCursor(nullptr, IDC_HAND));
     }
     if (message == WM_MOUSEMOVE && GetCapture() == window)
     {
@@ -1144,19 +1187,20 @@ LRESULT CALLBACK WindowProc(HWND window, UINT message, WPARAM w, LPARAM l)
         }
         else if (app.dragSlot == 200)
         {
-            double dx = x - app.dragStartX, dy = y - app.dragStartY;
-            if (std::abs(dx) + std::abs(dy) > 2)
+            Point pointer{GET_X_LPARAM(l) * 96.0 / app.dpi, GET_Y_LPARAM(l) * 96.0 / app.dpi};
+            double dx = pointer.x - app.graphPointer.x, dy = pointer.y - app.graphPointer.y;
+            app.graphPointer = pointer;
+            app.graphTravel += std::hypot(dx, dy);
+            if (app.graphTravel > 3)
                 app.graphMoved = true;
             if (app.graphDrag >= 0)
             {
-                auto r = app.nodesRect;
-                double scale = std::min((r.w - 52) / std::max(1.0, app.graphMaxX - app.graphMinX),
-                                        (r.h - 180) / std::max(1.0, app.graphMaxY - app.graphMinY)) *
-                               app.zoom;
+                double scale = graphScale();
                 if (scale > 0)
                 {
-                    app.graph.points[app.graphDrag].x += dx / scale;
-                    app.graph.points[app.graphDrag].y += dy / scale;
+                    app.graphPinned.x += dx / scale;
+                    app.graphPinned.y += dy / scale;
+                    app.graph.points[app.graphDrag] = app.graphPinned;
                 }
             }
             else
@@ -1166,16 +1210,22 @@ LRESULT CALLBACK WindowProc(HWND window, UINT message, WPARAM w, LPARAM l)
             }
             app.dragStartX = x;
             app.dragStartY = y;
-            invalidate();
+            SetCursor(LoadCursor(nullptr, app.graphDrag >= 0 ? IDC_HAND : IDC_SIZEALL));
+            invalidateGraph();
         }
         else
             applyDrag(window, x, y);
         return 0;
     }
-    if (message == WM_LBUTTONUP)
+    if (message == WM_LBUTTONUP || message == WM_MBUTTONUP)
     {
+        bool middle = message == WM_MBUTTONUP;
+        if (GetCapture() == window && app.dragSlot == 200 && middle != app.graphMiddle)
+            return 0;
+        if (middle && (GetCapture() != window || app.dragSlot != 200))
+            return 0;
         int x = logical(GET_X_LPARAM(l)), y = logical(GET_Y_LPARAM(l));
-        if (app.features.developer && (GetKeyState(VK_CONTROL) & 0x8000))
+        if (!middle && app.features.developer && (GetKeyState(VK_CONTROL) & 0x8000))
         {
             if (auto hit = hitAt(window, x, y))
                 inspectElement(window, *hit);
@@ -1183,19 +1233,54 @@ LRESULT CALLBACK WindowProc(HWND window, UINT message, WPARAM w, LPARAM l)
         }
         if (GetCapture() == window)
         {
+            // Capture loss clears drag state too; snapshot the click before releasing it.
+            int slot = app.dragSlot, node = app.graphDrag;
+            bool clickNode = slot == 200 && node >= 0 && !app.graphMoved &&
+                             std::hypot(double(x - app.dragStartX), double(y - app.dragStartY)) < 3 &&
+                             node < int(app.songs.size());
             ReleaseCapture();
-            if (app.dragSlot == 101 || app.dragSlot == 102)
+            if (slot == 101 || slot == 102)
                 persist();
-            else if (app.dragSlot == 200 && app.graphDrag >= 0 && !app.graphMoved &&
-                     std::hypot(double(x - app.dragStartX), double(y - app.dragStartY)) < 3 &&
-                     app.graphDrag < int(app.songs.size()))
-                playSong(app.songs[app.graphDrag]);
+            else if (clickNode)
+                playSong(app.songs[node]);
             app.drag = NONE;
             app.dragSlot = 0;
+            app.graphDrag = -1;
+            refreshVisualClock();
             return 0;
         }
         if (auto hit = hitAt(window, x, y))
             action(*hit, window);
+        return 0;
+    }
+    if (message == WM_CAPTURECHANGED || message == WM_CANCELMODE)
+    {
+        if (message == WM_CANCELMODE && GetCapture() == window)
+            ReleaseCapture();
+        if (app.dragSlot == 200 && app.graphDrag >= 0)
+        {
+            if (!app.motionEnabled)
+                restartGraph();
+            else
+            {
+                app.graphMotion.request(0, -1, {});
+                app.graphAwake = true;
+            }
+        }
+        app.dragSlot = 0;
+        app.drag = NONE;
+        app.graphDrag = -1;
+        app.graphMiddle = false;
+        return 0;
+    }
+    if (message == WM_KILLFOCUS || (message == WM_ACTIVATEAPP && !w))
+    {
+        app.graphSpace = false;
+        app.graphFocused = false;
+    }
+    if (message == WM_KEYUP && w == VK_SPACE)
+    {
+        app.graphSpace = false;
         return 0;
     }
     if (message == WM_RBUTTONUP)
@@ -1211,9 +1296,11 @@ LRESULT CALLBACK WindowProc(HWND window, UINT message, WPARAM w, LPARAM l)
         POINT cursor{GET_X_LPARAM(l), GET_Y_LPARAM(l)};
         ScreenToClient(window, &cursor);
         int x = logical(cursor.x), y = logical(cursor.y), delta = GET_WHEEL_DELTA_WPARAM(w) / WHEEL_DELTA;
-        if (main && app.nodesRect.contains(x, y))
+        if (main && !app.settingsPage && app.nodesRect.w && graphStage().contains(x, y))
         {
-            app.zoom = std::clamp(app.zoom * (delta > 0 ? 1.15 : .87), .35, 5.0);
+            zoomGraph(x, y, std::pow(1.15, GET_WHEEL_DELTA_WPARAM(w) / double(WHEEL_DELTA)));
+            invalidateGraph();
+            return 0;
         }
         else if (main && app.stackRect.contains(x, y))
             app.stackScroll = std::clamp(app.stackScroll - delta * 48, 0,
@@ -1227,9 +1314,18 @@ LRESULT CALLBACK WindowProc(HWND window, UINT message, WPARAM w, LPARAM l)
     }
     if (message == WM_KEYDOWN)
     {
+        // The search EDIT keeps its own Space input. Canvas focus reserves Space
+        // for panning; named keyboard-focused controls retain button activation.
+        if (w == VK_SPACE && main && !app.settingsPage && app.nodesRect.w &&
+            (app.graphFocused || app.keyboardFocus < 0))
+        {
+            app.graphSpace = true;
+            return 0;
+        }
         auto &controls = hitsFor(window);
         if (w == VK_TAB && !controls.empty())
         {
+            app.graphFocused = app.graphSpace = false;
             app.keyboardFocus =
                 (app.keyboardFocus + ((GetKeyState(VK_SHIFT) & 0x8000) ? -1 : 1) + int(controls.size())) %
                 int(controls.size());
@@ -1328,6 +1424,7 @@ LRESULT CALLBACK WindowProc(HWND window, UINT message, WPARAM w, LPARAM l)
             }
             app.closing = true;
             app.frameClock.stop();
+            app.graphMotion.stop();
             ++app.generation;
             KillTimer(window, 1);
             if (!app.slots.empty())
