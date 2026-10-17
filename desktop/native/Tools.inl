@@ -424,13 +424,11 @@ void toolsMenu(HWND owner)
         }
         if (value == 3)
         {
-            app.zoom = 1;
-            app.panX = app.panY = 0;
+            fitGraph();
         }
         if (value == 4)
         {
-            app.graphReveal = 0;
-            scan();
+            restartGraph(true);
         }
         break;
     }

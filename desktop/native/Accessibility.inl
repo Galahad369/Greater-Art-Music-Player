@@ -76,6 +76,8 @@ std::wstring actionName(const Hit &hit)
         return L"Fullscreen";
     case FIT_GRAPH:
         return L"Fit graph";
+    case GRAPH_CONTROLS:
+        return L"Graph forces";
     case SCATTER_GRAPH:
         return L"Reveal and arrange graph";
     case HISTORY_MENU:

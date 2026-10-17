@@ -1,7 +1,7 @@
 # Greater Art Desktop version policy
 
-Current desktop: **0.1.12 (code 13)**
-Release state: **VERIFIED_LOCAL_DEVELOPMENT — frozen 0.1.12/code13; not full parity or production-signed**
+Current desktop: **0.1.13 (code 14)**
+Release state: **SOURCE_ONLY — interactive Nodes candidate; verified 0.1.12 artifacts preserved**
 Android remains independent: 1.21.39/code262 VERIFIED debug sideload; no Android source or artifact changes in this stage.
 
 Every committed desktop executable/build/workflow change increments PATCH and code together. Documentation and verified-artifact finalization do not consume another version. Never overwrite a versioned artifact. Full-parity 1.0.0 is reserved until all parity gates pass.
@@ -21,5 +21,6 @@ Every committed desktop executable/build/workflow change increments PATCH and co
 | 0.1.10 / 11 | Shared-clock Stack implementation candidate | One bounded PCM producer and one WASAPI audio output for all voices; fractional offsets before mixing. Verification in progress; not full parity or perfect performance matching. |
 | 0.1.11 / 12 | Source/installed checkpoint; no frozen delivery | Stack handoff/prebuffer/loop repairs, DPI vectors, native Ambient caching and display-rate presentation. Playback tests passed; reduced-motion diagnostic assertion failed from counting stale callbacks. Preserved, not relabelled. |
 | 0.1.12 / 13 | Locally verified development delivery | Correct accepted-frame accounting; installed/portable 62/62, six-source controls 11/11 and calibrated output/loop/video/Ambient/motion acceptance pass. Immutable installer/ZIP and limits in RELEASE_0.1.12.md. |
+| 0.1.13 / 14 | Interactive Nodes candidate | Background spring/repulsion simulation, weighted hubs, hover links, cursor-anchored zoom, drag capture and idle/reduced-motion behavior. Verification and delivery tracked in HANDOFF.md. |
 
 The native source/resource/MSI/artifact identities are checked by packaging/validate_version.py. The guard also validates the historical Compose checkpoint. Installer signing, clean-machine testing, full accessibility and full mobile feature parity remain open gates. No APK is rebuilt or relabelled for desktop work.

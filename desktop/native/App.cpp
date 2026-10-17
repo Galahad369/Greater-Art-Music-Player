@@ -7,6 +7,8 @@
 #include "Crash.h"
 #include "Features.h"
 #include "FrameClock.h"
+#include "GraphMotion.h"
+#include "GraphMotionTests.h"
 #include "Icons.h"
 #include "Language.h"
 #include "Media.h"
@@ -95,6 +97,7 @@ enum Action
     FULLSCREEN,
     FIT_GRAPH,
     SCATTER_GRAPH,
+    GRAPH_CONTROLS,
     PALETTE,
     ROW_SIZE,
     MINI_SIZE,
@@ -160,6 +163,14 @@ struct App
     std::filesystem::path dataDir;
     std::vector<Song> songs;
     Graph graph;
+    GraphMotion graphMotion;
+    unsigned graphEpoch = 0;
+    bool graphAwake = false;
+    int graphHover = -1;
+    Point graphPinned{};
+    std::uint64_t graphFrameAt = 0, graphRevealAt = 0;
+    double graphTravel = 0;
+    double graphAge = 0;
     std::vector<int> filtered;
     std::vector<Slot> slots;
     std::unique_ptr<AudioFallback> stackOutput;
@@ -228,15 +239,17 @@ struct App
     double startLeft = 0, startRight = 0;
     double speed = 1, zoom = 1, panX = 0, panY = 0;
     int graphDrag = -1;
-    bool graphMoved = false;
+    bool graphMoved = false, graphSpace = false, graphFocused = false, graphMiddle = false;
+    Point graphPointer{};
     double graphMinX = 0, graphMaxX = 1, graphMinY = 0, graphMaxY = 1;
     std::uint64_t now = 0, statusUntil = 0;
-    int previousState = 0, graphReveal = -1;
+    int previousState = 0;
     WINDOWPLACEMENT placement{sizeof(WINDOWPLACEMENT)};
     bool probe = false;
     bool probeAmbient = false;
     bool probeFault = false;
     bool probeVisual = false;
+    bool probeGraph = false;
     std::uint64_t probeCpu = 0;
     void *probePlayer = nullptr;
     std::uint64_t probeSamples = 0;
@@ -1208,72 +1221,7 @@ void paintStack(HDC dc)
            app.slots.size() > 1 && !app.aligning);
     line(dc, r.x + r.w - 1, r.y, r.x + r.w - 1, r.y + r.h, colors.line);
 }
-Point graphPoint(std::size_t i)
-{
-    auto r = app.nodesRect;
-    auto &points = app.graph.points;
-    if (i >= points.size())
-        return {};
-    if (points.size() == 1)
-        return {r.x + r.w / 2.0 + app.panX, r.y + 120 + (r.h - 160) / 2.0 + app.panY};
-    double scale = std::min((r.w - 52) / std::max(1.0, app.graphMaxX - app.graphMinX),
-                            (r.h - 180) / std::max(1.0, app.graphMaxY - app.graphMinY));
-    return {r.x + r.w / 2.0 + (points[i].x - (app.graphMinX + app.graphMaxX) / 2) * scale * app.zoom +
-                app.panX,
-            r.y + 120 + (r.h - 160) / 2.0 +
-                (points[i].y - (app.graphMinY + app.graphMaxY) / 2) * scale * app.zoom + app.panY};
-}
-void paintNodes(HDC dc)
-{
-    auto r = app.nodesRect;
-    if (!r.w)
-        return;
-    fill(dc, r, colors.panel);
-    line(dc, r.x, r.y, r.x, r.y + r.h, colors.line);
-    text(dc, L"NODES", {r.x + 16, r.y + 4, r.w - 104, 40}, app.title, colors.muted);
-    iconButton(dc, app.mainHits, {r.x + r.w - 86, r.y + 2, 40, 40}, SCATTER_GRAPH, 0, Icon::Magic);
-    iconButton(dc, app.mainHits, {r.x + r.w - 44, r.y + 2, 40, 40}, FIT_GRAPH, 0, Icon::Fit);
-    line(dc, r.x, r.y + 40, r.x + r.w, r.y + 40, colors.line);
-    fill(dc, {r.x + 12, r.y + 48, r.w - 24, 44}, colors.raised);
-    uiIcon(dc, Icon::Search, {r.x + 14, r.y + 48, 30, 44}, colors.muted);
-    RECT clipBounds{};
-    GetClipBox(dc, &clipBounds);
-    auto stage = physical({r.x, r.y + 100, r.w, r.h - 140});
-    RECT intersection{};
-    if (!IntersectRect(&intersection, &clipBounds, &stage))
-        return;
-    int clipped = SaveDC(dc);
-    auto cr = physical({r.x + 1, r.y + 102, r.w - 2, r.h - 142});
-    IntersectClipRect(dc, cr.left, cr.top, cr.right, cr.bottom);
-    auto q = lower(app.nodeQuery);
-    std::size_t limit = app.graphReveal < 0 ? app.graph.points.size()
-                                            : std::min(std::size_t(app.graphReveal), app.graph.points.size());
-    auto visible = [&](std::size_t i) {
-        return i < limit && i < app.songs.size() &&
-               (q.empty() || lower(app.songs[i].title).find(q) != std::wstring::npos);
-    };
-    for (auto edge : app.graph.edges)
-        if (visible(edge.a) && visible(edge.b))
-        {
-            auto a = graphPoint(edge.a), b = graphPoint(edge.b);
-            line(dc, int(a.x), int(a.y), int(b.x), int(b.y), edge.strength > .6 ? colors.muted : colors.line);
-        }
-    for (std::size_t i = 0; i < limit; ++i)
-        if (visible(i))
-        {
-            auto p = graphPoint(i);
-            bool active = primary(app.songs[i]);
-            int radius = int(3 + 6 * (i < app.graph.weights.size() ? app.graph.weights[i] : 0));
-            circle(dc, int(p.x), int(p.y), active ? radius + 4 : radius,
-                   active ? colors.accent : colors.muted);
-            if (active)
-                text(dc, app.songs[i].title, {int(p.x) + radius + 9, int(p.y) - 13, 180, 26}, app.body,
-                     colors.text);
-        }
-    RestoreDC(dc, clipped);
-    text(dc, L"Drag · Wheel to zoom · Tap to play", {r.x + 14, r.y + r.h - 36, r.w - 28, 28}, app.small,
-         colors.muted);
-}
+#include "GraphView.inl"
 void transport(HDC dc, std::vector<Hit> &hits, Rect r, bool compact = false)
 {
     bool playing = app.playback.state == 3 || (app.stackOutput && app.stackWanted);
@@ -1955,13 +1903,15 @@ void action(Hit hit, HWND window)
         setFullscreen(!app.fullscreen);
         break;
     case FIT_GRAPH:
-        app.zoom = 1;
-        app.panX = app.panY = 0;
+        fitGraph();
         invalidate();
         break;
     case SCATTER_GRAPH:
-        app.graphReveal = 0;
-        scan();
+        restartGraph(true);
+        invalidate();
+        break;
+    case GRAPH_CONTROLS:
+        graphControls(window);
         break;
     case PALETTE:
         app.settings.palette = hit.data;
