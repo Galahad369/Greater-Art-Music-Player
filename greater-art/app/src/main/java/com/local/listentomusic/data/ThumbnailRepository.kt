@@ -751,8 +751,8 @@ class ThumbnailRepository(private val context: Context) {
         const val FAILURE_RETRY_MS = 30_000L
         const val ART_STAMP_TTL_MS = 5L * 60L * 1_000L
         const val ART_STAMP_CACHE_LIMIT = 4_000
-        val IMAGE_EXTENSIONS = setOf("jpg", "jpeg", "png", "webp", "bmp")
-        val FOLDER_ART_NAMES = setOf("cover", "folder", "front", "album", "artwork")
+        val IMAGE_EXTENSIONS = SidecarNames.IMAGE_EXTENSIONS
+        val FOLDER_ART_NAMES = SidecarNames.FOLDER_ART_NAMES
         val ARTWORK_KEY = Regex("art-[0-9a-f]{64}")
     }
 }

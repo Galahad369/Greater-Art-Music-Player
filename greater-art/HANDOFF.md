@@ -3,7 +3,7 @@
 This file describes the **current repository state only**. Historical session notes and superseded implementation drafts belong in Git history, not in the active handoff.
 
 **Project:** `greater-art/` in the repository checkout
-**Current source:** `1.21.39 (code 262)` — VERIFIED debug sideload; desktop policy plus the 1.21.38 Developer Mode change
+**Current source:** `1.21.45 (code 268)` — SOURCE_ONLY; reviewed branch convergence
 **Current version:** `1.21.39 (code 262)`
 **Latest APK:** `releases/GreaterArt-1.21.39.apk` (`26,877,593 bytes`; SHA-256 `e636fb7c1bfdbdf5500d48863a9f6c778aec47bb2090e433bb2e86037e468104`)
 **Application ID:** `com.local.listentomusic`
@@ -13,6 +13,118 @@ This file describes the **current repository state only**. Historical session no
 **Verification boundary:** Exact build source `b20489581b6125ce3963c767ed8e419c979a6820`; 358 JVM tests, 21 API36 emulator tests, zero lint errors; signature, pinned certificate, version/package, 16KiB ZIP alignment and upgrade installation checked. Emulator tests cover scoped URI discovery/access, live primary-video Dynamic Ambient colors and retained player identity, floating presentations and accessibility/Developer Mode interactions. No app fatal in the inspected crash buffer. This is a debug sideload build, not production signing, physical-phone acceptance, full security assessment or a universal bug-free guarantee. The prior 1.21.37 artifact and its evidence remain unchanged in history.
 
 ## Repository state
+
+### October 17 — reviewed branch convergence (1.21.45/code268)
+
+- Preserve the three Android commits through 1.21.44 as integration ancestry;
+  retain Desktop 0.1.16 and its exact verified binaries unchanged.
+- Port the exact dependency changes from PRs #177/#178 into this versioned
+  integration. Their original commits fail the per-commit version guard; do not
+  bypass that check or merge those unversioned commits into main.
+- Import stronger Nodes selection rings and zoom-revealed hub labels. Preserve
+  always-readable current/selected titles, label-paint alpha and the existing
+  background solver/bounce setting. Reject the old branch's hardcoded damping
+  and the unfinished stash's runBlocking layout inside Compose. Stashes remain
+  recovery evidence, not tested implementation.
+- Do not import the questionable 1.21.40 APK or rewrite any verified artifact.
+  The blocked security PR #174 remains separate by explicit owner instruction.
+- Verification for the combined tree is recorded below after execution; earlier
+  branch test counts are historical evidence, not a test of this integration.
+
+### October 16 — Settings clarity (1.21.44/code267)
+
+- User clarified that Settings is confusing, not that values fail to save. Replace
+  expanding chip walls with a category index and focused pages. Current values
+  remain visible; choices open one accessible radio dialog and apply immediately.
+  Back returns to the category list before leaving Settings; category scroll is
+  preserved. Language changes retain page identity via stable section keys.
+- Library row size/thumbnails/details live under Library & lists; Mini window
+  size lives beside floating playback controls; excluded folders live under Media
+  folders. Playlist names no longer compete with four side-by-side action buttons.
+- Use an opaque theme surface for reading, reserve header room for DEV, and stop
+  decorative wallpaper rendering while Settings covers it. Do not pause/replace
+  the actual player or alter source quality. New explanatory copy is translated.
+- Keep preference setters/defaults, permission gates, reset confirmation, share,
+  backup/restore and all other existing callbacks. No data reset or migration.
+- Local Java21 unit/lint/app/instrumentation builds pass. 390 JVM tests pass with
+  zero failures/skips; lint has zero errors, 45 warnings and three hints. All 20
+  A55-sized API36 emulator tests pass in 83.25s, including Settings category/back
+  navigation, theme persistence, Japanese language changes, reset cancellation,
+  same-choice callbacks, 2x-font/small-width controls, playlist actions and existing
+  audio/fullscreen/native-PiP/accessibility checks. Test preferences are restored.
+- The first UI run caught 40dp default playlist icon-button bounds and padded
+  create/reset labels. Fixes specify 48dp targets and use real layout spacing,
+  not leading spaces. Prevention: measure actual semantics/layout and exercise
+  production navigation rather than relying on source heuristics.
+- Inspected dark index and light Appearance/Library screenshots under
+  app/build/verification/settings-refactor. Screenshots taken immediately after
+  clicks can include ripple/system-bar transitions; they are not physical-phone
+  acceptance. No new release promotion/publication; verified 1.21.39 is unchanged.
+
+### October 16 — portrait-first fullscreen (1.21.43/code266)
+
+- Owner changed the fullscreen preference: enter portrait, not landscape. The
+  Activity declares portrait at launch; Compose requests portrait on each fresh
+  fullscreen entry. Rotation is deliberate, not a change to the selected media.
+- Fullscreen top chrome exposes a rotate action in both orientations. The phone
+  outline shows the destination orientation, accompanied by a circular arrow;
+  accessibility labels name the destination in all six app languages. Wide bars
+  keep the floating-mode selector; narrow fullscreen bars prioritize rotation
+  in that slot, leaving floating-mode selection available outside fullscreen.
+- Rotation changes orientation only, without player prepare/restart/seek, new
+  quality limits or a new Activity. Existing surface handoff/exit policy remains.
+- The audio-only expanded system overlay cannot request device orientation, so
+  it does not advertise an inert rotate button. Rotation belongs to the real
+  fullscreen Activity; its narrow toolbar keeps 48dp targets without clipping.
+- Local Java21 build, lint and both APK builds pass; 390 JVM tests pass, zero
+  failures/skips. Lint has zero errors, 45 warnings and three hints. All 15 API36
+  emulator tests pass in 59.448s: real portrait/landscape/portrait rotation retains
+  player/view identity and native1280x720; native PiP, audio controls, small-screen
+  toolbar and accessibility regressions pass. Device preferences are restored.
+- Screenshots are under app/build/verification/fullscreen-rotation. The landscape
+  capture was taken during compositor resize, so it is not settled-layout proof.
+  Physical-phone acceptance remains unavailable. Verified 1.21.39 APK is untouched.
+- Verification lesson: freeze Kotlin sources during lint. The first analysis hit
+  an internal FIR error while edits were ongoing; the frozen-source full rerun
+  passed. Never treat a failed analysis as a successful lint result.
+
+### October 16 — reviewed Claude scoped-storage foundation (1.21.42/code265)
+
+- Original mail patch 96760a2 is preserved under docs/imported-patches and credited
+  to Claude. Its proposed 1.21.39 is already consumed; PR #174 also consumed 40/41.
+  Those unrelated Windows/privacy branches are not merged or modified.
+- Scoped discovery accepts relative exclusion paths and selects same-folder sidecar
+  URIs through a bounded per-folder index. It does not read sidecar bytes. Main's
+  selected-folder URI Library already exists; the patch's claim it is File-only
+  was outdated. New optional exclusions are not yet wired to production settings.
+- Relink planning preserves data, rejects malformed URI identities, handles Unicode,
+  isolates cue segments from whole-file matches and deduplicates repeated listings
+  before judging ambiguity. No automatic stored-ID rewrite or permission changes.
+- Windows parity tests compare relative paths and real file identity rather than
+  Linux separators or returned filename casing. Initial exact-case lyric assertion
+  failed on Windows; compare physical identity for parity, and test candidate name
+  priority separately. Immutable verified 1.21.39 APK/signing identity are unchanged.
+- MP3 toolbar root cause: the audio branch never composed `NowPlayingTopBar`;
+  artwork/cache state was not responsible. Audio now shares video's presentation
+  actions and measured lock anchor, consumes safe insets once, and puts artwork
+  beside the controls in short landscape windows. No decoder/session changes.
+- Local Java21 unit/lint/app/test builds pass: 390 JVM tests, zero failures/skips;
+  lint zero errors (43 warnings, three hints). API36 A55-sized emulator: 11 scoped
+  identity/discovery/cache tests pass with All Files Access denied and restored;
+  four actual MP3 Compose tests pass for missing/late artwork, disc, narrow portrait,
+  short landscape, callbacks, lock/unlock and fullscreen state. Screenshots inspected.
+  Final combined run: all 22 scoped/cache/MP3/accessibility tests pass in 29.286s
+  against the rebuilt app, with broad access denied and restored afterward.
+  No app fatal in inspected crash buffer; an unrelated emulator Bluetooth abort was
+  present. No physical-phone/API26 acceptance or new remote CI result is claimed.
+- Prevention: keep host actions independent of media/artwork branches; exercise
+  both audio and video presentations rather than assuming one layout covers both.
+  Local verification screenshots live under app/build/verification/audio-toolbar.
+  Changes are local only; remote publication requires explicit owner approval.
+- Test-runner lesson: use fully qualified class names from the source package.
+  A mistyped thumbnail-test selector caused an initialization failure, not an app
+  failure. Corrected the selector and reran the whole 22-test suite. Require its
+  explicit `OK (22 tests)` result; ADB's process exit code alone does not prove pass.
 
 ### October 14 — current Android release re-verification
 

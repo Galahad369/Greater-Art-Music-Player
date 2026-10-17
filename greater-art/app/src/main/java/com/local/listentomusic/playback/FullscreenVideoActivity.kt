@@ -44,7 +44,7 @@ class FullscreenVideoActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         viewModel.useSessionPresentationOnly()
         if (intent.getBooleanExtra(EXTRA_START_PIP, false)) returnDestination = "DETACHED"
-        // Landscape fullscreen is a separate Activity; its own window must stay awake.
+        // Fullscreen is a separate Activity; its own window must stay awake.
         // This applies to paused playback and is released when fullscreen closes.
         window.addFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
         enforceImmersiveSystemBars()
@@ -113,7 +113,6 @@ class FullscreenVideoActivity : ComponentActivity() {
                     onShareCurrentMedia = {},
                     onShareQueue = {},
                     initialFullscreen = true,
-                    forceLandscapeFullscreen = true,
                     onFullscreenChanged = { if (!it) finishTo("EXPANDED") },
                 )
             }

@@ -16,6 +16,10 @@ internal fun settingsUiText(language: AppLanguage, english: String): String? {
 }
 
 private val settingsTranslations = mapOf(
+    "Choose the font used throughout the app." to listOf("選擇整個應用程式使用的字型。", "揀成個 App 用嘅字款。", "アプリ全体で使うフォントを選びます。", "Schriftart für die gesamte App auswählen.", "Choisissez la police utilisée dans toute l’application."),
+    "Choose what appears behind Library, Nodes and Stack." to listOf("選擇音樂庫、節點及疊播頁面的背景。", "揀歌庫、節點同疊播頁面嘅背景。", "ライブラリ・ノード・スタックの背景を選びます。", "Hintergrund für Bibliothek, Knoten und Stack auswählen.", "Choisissez l’arrière-plan de Bibliothèque, Nœuds et Stack."),
+    "Crop fills the screen. Fit keeps the whole frame. Neither stretches." to listOf("裁切會填滿螢幕，完整顯示會保留整個畫面；兩者都不會拉伸。", "裁切會填滿個畫面，完整顯示就睇晒成格；兩樣都唔會拉長。", "切り抜きは画面全体に表示。フィットは全体を保持。引き伸ばしません。", "Zuschneiden füllt den Bildschirm. Einpassen zeigt das ganze Bild. Keine Verzerrung.", "Recadrer remplit l’écran. Ajuster conserve toute l’image. Aucun étirement."),
+    "Choose how playback continues when a track ends." to listOf("選擇曲目結束後如何繼續播放。", "揀首歌播完之後點繼續。", "曲が終わった後の再生方法を選びます。", "Wählen, wie die Wiedergabe nach einem Titel weitergeht.", "Choisissez la suite de la lecture à la fin d’un titre."),
     "Tap to expand" to listOf("點按展開", "撳開睇設定", "タップして展開", "Zum Öffnen tippen", "Toucher pour développer"),
     "Tap to collapse" to listOf("點按收起", "撳返收埋", "タップして折りたたむ", "Zum Schließen tippen", "Toucher pour replier"),
     "Mini window size" to listOf("迷你視窗大小", "迷你窗大細", "ミニウィンドウのサイズ", "Mini-Fenstergröße", "Taille de la mini-fenêtre"),
