@@ -3,7 +3,7 @@
 This file describes the **current repository state only**. Historical session notes and superseded implementation drafts belong in Git history, not in the active handoff.
 
 **Project:** `greater-art/` in the repository checkout
-**Current source:** `1.21.45 (code 268)` — SOURCE_ONLY; reviewed branch convergence
+**Current source:** `1.21.48 (code 271)` — SOURCE_ONLY; fullscreen Rotate/Lock alignment and synchronized fade
 **Current version:** `1.21.39 (code 262)`
 **Latest APK:** `releases/GreaterArt-1.21.39.apk` (`26,877,593 bytes`; SHA-256 `e636fb7c1bfdbdf5500d48863a9f6c778aec47bb2090e433bb2e86037e468104`)
 **Application ID:** `com.local.listentomusic`
@@ -13,6 +13,15 @@ This file describes the **current repository state only**. Historical session no
 **Verification boundary:** Exact build source `b20489581b6125ce3963c767ed8e419c979a6820`; 358 JVM tests, 21 API36 emulator tests, zero lint errors; signature, pinned certificate, version/package, 16KiB ZIP alignment and upgrade installation checked. Emulator tests cover scoped URI discovery/access, live primary-video Dynamic Ambient colors and retained player identity, floating presentations and accessibility/Developer Mode interactions. No app fatal in the inspected crash buffer. This is a debug sideload build, not production signing, physical-phone acceptance, full security assessment or a universal bug-free guarantee. The prior 1.21.37 artifact and its evidence remain unchanged in history.
 
 ## Repository state
+
+### October 18 — fullscreen Rotate/Lock consistency (1.21.48/code271)
+
+- Both fullscreen toolbar actions retain separate 48dp tap targets but now use matching centered 26dp primary icons within 32dp canvases. The externally elevated Lock action stays clickable above the lock input blocker.
+- Move Lock's animation modifier onto its measured toolbar-slot container, rather than offsetting the child after visibility layout. Share the Rotate-containing video chrome's visibility transition for synchronized 180ms fade timing.
+- Extend the existing real fullscreen Android instrumentation scenario to compare target widths, heights, and vertical centers in portrait and landscape (within 2px). Hardware/emulator execution of those assertions remains subject to available instrumentation.
+- The security draft PR #174 already consumes source identities 1.21.46/code269 and 1.21.47/code270. This UI commit consumes 1.21.48/code271 via an exact permitted transition without merging the blocked privacy work.
+- **SOURCE_ONLY** until exact-version artifact and device verification; last verified 1.21.39/code262 debug APK remains immutable.
+
 
 ### October 17 — reviewed branch convergence (1.21.45/code268)
 
