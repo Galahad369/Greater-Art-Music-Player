@@ -695,6 +695,7 @@ private fun VideoPlayerStage(
     var unlockDoubleSpeedArmed by remember { mutableStateOf(false) }
     var panGestureActive by remember { mutableStateOf(false) }
     var playerGestureActive by remember { mutableStateOf(false) }
+    var lastViewportSize by remember { mutableStateOf(IntSize.Zero) }
     var toolbarWindowBounds by remember(immersive, landscape) {
         mutableStateOf<androidx.compose.ui.geometry.Rect?>(null)
     }
@@ -716,7 +717,6 @@ private fun VideoPlayerStage(
     // Do not carry it into a differently sized portrait/landscape viewport.
     var videoScale by remember { mutableFloatStateOf(1f) }
     var videoOffset by remember { mutableStateOf(Offset.Zero) }
-    var lastViewportSize by remember { mutableStateOf(IntSize.Zero) }
     LaunchedEffect(playback.currentPath, playback.videoAspectRatio) {
         videoScale = 1f
         videoOffset = Offset.Zero
