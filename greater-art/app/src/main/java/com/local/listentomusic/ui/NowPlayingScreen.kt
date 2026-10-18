@@ -780,7 +780,9 @@ private fun VideoPlayerStage(
                             if (!multiTouch && !oneFingerPanActive && videoScale > 1.01f) {
                                 // A simple tap must still reveal the hidden chrome when
                                 // the seek/hold recognizer is disabled for zoomed panning.
-                                onControlsVisibilityChange(!controlsVisible)
+                                val centerTap = seekSideForX(down.position.x, size.width.toFloat()) == null
+                                if (centerTap) onControlsVisibilityChange(!controlsVisible)
+                                else if (!controlsVisible) onControlsVisibilityChange(true)
                             }
                         }
                     }
