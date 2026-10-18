@@ -689,8 +689,10 @@ private fun VideoPlayerStage(
         videoOffset = Offset.Zero
     }
 
-    LaunchedEffect(controlsVisible, playback.isPlaying, playback.currentPath) {
-        if (controlsVisible && playback.isPlaying) {
+    // Hide chrome after inactivity even if playback is paused. Cancelling the
+    // effect on hide, exit or media change prevents stale timers firing.
+    LaunchedEffect(immersive, controlsVisible, playback.currentPath) {
+        if (immersive && controlsVisible) {
             delay(2_500)
             onControlsVisibilityChange(false)
         }
@@ -778,7 +780,7 @@ private fun VideoPlayerStage(
                             if (!multiTouch && !oneFingerPanActive && videoScale > 1.01f) {
                                 // A simple tap must still reveal the hidden chrome when
                                 // the seek/hold recognizer is disabled for zoomed panning.
-                                onControlsVisibilityChange(true)
+                                onControlsVisibilityChange(!controlsVisible)
                             }
                         }
                     }
@@ -880,11 +882,14 @@ private fun VideoPlayerStage(
                 }
 
                 if (heldMs < HOLD_2X_ACTIVATION_MS && maxMovement <= viewConfiguration.touchSlop) {
-                    // A single fullscreen tap reveals hidden chrome without losing
-                    // the existing same-side double-tap seek gesture.
-                    if (immersive && !controlsVisible) onControlsVisibilityChange(true)
+                    // Center taps toggle chrome in either direction. Side taps
+                    // retain double-tap seek and reveal controls when hidden.
                     val nowMs = android.os.SystemClock.uptimeMillis()
                     val side = seekSideForX(startPosition.x, size.width.toFloat())
+                    if (immersive) {
+                        if (side == null) onControlsVisibilityChange(!controlsVisible)
+                        else if (!controlsVisible) onControlsVisibilityChange(true)
+                    }
                     if (sideDoubleTapSeeks(side, nowMs, lastSeekSide, lastSeekTapMs)) {
                         val delta = when (side) {
                             SeekSide.LEFT -> -seekOffsetMs
