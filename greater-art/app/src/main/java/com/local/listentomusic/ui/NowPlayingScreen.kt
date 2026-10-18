@@ -46,6 +46,7 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.displayCutout
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -221,6 +222,23 @@ internal fun isDoubleSpeed(speed: Float): Boolean = kotlin.math.abs(speed - 2f) 
 internal fun shouldShowPlayerLock(immersiveVideo: Boolean, videoControlsVisible: Boolean): Boolean =
     !immersiveVideo || videoControlsVisible
 
+/** Reserve the same 48dp slot per action. Drop secondary actions when safe width shrinks. */
+internal data class ToolbarActionVisibility(
+    val floatingLauncher: Boolean,
+    val home: Boolean,
+    val floatingMode: Boolean,
+)
+internal fun toolbarActionVisibility(availableWidthDp: Float, hasRotate: Boolean): ToolbarActionVisibility {
+    // 32dp horizontal chrome (12dp outer + 4dp inner on each side).
+    // Essential actions: Rotate (when present), Lock, Fullscreen, Close.
+    val baseDp = if (hasRotate) 224f else 176f
+    return ToolbarActionVisibility(
+        floatingLauncher = availableWidthDp >= baseDp + 96f,
+        home = availableWidthDp >= baseDp + 48f,
+        floatingMode = availableWidthDp >= baseDp + 144f,
+    )
+}
+
 internal fun playerLockLocalOffset(
     rootBounds: androidx.compose.ui.geometry.Rect?,
     anchorBounds: androidx.compose.ui.geometry.Rect?,
@@ -382,7 +400,11 @@ fun NowPlayingScreen(
             fullscreenLandscape = if (fullscreen) !fullscreenLandscape else !landscape
             fullscreen = true
         }
-        var lockAnchorBounds by remember(playback.isVideo, immersiveVideo) {
+        // Invalidate measured window coordinates on the *requested* rotation as
+        // well as the effective viewport change; never show a stale lock anchor.
+        var lockAnchorBounds by remember(
+            playback.isVideo, immersiveVideo, fullscreenLandscape, maxWidth, maxHeight,
+        ) {
             mutableStateOf<androidx.compose.ui.geometry.Rect?>(null)
         }
         val reportLockAnchor: (androidx.compose.ui.geometry.Rect) -> Unit = { lockAnchorBounds = it }
@@ -573,7 +595,7 @@ fun NowPlayingScreen(
                             if (controlsLocked) Icons.Rounded.Lock else Icons.Rounded.LockOpen,
                             uiText(language, if (controlsLocked) "Unlock player controls" else "Lock player controls",
                                 if (controlsLocked) "解鎖播放器控制" else "鎖定播放器控制"),
-                            tint = if (playback.isVideo && immersiveVideo) Color.White else MaterialTheme.colorScheme.onSurface,
+                            tint = if (playback.isVideo && immersiveVideo) GaVideoOverlay.foreground else MaterialTheme.colorScheme.onSurface,
                             modifier = Modifier.size(26.dp),
                         )
                     }
@@ -630,10 +652,15 @@ private fun VideoPlayerStage(
     var temporaryDoubleSpeed by remember { mutableStateOf(false) }
     var unlockDoubleSpeedArmed by remember { mutableStateOf(false) }
 
-    // Zoom state for fullscreen pinch-to-zoom
+    // A zoom/pan transform is viewport-relative, not an intrinsic media setting.
+    // Do not carry it into a differently sized portrait/landscape viewport.
     var videoScale by remember { mutableFloatStateOf(1f) }
     var videoOffset by remember { mutableStateOf(Offset.Zero) }
     var lastViewportSize by remember { mutableStateOf(IntSize.Zero) }
+    LaunchedEffect(playback.currentPath) {
+        videoScale = 1f
+        videoOffset = Offset.Zero
+    }
 
     LaunchedEffect(controlsVisible, playback.isPlaying, playback.currentPath) {
         if (controlsVisible && playback.isPlaying) {
@@ -656,6 +683,8 @@ private fun VideoPlayerStage(
             .onSizeChanged { size ->
                 if (size != lastViewportSize) {
                     lastViewportSize = size
+                    videoScale = 1f
+                    videoOffset = Offset.Zero
                     onControlsVisibilityChange(true)
                 }
             }
@@ -876,6 +905,9 @@ private fun VideoPlayerStage(
                                         landscape = landscape,
                                         onLockAnchorBoundsChanged = onLockAnchorBoundsChanged,
                                         modifier = Modifier.align(Alignment.TopCenter)
+                                            // The video itself stays edge-to-edge; chrome must
+                                            // avoid notches/camera cutouts on both orientations.
+                                            .windowInsetsPadding(WindowInsets.displayCutout)
                                             .windowInsetsPadding(playerStatusInsets()),
                                     )
                                 }
@@ -2132,10 +2164,11 @@ internal fun NowPlayingTopBar(
     val background = if (overlay) GaVideoOverlay.scrim
         else MaterialTheme.colorScheme.surface.copy(alpha = NOW_PLAYING_AMBIENT_PANEL_ALPHA)
     val topBarShape = RoundedCornerShape(GaRadius.chrome)
+    val toolbarGlyph = 26.dp
     BoxWithConstraints(modifier.fillMaxWidth()) {
-    // Fullscreen's compact portrait toolbar gives rotation the mode-selector slot.
-    // Wider bars show both; floating mode remains available outside fullscreen.
-    val showFloatingMode = onRotate == null || maxWidth >= 368.dp
+    // Width here is already cutout-safe in fullscreen. Do not clip essential
+    // Lock/Rotate/Exit/Close actions on small windows or after rotation.
+    val actions = toolbarActionVisibility(maxWidth.value, onRotate != null)
     Row(
         modifier = Modifier.fillMaxWidth()
             .padding(horizontal = 12.dp, vertical = 6.dp)
@@ -2151,21 +2184,21 @@ internal fun NowPlayingTopBar(
             .padding(horizontal = GaSpacing.xs),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        IconButton(onClick = onPictureInPicture, modifier = Modifier.size(GaControl.touchTarget).inspectElement("FLOATING_PLAYER_BUTTON", "Opens the selected floating-player mode")) {
+        if (actions.floatingLauncher) IconButton(onClick = onPictureInPicture, modifier = Modifier.size(GaControl.touchTarget).inspectElement("FLOATING_PLAYER_BUTTON", "Opens the selected floating-player mode")) {
             Icon(
                 Icons.Rounded.PictureInPictureAlt,
                 uiText(language, "Open floating player", "開啟浮動播放器"),
                 tint = foreground,
-                modifier = Modifier.size(30.dp),
+                modifier = Modifier.size(toolbarGlyph),
             )
         }
-        IconButton(onClick = onHome, modifier = Modifier.size(GaControl.touchTarget).inspectElement("HOME_BUTTON", "Returns to Library")) {
-            Icon(Icons.Rounded.Home, uiText(language, "Home", "首頁"), Modifier.size(30.dp), tint = foreground)
+        if (actions.home) IconButton(onClick = onHome, modifier = Modifier.size(GaControl.touchTarget).inspectElement("HOME_BUTTON", "Returns to Library")) {
+            Icon(Icons.Rounded.Home, uiText(language, "Home", "首頁"), Modifier.size(toolbarGlyph), tint = foreground)
         }
         val selectedMode = LocalFloatingMode.current
         val onModeChange = LocalFloatingModeChange.current
         val modeLabel = floatingModeLabel(language, selectedMode)
-        if (showFloatingMode) IconButton(
+        if (actions.floatingMode) IconButton(
             onClick = { onModeChange(selectedMode.nextFloatingMode()) },
             modifier = Modifier.size(GaControl.touchTarget)
                 .inspectElement("FLOATING_MODE_BUTTON", "Switch floating playback mode: $modeLabel"),
@@ -2177,7 +2210,7 @@ internal fun NowPlayingTopBar(
                     FloatingWindowMode.NONE -> Icons.Rounded.Block
                 },
                 floatingModeDescription(language, selectedMode),
-                modifier = Modifier.size(27.dp),
+                modifier = Modifier.size(toolbarGlyph),
                 tint = foreground,
             )
         }
@@ -2191,7 +2224,7 @@ internal fun NowPlayingTopBar(
                 Icon(
                     if (landscape) Icons.Rounded.StayCurrentPortrait else Icons.Rounded.StayCurrentLandscape,
                     fullscreenRotationLabel(language, landscape),
-                    modifier = Modifier.size(26.dp).align(Alignment.Center), tint = foreground,
+                    modifier = Modifier.size(toolbarGlyph).align(Alignment.Center), tint = foreground,
                 )
                 Icon(Icons.AutoMirrored.Rounded.RotateRight, null,
                     modifier = Modifier.size(14.dp).align(Alignment.TopEnd)
@@ -2213,11 +2246,11 @@ internal fun NowPlayingTopBar(
                 if (fullscreen) uiText(language, "Exit fullscreen", "離開全螢幕")
                     else uiText(language, "Fullscreen", "全螢幕"),
                 tint = foreground,
-                modifier = Modifier.size(30.dp),
+                modifier = Modifier.size(toolbarGlyph),
             )
         }
         IconButton(onClick = onClose, modifier = Modifier.size(GaControl.touchTarget).inspectElement("CLOSE_PLAYER_BUTTON", "Closes Now Playing without stopping playback")) {
-            Icon(Icons.Rounded.Close, uiText(language, "Close player", "關閉播放器"), Modifier.size(30.dp), tint = foreground)
+            Icon(Icons.Rounded.Close, uiText(language, "Close player", "關閉播放器"), Modifier.size(toolbarGlyph), tint = foreground)
         }
     }
     }

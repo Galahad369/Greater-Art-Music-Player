@@ -72,6 +72,7 @@ class FullscreenRotationTest {
             val lease = VideoSurfaceOwner.state.value
             capture("portrait")
             assertFullscreenToolbarAlignment("Rotate to landscape")
+            assertToolbarInsideScreenSafeRegion(activity)
             compose.onNodeWithContentDescription("Rotate to landscape").assertIsDisplayed()
                 .assertWidthIsAtLeast(48.dp).assertHeightIsAtLeast(48.dp).performClick()
             compose.waitUntil(20_000) {
@@ -79,6 +80,7 @@ class FullscreenRotationTest {
             }
             capture("landscape")
             assertFullscreenToolbarAlignment("Rotate to portrait")
+            assertToolbarInsideScreenSafeRegion(activity)
             compose.onNodeWithContentDescription("Rotate to portrait").assertIsDisplayed().performClick()
             compose.waitUntil(20_000) {
                 activity.resources.configuration.orientation == Configuration.ORIENTATION_PORTRAIT
@@ -111,6 +113,23 @@ class FullscreenRotationTest {
             rotate.height, lock.height, 2f)
         assertEquals("Rotate and Lock must have the same touch target width",
             rotate.width, lock.width, 2f)
+    }
+
+    /** Verify the high-level toolbar controls remain inside the Android safe cutout. */
+    private fun assertToolbarInsideScreenSafeRegion(activity: FullscreenVideoActivity) {
+        val windowInsets = androidx.core.view.ViewCompat.getRootWindowInsets(activity.window.decorView)
+        val safe = windowInsets?.getInsets(
+            androidx.core.view.WindowInsetsCompat.Type.displayCutout()
+        ) ?: androidx.core.graphics.Insets.NONE
+        val width = activity.window.decorView.width.toFloat()
+        val rotate = compose.onNodeWithContentDescription(
+            if (activity.resources.configuration.orientation == Configuration.ORIENTATION_LANDSCAPE)
+                "Rotate to portrait" else "Rotate to landscape",
+        ).fetchSemanticsNode().boundsInRoot
+        assertTrue("Rotate control must not overlap the left display cutout: $rotate vs $safe",
+            rotate.left + 1f >= safe.left)
+        assertTrue("Rotate control must not overlap the right display cutout: $rotate vs $safe",
+            rotate.right <= width - safe.right + 1f)
     }
 
     private fun capture(name: String) {
