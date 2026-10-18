@@ -94,10 +94,10 @@ class Release1114Test {
 
     @Test fun autoHidePausesDuringInteractionButStillRunsWhenIdle() {
         fun eligible(
-            immersive: Boolean = true, visible: Boolean = true, playing: Boolean = true,
+            immersive: Boolean = true, visible: Boolean = true,
             seeking: Boolean = false, pan: Boolean = false, gesture: Boolean = false,
             speed: Boolean = false, unlock: Boolean = false, timeline: Boolean = false,
-        ) = shouldAutoHideVideoChrome(immersive, visible, playing, seeking, pan, gesture, speed, unlock, timeline)
+        ) = shouldAutoHideVideoChrome(immersive, visible, seeking, pan, gesture, speed, unlock, timeline)
         assertTrue(eligible())
         assertFalse(eligible(seeking = true))
         assertFalse(eligible(timeline = true))
@@ -105,7 +105,8 @@ class Release1114Test {
         assertFalse(eligible(gesture = true))
         assertFalse(eligible(speed = true))
         assertFalse(eligible(unlock = true))
-        assertFalse(eligible(playing = false))
+        // Pausing playback does not prevent auto-hide: no playback-state input gates the policy.
+        assertTrue(eligible())
         assertFalse(eligible(visible = false))
         assertFalse(eligible(immersive = false))
     }
