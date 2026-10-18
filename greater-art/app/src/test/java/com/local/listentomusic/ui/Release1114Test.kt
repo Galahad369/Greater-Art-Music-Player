@@ -6,6 +6,7 @@ import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.graphics.luminance
 import com.local.listentomusic.data.*
 import com.local.listentomusic.model.MediaFile
+import com.local.listentomusic.videoDisplayAspectRatio
 import com.local.listentomusic.model.MediaKind
 import com.local.listentomusic.ui.components.ambientBottomColor
 import com.local.listentomusic.ui.components.artworkGradientColors
@@ -79,6 +80,41 @@ class Release1114Test {
             toolbarActionVisibility(320f, hasRotate = false))
         assertEquals(ToolbarActionVisibility(false, false, false),
             toolbarActionVisibility(185f, hasRotate = false))
+    }
+
+    @Test fun fullscreenCentreTapsToggleWithoutBreakingEdgeSeeking() {
+        assertFalse(isCenterVideoTap(0f, 1000f))
+        assertFalse(isCenterVideoTap(150f, 1000f))
+        assertTrue(isCenterVideoTap(500f, 1000f))
+        assertTrue(isCenterVideoTap(350f, 1000f))
+        assertFalse(isCenterVideoTap(950f, 1000f))
+        assertFalse(isCenterVideoTap(Float.NaN, 1000f))
+        assertFalse(isCenterVideoTap(50f, 0f))
+    }
+
+    @Test fun autoHidePausesDuringInteractionButStillRunsWhenIdle() {
+        fun eligible(
+            immersive: Boolean = true, visible: Boolean = true, playing: Boolean = true,
+            seeking: Boolean = false, pan: Boolean = false, gesture: Boolean = false,
+            speed: Boolean = false, unlock: Boolean = false, timeline: Boolean = false,
+        ) = shouldAutoHideVideoChrome(immersive, visible, playing, seeking, pan, gesture, speed, unlock, timeline)
+        assertTrue(eligible())
+        assertFalse(eligible(seeking = true))
+        assertFalse(eligible(timeline = true))
+        assertFalse(eligible(pan = true))
+        assertFalse(eligible(gesture = true))
+        assertFalse(eligible(speed = true))
+        assertFalse(eligible(unlock = true))
+        assertFalse(eligible(playing = false))
+        assertFalse(eligible(visible = false))
+        assertFalse(eligible(immersive = false))
+    }
+
+    @Test fun anamorphicVideoAspectUsesPixelDimensions() {
+        assertEquals(16f / 9f, videoDisplayAspectRatio(1920, 1080, 1f), 0.00001f)
+        assertEquals(16f / 9f, videoDisplayAspectRatio(1440, 1080, 4f / 3f), 0.00001f)
+        assertEquals(16f / 9f, videoDisplayAspectRatio(0, 0, 1f), 0.00001f)
+        assertEquals(16f / 9f, videoDisplayAspectRatio(100, 100, Float.NaN), 0.00001f)
     }
 
     @Test fun videoPanClampsToFittedPictureRatherThanBlackLetterboxes() {

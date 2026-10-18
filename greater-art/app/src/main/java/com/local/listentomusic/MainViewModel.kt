@@ -63,6 +63,16 @@ internal fun resolveCycleMode(repeatMode: Int, random: Boolean): CycleMode = whe
     else -> CycleMode.OFF
 }
 
+internal fun videoDisplayAspectRatio(
+    width: Int, height: Int, pixelWidthHeightRatio: Float,
+): Float {
+    if (width <= 0 || height <= 0 || !pixelWidthHeightRatio.isFinite() ||
+        pixelWidthHeightRatio <= 0f) return 16f / 9f
+    val result = width.toDouble() * pixelWidthHeightRatio.toDouble() / height
+    return if (result.isFinite() && result > 0.0 && result <= Float.MAX_VALUE.toDouble())
+        result.toFloat() else 16f / 9f
+}
+
 internal fun nextCycleMode(current: CycleMode): CycleMode = when (current) {
     CycleMode.OFF -> CycleMode.ONE
     CycleMode.ONE -> CycleMode.ALL
@@ -1049,11 +1059,10 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         )
         if (duration == 0L && path != null) probeDuration(path)
         val videoSize = player.videoSize
-        val videoAspectRatio = if (videoSize.width > 0 && videoSize.height > 0) {
-            videoSize.width.toFloat() / videoSize.height.toFloat()
-        } else {
-            16f / 9f
-        }
+        // Media3's rendered FIT rectangle includes non-square/anamorphic pixels.
+        val videoAspectRatio = videoDisplayAspectRatio(
+            videoSize.width, videoSize.height, videoSize.pixelWidthHeightRatio,
+        )
         // Match the UI cadence so player callbacks do not emit redundant state.
         val quantizedPosition = ((stack?.positionMs ?: player.currentPosition) / 500L) * 500L
         val next = PlaybackUiState(
