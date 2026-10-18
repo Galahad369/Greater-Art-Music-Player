@@ -588,7 +588,10 @@ fun NowPlayingScreen(
                 if (immersiveVideo) {
                     // Locked input cannot reach VideoPlayerStage. A tap only reveals
                     // the unlock control; playback/seek/zoom remain blocked.
-                    detectTapGestures(onTap = { videoControlsVisible = true })
+                    detectTapGestures(onTap = { tap ->
+                        val middle = tap.x in (size.width * .35f)..(size.width * .65f)
+                        videoControlsVisible = if (middle) !videoControlsVisible else true
+                    })
                 } else {
                     awaitPointerEventScope {
                         while (true) awaitPointerEvent().changes.forEach { it.consume() }
