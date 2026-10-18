@@ -7,7 +7,7 @@ This file is the authoritative version policy for Greater Art. If any handoff no
 ## Machine-checkable state
 
 
-Current source: **1.21.49 (code 272)**
+Current source: **1.21.50 (code 273)**
 Allowed consumed transition: **1.21.45 (code 268) -> 1.21.48 (code 271)**
 
 The open draft security PR #174 separately consumes 1.21.46/code269
@@ -363,3 +363,5 @@ Previous baseline: 1.13.26 (code 115).
 - 1.21.48 (code 271) — Fullscreen Rotate/Lock alignment: move the overlay Lock transition to the exact measured toolbar slot, standardize 48dp targets and centered 26dp icons, and make both actions use one video chrome visibility transition and 180ms fade. Add real-Activity portrait/landscape measured alignment assertions. SOURCE_ONLY; latest verified APK 1.21.39/code262 unchanged.
 
 - 1.21.49 (code 272) — Fullscreen visual regression fixes: recenter zoom/pan on media and viewport changes; invalidate the elevated Lock anchor for rotation/viewport changes; inset immersive toolbar for Android display cutouts without insetting video; adapt secondary actions to cutout-safe narrow widths without reducing 48dp tap targets; normalize toolbar primary icon sizes to 26dp and match Lock tint to GaVideoOverlay.foreground; add deterministic width tests and portrait/landscape safe-area assertions. SOURCE_ONLY pending real emulator/phone acceptance; immutable verified 1.21.39 APK retained.
+
+- 1.21.50 (code 273) — Complete fullscreen rendering follow-up: protect audio fullscreen and all immersive bottom/seek/feedback controls from display cutouts; bound transformed video pan to the scaled FIT image rather than the full viewport; enable single-finger pan only while zoomed, retain tap-to-reveal and suppress conflicting seek/hold then; enable Media3's documented API34 Compose SurfaceView sync workaround on retained PlayerView; wrap essential 48dp toolbar targets in two/four rows below 224/128dp; add geometry and narrow-layout regression tests and a cross-API visual acceptance checklist. SOURCE_ONLY; previous 1.21.39 APK immutable and real-device verification pending.

@@ -1,6 +1,8 @@
 package com.local.listentomusic.ui
 
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.graphics.luminance
 import com.local.listentomusic.data.*
 import com.local.listentomusic.model.MediaFile
@@ -77,6 +79,25 @@ class Release1114Test {
             toolbarActionVisibility(320f, hasRotate = false))
         assertEquals(ToolbarActionVisibility(false, false, false),
             toolbarActionVisibility(185f, hasRotate = false))
+    }
+
+    @Test fun videoPanClampsToFittedPictureRatherThanBlackLetterboxes() {
+        val viewport = IntSize(1000, 600)
+        // A 4:3 video fits to 800x600: no x-axis movement until zoom > 1.25.
+        assertEquals(Offset.Zero, fittedVideoPanLimit(viewport, 4f / 3f, 1f))
+        val first = fittedVideoPanLimit(viewport, 4f / 3f, 1.2f)
+        assertEquals(0f, first.x, 0.01f)
+        assertEquals(60f, first.y, 0.01f)
+        val second = fittedVideoPanLimit(viewport, 4f / 3f, 2f)
+        assertEquals(300f, second.x, 0.01f)
+        assertEquals(300f, second.y, 0.01f)
+        assertEquals(Offset(300f, -300f),
+            clampVideoPan(Offset(2000f, -900f), viewport, 4f / 3f, 2f))
+        assertEquals(Offset.Zero, clampVideoPan(Offset(50f, 50f), viewport, 4f / 3f, 1f))
+        // Guard uninitialized and corrupt aspect ratio/scale without NaN transforms.
+        assertEquals(Offset.Zero, fittedVideoPanLimit(IntSize.Zero, 1.78f, 2f))
+        assertEquals(Offset.Zero, fittedVideoPanLimit(viewport, Float.NaN, 2f))
+        assertEquals(Offset.Zero, fittedVideoPanLimit(viewport, 1f, Float.POSITIVE_INFINITY))
     }
 
     @Test fun playerLockUsesMeasuredAnchorCoordinatesInsteadOfButtonCountOffsets() {

@@ -3,7 +3,7 @@
 This file describes the **current repository state only**. Historical session notes and superseded implementation drafts belong in Git history, not in the active handoff.
 
 **Project:** `greater-art/` in the repository checkout
-**Current source:** `1.21.49 (code 272)` — SOURCE_ONLY; fullscreen cutout, pan/rotation, anchor and toolbar rendering polish
+**Current source:** `1.21.50 (code 273)` — SOURCE_ONLY; fullscreen safe areas, fitted-frame pan, narrow toolbar and Media3 API34 sync workaround
 **Current version:** `1.21.39 (code 262)`
 **Latest APK:** `releases/GreaterArt-1.21.39.apk` (`26,877,593 bytes`; SHA-256 `e636fb7c1bfdbdf5500d48863a9f6c778aec47bb2090e433bb2e86037e468104`)
 **Application ID:** `com.local.listentomusic`
@@ -13,6 +13,17 @@ This file describes the **current repository state only**. Historical session no
 **Verification boundary:** Exact build source `b20489581b6125ce3963c767ed8e419c979a6820`; 358 JVM tests, 21 API36 emulator tests, zero lint errors; signature, pinned certificate, version/package, 16KiB ZIP alignment and upgrade installation checked. Emulator tests cover scoped URI discovery/access, live primary-video Dynamic Ambient colors and retained player identity, floating presentations and accessibility/Developer Mode interactions. No app fatal in the inspected crash buffer. This is a debug sideload build, not production signing, physical-phone acceptance, full security assessment or a universal bug-free guarantee. The prior 1.21.37 artifact and its evidence remain unchanged in history.
 
 ## Repository state
+
+### October 18 — fullscreen rendering follow-up (1.21.50/code273)
+
+- Add cutout-safe insets to audio fullscreen and immersive video lower transport/timeline/gesture feedback without shrinking or masking the edge-to-edge video; consume insets through Compose to avoid stacking status/navigation overlap.
+- Bound video drag/pinch translation to **the scaled FIT video rectangle** (aspect ratio and viewport), not the full black letterboxed PlayerView. Enable one-finger pan only above 1× zoom, disable side-seek/hold recognizers while zoomed, and preserve tap-to-reveal. Existing rotation/media-change reset is retained.
+- Enable Media3's built-in SurfaceView/Compose surface synchronization workaround on API34 while keeping the shared PlayerView and surface lifecycle unchanged. This is **not proof of a universal API35/36 SurfaceView fix** and XML shared-transition conflicts would need separate testing if later introduced.
+- Ultra-narrow fullscreen top bars now retain all essential **48dp** Rotate/Lock/Exit/Close controls by using a compact two-row layout below 224dp (single-column below 128dp), rather than overflowing.
+- JVM tests cover FIT/letterbox pan bounds, degenerate inputs and existing toolbar sizing. Fixture-independent Android instrumentation checks narrow toolbar geometry; fixture-dependent fullscreen playback/rotation remains available for device QA.
+- Source **1.21.50/code273** is **SOURCE_ONLY**. Current verified sideload remains **1.21.39/code262**; do not claim exact-build emulator or physical acceptance until captured in the fullscreen rendering checklist.
+- Privacy remediation draft PR #174 remains independent, unmerged and unauthorized for a history rewrite.
+
 
 ### October 18 — fullscreen rendering and interaction follow-up (1.21.49/code272)
 

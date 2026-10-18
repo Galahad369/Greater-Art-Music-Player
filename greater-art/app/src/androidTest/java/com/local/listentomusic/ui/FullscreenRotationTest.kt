@@ -10,6 +10,9 @@ import androidx.compose.ui.test.junit4.v2.createEmptyComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.Modifier
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.width
 import androidx.lifecycle.ViewModelProvider
 import androidx.test.core.app.ActivityScenario
 import androidx.test.platform.app.InstrumentationRegistry
@@ -101,6 +104,52 @@ class FullscreenRotationTest {
             preferences.setAppLanguage(old.appLanguage)
             preferences.setFloatingWindowMode(old.floatingWindowMode)
         }
+    }
+
+    /** No video fixture required: the narrow toolbar must wrap, never clip buttons. */
+    @Test fun narrowFullscreenToolbarRetainsRotateExitAndClose() {
+        compose.setContent {
+            Box(Modifier.width(160.dp)) {
+                NowPlayingTopBar(
+                    language = AppLanguage.ENGLISH, onPictureInPicture = {},
+                    onHome = {}, onFullscreen = {}, onClose = {},
+                    fullscreen = true, onRotate = {},
+                )
+            }
+        }
+        val rotate = compose.onNodeWithContentDescription("Rotate to landscape")
+            .assertIsDisplayed().assertWidthIsAtLeast(48.dp).fetchSemanticsNode().boundsInRoot
+        val exit = compose.onNodeWithContentDescription("Exit fullscreen")
+            .assertIsDisplayed().assertWidthIsAtLeast(48.dp).fetchSemanticsNode().boundsInRoot
+        val close = compose.onNodeWithContentDescription("Close player")
+            .assertIsDisplayed().assertWidthIsAtLeast(48.dp).fetchSemanticsNode().boundsInRoot
+        assertTrue("Compact toolbar must wrap essential buttons below the first row",
+            rotate.bottom <= exit.top + 2f)
+        assertTrue("Exit and Close share the second row", abs(exit.center.y - close.center.y) <= 2f)
+        assertTrue("Compact controls may not exceed 160dp safe area",
+            maxOf(rotate.right, exit.right, close.right) <=
+                160f * InstrumentationRegistry.getInstrumentation().targetContext.resources.displayMetrics.density + 2f)
+    }
+
+    /** No video fixture required: ultra-narrow toolbar stacks 48dp targets. */
+    @Test fun ultraNarrowFullscreenToolbarStacksActions() {
+        compose.setContent {
+            Box(Modifier.width(110.dp)) {
+                NowPlayingTopBar(
+                    language = AppLanguage.ENGLISH, onPictureInPicture = {},
+                    onHome = {}, onFullscreen = {}, onClose = {},
+                    fullscreen = true, onRotate = {},
+                )
+            }
+        }
+        val rotate = compose.onNodeWithContentDescription("Rotate to landscape")
+            .assertIsDisplayed().fetchSemanticsNode().boundsInRoot
+        val exit = compose.onNodeWithContentDescription("Exit fullscreen")
+            .assertIsDisplayed().fetchSemanticsNode().boundsInRoot
+        val close = compose.onNodeWithContentDescription("Close player")
+            .assertIsDisplayed().fetchSemanticsNode().boundsInRoot
+        assertTrue("Ultra-narrow toolbar must not place actions side-by-side", rotate.bottom <= exit.top)
+        assertTrue("Ultra-narrow toolbar must preserve action order", exit.bottom <= close.top)
     }
 
     /** Measured on the real fullscreen Activity, with rotate/lock in separate layers. */
