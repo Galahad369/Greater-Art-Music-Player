@@ -3,7 +3,7 @@
 This file describes the **current repository state only**. Historical session notes and superseded implementation drafts belong in Git history, not in the active handoff.
 
 **Project:** `greater-art/` in the repository checkout
-**Current source:** `1.21.48 (code 271)` — SOURCE_ONLY; fullscreen Rotate/Lock alignment and synchronized fade
+**Current source:** `1.21.49 (code 272)` — SOURCE_ONLY; fullscreen cutout, pan/rotation, anchor and toolbar rendering polish
 **Current version:** `1.21.39 (code 262)`
 **Latest APK:** `releases/GreaterArt-1.21.39.apk` (`26,877,593 bytes`; SHA-256 `e636fb7c1bfdbdf5500d48863a9f6c778aec47bb2090e433bb2e86037e468104`)
 **Application ID:** `com.local.listentomusic`
@@ -13,6 +13,16 @@ This file describes the **current repository state only**. Historical session no
 **Verification boundary:** Exact build source `b20489581b6125ce3963c767ed8e419c979a6820`; 358 JVM tests, 21 API36 emulator tests, zero lint errors; signature, pinned certificate, version/package, 16KiB ZIP alignment and upgrade installation checked. Emulator tests cover scoped URI discovery/access, live primary-video Dynamic Ambient colors and retained player identity, floating presentations and accessibility/Developer Mode interactions. No app fatal in the inspected crash buffer. This is a debug sideload build, not production signing, physical-phone acceptance, full security assessment or a universal bug-free guarantee. The prior 1.21.37 artifact and its evidence remain unchanged in history.
 
 ## Repository state
+
+### October 18 — fullscreen rendering and interaction follow-up (1.21.49/code272)
+
+- Reset video zoom/pan whenever the video content or visible stage dimensions change (portrait/landscape and viewport resizes), avoiding stale crop/translation. The underlying Media3 player and decoder are untouched.
+- Invalidate measured external Lock anchor on requested rotation and actual viewport size changes to prevent showing a stale overlay coordinate while the toolbar moves.
+- Apply Android display-cutout insets to the immersive toolbar only (not the video), including landscape side cutouts and portrait camera cutouts. Toolbar secondary actions progressively disappear on narrow safe widths, preserving 48dp touch targets and essential Rotate/Lock/Fullscreen/Close actions.
+- Standardize toolbar primary icons to 26dp and the Lock's immersive tint to the shared GaVideoOverlay foreground, leaving the rotate indicator at 14dp intentionally. Preserve the existing synchronized 180ms chrome fade.
+- Add JVM width-threshold regression tests and API36 fixture-dependent portrait/landscape safe-area assertions. GitHub Android CI compiles and unit-tests by default; a physical/emulator visual inspection has not been proven by a passing build alone.
+- SOURCE_ONLY pending exact-build runtime verification; the verified 1.21.39/code262 debug APK and desktop version/artifacts remain unchanged. Security PR #174 remains separate and unmerged.
+
 
 ### October 18 — fullscreen Rotate/Lock consistency (1.21.48/code271)
 

@@ -63,6 +63,22 @@ class Release1114Test {
         assertTrue(shouldShowPlayerLock(immersiveVideo = false, videoControlsVisible = false))
     }
 
+    @Test fun fullscreenToolbarAdaptsToCutoutSafeWidthWithoutClippingActions() {
+        // Layout width excludes the display-cutout inset before these thresholds.
+        val wide = toolbarActionVisibility(400f, hasRotate = true)
+        assertEquals(ToolbarActionVisibility(true, true, true), wide)
+        val normal = toolbarActionVisibility(320f, hasRotate = true)
+        assertEquals(ToolbarActionVisibility(true, true, false), normal)
+        val narrow = toolbarActionVisibility(280f, hasRotate = true)
+        assertEquals(ToolbarActionVisibility(false, true, false), narrow)
+        val cutout = toolbarActionVisibility(240f, hasRotate = true)
+        assertEquals(ToolbarActionVisibility(false, false, false), cutout)
+        assertEquals(ToolbarActionVisibility(true, true, true),
+            toolbarActionVisibility(320f, hasRotate = false))
+        assertEquals(ToolbarActionVisibility(false, false, false),
+            toolbarActionVisibility(185f, hasRotate = false))
+    }
+
     @Test fun playerLockUsesMeasuredAnchorCoordinatesInsteadOfButtonCountOffsets() {
         val root = androidx.compose.ui.geometry.Rect(20f, 40f, 420f, 840f)
         val slot = androidx.compose.ui.geometry.Rect(272f, 58f, 320f, 106f)
