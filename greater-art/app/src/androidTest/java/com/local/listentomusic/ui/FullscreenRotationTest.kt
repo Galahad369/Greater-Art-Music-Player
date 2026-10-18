@@ -1,6 +1,7 @@
 package com.local.listentomusic.ui
 
 import android.content.Intent
+import kotlin.math.abs
 import android.content.res.Configuration
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertWidthIsAtLeast
@@ -70,12 +71,14 @@ class FullscreenRotationTest {
             }
             val lease = VideoSurfaceOwner.state.value
             capture("portrait")
+            assertFullscreenToolbarAlignment("Rotate to landscape")
             compose.onNodeWithContentDescription("Rotate to landscape").assertIsDisplayed()
                 .assertWidthIsAtLeast(48.dp).assertHeightIsAtLeast(48.dp).performClick()
             compose.waitUntil(20_000) {
                 activity.resources.configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
             }
             capture("landscape")
+            assertFullscreenToolbarAlignment("Rotate to portrait")
             compose.onNodeWithContentDescription("Rotate to portrait").assertIsDisplayed().performClick()
             compose.waitUntil(20_000) {
                 activity.resources.configuration.orientation == Configuration.ORIENTATION_PORTRAIT
@@ -96,6 +99,18 @@ class FullscreenRotationTest {
             preferences.setAppLanguage(old.appLanguage)
             preferences.setFloatingWindowMode(old.floatingWindowMode)
         }
+    }
+
+    /** Measured on the real fullscreen Activity, with rotate/lock in separate layers. */
+    private fun assertFullscreenToolbarAlignment(rotationDescription: String) {
+        val rotate = compose.onNodeWithContentDescription(rotationDescription).fetchSemanticsNode().boundsInRoot
+        val lock = compose.onNodeWithContentDescription("Lock player controls").fetchSemanticsNode().boundsInRoot
+        assertTrue("Rotate and Lock touch targets must share their vertical center: $rotate vs $lock",
+            abs(rotate.center.y - lock.center.y) <= 2f)
+        assertEquals("Rotate and Lock must have the same touch target height",
+            rotate.height, lock.height, 2f)
+        assertEquals("Rotate and Lock must have the same touch target width",
+            rotate.width, lock.width, 2f)
     }
 
     private fun capture(name: String) {

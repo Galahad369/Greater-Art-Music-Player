@@ -7,7 +7,13 @@ This file is the authoritative version policy for Greater Art. If any handoff no
 ## Machine-checkable state
 
 
-Current source: **1.21.45 (code 268)**
+Current source: **1.21.48 (code 271)**
+Allowed consumed transition: **1.21.45 (code 268) -> 1.21.48 (code 271)**
+
+The open draft security PR #174 separately consumes 1.21.46/code269
+(commit 7343936) and 1.21.47/code270 (commit f69b7db). This
+UI-only change deliberately does not merge the still-blocked privacy branch or
+reuse those versions; all prior version identities are preserved.
 Allowed consumed transition: **1.21.39 (code 262) -> 1.21.45 (code 268)**
 
 Integration retains the 1.21.42–44 commits as a merge parent. Versions 40/41
@@ -351,3 +357,7 @@ Previous baseline: 1.13.26 (code 115).
 - 1.21.43 (code 266) — Fullscreen opens portrait-first. Add explicit portrait/landscape rotation action with destination-shaped phone icon, arrow and localized accessibility labels; retain the shared player and native video quality. SOURCE_ONLY; verified 1.21.39 APK preserved.
 - 1.21.44 (code 267) — Clarify Settings with category navigation, current-value rows and accessible single-choice dialogs; group Library appearance and floating-window size logically, separate playlist actions from titles, use an opaque readable surface and stop hidden decorative backgrounds. Preference defaults, persistence, playback and permissions are unchanged. SOURCE_ONLY; verified 1.21.39 APK preserved.
 - 1.21.45 (code 268) — Reviewed branch convergence: retain storage/audio/fullscreen/Settings commits, port Dependabot Gradle 9.8.1 / Compose plugin 2.4.21 and pinned setup-java 6.1.0, selectively import Nodes focus styling without blocking layout or ignoring bounce preferences. SOURCE_ONLY; verified Android 1.21.39 and Desktop 0.1.16 artifacts unchanged.
+
+- 1.21.46 (code 269) — Consumed by still-draft PR #174 integration commit 7343936, not imported into main.
+- 1.21.47 (code 270) — Consumed by still-draft PR #174 fixture commit f69b7db, not imported into main.
+- 1.21.48 (code 271) — Fullscreen Rotate/Lock alignment: move the overlay Lock transition to the exact measured toolbar slot, standardize 48dp targets and centered 26dp icons, and make both actions use one video chrome visibility transition and 180ms fade. Add real-Activity portrait/landscape measured alignment assertions. SOURCE_ONLY; latest verified APK 1.21.39/code262 unchanged.

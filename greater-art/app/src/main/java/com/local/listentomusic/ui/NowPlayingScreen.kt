@@ -18,6 +18,8 @@ import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.Transition
+import androidx.compose.animation.core.updateTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -329,6 +331,11 @@ fun NowPlayingScreen(
     var controlsLocked by rememberSaveable { mutableStateOf(false) }
     // The lock and the fullscreen video chrome share one visibility source.
     var videoControlsVisible by rememberSaveable { mutableStateOf(true) }
+    // Both fullscreen toolbar and the separately elevated Lock action use one
+    // transition timeline. Lock stays above the input blocker when controls are locked.
+    val videoChromeTransition = updateTransition(
+        targetState = videoControlsVisible, label = "fullscreen video chrome"
+    )
     LaunchedEffect(fullscreen) { onFullscreenChanged(fullscreen) }
 
     if (isPictureInPicture && playback.isVideo) {
@@ -433,6 +440,7 @@ fun NowPlayingScreen(
                     onLockTemporaryDoubleSpeed = onLockTemporaryDoubleSpeed,
                     onLockAnchorBoundsChanged = reportLockAnchor,
                     controlsVisible = videoControlsVisible,
+                    chromeTransition = videoChromeTransition,
                     onControlsVisibilityChange = { videoControlsVisible = it },
                     modifier = if (immersiveVideo) {
                         Modifier.fillMaxSize()
@@ -540,29 +548,36 @@ fun NowPlayingScreen(
             })
         }
         playerLockLocalOffset(playerRootBounds, lockAnchorBounds)?.let { lockOffset ->
-            AnimatedVisibility(
-                visible = shouldShowPlayerLock(immersiveVideo, videoControlsVisible),
-                enter = fadeIn(),
-                exit = fadeOut(),
+            // Place the animated container at the measured 48dp toolbar slot,
+            // not its child: transitions must never change the button's anchor.
+            // Sharing VideoPlayerStage's transition keeps Rotate and Lock fading
+            // in the same frame with identical durations and easing.
+            videoChromeTransition.AnimatedVisibility(
+                visible = { shouldShowPlayerLock(immersiveVideo, it) },
+                modifier = Modifier.offset { lockOffset }.size(GaControl.touchTarget),
+                enter = fadeIn(animationSpec = tween(180)),
+                exit = fadeOut(animationSpec = tween(180)),
             ) {
-            IconButton(
-                onClick = { controlsLocked = !controlsLocked },
-                modifier = Modifier
-                    .offset { lockOffset }
-                    .size(GaControl.touchTarget)
-                    .inspectElement(
-                        "PLAYER_LOCK_BUTTON",
-                        if (controlsLocked) "Unlock Now Playing controls" else "Lock Now Playing controls",
-                    ),
-            ) {
-                Icon(
-                    if (controlsLocked) Icons.Rounded.Lock else Icons.Rounded.LockOpen,
-                    uiText(language, if (controlsLocked) "Unlock player controls" else "Lock player controls",
-                        if (controlsLocked) "解鎖播放器控制" else "鎖定播放器控制"),
-                    tint = if (playback.isVideo && immersiveVideo) Color.White else MaterialTheme.colorScheme.onSurface,
-                    modifier = Modifier.size(30.dp),
-                )
-            }
+                IconButton(
+                    onClick = { controlsLocked = !controlsLocked },
+                    modifier = Modifier.size(GaControl.touchTarget)
+                        .inspectElement(
+                            "PLAYER_LOCK_BUTTON",
+                            if (controlsLocked) "Unlock Now Playing controls" else "Lock Now Playing controls",
+                        ),
+                ) {
+                    // Rotate and Lock now have the same 48dp hit area, 32dp
+                    // icon canvas and centered 26dp primary glyph.
+                    Box(Modifier.size(32.dp), contentAlignment = Alignment.Center) {
+                        Icon(
+                            if (controlsLocked) Icons.Rounded.Lock else Icons.Rounded.LockOpen,
+                            uiText(language, if (controlsLocked) "Unlock player controls" else "Lock player controls",
+                                if (controlsLocked) "解鎖播放器控制" else "鎖定播放器控制"),
+                            tint = if (playback.isVideo && immersiveVideo) Color.White else MaterialTheme.colorScheme.onSurface,
+                            modifier = Modifier.size(26.dp),
+                        )
+                    }
+                }
             }
         }
     }
@@ -595,6 +610,7 @@ private fun VideoPlayerStage(
     onLockTemporaryDoubleSpeed: () -> Boolean,
     onLockAnchorBoundsChanged: (androidx.compose.ui.geometry.Rect) -> Unit,
     controlsVisible: Boolean,
+    chromeTransition: Transition<Boolean>,
     onControlsVisibilityChange: (Boolean) -> Unit,
     modifier: Modifier,
 ) {
@@ -840,10 +856,10 @@ private fun VideoPlayerStage(
         }
         SeekFeedback(seekFeedback.first, seekFeedback.second, Modifier.align(if (seekFeedback.first < 0) Alignment.CenterStart else Alignment.CenterEnd))
 
-        AnimatedVisibility(
-            visible = controlsVisible,
-            enter = fadeIn(),
-            exit = fadeOut(),
+        chromeTransition.AnimatedVisibility(
+            visible = { it },
+            enter = fadeIn(animationSpec = tween(180)),
+            exit = fadeOut(animationSpec = tween(180)),
             modifier = Modifier.fillMaxSize(),
         ) {
             Box(Modifier.fillMaxSize()) {
