@@ -3,7 +3,7 @@
 This file describes the **current repository state only**. Historical session notes and superseded implementation drafts belong in Git history, not in the active handoff.
 
 **Project:** `greater-art/` in the repository checkout
-**Current source:** `1.21.52 (code 275)` — SOURCE_ONLY; centre-tap chrome toggle, idle-aware auto-hide, gesture/toolbar layout and video aspect refinements
+**Current source:** `1.21.53 (code 276)` — SOURCE_ONLY; centre-tap chrome toggle, idle-aware auto-hide, gesture/toolbar layout and video aspect refinements
 **Current version:** `1.21.39 (code 262)`
 **Latest APK:** `releases/GreaterArt-1.21.39.apk` (`26,877,593 bytes`; SHA-256 `e636fb7c1bfdbdf5500d48863a9f6c778aec47bb2090e433bb2e86037e468104`)
 **Application ID:** `com.local.listentomusic`
@@ -13,6 +13,12 @@ This file describes the **current repository state only**. Historical session no
 **Verification boundary:** Exact build source `b20489581b6125ce3963c767ed8e419c979a6820`; 358 JVM tests, 21 API36 emulator tests, zero lint errors; signature, pinned certificate, version/package, 16KiB ZIP alignment and upgrade installation checked. Emulator tests cover scoped URI discovery/access, live primary-video Dynamic Ambient colors and retained player identity, floating presentations and accessibility/Developer Mode interactions. No app fatal in the inspected crash buffer. This is a debug sideload build, not production signing, physical-phone acceptance, full security assessment or a universal bug-free guarantee. The prior 1.21.37 artifact and its evidence remain unchanged in history.
 
 ## Repository state
+
+### October 18 — timeline press/drag auto-hide guard (1.21.53/code276)
+
+- A held thumb press on the fullscreen timeline suspends auto-hide even if the slider has not yet emitted a value change. Observe the slider's Material3 pressed/dragged interaction source and reset state when it is disposed, then restart the ordinary 2.5s playing-idle countdown on release.
+- This complements earlier 1.21.51 centre-tap and 1.21.52 viewport/short-height commits. Preserve side double-tap seek, user-requested manual hide/reveal, native PiP and immutability of the verified 1.21.39 APK.
+
 
 ### October 18 — Compose declaration-order correction (1.21.52/code275)
 

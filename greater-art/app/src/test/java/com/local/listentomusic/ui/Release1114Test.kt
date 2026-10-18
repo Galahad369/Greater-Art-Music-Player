@@ -96,10 +96,11 @@ class Release1114Test {
         fun eligible(
             immersive: Boolean = true, visible: Boolean = true, playing: Boolean = true,
             seeking: Boolean = false, pan: Boolean = false, gesture: Boolean = false,
-            speed: Boolean = false, unlock: Boolean = false,
-        ) = shouldAutoHideVideoChrome(immersive, visible, playing, seeking, pan, gesture, speed, unlock)
+            speed: Boolean = false, unlock: Boolean = false, timeline: Boolean = false,
+        ) = shouldAutoHideVideoChrome(immersive, visible, playing, seeking, pan, gesture, speed, unlock, timeline)
         assertTrue(eligible())
         assertFalse(eligible(seeking = true))
+        assertFalse(eligible(timeline = true))
         assertFalse(eligible(pan = true))
         assertFalse(eligible(gesture = true))
         assertFalse(eligible(speed = true))

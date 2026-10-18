@@ -231,9 +231,9 @@ internal fun isCenterVideoTap(x: Float, width: Float): Boolean =
 internal fun shouldAutoHideVideoChrome(
     immersive: Boolean, visible: Boolean, playing: Boolean, seeking: Boolean,
     panActive: Boolean, playerGestureActive: Boolean, temporarySpeed: Boolean,
-    speedUnlockArmed: Boolean,
+    speedUnlockArmed: Boolean, timelineActive: Boolean = false,
 ): Boolean = immersive && visible && playing && !seeking && !panActive &&
-    !playerGestureActive && !temporarySpeed && !speedUnlockArmed
+    !playerGestureActive && !temporarySpeed && !speedUnlockArmed && !timelineActive
 
 /** Reserve the same 48dp slot per action. Drop secondary actions when safe width shrinks. */
 internal data class ToolbarActionVisibility(
@@ -695,6 +695,7 @@ private fun VideoPlayerStage(
     var unlockDoubleSpeedArmed by remember { mutableStateOf(false) }
     var panGestureActive by remember { mutableStateOf(false) }
     var playerGestureActive by remember { mutableStateOf(false) }
+    var timelineInteractionActive by remember { mutableStateOf(false) }
     var lastViewportSize by remember { mutableStateOf(IntSize.Zero) }
     var toolbarWindowBounds by remember(immersive, landscape) {
         mutableStateOf<androidx.compose.ui.geometry.Rect?>(null)
@@ -725,12 +726,13 @@ private fun VideoPlayerStage(
     // Preserve auto-hide, but never interrupt a live slider/zoom/hold gesture.
     // Every completed interaction restarts the full 2.5-second idle timeout.
     LaunchedEffect(controlsVisible, playback.isPlaying, playback.currentPath,
-        seeking, panGestureActive, playerGestureActive, temporaryDoubleSpeed, unlockDoubleSpeedArmed,
+        seeking, timelineInteractionActive, panGestureActive, playerGestureActive,
+        temporaryDoubleSpeed, unlockDoubleSpeedArmed,
     ) {
         if (shouldAutoHideVideoChrome(
                 immersive, controlsVisible, playback.isPlaying, seeking,
                 panGestureActive, playerGestureActive,
-                temporaryDoubleSpeed, unlockDoubleSpeedArmed,
+                temporaryDoubleSpeed, unlockDoubleSpeedArmed, timelineInteractionActive,
             )
         ) {
             delay(2_500)
@@ -1057,6 +1059,7 @@ private fun VideoPlayerStage(
                         enabled = hasDuration,
                         activeColor = GaVideoOverlay.foreground,
                         inactiveColor = GaVideoOverlay.inactiveTrack,
+                        onInteractionActiveChange = { timelineInteractionActive = it },
                     )
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                         Text(
@@ -1913,11 +1916,15 @@ internal fun CompactSlider(
     activeColor: Color,
     inactiveColor: Color,
     modifier: Modifier = Modifier,
+    onInteractionActiveChange: (Boolean) -> Unit = {},
 ) {
     val range = valueRange.endInclusive - valueRange.start
     val interactions = remember { MutableInteractionSource() }
     val pressed by interactions.collectIsPressedAsState()
     val dragged by interactions.collectIsDraggedAsState()
+    val activeChanged by rememberUpdatedState(onInteractionActiveChange)
+    LaunchedEffect(pressed, dragged) { activeChanged(pressed || dragged) }
+    DisposableEffect(Unit) { onDispose { activeChanged(false) } }
     val thumbScale = animateFloatAsState(if (pressed || dragged) 1.22f else 1f, androidx.compose.animation.core.tween(130), label="video-seek-thumb")
     val fraction = if (range > 0f) {
         ((value - valueRange.start) / range).coerceIn(0f, 1f)

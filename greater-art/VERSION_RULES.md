@@ -7,7 +7,7 @@ This file is the authoritative version policy for Greater Art. If any handoff no
 ## Machine-checkable state
 
 
-Current source: **1.21.52 (code 275)**
+Current source: **1.21.53 (code 276)**
 Allowed consumed transition: **1.21.45 (code 268) -> 1.21.48 (code 271)**
 
 The open draft security PR #174 separately consumes 1.21.46/code269
@@ -369,3 +369,5 @@ Previous baseline: 1.13.26 (code 115).
 - 1.21.51 (code 274) — Fullscreen UX/rendering follow-up: tap centre 30% of video once to toggle chrome hidden/visible, with side-zone double-tap seek unchanged, including zoomed and locked modes; retain 2.5s auto-hide only when playing and no slider, pan, hold or pointer gesture is active, and restart after interaction. Keep existing pointer recognizers stable during pinch instead of changing a modifier mid-gesture. Move 2× feedback below measured top toolbar; hide transport/timeline selectively in height-constrained windows to avoid overlapping wrapped toolbar. Correct FIT/pan/video display aspect ratio for Media3 non-square pixel content. Add centre/autohide/anamorphic JVM regressions and fixture-dependent portrait tap scenario; document PiP first-frame device acceptance boundary. SOURCE_ONLY; latest verified APK 1.21.39 unchanged.
 
 - 1.21.52 (code 275) — Follow-up to the 1.21.51 centre-tap/idle-control patch: correct Compose declaration ordering for the responsive toolbar's lastViewportSize state before derived height constraints. The previous 1.21.51 commit is retained in PR history; no release artifact is claimed. Preserve centre-toggle, idle-aware auto-hide, measured 2× banner, short-height adaptation and anamorphic display ratio. SOURCE_ONLY until CI and device verification.
+
+- 1.21.53 (code 276) — Fullscreen auto-hide refinement: bind the video timeline slider's real pressed/dragged interactions to the idle timer, not only onValueChange seeking, so merely pressing/holding the thumb for >2.5s cannot hide the chrome. Return interaction status to false on slider disposal, preserving the existing 2.5s playing-idle hide when released. JVM eligibility regression expanded. SOURCE_ONLY until checks and hardware acceptance.
