@@ -3,7 +3,7 @@
 This file describes the **current repository state only**. Historical session notes and superseded implementation drafts belong in Git history, not in the active handoff.
 
 **Project:** `greater-art/` in the repository checkout
-**Current source:** `1.21.53 (code 276)` — SOURCE_ONLY; centre-tap chrome toggle, idle-aware auto-hide, gesture/toolbar layout and video aspect refinements
+**Current source:** `1.21.54 (code 277)` — SOURCE_ONLY; centre-tap chrome toggle and gesture-safe 2.5-second auto-hide including paused playback
 **Current version:** `1.21.39 (code 262)`
 **Latest APK:** `releases/GreaterArt-1.21.39.apk` (`26,877,593 bytes`; SHA-256 `e636fb7c1bfdbdf5500d48863a9f6c778aec47bb2090e433bb2e86037e468104`)
 **Application ID:** `com.local.listentomusic`
@@ -13,6 +13,11 @@ This file describes the **current repository state only**. Historical session no
 **Verification boundary:** Exact build source `b20489581b6125ce3963c767ed8e419c979a6820`; 358 JVM tests, 21 API36 emulator tests, zero lint errors; signature, pinned certificate, version/package, 16KiB ZIP alignment and upgrade installation checked. Emulator tests cover scoped URI discovery/access, live primary-video Dynamic Ambient colors and retained player identity, floating presentations and accessibility/Developer Mode interactions. No app fatal in the inspected crash buffer. This is a debug sideload build, not production signing, physical-phone acceptance, full security assessment or a universal bug-free guarantee. The prior 1.21.37 artifact and its evidence remain unchanged in history.
 
 ## Repository state
+
+### October 18 — paused-playback fullscreen chrome timeout (1.21.54/code277)
+
+- Continue 1.21.53's center tap to hide/reveal fullscreen controls. The 2.5-second auto-hide now operates during paused playback as well as playing, but remains suspended during timeline press/drag, pinch, pan and speed-hold gestures. Fullscreen exit cancels the countdown.
+- This integrates the outstanding paused-state intention behind superseded PR #185 on top of the already merged and more thoroughly tested #184. No older gesture implementation is imported. Source-only until device acceptance; the 1.21.39 verified APK remains unchanged.
 
 ### October 18 — timeline press/drag auto-hide guard (1.21.53/code276)
 

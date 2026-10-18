@@ -229,10 +229,10 @@ internal fun isCenterVideoTap(x: Float, width: Float): Boolean =
     width > 0f && x.isFinite() && seekSideForX(x, width) == null
 
 internal fun shouldAutoHideVideoChrome(
-    immersive: Boolean, visible: Boolean, playing: Boolean, seeking: Boolean,
+    immersive: Boolean, visible: Boolean, seeking: Boolean,
     panActive: Boolean, playerGestureActive: Boolean, temporarySpeed: Boolean,
     speedUnlockArmed: Boolean, timelineActive: Boolean = false,
-): Boolean = immersive && visible && playing && !seeking && !panActive &&
+): Boolean = immersive && visible && !seeking && !panActive &&
     !playerGestureActive && !temporarySpeed && !speedUnlockArmed && !timelineActive
 
 /** Reserve the same 48dp slot per action. Drop secondary actions when safe width shrinks. */
@@ -723,14 +723,14 @@ private fun VideoPlayerStage(
         videoOffset = Offset.Zero
     }
 
-    // Preserve auto-hide, but never interrupt a live slider/zoom/hold gesture.
-    // Every completed interaction restarts the full 2.5-second idle timeout.
-    LaunchedEffect(controlsVisible, playback.isPlaying, playback.currentPath,
+    // Keep the full 2.5-second auto-hide timer while playing or paused, but
+    // never interrupt a live slider/zoom/hold gesture. Gestures restart the timer.
+    LaunchedEffect(immersive, controlsVisible, playback.currentPath,
         seeking, timelineInteractionActive, panGestureActive, playerGestureActive,
         temporaryDoubleSpeed, unlockDoubleSpeedArmed,
     ) {
         if (shouldAutoHideVideoChrome(
-                immersive, controlsVisible, playback.isPlaying, seeking,
+                immersive, controlsVisible, seeking,
                 panGestureActive, playerGestureActive,
                 temporaryDoubleSpeed, unlockDoubleSpeedArmed, timelineInteractionActive,
             )
