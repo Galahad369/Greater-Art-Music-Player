@@ -9,6 +9,10 @@ import androidx.compose.ui.test.assertHeightIsAtLeast
 import androidx.compose.ui.test.junit4.v2.createEmptyComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.onRoot
+import androidx.compose.ui.test.onAllNodesWithContentDescription
+import androidx.compose.ui.test.performTouchInput
+import androidx.compose.ui.test.click
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.Modifier
 import androidx.compose.foundation.layout.Box
@@ -74,6 +78,15 @@ class FullscreenRotationTest {
             }
             val lease = VideoSurfaceOwner.state.value
             capture("portrait")
+            // Centre taps hide/reveal without waiting for auto-hide. Playback is paused,
+            // so these checks isolate the manual toggle from the timer.
+            compose.onRoot().performTouchInput { click(center) }
+            compose.waitUntil(5_000) {
+                compose.onAllNodesWithContentDescription("Rotate to landscape")
+                    .fetchSemanticsNodes().isEmpty()
+            }
+            compose.onRoot().performTouchInput { click(center) }
+            compose.onNodeWithContentDescription("Rotate to landscape").assertIsDisplayed()
             assertFullscreenToolbarAlignment("Rotate to landscape")
             assertToolbarInsideScreenSafeRegion(activity)
             compose.onNodeWithContentDescription("Rotate to landscape").assertIsDisplayed()

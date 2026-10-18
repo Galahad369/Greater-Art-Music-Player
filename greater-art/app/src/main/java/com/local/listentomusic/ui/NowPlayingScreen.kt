@@ -224,6 +224,17 @@ internal fun isDoubleSpeed(speed: Float): Boolean = kotlin.math.abs(speed - 2f) 
 internal fun shouldShowPlayerLock(immersiveVideo: Boolean, videoControlsVisible: Boolean): Boolean =
     !immersiveVideo || videoControlsVisible
 
+/** Middle 30% toggles chrome; side taps retain their double-tap seek behavior. */
+internal fun isCenterVideoTap(x: Float, width: Float): Boolean =
+    width > 0f && x.isFinite() && seekSideForX(x, width) == null
+
+internal fun shouldAutoHideVideoChrome(
+    immersive: Boolean, visible: Boolean, playing: Boolean, seeking: Boolean,
+    panActive: Boolean, playerGestureActive: Boolean, temporarySpeed: Boolean,
+    speedUnlockArmed: Boolean,
+): Boolean = immersive && visible && playing && !seeking && !panActive &&
+    !playerGestureActive && !temporarySpeed && !speedUnlockArmed
+
 /** Reserve the same 48dp slot per action. Drop secondary actions when safe width shrinks. */
 internal data class ToolbarActionVisibility(
     val floatingLauncher: Boolean,
@@ -588,7 +599,11 @@ fun NowPlayingScreen(
                 if (immersiveVideo) {
                     // Locked input cannot reach VideoPlayerStage. A tap only reveals
                     // the unlock control; playback/seek/zoom remain blocked.
-                    detectTapGestures(onTap = { videoControlsVisible = true })
+                    detectTapGestures(onTap = { position ->
+                        if (isCenterVideoTap(position.x, size.width.toFloat()))
+                            videoControlsVisible = !videoControlsVisible
+                        else videoControlsVisible = true
+                    })
                 } else {
                     awaitPointerEventScope {
                         while (true) awaitPointerEvent().changes.forEach { it.consume() }
@@ -678,6 +693,24 @@ private fun VideoPlayerStage(
     val lockThresholdPx = with(LocalDensity.current) { HOLD_2X_LOCK_DISTANCE_DP.dp.toPx() }
     var temporaryDoubleSpeed by remember { mutableStateOf(false) }
     var unlockDoubleSpeedArmed by remember { mutableStateOf(false) }
+    var panGestureActive by remember { mutableStateOf(false) }
+    var playerGestureActive by remember { mutableStateOf(false) }
+    var toolbarWindowBounds by remember(immersive, landscape) {
+        mutableStateOf<androidx.compose.ui.geometry.Rect?>(null)
+    }
+    var stageWindowBounds by remember { mutableStateOf<androidx.compose.ui.geometry.Rect?>(null) }
+    val density = LocalDensity.current
+    val currentControlsVisible by rememberUpdatedState(controlsVisible)
+    val toolbarBottomPx = if (toolbarWindowBounds != null && stageWindowBounds != null)
+        (toolbarWindowBounds!!.bottom - stageWindowBounds!!.top).coerceAtLeast(0f)
+    else with(density) { 72.dp.toPx() }
+    val safeBottomPx = with(density) { 16.dp.toPx() } +
+        WindowInsets.displayCutout.getBottom(density).toFloat() +
+        playerNavigationInsets().getBottom(density).toFloat()
+    val canShowTimeline = lastViewportSize.height == 0 ||
+        lastViewportSize.height > toolbarBottomPx + with(density) { 90.dp.toPx() } + safeBottomPx
+    val canShowTransport = lastViewportSize.height == 0 ||
+        lastViewportSize.height > toolbarBottomPx + with(density) { 172.dp.toPx() } + safeBottomPx
 
     // A zoom/pan transform is viewport-relative, not an intrinsic media setting.
     // Do not carry it into a differently sized portrait/landscape viewport.
@@ -689,8 +722,17 @@ private fun VideoPlayerStage(
         videoOffset = Offset.Zero
     }
 
-    LaunchedEffect(controlsVisible, playback.isPlaying, playback.currentPath) {
-        if (controlsVisible && playback.isPlaying) {
+    // Preserve auto-hide, but never interrupt a live slider/zoom/hold gesture.
+    // Every completed interaction restarts the full 2.5-second idle timeout.
+    LaunchedEffect(controlsVisible, playback.isPlaying, playback.currentPath,
+        seeking, panGestureActive, playerGestureActive, temporaryDoubleSpeed, unlockDoubleSpeedArmed,
+    ) {
+        if (shouldAutoHideVideoChrome(
+                immersive, controlsVisible, playback.isPlaying, seeking,
+                panGestureActive, playerGestureActive,
+                temporaryDoubleSpeed, unlockDoubleSpeedArmed,
+            )
+        ) {
             delay(2_500)
             onControlsVisibilityChange(false)
         }
@@ -707,6 +749,7 @@ private fun VideoPlayerStage(
 
     Box(
         modifier = modifier
+            .onGloballyPositioned { stageWindowBounds = it.boundsInWindow() }
             .onSizeChanged { size ->
                 if (size != lastViewportSize) {
                     lastViewportSize = size
@@ -744,6 +787,7 @@ private fun VideoPlayerStage(
                     if (immersive) {
                         awaitEachGesture {
                             val down = awaitFirstDown(requireUnconsumed = false)
+                            panGestureActive = true
                             var multiTouch = false
                             var oneFingerPanActive = false
                             do {
@@ -775,25 +819,27 @@ private fun VideoPlayerStage(
                                     }
                                 }
                             } while (event.changes.any { it.pressed })
+                            panGestureActive = false
                             if (!multiTouch && !oneFingerPanActive && videoScale > 1.01f) {
-                                // A simple tap must still reveal the hidden chrome when
-                                // the seek/hold recognizer is disabled for zoomed panning.
-                                onControlsVisibilityChange(true)
+                                // Zoomed taps use the same middle toggle; side taps
+                                // reveal the controls, never trigger a pan/seek.
+                                if (isCenterVideoTap(down.position.x, size.width.toFloat()))
+                                    onControlsVisibilityChange(!currentControlsVisible)
+                                else if (!currentControlsVisible) onControlsVisibilityChange(true)
                             }
                         }
                     }
                 }
-                // At zoom >1, one-finger input belongs to pan. Disable the
-                // side-seek/hold recognizer so a drag cannot seek or lock 2x.
-                .then(if (immersive && videoScale > 1.01f) Modifier else Modifier.pointerInput(
-                    seekOffsetMs, playback.currentPath, lockThresholdPx,
-                ) {
+                // Keep the recognizer installed across scale changes; dynamically
+                // replacing its Modifier used to cancel gestures mid-pinch.
+                .pointerInput(seekOffsetMs, playback.currentPath, lockThresholdPx) {
             coroutineScope {
                 val timerScope = this
                 var lastSeekSide: SeekSide? = null
                 var lastSeekTapMs = 0L
                 awaitEachGesture {
                 val down = awaitFirstDown(requireUnconsumed = false)
+                playerGestureActive = true
                 val pressStartedMs = android.os.SystemClock.uptimeMillis()
                 val startPosition = down.position
                 val startedAtDoubleSpeed = isDoubleSpeed(currentPlayback.speed)
@@ -806,7 +852,7 @@ private fun VideoPlayerStage(
                 var unlockArmed = false
 
                 fun tryLockCurrentHold() {
-                    if (!holdActivated || lockedThisGesture || multiTouch) return
+                    if (!holdActivated || lockedThisGesture || multiTouch || videoScale > 1.01f) return
                     if (!shouldLockHeldDoubleSpeed(currentY - activationY, lockThresholdPx)) return
                     if (onLockTemporaryDoubleSpeed()) {
                         lockedThisGesture = true
@@ -817,7 +863,7 @@ private fun VideoPlayerStage(
 
                 val activation = timerScope.launch {
                     delay(HOLD_2X_ACTIVATION_MS)
-                        if (multiTouch) return@launch
+                        if (multiTouch || videoScale > 1.01f) return@launch
                         if (startedAtDoubleSpeed) {
                             unlockArmed = true
                             unlockDoubleSpeedArmed = true
@@ -849,11 +895,12 @@ private fun VideoPlayerStage(
                         anyPressed = event.changes.any { it.pressed }
                     }
                 activation.cancel()
+                playerGestureActive = false
 
                 val heldMs = android.os.SystemClock.uptimeMillis() - pressStartedMs
                 unlockDoubleSpeedArmed = false
 
-                if (multiTouch) {
+                if (multiTouch || videoScale > 1.01f) {
                     if (holdActivated && !lockedThisGesture) {
                         onEndTemporaryDoubleSpeed()
                         temporaryDoubleSpeed = false
@@ -880,11 +927,17 @@ private fun VideoPlayerStage(
                 }
 
                 if (heldMs < HOLD_2X_ACTIVATION_MS && maxMovement <= viewConfiguration.touchSlop) {
-                    // A single fullscreen tap reveals hidden chrome without losing
-                    // the existing same-side double-tap seek gesture.
-                    if (immersive && !controlsVisible) onControlsVisibilityChange(true)
-                    val nowMs = android.os.SystemClock.uptimeMillis()
+                    // Centre tap toggles. Side taps only reveal hidden chrome and
+                    // retain the same-side double-tap seeking contract.
                     val side = seekSideForX(startPosition.x, size.width.toFloat())
+                    if (immersive && isCenterVideoTap(startPosition.x, size.width.toFloat())) {
+                        onControlsVisibilityChange(!currentControlsVisible)
+                        lastSeekSide = null
+                        lastSeekTapMs = 0L
+                        return@awaitEachGesture
+                    }
+                    if (immersive && !currentControlsVisible) onControlsVisibilityChange(true)
+                    val nowMs = android.os.SystemClock.uptimeMillis()
                     if (sideDoubleTapSeeks(side, nowMs, lastSeekSide, lastSeekTapMs)) {
                         val delta = when (side) {
                             SeekSide.LEFT -> -seekOffsetMs
@@ -905,7 +958,7 @@ private fun VideoPlayerStage(
                 }
                 }
             }
-        }))
+        })
         val speedGestureLabel = when {
             unlockDoubleSpeedArmed -> uiText(playback.appLanguage, "Release for 1×", "放開回到 1×")
             temporaryDoubleSpeed -> uiText(playback.appLanguage, "2× · Pull down to lock", "2× · 下拉鎖定")
@@ -917,8 +970,7 @@ private fun VideoPlayerStage(
             enter = fadeIn(tween(100)),
             exit = fadeOut(tween(120)),
             modifier = Modifier.align(Alignment.TopCenter)
-                .windowInsetsPadding(WindowInsets.displayCutout)
-                .windowInsetsPadding(playerStatusInsets()).padding(top = 18.dp),
+                .offset { IntOffset(0, (toolbarBottomPx + with(density) { 8.dp.toPx() }).roundToInt()) },
         ) {
             Text(
                 speedGestureLabel.orEmpty(),
@@ -950,6 +1002,7 @@ private fun VideoPlayerStage(
                                         onRotate = onRotate,
                                         landscape = landscape,
                                         onLockAnchorBoundsChanged = onLockAnchorBoundsChanged,
+                                        onTopBarBoundsChanged = { toolbarWindowBounds = it },
                                         modifier = Modifier.align(Alignment.TopCenter)
                                             // The video itself stays edge-to-edge; chrome must
                                             // avoid notches/camera cutouts on both orientations.
@@ -958,7 +1011,7 @@ private fun VideoPlayerStage(
                                     )
                                 }
 
-                if (immersive) Row(
+                if (immersive && canShowTransport) Row(
                     modifier = Modifier.align(Alignment.BottomCenter).fillMaxWidth()
                         .windowInsetsPadding(WindowInsets.displayCutout)
                         .windowInsetsPadding(playerNavigationInsets()).padding(bottom = 64.dp),
@@ -993,7 +1046,7 @@ private fun VideoPlayerStage(
                 } else {
                     Modifier.align(Alignment.BottomCenter).fillMaxWidth()
                 }
-                if (immersive) Column(
+                if (immersive && canShowTimeline) Column(
                     modifier = timelineModifier.padding(horizontal = 14.dp, vertical = 7.dp),
                 ) {
                     CompactSlider(
@@ -2207,6 +2260,7 @@ internal fun NowPlayingTopBar(
     onRotate: (() -> Unit)? = null,
     landscape: Boolean = false,
     onLockAnchorBoundsChanged: (androidx.compose.ui.geometry.Rect) -> Unit = {},
+    onTopBarBoundsChanged: (androidx.compose.ui.geometry.Rect) -> Unit = {},
 ) {
     val foreground = if (overlay) GaVideoOverlay.foreground else MaterialTheme.colorScheme.onSurface
     val background = if (overlay) GaVideoOverlay.scrim
@@ -2215,7 +2269,8 @@ internal fun NowPlayingTopBar(
     val backgroundColor = background
     val topBarShape = RoundedCornerShape(GaRadius.chrome)
     val toolbarGlyph = 26.dp
-    BoxWithConstraints(modifier.fillMaxWidth()) {
+    BoxWithConstraints(modifier.fillMaxWidth()
+        .onGloballyPositioned { onTopBarBoundsChanged(it.boundsInWindow()) }) {
         // Keep 48dp targets at every width. Under 224dp, provide two compact
         // rows rather than squeezing/clipping Rotate, Lock, Fullscreen and Close.
         val actions = toolbarActionVisibility(maxWidth.value, onRotate != null)

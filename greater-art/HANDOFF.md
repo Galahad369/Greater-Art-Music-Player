@@ -3,7 +3,7 @@
 This file describes the **current repository state only**. Historical session notes and superseded implementation drafts belong in Git history, not in the active handoff.
 
 **Project:** `greater-art/` in the repository checkout
-**Current source:** `1.21.50 (code 273)` — SOURCE_ONLY; fullscreen safe areas, fitted-frame pan, narrow toolbar and Media3 API34 sync workaround
+**Current source:** `1.21.51 (code 274)` — SOURCE_ONLY; centre-tap chrome toggle, idle-aware auto-hide, gesture/toolbar layout and video aspect refinements
 **Current version:** `1.21.39 (code 262)`
 **Latest APK:** `releases/GreaterArt-1.21.39.apk` (`26,877,593 bytes`; SHA-256 `e636fb7c1bfdbdf5500d48863a9f6c778aec47bb2090e433bb2e86037e468104`)
 **Application ID:** `com.local.listentomusic`
@@ -13,6 +13,17 @@ This file describes the **current repository state only**. Historical session no
 **Verification boundary:** Exact build source `b20489581b6125ce3963c767ed8e419c979a6820`; 358 JVM tests, 21 API36 emulator tests, zero lint errors; signature, pinned certificate, version/package, 16KiB ZIP alignment and upgrade installation checked. Emulator tests cover scoped URI discovery/access, live primary-video Dynamic Ambient colors and retained player identity, floating presentations and accessibility/Developer Mode interactions. No app fatal in the inspected crash buffer. This is a debug sideload build, not production signing, physical-phone acceptance, full security assessment or a universal bug-free guarantee. The prior 1.21.37 artifact and its evidence remain unchanged in history.
 
 ## Repository state
+
+### October 18 — fullscreen centre-tap/idle controls and compact presentation (1.21.51/code274)
+
+- A single middle-30%-width tap on the video toggles fullscreen chrome, whether initially shown or hidden; outside the centre, side double-tap seek remains available. Zoomed and control-locked modes handle centre visibility via their respective gesture/lock input surfaces.
+- Retain the **2.5s playing-idle auto-hide**, but suppress the timer during seeking, pinch/pan, active video touch/hold, and temporary 2× interactions. Each completed gesture starts a fresh idle interval rather than allowing controls to vanish during an active seek.
+- Keep all gesture detectors installed across scale changes to avoid cancelling one in the middle of a pinch. Prevent side seeking and 2× hold during zoomed movement.
+- Place 2× hold feedback below the measured fullscreen toolbar and hide separate transport/timeline controls when short viewport height cannot fit beside a two/four-row toolbar. Exit/Lock/Rotate/Close remain accessible.
+- Honour Media3 non-square pixelWidthHeightRatio when publishing display aspect to the FIT/pan calculations, with square/anamorphic JVM coverage.
+- **Surface/PiP visual risks:** Existing SurfaceOwner/PlayerView handoff and PiP integration tests remain in place. Transient black-frame/flicker must be recorded with Android 14–16 device video; do not claim universal PiP flicker resolution from source changes or JVM CI. No speculative native-surface rewrite was made.
+- Fullscreen UI is **SOURCE_ONLY** until exact 1.21.51/code274 device screenshots and instrumentation pass. Latest verified APK remains 1.21.39/code262; privacy draft #174 is separate/unmerged.
+
 
 ### October 18 — fullscreen rendering follow-up (1.21.50/code273)
 
