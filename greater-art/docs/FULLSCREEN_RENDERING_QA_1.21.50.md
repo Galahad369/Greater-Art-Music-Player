@@ -50,3 +50,11 @@ zoom/pan, surface lifecycle logs, and any failing trace.
 instrumentation run, signed physical-phone sideload, audio/video codecs across
 devices, and product-release approval. API35/36 SurfaceView behavior requires
 physical/emulator observations, not a source-only assertion.
+
+## Follow-up branch acceptance — 1.21.55/code278
+
+- Interrupt active pinch/pan with media switch, fullscreen exit and portrait/landscape rotation. Confirm the 2.5-second idle auto-hide resumes after controls are revealed.
+- Interrupt press-and-hold temporary 2× during a configuration/media transition. Confirm the temporary speed is released, while intentionally locked 2× mode is preserved.
+- On a landscape device with a left or right display cutout, trigger backward/forward double-tap feedback and confirm its 116dp overlay remains inside the safe horizontal area. Passing CI is not proof of this visual check.
+- With playback paused, wait more than 2.5 seconds, verify fullscreen chrome fades out; single center taps reveal, hide, then reveal it. Fixture-backed `FullscreenRotationTest` must run on emulator/phone.
+- Record screenshots/video and device/API across Android 14/15/16. PiP/SurfaceView black frames and flicker remain a separate real-device acceptance gate.

@@ -78,8 +78,14 @@ class FullscreenRotationTest {
             }
             val lease = VideoSurfaceOwner.state.value
             capture("portrait")
-            // Centre taps hide/reveal without waiting for auto-hide. Playback is paused,
-            // so these checks isolate the manual toggle from the timer.
+            // Paused playback also auto-hides in 1.21.54+. Verify idle hide
+            // before the center-tap reveal/hide/reveal sequence.
+            compose.waitUntil(7_000) {
+                compose.onAllNodesWithContentDescription("Rotate to landscape")
+                    .fetchSemanticsNodes().isEmpty()
+            }
+            compose.onRoot().performTouchInput { click(center) }
+            compose.onNodeWithContentDescription("Rotate to landscape").assertIsDisplayed()
             compose.onRoot().performTouchInput { click(center) }
             compose.waitUntil(5_000) {
                 compose.onAllNodesWithContentDescription("Rotate to landscape")
