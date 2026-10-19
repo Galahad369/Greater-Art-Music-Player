@@ -3,7 +3,7 @@
 This file describes the **current repository state only**. Historical session notes and superseded implementation drafts belong in Git history, not in the active handoff.
 
 **Project:** `greater-art/` in the repository checkout
-**Current source:** `1.21.56 (code 279)` — SOURCE_ONLY; repair fullscreen instrumentation hosting and add instrumentation compilation to CI
+**Current source:** `1.21.57 (code 280)` — SOURCE_ONLY; concise localized Developer summary with complete technical/copy report preserved
 **Current version:** `1.21.39 (code 262)`
 **Latest APK:** `releases/GreaterArt-1.21.39.apk` (`26,877,593 bytes`; SHA-256 `e636fb7c1bfdbdf5500d48863a9f6c778aec47bb2090e433bb2e86037e468104`)
 **Application ID:** `com.local.listentomusic`
@@ -13,6 +13,28 @@ This file describes the **current repository state only**. Historical session no
 **Verification boundary:** Exact build source `b20489581b6125ce3963c767ed8e419c979a6820`; 358 JVM tests, 21 API36 emulator tests, zero lint errors; signature, pinned certificate, version/package, 16KiB ZIP alignment and upgrade installation checked. Emulator tests cover scoped URI discovery/access, live primary-video Dynamic Ambient colors and retained player identity, floating presentations and accessibility/Developer Mode interactions. No app fatal in the inspected crash buffer. This is a debug sideload build, not production signing, physical-phone acceptance, full security assessment or a universal bug-free guarantee. The prior 1.21.37 artifact and its evidence remain unchanged in history.
 
 ## Repository state
+
+### October 19 — diagnostics clarity (1.21.57/code280)
+
+- Implement the Grok-proposed intent from empty PR #188 on current main's lineage,
+  not its stale Grok base. The proposed 1.21.56 identity was consumed by the test
+  repair; use the next patch/code. No empty plan commits are imported.
+- Both Activity and system-overlay hosts supply explicit six/seven-line summaries:
+  version, actual screen, playback/counts, Stack, surface owner, warnings and an
+  optional real failure indication. Full report/regions remain complete on Copy.
+- Technical details and region IDs start collapsed. Bound and scroll the whole
+  panel so Copy/Pick/Disable remain reachable in short windows and large fonts.
+  Preserve inspector selection, permission action, warning badge and one-tap off.
+  New panel/Settings text is translated in all six app languages.
+- Normal historical process exits are not labelled as crashes. Surface warnings
+  are now retained in the expanded system player's badge as well as the Activity.
+  No playback, surface handoff, permission or media-quality changes.
+- Local gate passes all 400 JVM tests, lint zero errors (45 warnings/three hints),
+  app and instrumentation builds. Twelve API36 diagnostics/accessibility tests
+  passed in 38.953s. After bounding the panel to actual parent constraints, the
+  final five diagnostics tests pass in 18.994s, including 320x360dp/1.7x-font
+  system-overlay actions, full clipboard payload and region IDs after closing.
+  Summary/details screenshots inspected under app/build/verification/quality-followup.
 
 ### October 19 — fullscreen verification harness repair (1.21.56/code279)
 

@@ -46,6 +46,24 @@ complete gesture-interruption and continuous flicker checks are not claimed.
 
 ## #187 scope review
 
+## Diagnostics implementation — 1.21.57/code280
+
+Implements the Grok-proposed #188 intent without importing its stale empty branch.
+Six/seven explicit localized summary lines replace report-string filtering. Both
+hosts keep complete technical/region payloads on Copy; technical details start
+collapsed. Existing picker, selected element, warning badge, permission action,
+explicit region overlays and one-tap disabling remain available. A normal saved
+process exit is not labelled as a crash.
+
+Local gate: 400 JVM tests, zero lint errors (45 warnings/three hints), both APK
+builds. Twelve API36 diagnostics/accessibility tests pass in 38.953s; final five
+diagnostics tests after actual-window sizing pass in 18.994s. The latter includes
+320x360dp at 1.7x font scale in the system-overlay host, complete clipboard output
+and explicit region IDs after closing the panel. Summary/details screenshots are
+visually inspected. No publication or verified-release promotion is implied.
+
+## #187 scope review (existing implementation)
+
 - SAF selection, persistable access and URI-backed production Library scanning
   already exist (`scopedMediaTreeUri`, `ScopedMediaDiscovery`, `rescan`). Do not
   install a competing file-only tree walker or silently fall back to broad

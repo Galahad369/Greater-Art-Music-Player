@@ -7,7 +7,7 @@ This file is the authoritative version policy for Greater Art. If any handoff no
 ## Machine-checkable state
 
 
-Current source: **1.21.56 (code 279)**
+Current source: **1.21.57 (code 280)**
 Allowed consumed transition: **1.21.45 (code 268) -> 1.21.48 (code 271)**
 
 The open draft security PR #174 separately consumes 1.21.46/code269
@@ -378,3 +378,5 @@ Previous baseline: 1.13.26 (code 115).
 - 1.21.55 (code 278) — Fullscreen rendering/gesture hardening: reset pan and seek/hold active flags with try/finally on pointer-input cancellation (media change, orientation, disposal), and release temporary 2× speed when interrupted. Inset fullscreen side-seek feedback around display cutouts. Update fixture-dependent paused auto-hide instrumentation test to match 1.21.54's timer and verify middle taps. SOURCE_ONLY; latest verified APK remains 1.21.39/code262.
 
 - 1.21.56 (code 279) — Repair fullscreen instrumentation hosting: isolate component toolbar tests from the real-Activity empty rule, wait for actual root relayout before screenshots, and compile instrumentation in Android CI. No playback behavior change. SOURCE_ONLY; immutable verified 1.21.39 APK retained. PR #188 only proposed this identity in an empty draft; no executable commit consumed it before this repair.
+
+- 1.21.57 (code 280) — Complete the Grok-proposed diagnostics cleanup from empty draft #188: explicit bounded localized summary, independent complete Copy report, collapsed technical/region details, scroll-bounded panel, retained picker/disable controls and surface warnings in both hosts. No playback-quality or storage-permission changes. SOURCE_ONLY; verified APK unchanged.

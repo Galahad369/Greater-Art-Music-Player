@@ -55,14 +55,14 @@ class DesignAccessibilityTest {
 
     @Test fun developerBadgeHasMeasuredTargetAndPickStillWorks() {
         compose.setContent { MaterialTheme {
-            DeveloperDiagnostics("screen=LIBRARY", emptyList(), false,
+            DeveloperDiagnostics(listOf("Screen: LIBRARY"), "screen=LIBRARY", emptyList(), false,
                 remember { UiInspectorState() }, onDisableDeveloperMode = {})
         } }
         compose.onNodeWithText("DEV").assertHasClickAction()
             .assertWidthIsAtLeast(48.dp).assertHeightIsAtLeast(48.dp).performClick()
-        compose.onNodeWithText("Inspector").assertIsDisplayed()
+        compose.onNodeWithText("Developer").assertIsDisplayed()
         compose.onNodeWithText("Pick an element").performClick()
-        compose.onNodeWithText("Inspector").assertDoesNotExist()
+        compose.onNodeWithText("Developer").assertDoesNotExist()
     }
 
     @Test fun developerModeCanBeTurnedOffFromInsideTheInspector() {
@@ -70,7 +70,8 @@ class DesignAccessibilityTest {
         var disableCalls = 0
         compose.setContent { MaterialTheme {
             if (enabled.value) DeveloperDiagnostics(
-                report = "screen=LIBRARY",
+                summaryLines = listOf("Screen: LIBRARY"),
+                detailReport = "screen=LIBRARY",
                 regions = emptyList(),
                 warning = false,
                 inspector = remember { UiInspectorState() },
@@ -82,7 +83,7 @@ class DesignAccessibilityTest {
             .assertHasClickAction().assertHeightIsAtLeast(48.dp).performClick()
         compose.runOnIdle { org.junit.Assert.assertEquals(1, disableCalls) }
         compose.onNodeWithText("DEV").assertDoesNotExist()
-        compose.onNodeWithText("Inspector").assertDoesNotExist()
+        compose.onNodeWithText("Developer").assertDoesNotExist()
     }
 
     @Test fun percentageEditorPreserves26AndCancelDoesNotChangeValue() {

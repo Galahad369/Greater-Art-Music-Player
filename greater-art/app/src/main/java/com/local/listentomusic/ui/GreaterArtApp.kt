@@ -644,7 +644,17 @@ fun GreaterArtApp(
                     if (waveformDiagnostics.error != null) "WAVEFORM_ERROR" else null)
                 val warning = warnings.isNotEmpty()
                 DeveloperDiagnostics(
-                    report = buildString {
+                    summaryLines = DeveloperSummary(
+                        version = com.local.listentomusic.BuildConfig.VERSION_NAME,
+                        screen = if (screen == Screen.LIBRARY) when (libraryPager.currentPage) {
+                            0 -> "STACK"; 2 -> "NODES"; else -> "LIBRARY"
+                        } else screen.name,
+                        playing = playback.isPlaying, video = playback.isVideo,
+                        queueSize = queue.size, librarySize = library.files.size,
+                        stackTracks = stackSession.slots.size, surfaceOwner = surface.owner,
+                        warnings = warnings, hasFailure = hasLocalFailure(localFailures),
+                    ).lines(settings.appLanguage),
+                    detailReport = buildString {
                         appendLine("version=${com.local.listentomusic.BuildConfig.VERSION_NAME}")
                         appendLine(localFailures)
                         // This inspector belongs to MainActivity. A system-player
@@ -689,11 +699,12 @@ fun GreaterArtApp(
                         appendLine("No logs, file paths or listening history are uploaded.")
                     },
                     regions = regions,
-                    warning = warning,
+                    warning = warning || hasLocalFailure(localFailures),
                     inspector = inspector,
                     onDisableDeveloperMode = { viewModel.setDeveloperMode(false) },
                     modifier = Modifier,
                     badgeAlignment = if (screen == Screen.LIBRARY) Alignment.TopStart else Alignment.TopEnd,
+                    language = settings.appLanguage,
                 )
                 }
             }

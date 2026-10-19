@@ -594,7 +594,7 @@ fun SettingsScreen(
                 Column {
                     SwitchSetting(
                         uiText(language, "Developer diagnostics", "開發者診斷"),
-                        uiText(language, "Adds a local DEV panel with live screen, player, queue and permission details. Nothing is transmitted.", "加入本機 DEV 面板，顯示畫面、播放器、佇列及權限資料；不會傳送任何內容。"),
+                        uiText(language, "Local DEV panel for playback status. Nothing is sent.", "本機 DEV 面板，查看播放狀態；不會傳送資料。"),
                         preferences.developerMode,
                         onDeveloperMode,
                     )

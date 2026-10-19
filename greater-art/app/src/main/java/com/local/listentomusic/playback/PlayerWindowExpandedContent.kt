@@ -279,17 +279,31 @@ internal fun PlayerWindowExpandedContent(
             if (settings.developerMode) {
                 val engine by PlaybackDiagnostics.report.collectAsState()
                 val failure by com.local.listentomusic.diagnostics.CrashReports.latest.collectAsState()
+                val surface by VideoSurfaceOwner.state.collectAsState()
+                val stack by StackPlayback.state.collectAsState()
+                val warnings = surface.warnings(VideoSurfaceOwner.expectedOwner,
+                    playback.isVideo && playback.isPlaying && controller?.playbackState == androidx.media3.common.Player.STATE_READY,
+                    android.os.SystemClock.elapsedRealtime(), playback.videoFrameRendered) +
+                    listOfNotNull(if (playback.errorMessage != null) "PLAYBACK_ERROR" else null)
                 DeveloperDiagnostics(
-                    report = "version=${com.local.listentomusic.BuildConfig.VERSION_NAME}\nscreen=NOW_PLAYING\n" +
+                    summaryLines = com.local.listentomusic.ui.DeveloperSummary(
+                        version = com.local.listentomusic.BuildConfig.VERSION_NAME,
+                        screen = "NOW_PLAYING", playing = playback.isPlaying, video = playback.isVideo,
+                        queueSize = queue.size, stackTracks = stack.slots.size,
+                        surfaceOwner = surface.owner, warnings = warnings,
+                        hasFailure = com.local.listentomusic.ui.hasLocalFailure(failure),
+                    ).lines(settings.appLanguage),
+                    detailReport = "version=${com.local.listentomusic.BuildConfig.VERSION_NAME}\nscreen=NOW_PLAYING\n" +
                         "playing=${playback.isPlaying} playerWindowMode=EXPANDED\n" +
                         "controllerId=${System.identityHashCode(controller)} playerViewId=${System.identityHashCode(videoView)}\n" +
                         "position=${playback.positionMs} duration=${playback.durationMs} queue=${queue.size}\n" +
                         VideoSurfaceOwner.describe() + "\nAUDIO ENGINE\n" + engine + "\n" + failure,
                     regions = inspector.regions.values.map { "${it.label}: ${it.detail}" },
-                    warning = playback.errorMessage != null,
+                    warning = warnings.isNotEmpty() || com.local.listentomusic.ui.hasLocalFailure(failure),
                     inspector = inspector,
                     onDisableDeveloperMode = { viewModel.setDeveloperMode(false) },
                     systemOverlay = true,
+                    language = settings.appLanguage,
                 )
             }
         }
