@@ -7,7 +7,7 @@ This file is the authoritative version policy for Greater Art. If any handoff no
 ## Machine-checkable state
 
 
-Current source: **1.21.54 (code 277)**
+Current source: **1.21.55 (code 278)**
 Allowed consumed transition: **1.21.45 (code 268) -> 1.21.48 (code 271)**
 
 The open draft security PR #174 separately consumes 1.21.46/code269
@@ -373,3 +373,5 @@ Previous baseline: 1.13.26 (code 115).
 - 1.21.53 (code 276) — Fullscreen auto-hide refinement: bind the video timeline slider's real pressed/dragged interactions to the idle timer, not only onValueChange seeking, so merely pressing/holding the thumb for >2.5s cannot hide the chrome. Return interaction status to false on slider disposal, preserving the existing 2.5s playing-idle hide when released. JVM eligibility regression expanded. SOURCE_ONLY until checks and hardware acceptance.
 
 - 1.21.54 (code 277) — Fullscreen idle controls: preserve the 1.21.53 middle-tap toggle, gesture-aware timer and seek/zoom/lock protections, but auto-hide after 2.5 seconds of inactivity whether playback is playing or paused. Pause/resume no longer gates the idle countdown; fullscreen exit cancels the timer. Update JVM eligibility tests. SOURCE_ONLY; latest verified APK remains 1.21.39/code262.
+
+- 1.21.55 (code 278) — Fullscreen rendering/gesture hardening: reset pan and seek/hold active flags with try/finally on pointer-input cancellation (media change, orientation, disposal), and release temporary 2× speed when interrupted. Inset fullscreen side-seek feedback around display cutouts. Update fixture-dependent paused auto-hide instrumentation test to match 1.21.54's timer and verify middle taps. SOURCE_ONLY; latest verified APK remains 1.21.39/code262.

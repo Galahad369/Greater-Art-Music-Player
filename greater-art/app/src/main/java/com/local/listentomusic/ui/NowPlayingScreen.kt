@@ -790,6 +790,7 @@ private fun VideoPlayerStage(
                         awaitEachGesture {
                             val down = awaitFirstDown(requireUnconsumed = false)
                             panGestureActive = true
+                            try {
                             var multiTouch = false
                             var oneFingerPanActive = false
                             do {
@@ -821,13 +822,17 @@ private fun VideoPlayerStage(
                                     }
                                 }
                             } while (event.changes.any { it.pressed })
-                            panGestureActive = false
                             if (!multiTouch && !oneFingerPanActive && videoScale > 1.01f) {
                                 // Zoomed taps use the same middle toggle; side taps
                                 // reveal the controls, never trigger a pan/seek.
                                 if (isCenterVideoTap(down.position.x, size.width.toFloat()))
                                     onControlsVisibilityChange(!currentControlsVisible)
                                 else if (!currentControlsVisible) onControlsVisibilityChange(true)
+                            }
+                            } finally {
+                                // Cancellation on a media/configuration change must
+                                // not keep the 2.5s auto-hide suspended indefinitely.
+                                panGestureActive = false
                             }
                         }
                     }
@@ -842,6 +847,7 @@ private fun VideoPlayerStage(
                 awaitEachGesture {
                 val down = awaitFirstDown(requireUnconsumed = false)
                 playerGestureActive = true
+                try {
                 val pressStartedMs = android.os.SystemClock.uptimeMillis()
                 val startPosition = down.position
                 val startedAtDoubleSpeed = isDoubleSpeed(currentPlayback.speed)
@@ -897,7 +903,6 @@ private fun VideoPlayerStage(
                         anyPressed = event.changes.any { it.pressed }
                     }
                 activation.cancel()
-                playerGestureActive = false
 
                 val heldMs = android.os.SystemClock.uptimeMillis() - pressStartedMs
                 unlockDoubleSpeedArmed = false
@@ -958,6 +963,16 @@ private fun VideoPlayerStage(
                     lastSeekSide = null
                     lastSeekTapMs = 0L
                 }
+                } finally {
+                    playerGestureActive = false
+                    unlockDoubleSpeedArmed = false
+                    // Release an interrupted temporary 2× hold on cancellation,
+                    // but never undo an explicitly locked 2× speed.
+                    if (temporaryDoubleSpeed) {
+                        temporaryDoubleSpeed = false
+                        onEndTemporaryDoubleSpeed()
+                    }
+                }
                 }
             }
         })
@@ -983,7 +998,13 @@ private fun VideoPlayerStage(
                     .padding(horizontal = GaSpacing.md, vertical = GaSpacing.sm),
             )
         }
-        SeekFeedback(seekFeedback.first, seekFeedback.second, Modifier.align(if (seekFeedback.first < 0) Alignment.CenterStart else Alignment.CenterEnd))
+        SeekFeedback(
+            seekFeedback.first,
+            seekFeedback.second,
+            Modifier.align(if (seekFeedback.first < 0) Alignment.CenterStart else Alignment.CenterEnd)
+                // Side-seek feedback must avoid landscape camera/display cutouts.
+                .then(if (immersive) Modifier.windowInsetsPadding(WindowInsets.displayCutout) else Modifier),
+        )
 
         chromeTransition.AnimatedVisibility(
             visible = { it },
