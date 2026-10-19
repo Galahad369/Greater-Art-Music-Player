@@ -7,6 +7,7 @@ import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertWidthIsAtLeast
 import androidx.compose.ui.test.assertHeightIsAtLeast
 import androidx.compose.ui.test.junit4.v2.createEmptyComposeRule
+import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.onRoot
@@ -125,6 +126,68 @@ class FullscreenRotationTest {
         }
     }
 
+    /** Measured on the real fullscreen Activity, with rotate/lock in separate layers. */
+    private fun assertFullscreenToolbarAlignment(rotationDescription: String) {
+        val rotate = compose.onNodeWithContentDescription(rotationDescription).fetchSemanticsNode().boundsInRoot
+        val lock = compose.onNodeWithContentDescription("Lock player controls").fetchSemanticsNode().boundsInRoot
+        assertTrue("Rotate and Lock touch targets must share their vertical center: $rotate vs $lock",
+            abs(rotate.center.y - lock.center.y) <= 2f)
+        assertEquals("Rotate and Lock must have the same touch target height", rotate.height, lock.height, 2f)
+        assertEquals("Rotate and Lock must have the same touch target width", rotate.width, lock.width, 2f)
+    }
+
+    private fun assertToolbarInsideScreenSafeRegion(activity: FullscreenVideoActivity) {
+        val safe = androidx.core.view.ViewCompat.getRootWindowInsets(activity.window.decorView)
+            ?.getInsets(androidx.core.view.WindowInsetsCompat.Type.displayCutout())
+            ?: androidx.core.graphics.Insets.NONE
+        val rotate = compose.onNodeWithContentDescription(
+            if (activity.resources.configuration.orientation == Configuration.ORIENTATION_LANDSCAPE)
+                "Rotate to portrait" else "Rotate to landscape",
+        ).fetchSemanticsNode().boundsInRoot
+        assertTrue("Rotate overlaps left cutout: $rotate vs $safe", rotate.left + 1f >= safe.left)
+        assertTrue("Rotate overlaps right cutout: $rotate vs $safe",
+            rotate.right <= activity.window.decorView.width - safe.right + 1f)
+    }
+
+    private fun capture(name: String) {
+        // Configuration changes precede window relayout. Do not capture the old
+        // portrait composition merely because Android has reported landscape.
+        val wantLandscape = name == "landscape"
+        compose.waitUntil(10_000) {
+            val bounds = compose.onRoot().fetchSemanticsNode().boundsInRoot
+            (bounds.width > bounds.height) == wantLandscape
+        }
+        compose.waitForIdle()
+        val instrumentation = InstrumentationRegistry.getInstrumentation()
+        instrumentation.waitForIdleSync()
+        // The system rotation animation can still transform a correctly sized
+        // Compose root. With this paused fixture, require stable compositor pixels
+        // rather than mistaking a tilted transition frame for the final layout.
+        var previous: android.graphics.Bitmap? = null
+        var stableSamples = 0
+        var sampledAt = 0L
+        try {
+            compose.waitUntil(7_000) {
+                val now = android.os.SystemClock.elapsedRealtime()
+                if (now - sampledAt < 100L) false else {
+                    sampledAt = now
+                    val next = requireNotNull(instrumentation.uiAutomation.takeScreenshot())
+                    stableSamples = if (previous?.sameAs(next) == true) stableSamples + 1 else 0
+                    previous?.recycle()
+                    previous = next
+                    stableSamples >= 3
+                }
+            }
+            File(instrumentation.targetContext.getExternalFilesDir(null), "fullscreen-$name.png")
+                .outputStream().use { requireNotNull(previous).compress(android.graphics.Bitmap.CompressFormat.PNG, 100, it) }
+        } finally { previous?.recycle() }
+    }
+}
+
+/** Component-only tests need a hosting Activity; the real-Activity test must not create one. */
+class FullscreenToolbarTest {
+    @get:Rule val compose = createComposeRule()
+
     /** No video fixture required: the narrow toolbar must wrap, never clip buttons. */
     @Test fun narrowFullscreenToolbarRetainsRotateExitAndClose() {
         compose.setContent {
@@ -171,43 +234,4 @@ class FullscreenRotationTest {
         assertTrue("Ultra-narrow toolbar must preserve action order", exit.bottom <= close.top)
     }
 
-    /** Measured on the real fullscreen Activity, with rotate/lock in separate layers. */
-    private fun assertFullscreenToolbarAlignment(rotationDescription: String) {
-        val rotate = compose.onNodeWithContentDescription(rotationDescription).fetchSemanticsNode().boundsInRoot
-        val lock = compose.onNodeWithContentDescription("Lock player controls").fetchSemanticsNode().boundsInRoot
-        assertTrue("Rotate and Lock touch targets must share their vertical center: $rotate vs $lock",
-            abs(rotate.center.y - lock.center.y) <= 2f)
-        assertEquals("Rotate and Lock must have the same touch target height",
-            rotate.height, lock.height, 2f)
-        assertEquals("Rotate and Lock must have the same touch target width",
-            rotate.width, lock.width, 2f)
-    }
-
-    /** Verify the high-level toolbar controls remain inside the Android safe cutout. */
-    private fun assertToolbarInsideScreenSafeRegion(activity: FullscreenVideoActivity) {
-        val windowInsets = androidx.core.view.ViewCompat.getRootWindowInsets(activity.window.decorView)
-        val safe = windowInsets?.getInsets(
-            androidx.core.view.WindowInsetsCompat.Type.displayCutout()
-        ) ?: androidx.core.graphics.Insets.NONE
-        val width = activity.window.decorView.width.toFloat()
-        val rotate = compose.onNodeWithContentDescription(
-            if (activity.resources.configuration.orientation == Configuration.ORIENTATION_LANDSCAPE)
-                "Rotate to portrait" else "Rotate to landscape",
-        ).fetchSemanticsNode().boundsInRoot
-        assertTrue("Rotate control must not overlap the left display cutout: $rotate vs $safe",
-            rotate.left + 1f >= safe.left)
-        assertTrue("Rotate control must not overlap the right display cutout: $rotate vs $safe",
-            rotate.right <= width - safe.right + 1f)
-    }
-
-    private fun capture(name: String) {
-        val instrumentation = InstrumentationRegistry.getInstrumentation()
-        val bitmap = requireNotNull(instrumentation.uiAutomation.takeScreenshot())
-        try {
-            File(instrumentation.targetContext.getExternalFilesDir(null), "fullscreen-$name.png")
-                .outputStream().use { bitmap.compress(android.graphics.Bitmap.CompressFormat.PNG, 100, it) }
-        } finally {
-            bitmap.recycle()
-        }
-    }
 }

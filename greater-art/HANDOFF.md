@@ -3,7 +3,7 @@
 This file describes the **current repository state only**. Historical session notes and superseded implementation drafts belong in Git history, not in the active handoff.
 
 **Project:** `greater-art/` in the repository checkout
-**Current source:** `1.21.55 (code 278)` — SOURCE_ONLY; fullscreen gesture-cancellation cleanup and cutout-safe side-seek feedback, with 2.5-second paused auto-hide preserved
+**Current source:** `1.21.56 (code 279)` — SOURCE_ONLY; repair fullscreen instrumentation hosting and add instrumentation compilation to CI
 **Current version:** `1.21.39 (code 262)`
 **Latest APK:** `releases/GreaterArt-1.21.39.apk` (`26,877,593 bytes`; SHA-256 `e636fb7c1bfdbdf5500d48863a9f6c778aec47bb2090e433bb2e86037e468104`)
 **Application ID:** `com.local.listentomusic`
@@ -13,6 +13,28 @@ This file describes the **current repository state only**. Historical session no
 **Verification boundary:** Exact build source `b20489581b6125ce3963c767ed8e419c979a6820`; 358 JVM tests, 21 API36 emulator tests, zero lint errors; signature, pinned certificate, version/package, 16KiB ZIP alignment and upgrade installation checked. Emulator tests cover scoped URI discovery/access, live primary-video Dynamic Ambient colors and retained player identity, floating presentations and accessibility/Developer Mode interactions. No app fatal in the inspected crash buffer. This is a debug sideload build, not production signing, physical-phone acceptance, full security assessment or a universal bug-free guarantee. The prior 1.21.37 artifact and its evidence remain unchanged in history.
 
 ## Repository state
+
+### October 19 — fullscreen verification harness repair (1.21.56/code279)
+
+- Exact baseline 9e34f40 compiles the app but fails `compileDebugAndroidTestKotlin`:
+  component tests call `setContent` on `createEmptyComposeRule`. Split the hosted
+  toolbar tests from the real-Activity test. Keep the latter's empty rule so it
+  does not launch an unrelated test Activity over fullscreen playback.
+- Screenshots now wait for the real Compose root orientation/relayout, not only
+  the Android configuration flag. CI builds the instrumentation APK as well as
+  the app, preventing this compile gap from passing unnoticed again.
+- No runtime playback, permissions, signing or verified-artifact changes.
+  Java21 gate passes 395 JVM tests (zero failures/errors/skips), lint zero errors
+  (45 warnings/three hints), app and instrumentation builds. Nine API36 fullscreen,
+  audio and narrow-toolbar tests pass; the initially skipped fixture-gated PiP
+  test passes its explicit rerun in 10.015s. Final stable-screenshot rotation
+  rerun passes in 18.253s, preserving player/surface and native 1280x720 video.
+  Settled portrait/landscape screenshots inspected; recording collected under
+  app/build/verification/quality-followup. No physical-phone acceptance claimed.
+- Version/public-repository audits pass. Android14/15 image installation was
+  attempted but remote SDK manifest retrieval failed; that matrix remains blocked.
+  Review decisions and separate privacy-remediation options are in
+  docs/QUALITY_FOLLOWUP_2026-10-19.md. Preserve the primary checkout's unique work.
 
 ### October 19 — fullscreen cancellation/cutout follow-up (1.21.55/code278)
 
