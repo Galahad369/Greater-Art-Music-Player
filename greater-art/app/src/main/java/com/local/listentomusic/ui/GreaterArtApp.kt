@@ -62,7 +62,7 @@ import com.local.listentomusic.data.AppBackgroundMode
 import com.local.listentomusic.data.BackgroundScaleMode
 import com.local.listentomusic.data.FloatingWindowMode
 import com.local.listentomusic.model.LocalLyrics
-import com.local.listentomusic.ui.theme.GreaterArtTheme
+import com.local.listentomusic.ui.theme.MediaAdaptiveTheme
 
 private enum class Screen { LIBRARY, NOW_PLAYING, SETTINGS }
 
@@ -175,8 +175,8 @@ fun GreaterArtApp(
     val ambientArtwork by produceState<android.graphics.Bitmap?>(null, playback.currentPath,
         settings.backgroundMode, expandedPlayerVisible, settings.localOverrides[playback.currentPath]) {
         value = null
-        if (settings.backgroundMode == AppBackgroundMode.ADAPTIVE_DYNAMIC && !expandedPlayerVisible)
-            value = viewModel.loadCurrentArtwork(playback.currentPath)
+        if (settings.backgroundMode in listOf(AppBackgroundMode.ADAPTIVE_DYNAMIC, AppBackgroundMode.AMBIENT) && !expandedPlayerVisible)
+            value = viewModel.loadCurrentArtwork(playback.currentPath, cachedOnly = true)
     }
     val backgroundHorizontalPosition = androidx.compose.runtime.remember(wallpaperPan, screen) {
         { if (screen == Screen.LIBRARY) wallpaperPan.position else 0.5f }
@@ -271,12 +271,7 @@ fun GreaterArtApp(
         com.local.listentomusic.playback.PlayerWindowVisibility.stackTransport(stackPage)
         onDispose { com.local.listentomusic.playback.PlayerWindowVisibility.stackTransport(false) }
     }
-    GreaterArtTheme(
-        themeMode = settings.themeMode,
-        colorTheme = settings.colorTheme,
-        appFont = settings.appFont,
-        silianRail = settings.silianRail,
-    ) {
+    MediaAdaptiveTheme(settings, playback.currentPath, ambientArtwork) {
         val lightPalette = MaterialTheme.colorScheme.background.luminance() > 0.5f
         androidx.compose.runtime.SideEffect {
             com.local.listentomusic.ui.components.VideoSurfaceOwner.setPresentation(

@@ -1,19 +1,15 @@
-# No app-specific shrinking rules are currently required.
+# AGP keeps manifest entry points (Application, activities, services and
+# FileProvider). Media3, Compose and DataStore supply their consumer keep rules.
+# Do not blanket-keep those libraries: that defeats shrinking and hides missing rules.
 
-# Add project specific ProGuard rules here.
-# By default, the flags in this file are appended to flags specified
-# in android/sdk/tools/proguard/proguard-android.txt
-# You can edit the include path and order by changing the proguardFiles
-# directive in build.gradle.
-#
-# For more details, see
-#   http://developer.android.com/guide/developing/tools/proguard.html
+# Retain Kotlin metadata and line numbers for local crash-report/mapping analysis.
+-keep class kotlin.Metadata { *; }
+-keepattributes Signature,InnerClasses,EnclosingMethod,*Annotation*,LineNumberTable,SourceFile
 
-# Add any project specific keep options here:
-
-# If your project uses WebView with JS, uncomment the following
-# and specify the fully qualified class name to the JavaScript interface
-# class:
-#-keepclassmembers class fqcn.of.javascript.interface.for.webview {
-#   public *;
-#}
+# Preference/backup enum identities are persisted by name. Keep their constants
+# and standard lookup entry points stable while allowing method optimization.
+-keepclassmembers,allowoptimization enum com.local.listentomusic.data.** {
+    public static ** *;
+    public static **[] values();
+    public static ** valueOf(java.lang.String);
+}

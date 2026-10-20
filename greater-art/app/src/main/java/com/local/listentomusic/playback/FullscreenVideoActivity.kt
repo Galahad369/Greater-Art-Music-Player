@@ -25,7 +25,7 @@ import com.local.listentomusic.data.usesAndroidPip
 import com.local.listentomusic.ui.NowPlayingScreen
 import com.local.listentomusic.ui.enforceImmersiveWindow
 import com.local.listentomusic.ui.components.VideoSurfaceOwner
-import com.local.listentomusic.ui.theme.GreaterArtTheme
+import com.local.listentomusic.ui.theme.MediaAdaptiveTheme
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
@@ -56,11 +56,12 @@ class FullscreenVideoActivity : ComponentActivity() {
             val artwork by produceState<android.graphics.Bitmap?>(null, playback.currentPath,
                 settings.backgroundMode, settings.localOverrides[playback.currentPath]) {
                 value = null
-                if (settings.backgroundMode == com.local.listentomusic.data.AppBackgroundMode.ADAPTIVE_DYNAMIC)
-                    value = viewModel.loadCurrentArtwork(playback.currentPath)
+                if (settings.backgroundMode in listOf(com.local.listentomusic.data.AppBackgroundMode.ADAPTIVE_DYNAMIC,
+                    com.local.listentomusic.data.AppBackgroundMode.AMBIENT))
+                    value = viewModel.loadCurrentArtwork(playback.currentPath, cachedOnly = true)
             }
             val sleepTimer by viewModel.sleepTimer.collectAsState()
-            GreaterArtTheme(settings.themeMode, settings.colorTheme, settings.appFont, settings.silianRail) {
+            MediaAdaptiveTheme(settings, playback.currentPath, artwork) {
                 NowPlayingScreen(
                     floatingWindowMode = settings.floatingWindowMode,
                     onFloatingWindowModeChange = viewModel::setFloatingWindowMode,

@@ -40,11 +40,8 @@ recording is collected under `app/build/verification/quality-followup`. The vide
 keeps its native 1280x720 dimensions and FIT geometry. This is bounded API36
 evidence, not proof of no black frames during every possible handoff.
 
-Android14/15 images are not installed. SDK Manager was attempted with network
-access but failed fetching package manifests. Cross-API, physical Samsung,
-complete gesture-interruption and continuous flicker checks are not claimed.
-
-## #187 scope review
+The initial Android14/15 SDK download failed certificate validation. See the
+command-scoped Windows trust-store remedy and subsequent matrix results below.
 
 ## Diagnostics implementation — 1.21.57/code280
 
@@ -71,8 +68,95 @@ visually inspected. No publication or verified-release promotion is implied.
 - Nodes already has strength-weighted attraction, user-configurable distance,
   repulsion and damping, a bounded background solver and weighted hub origin.
   Preserve drag activation and pager gesture ownership when refining focus.
-- Artwork-adaptive Material accents and release minification still need reviewed
-  implementation and verification. Do not infer them from an empty draft's title.
+- Artwork-adaptive Material accents and release minification are implemented in
+  the separately versioned follow-up below, not inferred from the draft's title.
+
+## Reviewed audit implementation — 1.21.58/code281 (October 19–20)
+
+Credit: Grok's #187 proposal identifies the four review areas. Existing SAF/Nodes
+implementations are preserved rather than importing stale or duplicate code.
+
+- Ambient/Adaptive backgrounds reuse cached current artwork or the existing
+  sparse video-color stream for three Material accent roles. A coherent palette
+  is latched per media/presentation; previous-media colors are rejected. There is
+  no extra decoder, extraction loop, player prepare/seek or source-quality cap.
+- Decorative artwork reads are memory/disk-only. Their scheduler key is distinct
+  from actual UI generation requests, so a decorative miss cannot suppress a real
+  thumbnail request. Cancellation and writer/clear synchronization remain intact.
+- Zero intensity preserves the exact theme; High contrast/Monochrome remain fixed.
+  OLED surfaces remain black and existing foreground contrast is checked.
+- Release-only R8 uses manifest/consumer keep rules and preserves persisted enum
+  identities. Debug stays unminified; resource shrinking remains off. CI builds
+  release and instrumentation APKs as well as running JVM/lint checks.
+- Deterministic graph tests cover finite extreme options, weighted hub placement
+  and actual link-distance effects; no speculative solver rewrite is introduced.
+
+Final local gate: **406 JVM tests, zero failures/errors/skips; lint zero errors,
+46 warnings and three hints; debug, instrumentation and R8 release assembly pass**.
+The unsigned minified candidate is 5,435,641 bytes. Its disposable emulator-signed
+copy verifies as 1.21.58/code281 with the existing pinned debug certificate and
+16KiB ZIP alignment. It is not a production-signed or promoted release.
+Minified API36 smoke: upgrade installation, cold launch, populated Library,
+persisted Settings/Playback preferences, actual Media3 video playback and the
+live-video dock render successfully; Library/dock screenshots are inspected.
+The inspected app crash buffer has no fatal. This is not full minified feature
+parity acceptance. The ordinary debug APK and original overlay grant are restored.
+
+API36: 31 of the 32-test combined suite pass, including live Ambient/Stack video,
+cache-only reads, diagnostics, accessibility, audio, narrow toolbars and PiP. The
+new seek check initially fails because the prior test leaves playback near EOF,
+where forward seeking is correctly clamped. The fixture now disables resume and
+sets/restores its own seek interval. Its full gesture/rotation rerun passes in
+40.880s; the same test with a temporary double cutout passes in 22.012s. Lock,
+side seek, pinch/pan, paused auto-hide and retained player/surface/native video are
+asserted. This is 31 passes plus successful targeted reruns, not a claimed clean
+single 32-test run. The original cutout configuration is restored afterward.
+
+Android15/API35: eight audio/narrow-toolbar component tests pass. The two real
+Activity tests initially fail in ActivityScenario cleanup while a first-install
+notification permission dialog is active. Logs identify the permission Activity,
+not a fatal app exception. After handling that prompt on the isolated QA device,
+both fullscreen gesture/rotation and native PiP tests pass their targeted rerun
+in 138.175s. Temporary storage/overlay/notification grants are restored. This is
+eight passes plus two successful reruns, not one clean ten-test execution.
+Android14/API34 image is installed and its isolated QA device is booting; no
+Android14 runtime result is claimed yet.
+
+### Build and test mistakes to avoid
+
+1. Freeze Kotlin sources while Gradle analyzes/builds them. Do not edit under an
+   active lint/compiler run or mistake a resulting internal compiler error for an
+   app regression.
+2. JUnit `OK` can include assumption skips; reject instrumentation status -2/-3/-4
+   and inspect expected test counts. ADB's exit code alone is not acceptance.
+3. `wait-for-device` does not mean Android's package service is ready. Wait for
+   `sys.boot_completed=1` before installation. Fixture-enabled runs need
+   `-e ambientVideoFixture true` and explicit emulator-only overlay/storage grants;
+   missing overlay permission means no visible video owner, not broken sampling.
+   Fresh installations also need their notification prompt handled before an
+   ActivityScenario test; its cleanup exception can mask the original interruption.
+   Restore all temporary grants after the run.
+4. Stateful fixture tests must set and restore resume/seek preferences. Do not
+   diagnose an EOF-clamped seek as a broken gesture without checking positions.
+5. This workstation's Java trust store lacks the platform's existing trusted
+   certificate chain. R8's first uncached Compose mapping dependency and SDK
+   manifests fail PKIX validation until the **child build process** uses Windows
+   trust. With no existing custom `JAVA_TOOL_OPTIONS`, set only for that process:
+
+   ```powershell
+   if ($env:JAVA_TOOL_OPTIONS) { throw 'Preserve existing custom Java options' }
+   $env:JAVA_TOOL_OPTIONS='-Djavax.net.ssl.trustStoreType=Windows-ROOT -Djavax.net.ssl.trustStore=NONE'
+   ```
+
+   Then run the Java21 wrapper/SDK Manager normally. TLS certificate and hostname
+   validation stay enabled; no global trust-store import, insecure download or
+   certificate bypass is used. Kotlin tooling resolves from Maven Central, not
+   an unnecessary first Google repository probe. Once cached, the offline full
+   gate passes too.
+
+Primary checkout changes, desktop artifacts and the immutable verified 1.21.39
+APK remain untouched. Physical-phone acceptance, complete interruption/flicker
+coverage, production signing and the separate #174 privacy gate remain open.
 
 ## #174 security failure and safe options
 

@@ -494,10 +494,11 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         player.play()
     }
 
-    suspend fun loadCurrentArtwork(path: String?): Bitmap? {
+    suspend fun loadCurrentArtwork(path: String?, cachedOnly: Boolean = false): Bitmap? {
         val file = scannedFiles.firstOrNull { it.path == path } ?: _queue.value.firstOrNull { it.path == path } ?: return null
         val override = userPreferences.localOverrides[file.path]
-        return thumbnailRepository.load(file.copy(coverUri = override?.coverUri.orEmpty()))
+        val displayed = file.copy(coverUri = override?.coverUri.orEmpty())
+        return if (cachedOnly) thumbnailRepository.loadCached(displayed) else thumbnailRepository.load(displayed)
     }
 
     suspend fun loadLyrics(path: String?): LocalLyrics? = withContext(Dispatchers.IO) {

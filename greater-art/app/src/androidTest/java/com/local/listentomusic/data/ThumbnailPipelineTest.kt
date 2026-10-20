@@ -24,6 +24,24 @@ import java.util.UUID
 
 @RunWith(AndroidJUnit4::class)
 class ThumbnailPipelineTest {
+    @Test fun decorativeCacheReadNeverGeneratesOnMissAndCanReuseWarmDisk() = runBlocking {
+        val fixture = Fixture()
+        try {
+            val audio = fixture.audio("decorative")
+            assertNull(withTimeout(8_000) { fixture.repository.loadCached(audio) })
+            assertEquals(0, fixture.repository.stats.value.generated)
+            assertEquals(0, fixture.repository.stats.value.failed)
+            assertNotNull(withTimeout(8_000) { fixture.repository.load(audio) })
+            val generated = fixture.repository.stats.value.generated
+            fixture.repository.trimMemory(ComponentCallbacks2.TRIM_MEMORY_BACKGROUND)
+            assertNotNull(withTimeout(8_000) { fixture.repository.loadCached(audio) })
+            assertEquals(generated, fixture.repository.stats.value.generated)
+            fixture.repository.clear()
+            assertNull(withTimeout(8_000) { fixture.repository.loadCached(audio) })
+            assertEquals(generated, fixture.repository.stats.value.generated)
+        } finally { fixture.close() }
+    }
+
     private class Fixture {
         val base = InstrumentationRegistry.getInstrumentation().targetContext
         val directory = File(base.cacheDir, "thumbnail-test-${UUID.randomUUID()}").apply { mkdirs() }

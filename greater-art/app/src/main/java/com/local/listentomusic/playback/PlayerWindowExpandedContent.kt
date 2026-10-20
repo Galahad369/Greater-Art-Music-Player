@@ -40,7 +40,7 @@ import com.local.listentomusic.ui.NowPlayingScreen
 import com.local.listentomusic.ui.UiInspectorHost
 import com.local.listentomusic.ui.UiInspectorState
 import com.local.listentomusic.ui.inspectElement
-import com.local.listentomusic.ui.theme.GreaterArtTheme
+import com.local.listentomusic.ui.theme.MediaAdaptiveTheme
 import com.local.listentomusic.ui.uiText
 import com.local.listentomusic.ui.components.VideoSurfaceOwner
 import kotlinx.coroutines.CoroutineScope
@@ -81,7 +81,7 @@ internal fun PlayerWindowExpandedContent(
         value = viewModel.loadLyrics(playback.currentPath)
     }
 
-    GreaterArtTheme(settings.themeMode, settings.colorTheme, settings.appFont, settings.silianRail) {
+    MediaAdaptiveTheme(settings, playback.currentPath, artwork) {
         UiInspectorHost(settings.developerMode, inspector) {
             Box(Modifier.fillMaxSize()) {
                 Surface(
