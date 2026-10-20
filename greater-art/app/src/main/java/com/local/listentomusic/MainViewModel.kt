@@ -338,6 +338,12 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     fun rescan() {
         if (!preferencesLoaded) return
         if (!hasStorageAccess() && userPreferences.scopedMediaTreeUri == null) {
+            scanJob?.cancel()
+            scanJob = null
+            rescanQueued = false
+            scannedFiles = emptyList()
+            applySortingAndFilter()
+            if (graphRequested) requestGraph()
             _stackFiles.value = emptyList()
             _library.value = _library.value.copy(status = LibraryStatus.NEEDS_PERMISSION)
             return
@@ -365,6 +371,13 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 else MediaScanner.scan(userPreferences.excludedFolders.toSet())
             when (val result = scan) {
                 is ScanResult.Success -> {
+                    val previous = scannedFiles.associateBy { it.path }
+                    val incoming = result.files.associateBy { it.path }
+                    probedDurations.keys.removeAll { id ->
+                        val before = previous[id]; val after = incoming[id]
+                        before == null || after == null || before.sourcePath != after.sourcePath ||
+                            before.modifiedMs != after.modifiedMs || before.sizeBytes != after.sizeBytes
+                    }
                     scannedFiles = result.files
                     if (graphRequested) requestGraph()
                     refreshMetadata()
@@ -444,6 +457,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             // A tap can arrive while the MediaSession connection is still starting.
             // Keep it instead of silently dropping the user's request.
             pendingPlay = file
+            if (controllerLease == null) connectController()
             return
         }
         playNow(player, file)
@@ -1017,6 +1031,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     fun cancelSleepTimer() = com.local.listentomusic.playback.PlaybackSleepTimer.cancel()
 
     private fun connectController() {
+        if (_controller.value != null || controllerLease != null) return
         val context = getApplication<Application>()
         val lease = com.local.listentomusic.playback.PlaybackConnection.acquire(context)
         controllerLease = lease
@@ -1024,6 +1039,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         future.addListener({
             if (controllerLease !== lease) return@addListener
             runCatching { future.get() }.onSuccess { mediaController ->
+                lastPlaybackError = null
                 _controller.value = mediaController
                 mediaController.addListener(playerListener)
                 expandRestoredQueue = mediaController.mediaItemCount == 1
@@ -1036,6 +1052,8 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                     playNow(mediaController, requested)
                 }
             }.onFailure {
+                controllerLease = null
+                lease.close()
                 lastPlaybackError = "Could not connect to playback service."
                 _playback.value = _playback.value.copy(connected = false, errorMessage = lastPlaybackError)
                 // Keep pendingPlay intact for a future successful connection.
@@ -1253,6 +1271,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     fun setGraphOptions(options: com.local.listentomusic.graph.GraphOptions) = viewModelScope.launch { preferences.setGraphOptions(options) }
 
     fun refreshPlaybackSession() {
+        if (_controller.value == null && controllerLease == null) connectController()
         syncPlaybackQueue()
         _controller.value?.let(::publishPlayback)
     }

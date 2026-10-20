@@ -21,6 +21,16 @@ import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import java.io.File
 
+private fun newStackAudioPlayer(context: Context): ExoPlayer =
+    ExoPlayer.Builder(context, DefaultRenderersFactory(context).setEnableDecoderFallback(true))
+        .setLoadControl(DefaultLoadControl.Builder().setBufferDurationsMs(1_500, 6_000, 100, 200)
+            .setTargetBufferBytes(2 * 1024 * 1024).setPrioritizeTimeOverSizeThresholds(false).build())
+        .setAudioAttributes(AudioAttributes.Builder().setUsage(C.USAGE_MEDIA)
+            .setContentType(C.AUDIO_CONTENT_TYPE_MUSIC).build(), false)
+        .setHandleAudioBecomingNoisy(true)
+        .setWakeMode(C.WAKE_MODE_LOCAL)
+        .build()
+
 /**
  * One MediaSession/primary player; up to seven companions. Companion video is
  * audio-only. Optional Fit tiles use silent, video-only previews so a decorative
@@ -37,6 +47,8 @@ internal class StackPlaybackCoordinator(
     private val context: Context,
     private val main: ExoPlayer,
     private val scope: CoroutineScope,
+    private val companionFactory: (Context) -> ExoPlayer = ::newStackAudioPlayer,
+    private val onPrimaryBoundary: () -> Boolean = { false },
     private val onLevelsChanged: () -> Unit,
 ) {
     private class Voice(var file: MediaFile, val player: ExoPlayer) {
@@ -217,14 +229,7 @@ internal class StackPlaybackCoordinator(
     private fun createVoice(file: MediaFile): Voice? {
         var engine: ExoPlayer? = null
         return runCatching {
-        ExoPlayer.Builder(context, DefaultRenderersFactory(context).setEnableDecoderFallback(true))
-            .setLoadControl(DefaultLoadControl.Builder().setBufferDurationsMs(1_500, 6_000, 100, 200)
-                .setTargetBufferBytes(2 * 1024 * 1024).setPrioritizeTimeOverSizeThresholds(false).build())
-            .setAudioAttributes(AudioAttributes.Builder().setUsage(C.USAGE_MEDIA)
-                .setContentType(C.AUDIO_CONTENT_TYPE_MUSIC).build(), false)
-            .setHandleAudioBecomingNoisy(true)
-            .setWakeMode(C.WAKE_MODE_LOCAL)
-            .build().also { engine = it }.also { engine ->
+        companionFactory(context).also { engine = it }.also { engine ->
                 engine.trackSelectionParameters = engine.trackSelectionParameters.buildUpon()
                     .setTrackTypeDisabled(C.TRACK_TYPE_VIDEO, true).build()
                 engine.repeatMode = Player.REPEAT_MODE_OFF
@@ -488,7 +493,8 @@ internal class StackPlaybackCoordinator(
     }
 
     private fun sessionDuration(): Long =
-        slots.maxOfOrNull { knownDuration(it.file) } ?: 0L
+        slots.asSequence().filter { it.error == null }
+            .maxOfOrNull { stackTimelineEnd(it, knownDuration(it.file)) } ?: 0L
 
     private fun clampToSession(value: Long): Long {
         val duration = sessionDuration()
@@ -499,12 +505,14 @@ internal class StackPlaybackCoordinator(
         if (released) return false
         val unique = files.distinctBy { it.path }
         if (unique.size !in 2..StackPlayback.MAX_TRACKS || unique.size != files.size || unique.any { !valid(it) }) return false
-        stop(clearMain = false)
         val prepared = mutableListOf<Voice>()
         for (file in unique.drop(1)) {
             val voice = createVoice(file) ?: run { prepared.forEach(::releaseVoice); return false }
             prepared += voice
         }
+        // Allocation/initial setup can fail under decoder pressure. Keep the
+        // working session until every replacement companion has been staged.
+        stop(clearMain = false)
         previousRepeat = main.repeatMode
         previousShuffle = main.shuffleModeEnabled
         slots += unique.map(::StackSlot)
@@ -697,8 +705,14 @@ internal class StackPlaybackCoordinator(
 
     fun onMainPlayChanged(ready: Boolean) {
         if (!active || internalMainChange) return
+        // Media3 may finish dispatching the previous item's callbacks after an
+        // EOF promotion has already changed the primary and opened its gate.
+        if (ready != main.playWhenReady) return
         if (gated) {
             // An external Play request must still respect the readiness barrier.
+            // False is also emitted by our own gate, sometimes after a reentrant
+            // Media3 callback returns. User Pause is intercepted as a command by
+            // PlaybackService, even when an already-parked player emits no event.
             if (ready) { setMainPlayWhenReady(false); tryOpenStartGate() }
             return
         }
@@ -714,7 +728,7 @@ internal class StackPlaybackCoordinator(
     }
 
     fun onMainIsPlayingChanged(isPlaying: Boolean) {
-        if (!active || !playing || gated) return
+        if (!active || !playing || gated || internalMainChange) return
         if (!isPlaying && main.playbackState == Player.STATE_ENDED && !internalMainChange) {
             onPrimaryEnded()
             return
@@ -828,15 +842,17 @@ internal class StackPlaybackCoordinator(
     fun onPrimaryEnded() {
         // A shorter primary reaching EOF does not end the entire Stack: promote
         // the longest surviving take first, then honor Stack repeat at the true end.
-        if (!active || !playing || internalMainChange || gated) return
+        if (!active || !playing || internalMainChange || gated || main.playbackState != Player.STATE_ENDED) return
+        if (onPrimaryBoundary()) { pause(); return }
         val at = position()
         val duration = sessionDuration()
         val primaryLength = slots.firstOrNull { it.file.path == primaryPath }?.let { knownDuration(it.file) } ?: 0L
         if (duration > primaryLength && primaryLength > 0L) {
             val survivor = slots.asSequence()
                 .filter { it.file.path != primaryPath && it.error == null }
-                .filter { knownDuration(it.file) <= 0L || knownDuration(it.file) > at }
-                .maxByOrNull { knownDuration(it.file) }
+                .filter { stackMappedPosition(at, it) >= 0L &&
+                    (knownDuration(it.file) <= 0L || stackMappedPosition(at, it) < knownDuration(it.file)) }
+                .maxByOrNull { stackTimelineEnd(it, knownDuration(it.file)) }
             if (survivor != null && setPrimary(survivor.file.path)) return
         }
         if (loopEnabled) seek(0L) else pause()
@@ -899,6 +915,7 @@ internal class StackPlaybackCoordinator(
                     val now = position()
                     val duration = sessionDuration()
                     if (playing && duration > 0L && now >= duration) {
+                        if (onPrimaryBoundary()) { pause(); continue }
                         if (shouldRestartStack(loopEnabled, playing, now, duration)) {
                             seek(0L)
                         } else {
@@ -911,10 +928,14 @@ internal class StackPlaybackCoordinator(
                     val currentPrimary = slots.firstOrNull { it.file.path == primaryPath }?.file
                     val primaryDuration = currentPrimary?.let(::knownDuration) ?: 0L
                     if (playing && primaryDuration > 0L && now >= primaryDuration) {
+                        // The mapped ticker may reach EOF before Media3 emits
+                        // ENDED. Honor sleep before promotion or loop restart.
+                        if (onPrimaryBoundary()) { pause(); continue }
                         val nextVisual = slots.asSequence()
                             .filter { it.file.path != primaryPath && it.error == null }
-                            .filter { knownDuration(it.file) <= 0L || knownDuration(it.file) > now }
-                            .maxByOrNull { knownDuration(it.file) }
+                            .filter { stackMappedPosition(now, it) >= 0L &&
+                                (knownDuration(it.file) <= 0L || stackMappedPosition(now, it) < knownDuration(it.file)) }
+                            .maxByOrNull { stackTimelineEnd(it, knownDuration(it.file)) }
                         if (nextVisual == null || !setPrimary(nextVisual.file.path)) pause()
                     }
                     if (playing && !gated && main.isPlaying) {

@@ -1,0 +1,155 @@
+# Claude audit integration verification — October 20, 2026
+
+## Identity and release boundary
+
+Review baseline: main `e96f8dc690b4e138d1303d7fbf9cbed36c8342cb`.
+Original PR #191 head: `1a6627dbc133faba7ffbb110a6f0c61ec160b0d4`.
+Follow-up source: **1.21.61 / code284**, SOURCE_ONLY. Preserve the original
+1.21.59 and 1.21.60 commits; no amended history or reused version identity.
+The independent Windows identity remains **0.1.16 / code17**.
+The immutable verified personal APK remains **1.21.39 / code262**.
+
+PR #174 is excluded. No history rewrite, tag changes, protection bypass,
+network permission, analytics, source-quality limit or signing-key change.
+The owner's separate local main/Nodes work and APKs are not discarded.
+
+## Additional repairs
+
+- `StackPlaybackCoordinator`: route a real MediaController Pause through the
+  coordinator even when its underlying primary is already parked. Initialize
+  replacement companions before dismantling a working Stack. Compare surviving
+  EOF boundaries in the master timeline, including offsets and rate mappings.
+- `PlaybackService`: session-facing forwarding commands preserve the same
+  ExoPlayer and respect the Stack readiness barrier. End-of-track sleep stops
+  the entire mix before shorter-primary promotion. Destroying the service clears
+  its timer; closing an Activity does not.
+- `PlaybackSleepTimer`: injectable monotonic clock with overflow-safe minute
+  conversion. This is not persistence across process death.
+- `InternalMediaAdmission` / `LocalLibraryCallback`: validate content identity
+  and actual read access rather than treating scoped URIs as filesystem paths.
+  Scoped external browsing rechecks grants and remains audio-only.
+- `MediaFile` / scanners / rule matching: preserve original relative filenames
+  so folder/extension rules do not compare opaque provider IDs or edited titles.
+- `MainViewModel`: clear stale Library entries when access is revoked, invalidate
+  duration failures when a source changes, and retry failed connections only on
+  demand. `PlaybackConnection` uses resource-specific leases so stale borrowers
+  cannot release a replacement controller.
+- MPEG-TS regression covers 188/192/204-byte packets and truncated input.
+  Existing high-resolution extensions remain discoverable.
+
+## Verification record
+
+Commands run from `greater-art/`, Java21, Android SDK explicitly configured:
+
+```text
+GradleWrapperMain testDebugUnitTest lintDebug assembleDebug
+  assembleDebugAndroidTest assembleRelease --offline --no-daemon --max-workers=2
+```
+
+The repository has `gradlew`, not `gradlew.bat`; on this Windows workstation the
+wrapper JAR is invoked with Java21. Do not invent a missing batch wrapper or rely
+on an inherited SDK environment. One diagnostic rebuild failed because
+ANDROID_HOME was omitted; rerunning with the explicit SDK succeeded.
+
+- Android full gate passed: 417 JVM tests, zero failures/errors/skips; lint zero
+  errors, 46 warnings and four hints; debug, instrumentation and R8 release APKs
+  assembled. This does not constitute release acceptance.
+- Windows native build passed with required pinned source-built codec libraries;
+  73/73 core tests passed. No Windows executable source/version change.
+- Version validator and its four merge-policy tests passed.
+- Public repository audit passed, including reachable credential history, current
+  files, sensitive filenames, author identities and APK containers. This is not
+  an ISO certification or closure of historical privacy PR #174.
+- API36 A55-sized x86_64 emulator: the first nine new real-player regressions
+  passed. The expanded eleven-test run exposed intermittent early stopping after
+  primary EOF promotion. That failure must be resolved and repeated before merge;
+  a passing initial run is not sufficient evidence of correctness.
+
+The failing EOF trace identified `onMainPlayChanged(false)` during the new
+primary's buffering gate at roughly 813ms, not the 2400ms survivor endpoint.
+Media3's reentrant listener queue can dispatch an internally generated parked
+callback after the local mutation guard returns. A false state event is not a
+user command. The fix intercepts actual session Pause commands independently and
+ignores parked false callbacks during a gate; direct pause still cancels it.
+The regression explicitly distinguishes these cases. Temporary pause stack-trace
+logging was removed after diagnosis; no media-path logging is shipped.
+
+A second real race was exposed after that fix: the mapped Stack ticker can
+promote at the primary duration before Media3 dispatches ENDED. Its boundary now
+consults the service's sleep decision before promotion and before final looping.
+The end-of-track test keeps its original-primary assertion; it was not weakened.
+The timer-flow assertion is dispatched on Main after the timer callback completes,
+so it cannot inspect a partially completed state update.
+
+On a freshly created API35 emulator, background-only test playback was correctly
+denied audio focus by Android (`procState:4`). Service regressions now launch the
+real Activity before requesting playback, then explicitly close it in the lifetime
+test. Do not bypass this platform restriction or mislabel it as a codec failure.
+
+API36 UI/storage run passed **25 tests**, zero ignored/failures, in 60.231s.
+It includes real fullscreen theme/rotation, six audio-layout cases, native PiP,
+five inspector cases, scoped discovery/mapping, URI adapters and four thumbnail
+pipeline tests. Two narrow-toolbar tests live in `FullscreenToolbarTest`, not
+`FullscreenRotationTest`; the initial shell wrapper incorrectly expected 27 and
+flagged the successful25 run. Run the separate class rather than inventing two
+passes. Portrait/landscape screenshots were inspected: controls remain in bounds,
+native 1280x720 fixture remains FIT, no observed replacement player/surface.
+The emulator crash buffer includes a platform Bluetooth native abort at boot;
+do not call the whole device crash-free. App-specific crash review remains separate.
+
+Owned silent 48kHz PCM fixtures exercise actual decoders and controller commands,
+not audible alignment. Minute durations use an injected monotonic clock; they
+were not each observed for 60 wall-clock minutes. URI tests use owned real
+MediaStore entries; corrupt restore tests assert no partial preference mutation.
+
+## Prevention and remaining gates
+
+Keep Kotlin sources unchanged while Gradle/lint is analyzing them. Never infer an
+instrumentation pass from adb's exit code alone: require the expected test count,
+no failed/ignored status, and inspect assertions/logs. Record failed runs rather
+than replacing their history with the latest success.
+
+Pending: stable EOF reruns, fullscreen theme/rotation and presentation regressions,
+API34/35 coverage on this exact candidate, new-head CI, normal protected merge,
+exact merged-main rebuild, and candidate signature/alignment/install checks.
+
+Follow-up API36 run: **13/13 pass**, no skipped tests, 42.005s, including all
+eleven corrected real-player cases and both narrow-toolbar cases. Five explicit
+EOF repeats pass after the gate callback repair. Debug candidate package is
+`com.local.listentomusic`, version1.21.61/code284, pinned signer SHA256
+`9e28eb45b3b171c3ea47d7da942d28d88b16538885e392a6971a80906d612fbf`;
+`zipalign -c -P 16 4` passes. Working-tree debug SHA256 before commit/rebuild:
+`0aecfe10ddad4a824c7e6cd8729327a37e85eb55fda2108e3e0348905a790491`.
+This is not an artifact promotion or a substituted hash for the final merged build.
+
+Final runtime-source build gates pass **418 JVM tests**, zero failures/errors/skips,
+zero lint errors, debug/instrumentation/R8 release assembly. A fractional-density
+regression was added after API35 exposed a real two-pixel toolbar shortfall:
+independently rounded12dp and4dp padding consumed more than their combined16dp
+budget at420dpi. Round the combined inset once and calculate whole action slots
+from actual pixels; never shrink primary targets to make secondary actions fit.
+The fix preserves the normal six-action320dp layout at420dpi.
+
+API34 passes **21/21 tests**, zero failures/ignored,128.758s, with owned24-second
+video and PCM fixtures: all eleven playback cases, fullscreen, two narrow toolbar
+cases, six audio layouts and native PiP. Its disposable device clean-installed39
+and accepted a same-certificate upgrade to61. The first cold39 launch timed out
+during emulator startup, so do not claim clean-launch39 acceptance from that call.
+
+The combined API36 run completed37/38 assertions before the screenshot helper
+failed on a transient null compositor capture during rotation. The helper now
+retries null buffers inside its existing7s deadline, resets its stable-frame count,
+and still requires three genuine stable screenshots. It does not substitute an
+image or skip the test. The complete38-case rerun and corrected API35 run are
+pending at this commit. Earlier API35 passed18/21, with exactly the three48dp
+target failures described above; all eleven playback cases had passed.
+
+Companion-construction failure preservation is not a universal transaction over
+asynchronous codec failures or every main-player prepare failure. Physical-phone
+playback, acoustic Stack alignment, every hi-res codec, all providers, tablet/
+foldable rendering and universal crash freedom are not proven here. SAF stream
+replacement remains provider-dependent and is not atomic.
+
+The separate Library scrolling request requires controlled debug/release profiling
+and a separate performance branch if a measured optimization is justified. Do not
+mix speculative Library rendering changes into PR #191.

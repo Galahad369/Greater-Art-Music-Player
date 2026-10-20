@@ -12,6 +12,7 @@ import androidx.media3.common.MediaItem
 import androidx.media3.common.MediaMetadata
 import androidx.media3.common.PlaybackException
 import androidx.media3.common.Player
+import androidx.media3.common.ForwardingPlayer
 import androidx.media3.exoplayer.DefaultLoadControl
 import androidx.media3.exoplayer.DefaultRenderersFactory
 import androidx.media3.exoplayer.ExoPlayer
@@ -121,10 +122,12 @@ class PlaybackService : MediaLibraryService() {
         // so a first play tap cannot strand the fresh player in Media3's Repeat Off.
         player.repeatMode = Player.REPEAT_MODE_ONE
         player.shuffleModeEnabled = false
-        stackCoordinator = StackPlaybackCoordinator(this, player, serviceScope, ::applyMixLevels)
+        stackCoordinator = StackPlaybackCoordinator(this, player, serviceScope,
+            onPrimaryBoundary = PlaybackSleepTimer::finishAtTrackEnd, onLevelsChanged = ::applyMixLevels)
         StackPlayback.startCommand = { files ->
-            layers.toList().forEach { removeLayer(it.id) }
-            stackCoordinator.start(files)
+            stackCoordinator.start(files).also { started ->
+                if (started) layers.toList().forEach { removeLayer(it.id) }
+            }
         }
         StackPlayback.addCommand = stackCoordinator::add
         StackPlayback.removeCommand = stackCoordinator::remove
@@ -184,7 +187,19 @@ class PlaybackService : MediaLibraryService() {
             restoreLastSession(saved)
         }
 
-        mediaSession = MediaLibrarySession.Builder(this, player, LocalLibraryCallback(this, serviceScope)).build()
+        // During a Stack gate the real player is already parked (playWhenReady=false).
+        // Intercept the command itself: another Pause emits no ExoPlayer state event.
+        val sessionPlayer = object : ForwardingPlayer(player) {
+            override fun play() {
+                if (stackCoordinator.active) {
+                    ensureFocus()
+                    if (focusHeld) stackCoordinator.play()
+                } else super.play()
+            }
+            override fun pause() = pauseEveryPlayer()
+            override fun setPlayWhenReady(ready: Boolean) { if (ready) play() else pause() }
+        }
+        mediaSession = MediaLibrarySession.Builder(this, sessionPlayer, LocalLibraryCallback(this, serviceScope)).build()
         player.addListener(object : Player.Listener {
             override fun onPlayWhenReadyChanged(playWhenReady: Boolean, reason: Int) {
                 if (playWhenReady) ensureFocus()
@@ -202,12 +217,14 @@ class PlaybackService : MediaLibraryService() {
             override fun onAudioSessionIdChanged(audioSessionId: Int) { applyGain() }
             override fun onIsPlayingChanged(isPlaying: Boolean) {
                 practiceLoopPlaying.value = isPlaying
+                if (!isPlaying && player.playbackState == Player.STATE_ENDED && PlaybackSleepTimer.finishAtTrackEnd())
+                    pauseEveryPlayer()
                 stackCoordinator.onMainIsPlayingChanged(isPlaying)
                 scheduleSave()
             }
             override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
                 if (PracticeLoop.state.value.path?.let { it != mediaItem?.mediaId } == true) PracticeLoop.clear()
-                // A–B timer's end-of-track request must stop both the primary and
+                // Sleep timer's end-of-track request must stop both the primary and
                 // companion players, including Repeat One transitions.
                 if ((reason == Player.MEDIA_ITEM_TRANSITION_REASON_AUTO ||
                         reason == Player.MEDIA_ITEM_TRANSITION_REASON_REPEAT) &&
@@ -326,6 +343,7 @@ class PlaybackService : MediaLibraryService() {
 
     override fun onDestroy() {
         destroyed = true
+        PlaybackSleepTimer.cancel()
         TemporaryPlaybackSpeed.end()
         TemporaryPlaybackSpeed.detach()
         stackCoordinator.release()

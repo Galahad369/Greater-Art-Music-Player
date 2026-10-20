@@ -8,10 +8,12 @@ data class LocalOverride(val title: String = "", val coverUri: String = "")
 
 data class PlaylistRule(val folder: String = "", val extension: String = "", val text: String = "") {
     fun matches(file: MediaFile, root: String): Boolean {
-        val relative = file.sourcePath.removePrefix(root.trimEnd('/') + "/")
+        val content = MediaSource.parse(file.sourcePath) is MediaSource.ContentUri
+        val relative = file.relativePath ?: if (content) "" else file.sourcePath.removePrefix(root.trimEnd('/') + "/")
+        val filename = file.relativePath ?: if (content) file.name else file.sourcePath
         val wanted = folder.trim().trim('/').replace('\\', '/')
         return (wanted.isEmpty() || relative.startsWith("$wanted/", true)) &&
-            (extension.isBlank() || file.sourcePath.substringAfterLast('.').equals(extension.trim().removePrefix("."), true)) &&
+            (extension.isBlank() || filename.substringAfterLast('.').equals(extension.trim().removePrefix("."), true)) &&
             (text.isBlank() || searchText(file.name).contains(searchText(text.trim())))
     }
 }

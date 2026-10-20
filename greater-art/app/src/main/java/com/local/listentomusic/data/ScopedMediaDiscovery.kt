@@ -65,12 +65,13 @@ internal class ScopedMediaDiscovery(private val access: ScopedDiscoveryAccess) {
         var inspected = 0
         var queriedFolders = 0
         fun add(row: ScopedRow, origin: ScopedOrigin, target: MutableMap<String, ScopedMediaRecord>,
-            sidecars: ScopedSidecars = ScopedSidecars()) {
+            sidecars: ScopedSidecars = ScopedSidecars(), relativePath: String? = null) {
             val kind = scopedMediaKind(row.name, row.mime) ?: return
             if (row.directory || MediaSource.parse(row.uri) !is MediaSource.ContentUri ||
                 MediaSource.parse(row.stableId) !is MediaSource.ContentUri) return
             val file = MediaFile(row.stableId, row.name, row.durationMs.coerceAtLeast(0),
-                row.size.coerceAtLeast(0), row.modifiedMs.coerceAtLeast(0), kind, sourcePath = row.uri)
+                row.size.coerceAtLeast(0), row.modifiedMs.coerceAtLeast(0), kind, sourcePath = row.uri,
+                relativePath = relativePath)
             target.putIfAbsent(row.stableId, ScopedMediaRecord(file, origin, sidecars))
         }
         suspend fun guarded(origin: ScopedOrigin, block: suspend () -> Unit) {
@@ -132,7 +133,8 @@ internal class ScopedMediaDiscovery(private val access: ScopedDiscoveryAccess) {
                             lyricsUri = sidecarIndex.resolve(sidecarIndex.lyricsFor(row.name), uriByLowerName),
                             artworkUri = sidecarIndex.resolve(sidecarIndex.artworkFor(row.name), uriByLowerName),
                         )
-                        add(row, ScopedOrigin.SAF, rootRecords, sidecars)
+                        add(row, ScopedOrigin.SAF, rootRecords, sidecars,
+                            if (relative.isEmpty()) row.name else "$relative/${row.name}")
                     }
                 }
                 inspected += listing.inspected.coerceIn(0, remaining)

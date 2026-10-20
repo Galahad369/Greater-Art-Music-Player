@@ -6,7 +6,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 
 /** In-process sleep timer owned by the playback service rather than an Activity ViewModel. */
-internal object PlaybackSleepTimer {
+internal class SleepTimerClock(private val nowMs: () -> Long) {
     private val mutable = MutableStateFlow(SleepTimerState())
     val state = mutable.asStateFlow()
     // Only the schedule triggers the service countdown; UI remaining-time updates do not.
@@ -20,10 +20,10 @@ internal object PlaybackSleepTimer {
             target.value = null
             mutable.value = SleepTimerState(active = true, endOfTrack = true)
         } else {
-            val duration = minutes.coerceAtMost(Long.MAX_VALUE / 60_000L) * 60_000L
-            val now = SystemClock.elapsedRealtime()
-            target.value = now + duration
+            val now = nowMs().coerceAtLeast(0L)
+            val duration = minutes.coerceAtMost((Long.MAX_VALUE - now) / 60_000L) * 60_000L
             mutable.value = SleepTimerState(active = true, remainingMs = duration)
+            target.value = now + duration
         }
     }
 
@@ -42,7 +42,7 @@ internal object PlaybackSleepTimer {
     /** Returns true once when a deadline expires, using monotonic time. */
     fun tick(): Boolean {
         val until = target.value ?: return false
-        val remaining = (until - SystemClock.elapsedRealtime()).coerceAtLeast(0L)
+        val remaining = (until - nowMs()).coerceAtLeast(0L)
         if (remaining == 0L) {
             cancel()
             return true
@@ -50,4 +50,14 @@ internal object PlaybackSleepTimer {
         mutable.value = mutable.value.copy(remainingMs = remaining)
         return false
     }
+}
+
+internal object PlaybackSleepTimer {
+    private val timer = SleepTimerClock(SystemClock::elapsedRealtime)
+    val state = timer.state
+    val deadline = timer.deadline
+    fun set(minutes: Long) = timer.set(minutes)
+    fun cancel() = timer.cancel()
+    fun finishAtTrackEnd(): Boolean = timer.finishAtTrackEnd()
+    fun tick(): Boolean = timer.tick()
 }

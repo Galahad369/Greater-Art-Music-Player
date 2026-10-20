@@ -38,29 +38,40 @@ class LocalLibraryCallback(private val context: Context, private val scope: Coro
     private var cachedFiles: List<MediaFile> = emptyList()
     private var cachedExcluded: Set<String>? = null
     private var cachedAtMs = 0L
+    private var cachedTree: String? = null
 
     override fun onConnect(session: MediaSession, controller: MediaSession.ControllerInfo): MediaSession.ConnectionResult {
         if (controller.packageName != context.packageName && !controller.isTrusted) return MediaSession.ConnectionResult.reject()
         return super.onConnect(session, controller)
     }
     private suspend fun files(): List<MediaFile> {
-        val excluded = preferences.current().excludedFolders.toSet()
+        val saved = preferences.current()
+        val excluded = saved.excludedFolders.toSet()
+        val tree = saved.scopedMediaTreeUri
         return scanLock.withLock {
             val now = SystemClock.elapsedRealtime()
-            if (shouldReuseLibraryScanCache(cachedExcluded, excluded, cachedAtMs, now)) {
+            val access = AndroidScopedDiscoveryAccess(context.contentResolver)
+            val grantValid = tree == null || withContext(Dispatchers.IO) { access.hasReadGrant(tree) }
+            if (grantValid && cachedTree == tree && shouldReuseLibraryScanCache(cachedExcluded, excluded, cachedAtMs, now)) {
                 return@withLock cachedFiles
             }
-            when (val scanned = MediaScanner.scan(excluded)) {
+            val scanned = if (tree == null) MediaScanner.scan(excluded) else {
+                val discovered = ScopedMediaDiscovery(access).scan(listOf(tree), false, excludedFolders = excluded)
+                ScanResult.Success(discovered.records.map { it.media })
+            }
+            when (scanned) {
                 is ScanResult.Success -> {
                     cachedFiles = scanned.files
                     cachedExcluded = excluded
                     cachedAtMs = now
+                    cachedTree = tree
                     scanned.files
                 }
                 else -> {
                     cachedFiles = emptyList()
                     cachedExcluded = null
                     cachedAtMs = 0L
+                    cachedTree = null
                     emptyList()
                 }
             }
@@ -92,9 +103,7 @@ class LocalLibraryCallback(private val context: Context, private val scope: Coro
             // Internal queues already came from our scanner. Avoid another complete
             // recursive scan on every row tap; validate only the requested paths.
             return@future withContext(Dispatchers.IO) { mediaItems.filter { request ->
-                val uri = request.localConfiguration?.uri
-                val file = java.io.File(com.local.listentomusic.model.sourceMediaPath(request.mediaId))
-                uri?.scheme == "file" && uri.path == file.path && MediaScanner.isInsideTarget(file) && file.isFile && MediaScanner.isSupportedLocalMedia(file)
+                readableInternalMediaItem(context, request)
             } }
         }
         // Internal requests returned above; all remaining trusted browsers see audio only.

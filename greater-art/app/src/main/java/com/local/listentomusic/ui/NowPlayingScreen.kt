@@ -252,6 +252,9 @@ internal fun toolbarActionVisibility(availableWidthDp: Float, hasRotate: Boolean
     )
 }
 
+internal fun toolbarAvailableSlots(widthPx: Int, targetPx: Int, chromePx: Int): Int =
+    if (targetPx <= 0) 0 else ((widthPx - chromePx).coerceAtLeast(0) / targetPx)
+
 internal fun fittedVideoPanLimit(viewport: IntSize, aspectRatio: Float, scale: Float): Offset {
     if (viewport.width <= 0 || viewport.height <= 0 || !aspectRatio.isFinite() ||
         aspectRatio <= 0f || !scale.isFinite() || scale <= 1f) return Offset.Zero
@@ -2306,9 +2309,17 @@ internal fun NowPlayingTopBar(
         .onGloballyPositioned { onTopBarBoundsChanged(it.boundsInWindow()) }) {
         // Keep 48dp targets at every width. Under 224dp, provide two compact
         // rows rather than squeezing/clipping Rotate, Lock, Fullscreen and Close.
-        val actions = toolbarActionVisibility(maxWidth.value, onRotate != null)
-        val compact = maxWidth.value < if (onRotate != null) 224f else 176f
-        val oneColumn = maxWidth.value < 128f
+        val density = LocalDensity.current
+        // Round the combined inset once. At 420dpi, independently rounded
+        // 12dp + 4dp pads steal two pixels from six exact 48dp targets.
+        val outerPx = with(density) { 12.dp.roundToPx() }
+        val insetPx = with(density) { 16.dp.roundToPx() }
+        val innerPadding = with(density) { (insetPx - outerPx).toDp() }
+        val slots = toolbarAvailableSlots(constraints.maxWidth,
+            with(density) { GaControl.touchTarget.roundToPx() }, insetPx * 2)
+        val actions = toolbarActionVisibility(32f + slots * 48f, onRotate != null)
+        val compact = slots < if (onRotate != null) 4 else 3
+        val oneColumn = slots < 2
         val chrome = Modifier.fillMaxWidth()
             .padding(horizontal = 12.dp, vertical = 6.dp)
             .clip(topBarShape)
@@ -2319,7 +2330,7 @@ internal fun NowPlayingTopBar(
                 else MaterialTheme.colorScheme.outlineVariant.copy(alpha = NOW_PLAYING_AMBIENT_OUTLINE_ALPHA),
                 topBarShape,
             )
-            .padding(horizontal = GaSpacing.xs)
+            .padding(horizontal = innerPadding)
 
         val rotateButton: @Composable () -> Unit = {
             if (onRotate != null) IconButton(

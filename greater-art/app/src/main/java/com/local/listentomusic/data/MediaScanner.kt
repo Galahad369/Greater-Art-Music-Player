@@ -99,6 +99,7 @@ object MediaScanner {
                     durationMs = 0L,
                     sizeBytes = file.length(),
                     modifiedMs = file.lastModified(),
+                    relativePath = file.relativeTo(folder).invariantSeparatorsPath,
                     kind = if (file.extension.lowercase(Locale.ROOT) in videoExtensions) {
                         MediaKind.VIDEO
                     } else {
