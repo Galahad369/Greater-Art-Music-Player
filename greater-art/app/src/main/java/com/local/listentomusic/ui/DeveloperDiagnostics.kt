@@ -3,60 +3,38 @@ package com.local.listentomusic.ui
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Intent
-import android.os.Build
-import android.provider.Settings
 import android.net.Uri
+import android.provider.Settings
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.widthIn
-import androidx.compose.foundation.layout.heightIn
-import androidx.compose.foundation.layout.sizeIn
-import androidx.compose.foundation.layout.wrapContentHeight
-import com.local.listentomusic.ui.theme.GaControl
-import com.local.listentomusic.ui.theme.GaInspectorPalette
-import com.local.listentomusic.ui.theme.GaInspectorTheme
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.selection.SelectionContainer
-import androidx.compose.material3.Button
-import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Switch
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.DisposableEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import com.local.listentomusic.data.AppLanguage
+import com.local.listentomusic.ui.theme.GaControl
+import com.local.listentomusic.ui.theme.GaInspectorPalette
+import com.local.listentomusic.ui.theme.GaInspectorTheme
 
-/**
- * Explicit, local-only diagnostics. It reports state supplied by the app and never
- * introspects private Compose internals or sends data anywhere.
- */
+/** Local presentation only. The full copy payload is independent of the bounded summary. */
 @Composable
 internal fun DeveloperDiagnostics(
-    report: String,
+    summaryLines: List<String>,
+    detailReport: String,
     regions: List<String>,
     warning: Boolean,
     inspector: UiInspectorState,
@@ -64,14 +42,15 @@ internal fun DeveloperDiagnostics(
     modifier: Modifier = Modifier,
     systemOverlay: Boolean = false,
     badgeAlignment: Alignment = if (systemOverlay) Alignment.TopCenter else Alignment.TopStart,
+    language: AppLanguage = AppLanguage.ENGLISH,
 ) {
     val context = LocalContext.current
-    var overlayAllowed by remember { mutableStateOf(Build.VERSION.SDK_INT < Build.VERSION_CODES.M || Settings.canDrawOverlays(context)) }
+    var overlayAllowed by remember { mutableStateOf(Settings.canDrawOverlays(context)) }
     val lifecycleOwner = androidx.lifecycle.compose.LocalLifecycleOwner.current
     DisposableEffect(lifecycleOwner, context) {
         val observer = object : androidx.lifecycle.DefaultLifecycleObserver {
             override fun onResume(owner: androidx.lifecycle.LifecycleOwner) {
-                overlayAllowed = Build.VERSION.SDK_INT < Build.VERSION_CODES.M || Settings.canDrawOverlays(context)
+                overlayAllowed = Settings.canDrawOverlays(context)
             }
         }
         lifecycleOwner.lifecycle.addObserver(observer)
@@ -81,43 +60,26 @@ internal fun DeveloperDiagnostics(
     var showRegions by remember { mutableStateOf(false) }
     var showAdvanced by remember { mutableStateOf(false) }
     val accent = if (warning) GaInspectorPalette.error else GaInspectorPalette.accent
-    val summary = remember(report) {
-        report.lineSequence().filter {
-            it.startsWith("screen=") || it.startsWith("playing=") ||
-                it.startsWith("playerState=") || it.startsWith("warnings=") || it.startsWith("failure=") || it.startsWith("exit reason=")
-        }.toList()
-    }
+    fun text(key: String) = diagnosticsText(language, key)
 
-    Box(modifier = Modifier.fillMaxSize()) {
-        if (showRegions) {
-            Column(
-                modifier = Modifier
-                    .align(Alignment.TopStart)
-                    .statusBarsPadding()
-                    .padding(start = 8.dp, top = 48.dp),
-                verticalArrangement = Arrangement.spacedBy(4.dp),
-            ) {
-                regions.forEach { region ->
-                    Text(
-                        text = region,
-                        modifier = Modifier
-                            .background(Color.Black.copy(alpha = 0.72f), RoundedCornerShape(4.dp))
-                            .padding(horizontal = 6.dp, vertical = 3.dp),
-                        color = Color.White,
-                        fontFamily = FontFamily.Monospace,
-                        style = MaterialTheme.typography.labelSmall,
-                    )
-                }
+    Box(Modifier.fillMaxSize()) {
+        if (showRegions) Column(
+            Modifier.align(Alignment.TopStart).statusBarsPadding().padding(start = 8.dp, top = 48.dp),
+            verticalArrangement = Arrangement.spacedBy(4.dp),
+        ) {
+            regions.forEach { region ->
+                Text(region, Modifier.background(Color.Black.copy(alpha = .88f), RoundedCornerShape(4.dp))
+                    .padding(horizontal = 6.dp, vertical = 3.dp), color = Color.White,
+                    fontFamily = FontFamily.Monospace, style = MaterialTheme.typography.labelSmall)
             }
         }
-
         Surface(
             onClick = {
-                overlayAllowed = Build.VERSION.SDK_INT < Build.VERSION_CODES.M || Settings.canDrawOverlays(context)
+                overlayAllowed = Settings.canDrawOverlays(context)
+                showAdvanced = false
+                showRegions = false
                 open = true
             },
-            // Reserve the inert logo area in Library and the central handle area
-            // in the system player; never cover Sort, Close or Fullscreen.
             modifier = modifier.align(badgeAlignment)
                 .then(if (systemOverlay) Modifier else Modifier.statusBarsPadding())
                 .padding(start = if (!systemOverlay && badgeAlignment == Alignment.TopStart) 18.dp else 0.dp,
@@ -126,128 +88,115 @@ internal fun DeveloperDiagnostics(
                 .sizeIn(minWidth = GaControl.touchTarget, minHeight = GaControl.touchTarget)
                 .inspectElement("DEVELOPER_BUTTON", "Opens local diagnostics and element inspector"),
             shape = RoundedCornerShape(7.dp),
-            color = Color.Black.copy(alpha = 0.88f),
-            border = BorderStroke(1.dp, accent.copy(alpha = 0.9f)),
+            color = Color.Black.copy(alpha = .88f),
+            border = BorderStroke(1.dp, accent.copy(alpha = .9f)),
         ) {
-            Text(
-                if (warning) "DEV!" else "DEV",
+            Text(if (warning) "DEV!" else "DEV",
                 Modifier.padding(horizontal = 9.dp, vertical = 5.dp).wrapContentHeight(Alignment.CenterVertically),
-                textAlign = androidx.compose.ui.text.style.TextAlign.Center,
-                color = accent,
-                fontFamily = FontFamily.Monospace,
-                fontWeight = FontWeight.Bold,
-                style = MaterialTheme.typography.labelSmall,
-            )
+                textAlign = androidx.compose.ui.text.style.TextAlign.Center, color = accent,
+                fontFamily = FontFamily.Monospace, fontWeight = FontWeight.Bold,
+                style = MaterialTheme.typography.labelSmall)
         }
     }
 
-    if (open) {
-        DiagnosticsDialog(
-            onDismissRequest = { open = false },
-            properties = DialogProperties(usePlatformDefaultWidth = false),
-            systemOverlay = systemOverlay,
+    if (open) DiagnosticsDialog(
+        onDismissRequest = { open = false },
+        properties = DialogProperties(usePlatformDefaultWidth = false),
+        systemOverlay = systemOverlay,
+    ) {
+        // Bound the complete panel, not only its technical dump. Landscape and
+        // large fonts must still allow reaching Copy/Pick/Disable by scrolling.
+        BoxWithConstraints(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+        Surface(
+            Modifier.padding(16.dp).widthIn(max = 420.dp).fillMaxWidth().heightIn(max = (maxHeight - 32.dp).coerceAtLeast(1.dp)),
+            color = GaInspectorPalette.surface, contentColor = Color.White, shape = RoundedCornerShape(18.dp),
         ) {
-            Surface(
-                modifier = Modifier.fillMaxWidth().padding(16.dp).widthIn(max = 420.dp),
-                color = GaInspectorPalette.surface,
-                contentColor = Color.White,
-                shape = RoundedCornerShape(18.dp),
-            ) {
-                Column(
-                    modifier = Modifier.padding(18.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp),
-                ) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                    ) {
-                        Column {
-                            Text("Inspector", style = MaterialTheme.typography.titleLarge)
-                            Text(if (warning) "Needs attention" else "Running locally", color = accent, style = MaterialTheme.typography.labelSmall)
+            LazyColumn(Modifier.fillMaxWidth(), contentPadding = PaddingValues(18.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                item {
+                    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                        Column(Modifier.weight(1f)) {
+                            Text(text("Developer"), style = MaterialTheme.typography.titleLarge)
+                            Text(text(if (warning) "Needs attention" else "OK · local only"), color = accent,
+                                style = MaterialTheme.typography.labelSmall)
                         }
-                        TextButton(onClick = { open = false }) { Text("CLOSE") }
+                        TextButton(onClick = { open = false },
+                            modifier = Modifier.sizeIn(minHeight = GaControl.touchTarget)) { Text(text("Close")) }
                     }
-                    // Keep the exit action visible without opening Settings or
-                    // expanding technical details; one tap persists the preference.
-                    OutlinedButton(
-                        onClick = {
-                            open = false
-                            showRegions = false
-                            inspector.cancel()
-                            inspector.clearSelection()
-                            onDisableDeveloperMode()
-                        },
-                        modifier = Modifier.fillMaxWidth()
-                            .sizeIn(minHeight = GaControl.touchTarget)
-                            .inspectElement("DISABLE_DEVELOPER_MODE_BUTTON", "Turns off local developer diagnostics"),
-                    ) {
-                        Text("Turn off Developer Mode")
+                }
+                item {
+                    SelectionContainer {
+                        Text(summaryLines.take(8).joinToString("\n"), fontFamily = FontFamily.Monospace,
+                            maxLines = 8, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                            style = MaterialTheme.typography.bodySmall)
                     }
-                    summary.forEach { line ->
-                        Text(line, fontFamily = FontFamily.Monospace, style = MaterialTheme.typography.bodySmall)
-                    }
-                    Text(if (overlayAllowed) "Floating window permission: enabled"
-                        else "Floating window permission: OFF — Mini and Now Playing cannot open",
+                }
+                item {
+                    Text(text(if (overlayAllowed) "Floating permission: enabled" else "Floating permission: not granted"),
                         color = if (overlayAllowed) accent else GaInspectorPalette.error,
                         style = MaterialTheme.typography.bodySmall)
-                    if (!overlayAllowed) TextButton(onClick = {
+                }
+                if (!overlayAllowed) item {
+                    TextButton(onClick = {
                         runCatching { context.startActivity(Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
-                            Uri.parse("package:${context.packageName}"))) }
-                    }) { Text("Open floating window permission") }
-                    Button(
-                        onClick = { open = false; inspector.arm() },
-                        modifier = Modifier.fillMaxWidth(),
-                    ) { Text("Pick an element") }
-                    inspector.selected?.let { selected ->
-                        Text("${selected.label} · ${selected.bounds.width.toInt()}×${selected.bounds.height.toInt()} px",
-                            fontFamily = FontFamily.Monospace, style = MaterialTheme.typography.labelSmall, color = accent)
+                            Uri.parse("package:${context.packageName}")).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)) }
+                    }, modifier = Modifier.sizeIn(minHeight = GaControl.touchTarget)) { Text(text("Open permission settings")) }
+                }
+                item {
+                    Button(onClick = { open = false; showRegions = false; inspector.arm() },
+                        modifier = Modifier.fillMaxWidth().sizeIn(minHeight = GaControl.touchTarget)) { Text(text("Pick an element")) }
+                }
+                inspector.selected?.let { selected -> item {
+                    Text("${selected.label} · ${selected.bounds.width.toInt()}×${selected.bounds.height.toInt()} px",
+                        fontFamily = FontFamily.Monospace, style = MaterialTheme.typography.labelSmall, color = accent)
+                } }
+                item {
+                    Button(onClick = {
+                        context.getSystemService(ClipboardManager::class.java)?.setPrimaryClip(
+                            ClipData.newPlainText("Greater Art bug report", completeDeveloperReport(detailReport, regions)))
+                    }, modifier = Modifier.fillMaxWidth().sizeIn(minHeight = GaControl.touchTarget)) { Text(text("Copy bug report")) }
+                }
+                item {
+                    TextButton(onClick = {
+                        showAdvanced = !showAdvanced
+                        if (!showAdvanced) showRegions = false
+                    }, modifier = Modifier.sizeIn(minHeight = GaControl.touchTarget)) {
+                        Text(text(if (showAdvanced) "Hide technical details" else "Technical details"))
                     }
-                    TextButton(onClick = { showAdvanced = !showAdvanced; if (!showAdvanced) showRegions = false }) {
-                        Text(if (showAdvanced) "Hide technical details" else "Technical details")
-                    }
-                    if (showAdvanced) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                        ) {
-                            Text("Show region IDs", style = MaterialTheme.typography.bodySmall)
-                            Switch(checked = showRegions, onCheckedChange = { showRegions = it })
+                }
+                if (showAdvanced) {
+                    item {
+                        Row(Modifier.fillMaxWidth().sizeIn(minHeight = GaControl.touchTarget)
+                            .toggleable(showRegions, role = Role.Switch, onValueChange = { showRegions = it }),
+                            verticalAlignment = Alignment.CenterVertically) {
+                            Text(text("Show region IDs"), Modifier.weight(1f), style = MaterialTheme.typography.bodySmall)
+                            Switch(showRegions, onCheckedChange = null)
                         }
-                        Surface(
-                            modifier = Modifier.fillMaxWidth(),
-                            color = GaInspectorPalette.raised,
-                            contentColor = Color.White,
-                            border = BorderStroke(1.dp, Color.White.copy(alpha = 0.24f)),
-                            shape = RoundedCornerShape(12.dp),
-                        ) {
-                            LazyColumn(Modifier.fillMaxWidth().heightIn(max = 330.dp).padding(14.dp)) {
-                                item {
-                                    SelectionContainer {
-                                        Text(report, fontFamily = FontFamily.Monospace, style = MaterialTheme.typography.bodySmall)
-                                    }
-                                }
-                                items(regions) { region ->
-                                    Text("• $region", fontFamily = FontFamily.Monospace, style = MaterialTheme.typography.bodySmall)
-                                }
+                    }
+                    item {
+                        Surface(color = GaInspectorPalette.raised, contentColor = Color.White,
+                            border = BorderStroke(1.dp, Color.White.copy(alpha = .24f)), shape = RoundedCornerShape(12.dp)) {
+                            SelectionContainer {
+                                Text(detailReport, Modifier.fillMaxWidth().padding(14.dp),
+                                    fontFamily = FontFamily.Monospace, style = MaterialTheme.typography.bodySmall)
                             }
                         }
                     }
-                    Button(
-                        onClick = {
-                            val payload = buildString {
-                                appendLine(report)
-                                appendLine("ACTIVE REGIONS")
-                                regions.forEach { appendLine("- $it") }
-                            }
-                            context.getSystemService(ClipboardManager::class.java)
-                                ?.setPrimaryClip(ClipData.newPlainText("Greater Art bug report", payload))
-                        },
-                        modifier = Modifier.fillMaxWidth(),
-                    ) { Text("Copy bug report") }
+                    if (showRegions) items(regions) { region ->
+                        Text(region, fontFamily = FontFamily.Monospace, style = MaterialTheme.typography.bodySmall)
+                    }
+                }
+                item {
+                    OutlinedButton(onClick = {
+                        open = false; showRegions = false
+                        inspector.cancel(); inspector.clearSelection(); onDisableDeveloperMode()
+                    }, modifier = Modifier.fillMaxWidth().sizeIn(minHeight = GaControl.touchTarget)
+                        .inspectElement("DISABLE_DEVELOPER_MODE_BUTTON", "Turns off local developer diagnostics")) {
+                        Text(text("Turn off Developer Mode"))
+                    }
                 }
             }
+        }
         }
     }
 }

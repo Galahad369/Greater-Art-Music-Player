@@ -11,8 +11,8 @@ android {
                         applicationId = "com.local.listentomusic"
                         minSdk = 26
                         targetSdk = 37
-        versionCode = 278
-        versionName = "1.21.55"
+        versionCode = 281
+        versionName = "1.21.58"
         buildConfigField("boolean", "STACK_PCM_PROTOTYPE", (providers.gradleProperty("stackPcmPrototype").orNull == "true").toString())
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
@@ -55,7 +55,10 @@ android {
             if (pinnedSideloadKeystore.isFile) signingConfig = signingConfigs["sideloadDebug"]
         }
         release {
-            isMinifyEnabled = false
+            isMinifyEnabled = true
+            // Keep resource shrinking separate until every dynamic media/font path
+            // has minified physical-device acceptance. Debug remains unminified.
+            isShrinkResources = false
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"

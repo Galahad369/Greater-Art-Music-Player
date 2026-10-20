@@ -39,7 +39,7 @@ jobs:
 
       - name: Test, lint, and verification build
         working-directory: greater-art
-        run: ./gradlew testDebugUnitTest lintDebug assembleDebug --no-daemon
+        run: ./gradlew testDebugUnitTest lintDebug assembleDebug assembleDebugAndroidTest assembleRelease --no-daemon
 
       # Do not upload Greater Art's CI APK. Clean GitHub runners do not have the
       # established private sideload keystore, so their generated debug signature

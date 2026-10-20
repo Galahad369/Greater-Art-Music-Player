@@ -259,6 +259,17 @@ class ThumbnailRepository(private val context: Context) {
         catch (_: Exception) { _stats.update { it.copy(failed = it.failed + 1) }; null }
     }
 
+    /** Decorative consumers may reuse stored artwork, never start frame/art extraction. */
+    suspend fun loadCached(file: MediaFile): Bitmap? {
+        val id = requestId(file)
+        memoryHit(id)?.let { return it }
+        // Do not coalesce a cache miss with a real UI load: that load still needs
+        // its generation path. Both paths share the existing bounded writer lock.
+        return try { scheduler.load("cached:$id") { loadUnscheduled(file, id, diskOnly = true) } }
+        catch (cancel: CancellationException) { throw cancel }
+        catch (_: Exception) { null }
+    }
+
     private suspend fun checkpoint() {
         coroutineContext.ensureActive()
         // Closing the small collector race also protects a task waiting for a resource permit.

@@ -3,7 +3,7 @@
 This file describes the **current repository state only**. Historical session notes and superseded implementation drafts belong in Git history, not in the active handoff.
 
 **Project:** `greater-art/` in the repository checkout
-**Current source:** `1.21.55 (code 278)` — SOURCE_ONLY; fullscreen gesture-cancellation cleanup and cutout-safe side-seek feedback, with 2.5-second paused auto-hide preserved
+**Current source:** `1.21.58 (code 281)` — SOURCE_ONLY; reviewed artwork-adaptive accents and release-only R8, retaining diagnostics and fullscreen verification fixes
 **Current version:** `1.21.39 (code 262)`
 **Latest APK:** `releases/GreaterArt-1.21.39.apk` (`26,877,593 bytes`; SHA-256 `e636fb7c1bfdbdf5500d48863a9f6c778aec47bb2090e433bb2e86037e468104`)
 **Application ID:** `com.local.listentomusic`
@@ -13,6 +13,90 @@ This file describes the **current repository state only**. Historical session no
 **Verification boundary:** Exact build source `b20489581b6125ce3963c767ed8e419c979a6820`; 358 JVM tests, 21 API36 emulator tests, zero lint errors; signature, pinned certificate, version/package, 16KiB ZIP alignment and upgrade installation checked. Emulator tests cover scoped URI discovery/access, live primary-video Dynamic Ambient colors and retained player identity, floating presentations and accessibility/Developer Mode interactions. No app fatal in the inspected crash buffer. This is a debug sideload build, not production signing, physical-phone acceptance, full security assessment or a universal bug-free guarantee. The prior 1.21.37 artifact and its evidence remain unchanged in history.
 
 ## Repository state
+
+### October 19–20 — reviewed Grok audit follow-up (1.21.58/code281)
+
+- Empty #187 has nothing to merge. Its SAF picker, persisted access, production
+  URI Library scan and Nodes focus/strength/damping features already exist.
+  Preserve those implementations, revoked-access reporting and pager/drag behavior;
+  add deterministic finite solver/options regressions instead of replacing physics.
+- Ambient/Adaptive backgrounds gently tint primary, secondary and inverse-primary
+  controls from cached current artwork or the existing sparse video samples.
+  Latch a coherent palette per media/presentation; no additional decoder, sample
+  loop, per-frame theme recomposition, player prepare/seek or quality constraints.
+  Intensity zero is identity; High contrast/Monochrome stay fixed; OLED surfaces
+  remain black. Existing foreground contrast is checked before adapting accents.
+- Enable R8 only for release, retaining consumer rules and persisted enum member
+  names. Keep resource shrinking off pending broader runtime parity. CI builds
+  release as well as debug/test APKs; no CI APK is published and signing identities
+  remain unchanged. All 406 JVM tests pass, lint reports zero errors (46 warnings,
+  three hints), and debug/test/R8 release builds pass. Cache-only thumbnail tests
+  confirm decorative reads never generate artwork on a miss.
+- API36 combined run passes 31 tests; its new forward seek assertion starts near
+  EOF because of a prior fixture's saved position. Isolate and restore resume/seek
+  preferences, then the complete gesture/rotation test passes in 40.880s and a
+  temporary double-cutout rerun passes in 22.012s. No player/surface replacement
+  or native video-size loss is observed. Do not claim one clean 32-test run.
+- Android15: eight component tests pass; after handling a fresh-install
+  notification prompt, both real fullscreen/PiP tests pass in a 138.175s targeted
+  rerun. Android14 passes all ten fullscreen/audio/narrow-toolbar/PiP tests in
+  125.967s. After dismissing the system fullscreen tutorial, its real-Activity
+  rerun passes in 32.183s with unobstructed portrait/landscape screenshots inspected.
+  Temporary QA grants/settings are restored; these are generic sized emulators,
+  not Samsung firmware or physical-device acceptance.
+- Disposable minified API36 candidate passes package/version/certificate/16KiB
+  alignment, upgrade/cold launch, populated Library and persisted Settings,
+  Media3 playback and live-video dock smoke. Screenshots inspected; no fatal in
+  the app crash buffer examined. Not full minified parity or release promotion.
+- R8's uncached Compose mapping dependency exposes this workstation's Java PKIX
+  trust mismatch. Use the existing Windows trust store only in the child build
+  process; never disable TLS verification. Workflow, causes, prevention and
+  precise verification limits: docs/QUALITY_FOLLOWUP_2026-10-19.md.
+
+### October 19 — diagnostics clarity (1.21.57/code280)
+
+- Implement the Grok-proposed intent from empty PR #188 on current main's lineage,
+  not its stale Grok base. The proposed 1.21.56 identity was consumed by the test
+  repair; use the next patch/code. No empty plan commits are imported.
+- Both Activity and system-overlay hosts supply explicit six/seven-line summaries:
+  version, actual screen, playback/counts, Stack, surface owner, warnings and an
+  optional real failure indication. Full report/regions remain complete on Copy.
+- Technical details and region IDs start collapsed. Bound and scroll the whole
+  panel so Copy/Pick/Disable remain reachable in short windows and large fonts.
+  Preserve inspector selection, permission action, warning badge and one-tap off.
+  New panel/Settings text is translated in all six app languages.
+- Normal historical process exits are not labelled as crashes. Surface warnings
+  are now retained in the expanded system player's badge as well as the Activity.
+  No playback, surface handoff, permission or media-quality changes.
+- Local gate passes all 400 JVM tests, lint zero errors (45 warnings/three hints),
+  app and instrumentation builds. Twelve API36 diagnostics/accessibility tests
+  passed in 38.953s. After bounding the panel to actual parent constraints, the
+  final five diagnostics tests pass in 18.994s, including 320x360dp/1.7x-font
+  system-overlay actions, full clipboard payload and region IDs after closing.
+  Summary/details screenshots inspected under app/build/verification/quality-followup.
+
+### October 19 — fullscreen verification harness repair (1.21.56/code279)
+
+- Exact baseline 9e34f40 compiles the app but fails `compileDebugAndroidTestKotlin`:
+  component tests call `setContent` on `createEmptyComposeRule`. Split the hosted
+  toolbar tests from the real-Activity test. Keep the latter's empty rule so it
+  does not launch an unrelated test Activity over fullscreen playback.
+- Screenshots now wait for the real Compose root orientation/relayout, not only
+  the Android configuration flag. CI builds the instrumentation APK as well as
+  the app, preventing this compile gap from passing unnoticed again.
+- No runtime playback, permissions, signing or verified-artifact changes.
+  Java21 gate passes 395 JVM tests (zero failures/errors/skips), lint zero errors
+  (45 warnings/three hints), app and instrumentation builds. Nine API36 fullscreen,
+  audio and narrow-toolbar tests pass; the initially skipped fixture-gated PiP
+  test passes its explicit rerun in 10.015s. Final stable-screenshot rotation
+  rerun passes in 18.253s, preserving player/surface and native 1280x720 video.
+  Settled portrait/landscape screenshots inspected; recording collected under
+  app/build/verification/quality-followup. No physical-phone acceptance claimed.
+- Version/public-repository audits pass. Initial Android14/15 installation failed
+  Java certificate validation; images subsequently install using the safe
+  command-scoped platform trust remedy documented in the current follow-up.
+  Review decisions and separate privacy-remediation options are in
+  docs/QUALITY_FOLLOWUP_2026-10-19.md. Preserve the primary checkout's unique work.
 
 ### October 19 — fullscreen cancellation/cutout follow-up (1.21.55/code278)
 

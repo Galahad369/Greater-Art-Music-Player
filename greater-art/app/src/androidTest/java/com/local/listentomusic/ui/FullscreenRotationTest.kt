@@ -7,12 +7,16 @@ import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertWidthIsAtLeast
 import androidx.compose.ui.test.assertHeightIsAtLeast
 import androidx.compose.ui.test.junit4.v2.createEmptyComposeRule
+import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.onAllNodesWithContentDescription
 import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.test.click
+import androidx.compose.ui.test.doubleClick
+import androidx.compose.ui.test.swipe
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.Modifier
 import androidx.compose.foundation.layout.Box
@@ -49,6 +53,10 @@ class FullscreenRotationTest {
         val old = preferences.current()
         preferences.setAppLanguage(AppLanguage.ENGLISH)
         preferences.setFloatingWindowMode(FloatingWindowMode.NONE)
+        // Prior fixture tests can leave a saved position near EOF. A forward
+        // seek must have real headroom, not be silently clamped at the duration.
+        preferences.setResumePlayback(false)
+        preferences.setSeekOffsetMs(5_000L)
         val main = ActivityScenario.launch<MainActivity>(Intent(context, MainActivity::class.java))
         val monitor = instrumentation.addMonitor(FullscreenVideoActivity::class.java.name, null, false)
         var fullscreen: FullscreenVideoActivity? = null
@@ -93,6 +101,37 @@ class FullscreenRotationTest {
             }
             compose.onRoot().performTouchInput { click(center) }
             compose.onNodeWithContentDescription("Rotate to landscape").assertIsDisplayed()
+            fun position(): Long {
+                var value = 0L
+                instrumentation.runOnMainSync { value = vm.controller.value!!.currentPosition }
+                return value
+            }
+            val beforeSeek = position()
+            var beforeSpeed = 1f
+            instrumentation.runOnMainSync { beforeSpeed = vm.controller.value!!.playbackParameters.speed }
+            compose.onRoot().performTouchInput { doubleClick(Offset(width * .82f, height * .5f)) }
+            compose.waitUntil(5_000) { abs(position() - (beforeSeek + 5_000L)) < 150L }
+            compose.onRoot().performTouchInput { doubleClick(Offset(width * .18f, height * .5f)) }
+            compose.waitUntil(5_000) { abs(position() - beforeSeek) < 150L }
+            compose.onNodeWithContentDescription("Lock player controls").performClick()
+            val lockedPosition = position()
+            compose.onRoot().performTouchInput { doubleClick(Offset(width * .82f, height * .5f)) }
+            compose.runOnIdle { assertEquals(lockedPosition, vm.controller.value!!.currentPosition) }
+            compose.onNodeWithContentDescription("Unlock player controls").performClick()
+            // Pinch followed by one-finger pan must not become a side seek/2x hold.
+            compose.onRoot().performTouchInput {
+                down(0, center - Offset(60f, 0f)); down(1, center + Offset(60f, 0f))
+                for (step in 1..10) {
+                    moveTo(0, center - Offset(60f + step * 14f, 0f))
+                    moveTo(1, center + Offset(60f + step * 14f, 0f))
+                }
+                up(0); up(1)
+            }
+            compose.onRoot().performTouchInput { swipe(center, center + Offset(100f, 20f), 300) }
+            compose.runOnIdle {
+                assertEquals(lockedPosition, vm.controller.value!!.currentPosition)
+                assertEquals(beforeSpeed, vm.controller.value!!.playbackParameters.speed, .001f)
+            }
             assertFullscreenToolbarAlignment("Rotate to landscape")
             assertToolbarInsideScreenSafeRegion(activity)
             compose.onNodeWithContentDescription("Rotate to landscape").assertIsDisplayed()
@@ -122,8 +161,72 @@ class FullscreenRotationTest {
             main.close()
             preferences.setAppLanguage(old.appLanguage)
             preferences.setFloatingWindowMode(old.floatingWindowMode)
+            preferences.setResumePlayback(old.resumePlayback)
+            preferences.setSeekOffsetMs(old.seekOffsetMs)
         }
     }
+
+    /** Measured on the real fullscreen Activity, with rotate/lock in separate layers. */
+    private fun assertFullscreenToolbarAlignment(rotationDescription: String) {
+        val rotate = compose.onNodeWithContentDescription(rotationDescription).fetchSemanticsNode().boundsInRoot
+        val lock = compose.onNodeWithContentDescription("Lock player controls").fetchSemanticsNode().boundsInRoot
+        assertTrue("Rotate and Lock touch targets must share their vertical center: $rotate vs $lock",
+            abs(rotate.center.y - lock.center.y) <= 2f)
+        assertEquals("Rotate and Lock must have the same touch target height", rotate.height, lock.height, 2f)
+        assertEquals("Rotate and Lock must have the same touch target width", rotate.width, lock.width, 2f)
+    }
+
+    private fun assertToolbarInsideScreenSafeRegion(activity: FullscreenVideoActivity) {
+        val safe = androidx.core.view.ViewCompat.getRootWindowInsets(activity.window.decorView)
+            ?.getInsets(androidx.core.view.WindowInsetsCompat.Type.displayCutout())
+            ?: androidx.core.graphics.Insets.NONE
+        val rotate = compose.onNodeWithContentDescription(
+            if (activity.resources.configuration.orientation == Configuration.ORIENTATION_LANDSCAPE)
+                "Rotate to portrait" else "Rotate to landscape",
+        ).fetchSemanticsNode().boundsInRoot
+        assertTrue("Rotate overlaps left cutout: $rotate vs $safe", rotate.left + 1f >= safe.left)
+        assertTrue("Rotate overlaps right cutout: $rotate vs $safe",
+            rotate.right <= activity.window.decorView.width - safe.right + 1f)
+    }
+
+    private fun capture(name: String) {
+        // Configuration changes precede window relayout. Do not capture the old
+        // portrait composition merely because Android has reported landscape.
+        val wantLandscape = name == "landscape"
+        compose.waitUntil(10_000) {
+            val bounds = compose.onRoot().fetchSemanticsNode().boundsInRoot
+            (bounds.width > bounds.height) == wantLandscape
+        }
+        compose.waitForIdle()
+        val instrumentation = InstrumentationRegistry.getInstrumentation()
+        instrumentation.waitForIdleSync()
+        // The system rotation animation can still transform a correctly sized
+        // Compose root. With this paused fixture, require stable compositor pixels
+        // rather than mistaking a tilted transition frame for the final layout.
+        var previous: android.graphics.Bitmap? = null
+        var stableSamples = 0
+        var sampledAt = 0L
+        try {
+            compose.waitUntil(7_000) {
+                val now = android.os.SystemClock.elapsedRealtime()
+                if (now - sampledAt < 100L) false else {
+                    sampledAt = now
+                    val next = requireNotNull(instrumentation.uiAutomation.takeScreenshot())
+                    stableSamples = if (previous?.sameAs(next) == true) stableSamples + 1 else 0
+                    previous?.recycle()
+                    previous = next
+                    stableSamples >= 3
+                }
+            }
+            File(instrumentation.targetContext.getExternalFilesDir(null), "fullscreen-$name.png")
+                .outputStream().use { requireNotNull(previous).compress(android.graphics.Bitmap.CompressFormat.PNG, 100, it) }
+        } finally { previous?.recycle() }
+    }
+}
+
+/** Component-only tests need a hosting Activity; the real-Activity test must not create one. */
+class FullscreenToolbarTest {
+    @get:Rule val compose = createComposeRule()
 
     /** No video fixture required: the narrow toolbar must wrap, never clip buttons. */
     @Test fun narrowFullscreenToolbarRetainsRotateExitAndClose() {
@@ -171,43 +274,4 @@ class FullscreenRotationTest {
         assertTrue("Ultra-narrow toolbar must preserve action order", exit.bottom <= close.top)
     }
 
-    /** Measured on the real fullscreen Activity, with rotate/lock in separate layers. */
-    private fun assertFullscreenToolbarAlignment(rotationDescription: String) {
-        val rotate = compose.onNodeWithContentDescription(rotationDescription).fetchSemanticsNode().boundsInRoot
-        val lock = compose.onNodeWithContentDescription("Lock player controls").fetchSemanticsNode().boundsInRoot
-        assertTrue("Rotate and Lock touch targets must share their vertical center: $rotate vs $lock",
-            abs(rotate.center.y - lock.center.y) <= 2f)
-        assertEquals("Rotate and Lock must have the same touch target height",
-            rotate.height, lock.height, 2f)
-        assertEquals("Rotate and Lock must have the same touch target width",
-            rotate.width, lock.width, 2f)
-    }
-
-    /** Verify the high-level toolbar controls remain inside the Android safe cutout. */
-    private fun assertToolbarInsideScreenSafeRegion(activity: FullscreenVideoActivity) {
-        val windowInsets = androidx.core.view.ViewCompat.getRootWindowInsets(activity.window.decorView)
-        val safe = windowInsets?.getInsets(
-            androidx.core.view.WindowInsetsCompat.Type.displayCutout()
-        ) ?: androidx.core.graphics.Insets.NONE
-        val width = activity.window.decorView.width.toFloat()
-        val rotate = compose.onNodeWithContentDescription(
-            if (activity.resources.configuration.orientation == Configuration.ORIENTATION_LANDSCAPE)
-                "Rotate to portrait" else "Rotate to landscape",
-        ).fetchSemanticsNode().boundsInRoot
-        assertTrue("Rotate control must not overlap the left display cutout: $rotate vs $safe",
-            rotate.left + 1f >= safe.left)
-        assertTrue("Rotate control must not overlap the right display cutout: $rotate vs $safe",
-            rotate.right <= width - safe.right + 1f)
-    }
-
-    private fun capture(name: String) {
-        val instrumentation = InstrumentationRegistry.getInstrumentation()
-        val bitmap = requireNotNull(instrumentation.uiAutomation.takeScreenshot())
-        try {
-            File(instrumentation.targetContext.getExternalFilesDir(null), "fullscreen-$name.png")
-                .outputStream().use { bitmap.compress(android.graphics.Bitmap.CompressFormat.PNG, 100, it) }
-        } finally {
-            bitmap.recycle()
-        }
-    }
 }

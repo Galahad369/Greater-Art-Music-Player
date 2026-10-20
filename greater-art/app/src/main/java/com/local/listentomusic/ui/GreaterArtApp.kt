@@ -62,7 +62,7 @@ import com.local.listentomusic.data.AppBackgroundMode
 import com.local.listentomusic.data.BackgroundScaleMode
 import com.local.listentomusic.data.FloatingWindowMode
 import com.local.listentomusic.model.LocalLyrics
-import com.local.listentomusic.ui.theme.GreaterArtTheme
+import com.local.listentomusic.ui.theme.MediaAdaptiveTheme
 
 private enum class Screen { LIBRARY, NOW_PLAYING, SETTINGS }
 
@@ -175,8 +175,8 @@ fun GreaterArtApp(
     val ambientArtwork by produceState<android.graphics.Bitmap?>(null, playback.currentPath,
         settings.backgroundMode, expandedPlayerVisible, settings.localOverrides[playback.currentPath]) {
         value = null
-        if (settings.backgroundMode == AppBackgroundMode.ADAPTIVE_DYNAMIC && !expandedPlayerVisible)
-            value = viewModel.loadCurrentArtwork(playback.currentPath)
+        if (settings.backgroundMode in listOf(AppBackgroundMode.ADAPTIVE_DYNAMIC, AppBackgroundMode.AMBIENT) && !expandedPlayerVisible)
+            value = viewModel.loadCurrentArtwork(playback.currentPath, cachedOnly = true)
     }
     val backgroundHorizontalPosition = androidx.compose.runtime.remember(wallpaperPan, screen) {
         { if (screen == Screen.LIBRARY) wallpaperPan.position else 0.5f }
@@ -271,12 +271,7 @@ fun GreaterArtApp(
         com.local.listentomusic.playback.PlayerWindowVisibility.stackTransport(stackPage)
         onDispose { com.local.listentomusic.playback.PlayerWindowVisibility.stackTransport(false) }
     }
-    GreaterArtTheme(
-        themeMode = settings.themeMode,
-        colorTheme = settings.colorTheme,
-        appFont = settings.appFont,
-        silianRail = settings.silianRail,
-    ) {
+    MediaAdaptiveTheme(settings, playback.currentPath, ambientArtwork) {
         val lightPalette = MaterialTheme.colorScheme.background.luminance() > 0.5f
         androidx.compose.runtime.SideEffect {
             com.local.listentomusic.ui.components.VideoSurfaceOwner.setPresentation(
@@ -644,7 +639,17 @@ fun GreaterArtApp(
                     if (waveformDiagnostics.error != null) "WAVEFORM_ERROR" else null)
                 val warning = warnings.isNotEmpty()
                 DeveloperDiagnostics(
-                    report = buildString {
+                    summaryLines = DeveloperSummary(
+                        version = com.local.listentomusic.BuildConfig.VERSION_NAME,
+                        screen = if (screen == Screen.LIBRARY) when (libraryPager.currentPage) {
+                            0 -> "STACK"; 2 -> "NODES"; else -> "LIBRARY"
+                        } else screen.name,
+                        playing = playback.isPlaying, video = playback.isVideo,
+                        queueSize = queue.size, librarySize = library.files.size,
+                        stackTracks = stackSession.slots.size, surfaceOwner = surface.owner,
+                        warnings = warnings, hasFailure = hasLocalFailure(localFailures),
+                    ).lines(settings.appLanguage),
+                    detailReport = buildString {
                         appendLine("version=${com.local.listentomusic.BuildConfig.VERSION_NAME}")
                         appendLine(localFailures)
                         // This inspector belongs to MainActivity. A system-player
@@ -689,11 +694,12 @@ fun GreaterArtApp(
                         appendLine("No logs, file paths or listening history are uploaded.")
                     },
                     regions = regions,
-                    warning = warning,
+                    warning = warning || hasLocalFailure(localFailures),
                     inspector = inspector,
                     onDisableDeveloperMode = { viewModel.setDeveloperMode(false) },
                     modifier = Modifier,
                     badgeAlignment = if (screen == Screen.LIBRARY) Alignment.TopStart else Alignment.TopEnd,
+                    language = settings.appLanguage,
                 )
                 }
             }

@@ -16,6 +16,7 @@ internal fun settingsUiText(language: AppLanguage, english: String): String? {
 }
 
 private val settingsTranslations = mapOf(
+    "Local DEV panel for playback status. Nothing is sent." to listOf("本機 DEV 面板，查看播放狀態；不會傳送資料。", "本機 DEV 面板睇播放狀態，唔會傳資料。", "端末内のDEVパネルで再生状態を確認。送信しません。", "Lokales DEV-Panel für den Wiedergabestatus. Keine Übertragung.", "Panneau DEV local pour l’état de lecture. Aucun envoi."),
     "Choose the font used throughout the app." to listOf("選擇整個應用程式使用的字型。", "揀成個 App 用嘅字款。", "アプリ全体で使うフォントを選びます。", "Schriftart für die gesamte App auswählen.", "Choisissez la police utilisée dans toute l’application."),
     "Choose what appears behind Library, Nodes and Stack." to listOf("選擇音樂庫、節點及疊播頁面的背景。", "揀歌庫、節點同疊播頁面嘅背景。", "ライブラリ・ノード・スタックの背景を選びます。", "Hintergrund für Bibliothek, Knoten und Stack auswählen.", "Choisissez l’arrière-plan de Bibliothèque, Nœuds et Stack."),
     "Crop fills the screen. Fit keeps the whole frame. Neither stretches." to listOf("裁切會填滿螢幕，完整顯示會保留整個畫面；兩者都不會拉伸。", "裁切會填滿個畫面，完整顯示就睇晒成格；兩樣都唔會拉長。", "切り抜きは画面全体に表示。フィットは全体を保持。引き伸ばしません。", "Zuschneiden füllt den Bildschirm. Einpassen zeigt das ganze Bild. Keine Verzerrung.", "Recadrer remplit l’écran. Ajuster conserve toute l’image. Aucun étirement."),

@@ -7,7 +7,7 @@ This file is the authoritative version policy for Greater Art. If any handoff no
 ## Machine-checkable state
 
 
-Current source: **1.21.55 (code 278)**
+Current source: **1.21.58 (code 281)**
 Allowed consumed transition: **1.21.45 (code 268) -> 1.21.48 (code 271)**
 
 The open draft security PR #174 separately consumes 1.21.46/code269
@@ -121,6 +121,7 @@ Markdown/docs-only changes, release hashes/metadata, and adding a newly verified
 `.github/workflows/version-consistency.yml` runs `scripts/validate-greater-art-version.py`.
 
 ## Versions tracked
+
 
 
 - 1.14.1 (code 116)
@@ -375,3 +376,9 @@ Previous baseline: 1.13.26 (code 115).
 - 1.21.54 (code 277) — Fullscreen idle controls: preserve the 1.21.53 middle-tap toggle, gesture-aware timer and seek/zoom/lock protections, but auto-hide after 2.5 seconds of inactivity whether playback is playing or paused. Pause/resume no longer gates the idle countdown; fullscreen exit cancels the timer. Update JVM eligibility tests. SOURCE_ONLY; latest verified APK remains 1.21.39/code262.
 
 - 1.21.55 (code 278) — Fullscreen rendering/gesture hardening: reset pan and seek/hold active flags with try/finally on pointer-input cancellation (media change, orientation, disposal), and release temporary 2× speed when interrupted. Inset fullscreen side-seek feedback around display cutouts. Update fixture-dependent paused auto-hide instrumentation test to match 1.21.54's timer and verify middle taps. SOURCE_ONLY; latest verified APK remains 1.21.39/code262.
+
+- 1.21.56 (code 279) — Repair fullscreen instrumentation hosting: isolate component toolbar tests from the real-Activity empty rule, wait for actual root relayout before screenshots, and compile instrumentation in Android CI. No playback behavior change. SOURCE_ONLY; immutable verified 1.21.39 APK retained. PR #188 only proposed this identity in an empty draft; no executable commit consumed it before this repair.
+
+- 1.21.57 (code 280) — Complete the Grok-proposed diagnostics cleanup from empty draft #188: explicit bounded localized summary, independent complete Copy report, collapsed technical/region details, scroll-bounded panel, retained picker/disable controls and surface warnings in both hosts. No playback-quality or storage-permission changes. SOURCE_ONLY; verified APK unchanged.
+
+- 1.21.58 (code 281) — Review and complete remaining Grok #187 scope: stable current-artwork/existing-sample Material accents gated by Ambient/intensity with contrast/High-contrast/Monochrome/OLED guards; release-only R8 with consumer rules and stable persisted enum members, resource shrinking deferred; release compilation in CI; existing SAF/Nodes behavior retained with solver regressions. SOURCE_ONLY until release acceptance; no verified artifacts replaced.
