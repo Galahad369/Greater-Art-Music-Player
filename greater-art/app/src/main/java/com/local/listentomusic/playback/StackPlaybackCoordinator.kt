@@ -758,6 +758,7 @@ internal class StackPlaybackCoordinator(
     }
 
     fun onMainMediaChanged(path: String?) {
+        if (path != main.currentMediaItem?.mediaId) return // Reentrant callback for the retired item.
         if (active && !internalMainChange && path != primaryPath) stop(clearMain = false)
     }
 

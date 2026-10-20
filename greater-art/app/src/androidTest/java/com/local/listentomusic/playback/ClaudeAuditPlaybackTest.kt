@@ -157,6 +157,41 @@ class ClaudeAuditPlaybackTest {
         await("surviving ordinary player plays") { instrumentation.runOnMainSync { playing = main.isPlaying }; playing }
     }
 
+    @Test fun retiredMediaCallbackCannotClearTheCurrentStack() {
+        val files = listOf(wave("current", 5000), wave("companion", 5000))
+        direct()
+        instrumentation.runOnMainSync {
+            assertTrue(coordinator.start(files))
+            coordinator.onMainMediaChanged(null)
+            coordinator.onMainMediaChanged("retired-media")
+            assertTrue(coordinator.active)
+            assertEquals(files.first().path, StackPlayback.state.value.primaryPath)
+            main.setMediaItem(wave("replacement", 5000).toMediaItem())
+            coordinator.onMainMediaChanged(main.currentMediaItem?.mediaId)
+            assertFalse("A real replacement still exits Stack", coordinator.active)
+        }
+    }
+
+    @Test fun activityReconnectCannotAppendOrdinaryLibraryItemsToAStack() {
+        val files = listOf(wave("stack-primary", 15_000), wave("stack-take", 15_000))
+        val remote = connect()
+        instrumentation.runOnMainSync { assertTrue(StackPlayback.start(files)) }
+        await("Stack running before Activity reconnect") { StackPlayback.state.value.runningTracks == 2 }
+        foreground?.close()
+        foreground = androidx.test.core.app.ActivityScenario.launch(
+            Intent(context, com.local.listentomusic.MainActivity::class.java))
+        lateinit var vm: com.local.listentomusic.MainViewModel
+        foreground!!.onActivity { vm = androidx.lifecycle.ViewModelProvider(it)[com.local.listentomusic.MainViewModel::class.java] }
+        await("reconnected Library has scanned the owned takes") {
+            vm.controller.value != null && vm.library.value.files.any { it.path == files.first().path }
+        }
+        instrumentation.runOnMainSync {
+            assertTrue(StackPlayback.state.value.active)
+            assertEquals(1, remote.mediaItemCount)
+            assertEquals(files.first().path, remote.currentMediaItem?.mediaId)
+        }
+    }
+
     @Test fun mediaControllerPauseWhileAlreadyParkedCancelsTheGate() {
         val files = listOf(wave("one", 5000), wave("two", 5000))
         val remote = connect()

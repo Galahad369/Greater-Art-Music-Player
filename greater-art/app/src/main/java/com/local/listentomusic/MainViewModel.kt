@@ -1042,7 +1042,8 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 lastPlaybackError = null
                 _controller.value = mediaController
                 mediaController.addListener(playerListener)
-                expandRestoredQueue = mediaController.mediaItemCount == 1
+                expandRestoredQueue = mediaController.mediaItemCount == 1 &&
+                    !com.local.listentomusic.playback.StackPlayback.state.value.active
                 if (expandRestoredQueue && orderedFiles.isNotEmpty()) applySortingAndFilter()
                 syncPlaybackQueue()
                 publishPlayback(mediaController)
@@ -1190,7 +1191,8 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         _controller.value?.let { player ->
             if (expandRestoredQueue && ordered.isNotEmpty()) {
                 expandRestoredQueue = false
-                if (player.mediaItemCount == 1 && prefs.activePlaylistId == null) {
+                if (player.mediaItemCount == 1 && prefs.activePlaylistId == null &&
+                    !com.local.listentomusic.playback.StackPlayback.state.value.active) {
                     val current = player.currentMediaItem?.mediaId
                     player.addMediaItems(ordered.filter { it.path != current }.map(MediaFile::toMediaItem))
                 }

@@ -7,7 +7,7 @@ This file is the authoritative version policy for Greater Art. If any handoff no
 ## Machine-checkable state
 
 
-Current source: **1.21.61 (code 284)**
+Current source: **1.21.62 (code 285)**
 Allowed consumed transition: **1.21.45 (code 268) -> 1.21.48 (code 271)**
 
 The open draft security PR #174 separately consumes 1.21.46/code269
@@ -388,3 +388,5 @@ Previous baseline: 1.13.26 (code 115).
 - 1.21.60 (code 283) — Follow-up to 1.21.59: fix the fullscreen Locate one-shot state declaration so Kotlin/Compose compiles under the project's imported runtime API. Use existing imported `mutableStateOf(0)` instead of unimported `mutableIntStateOf`. No additional playback or UI behavior changes. SOURCE_ONLY, latest verified APK remains 1.21.39/code262.
 
 - 1.21.61 (code 284) — Evidence-driven Claude follow-up: command-level Stack pause during readiness gating, reentrant parked-callback protection, allocation-failure preservation, mapped EOF selection with pre-promotion sleep boundary, service-lifetime timer cleanup and clock tests, grant-checked URI admission and scoped browser/rule matching, permission-revocation cleanup and user-requested connection recovery; pixel-rounded fullscreen toolbar targets and real-device regression coverage. Verification recorded separately; SOURCE_ONLY, immutable verified 1.21.39 remains unchanged.
+
+- 1.21.62 (code 285) — Follow-up to committed1.21.61: preserve Stack across Activity reconnection by preventing ordinary restored-Library queue expansion while Stack owns playback; ignore retired media callbacks that no longer match the actual primary. Real-player regressions cover reconnect/scanning and stale-versus-real replacement. SOURCE_ONLY; unchanged verified APK/signing identity, no Library scrolling optimization mixed into PR191.

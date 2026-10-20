@@ -153,3 +153,43 @@ replacement remains provider-dependent and is not atomic.
 The separate Library scrolling request requires controlled debug/release profiling
 and a separate performance branch if a measured optimization is justified. Do not
 mix speculative Library rendering changes into PR #191.
+
+## Versioned follow-up:1.21.62/code285
+
+1.21.61 was committed as`1893d2c19685e061dffa4f471d9f45c0887bf56f` and pushed
+normally to the existing PR191 branch. Fresh Android/Windows/security CI was
+started for that head, not inherited from Claude's old1.21.60 checks. Windows
+Python's defaultcp1252 decoding failed on a Unicode commit-range diff; rerunning
+`python -X utf8 scripts/validate-greater-art-version.py --base origin/main --head HEAD`
+passed. Do not modify source/history to "repair" a shell locale error.
+
+Corrected API35 passed21/21 in73.984s, including all original48dp assertions.
+The API36 combined rerun passed fullscreen/theme/rotation and the remaining37
+cases, but its first Stack timer case observed an empty Stack instead of its
+original primary. It is therefore **not a38/38 pass**.
+
+The new Activity-backed tests expose two independent hazards: ViewModel connection
+can mistake Stack's one primary item for an ordinary restored queue and append
+Library items; reentrant media callbacks can refer to the retired primary while
+the actual player has already changed.1.21.62 guards both. Real user replacement
+still exits Stack, while stale null/old-item callbacks do not. Dedicated tests
+cover Activity reconnect plus completed scan, unchanged one-item Stack queue,
+retired callbacks, and genuine media replacement. No media-format, sync algorithm,
+source quality, history, privacy-branch or scrolling UI changes are involved.
+
+The new version preserves committed61 rather than amending it. Build and new-head
+runtime/CI verification are pending. Final merge/rebuild evidence belongs below,
+not retroactively in the earlier-version test results.
+
+Old-code control: install the newly compiled two regression tests against the
+unchanged61 app on API35. **Both fail** (2 tests,2 failures,15.61s): Activity
+reconnection expands the primary queue from1 to3, and a retired media callback
+clears Stack. This demonstrates that the new tests guard real prior behavior,
+not merely reproduce the new implementation. Candidate62 is installed afterward
+for the full23-case rerun. Raw control output remains in private build evidence.
+
+Candidate62: full Android command passes in7m8s,418 JVM tests, zero failures/
+errors/skips, lint zero errors, debug/test/R8 release assembly. API35 passes
+**23/23**, no skipped tests,121.064s: the same two old-code-control failures now
+pass together with the eleven earlier playback cases, fullscreen/theme/rotation,
+both narrow toolbars, six audio layouts and PiP. Final API34/36 and62 CI remain.
