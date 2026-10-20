@@ -94,10 +94,11 @@ class LocalLibraryCallback(private val context: Context, private val scope: Coro
             return@future withContext(Dispatchers.IO) { mediaItems.filter { request ->
                 val uri = request.localConfiguration?.uri
                 val file = java.io.File(com.local.listentomusic.model.sourceMediaPath(request.mediaId))
-                uri?.scheme == "file" && uri.path == file.path && MediaScanner.isInsideTarget(file) && file.isFile && file.extension.lowercase() in MediaScanner.supportedExtensions
+                uri?.scheme == "file" && uri.path == file.path && MediaScanner.isInsideTarget(file) && file.isFile && MediaScanner.isSupportedLocalMedia(file)
             } }
         }
-        val allowed = files().filter { controller.packageName == context.packageName || it.kind == MediaKind.AUDIO }
+        // Internal requests returned above; all remaining trusted browsers see audio only.
+        val allowed = files().filter { it.kind == MediaKind.AUDIO }
         val byId = allowed.associateBy { it.path }
         mediaItems.flatMap { request ->
             byId[request.mediaId]?.let { listOf(it.toMediaItem()) }

@@ -40,6 +40,8 @@ internal fun scopedMediaKind(name: String, mime: String?): MediaKind? {
     if (name.isBlank() || name.startsWith('.')) return null
     val type = mime.orEmpty().lowercase(Locale.ROOT)
     val extension = name.substringAfterLast('.', "").lowercase(Locale.ROOT)
+    // SAF does not expose raw packet headers here. Require an explicit video MIME for .ts.
+    if (extension == "ts" && !type.startsWith("video/")) return null
     return when {
         type.startsWith("video/") || extension in MediaScanner.videoExtensions -> MediaKind.VIDEO
         type.startsWith("audio/") || extension in MediaScanner.audioExtensions -> MediaKind.AUDIO
@@ -55,7 +57,8 @@ internal class ScopedMediaDiscovery(private val access: ScopedDiscoveryAccess) {
         require(maxDocuments in 1..100_000 && maxFolders in 1..2000 && maxDepth in 1..64)
         // Same rule as MediaScanner.scanFolder: paths relative to the granted root, slash-normalised, a folder is excluded
         // with its whole subtree when `relative == it || relative.startsWith("$it/")`.
-        val excluded = excludedFolders.map { it.replace('\\', '/').trim('/') }.filter { it.isNotBlank() }.toSet()
+        val excluded = excludedFolders.map { it.replace('\\', '/').trim('/').lowercase(Locale.ROOT) }
+            .filter { it.isNotBlank() }.toSet()
         val records = linkedMapOf<String, ScopedMediaRecord>()
         val issues = mutableListOf<DiscoveryIssue>()
         val completedRoots = mutableListOf<Pair<String, List<ScopedMediaRecord>>>()
@@ -119,7 +122,8 @@ internal class ScopedMediaDiscovery(private val access: ScopedDiscoveryAccess) {
                     currentCoroutineContext().ensureActive()
                     if (row.directory) {
                         val childRelative = if (relative.isEmpty()) row.name else "$relative/${row.name}"
-                        if (excluded.any { childRelative == it || childRelative.startsWith("$it/") }) continue
+                        val relativeKey = childRelative.lowercase(Locale.ROOT)
+                        if (excluded.any { relativeKey == it || relativeKey.startsWith("$it/") }) continue
                         if (depth < maxDepth && queriedFolders + pending.size < maxFolders)
                             pending.add(Triple(row.documentId, depth + 1, childRelative))
                         else limited = true

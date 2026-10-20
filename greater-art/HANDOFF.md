@@ -3,7 +3,7 @@
 This file describes the **current repository state only**. Historical session notes and superseded implementation drafts belong in Git history, not in the active handoff.
 
 **Project:** `greater-art/` in the repository checkout
-**Current source:** `1.21.58 (code 281)` — SOURCE_ONLY; reviewed artwork-adaptive accents and release-only R8, retaining diagnostics and fullscreen verification fixes
+**Current source:** `1.21.59 (code 282)` — SOURCE_ONLY; Claude audit remediation for sleep timer, scanning, Stack and fullscreen while retaining reviewed adaptive accents/release-only R8
 **Current version:** `1.21.39 (code 262)`
 **Latest APK:** `releases/GreaterArt-1.21.39.apk` (`26,877,593 bytes`; SHA-256 `e636fb7c1bfdbdf5500d48863a9f6c778aec47bb2090e433bb2e86037e468104`)
 **Application ID:** `com.local.listentomusic`
@@ -13,6 +13,15 @@ This file describes the **current repository state only**. Historical session no
 **Verification boundary:** Exact build source `b20489581b6125ce3963c767ed8e419c979a6820`; 358 JVM tests, 21 API36 emulator tests, zero lint errors; signature, pinned certificate, version/package, 16KiB ZIP alignment and upgrade installation checked. Emulator tests cover scoped URI discovery/access, live primary-video Dynamic Ambient colors and retained player identity, floating presentations and accessibility/Developer Mode interactions. No app fatal in the inspected crash buffer. This is a debug sideload build, not production signing, physical-phone acceptance, full security assessment or a universal bug-free guarantee. The prior 1.21.37 artifact and its evidence remain unchanged in history.
 
 ## Repository state
+
+### October 20 — Claude source-audit remediation (1.21.59/code282)
+
+- Move end-of-track and countdown sleep timer execution out of MainViewModel into the independent playback service. Timer uses SystemClock.elapsedRealtime and survives Activity closure while the service remains active; Repeat One and end-of-queue pause both primary and Stack voices.
+- Poll 50ms A/B practice-loop positions only while playing and both markers are set. Prevent TypeScript .ts being indexed as video (bounded MPEG-TS sync sniff for local files; explicit video MIME required for SAF), unify case-insensitive relative folder pruning in both discovery paths.
+- Queue rescans requested mid-scan rather than discarding them, cache failed duration probes, surface controller connection errors, and remove the dead internal path from the external library-audio filter.
+- Handle backup/restore coroutine cancellation explicitly and localize success/failure messages in six languages. Pre-serialize before opening truncating SAF writes, but third-party ContentResolver streams still cannot guarantee atomic replacement.
+- Replace mutable nullable overlay window assertions with a locally owned host, extend Stack to longest remaining playable duration and resume the survivor when leaving a two-track Stack, and fix stale immersive gesture/theme effect + one-shot queue Locate capture.
+- Claude's hi-res codec suspicion, remaining UI strings, large-screen orientation, dependency governance and APK/history size require independent QA/policy approval. Do not remove formats or rewrite history automatically. SOURCE_ONLY; latest verified personal sideload 1.21.39/code262 untouched.
 
 ### October 19–20 — reviewed Grok audit follow-up (1.21.58/code281)
 

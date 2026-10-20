@@ -16,6 +16,10 @@ internal fun auditUiText(language: AppLanguage, english: String): String? {
 }
 
 private val auditMessages = mapOf(
+    "Backup saved" to listOf("設定已備份", "設定備份咗", "設定をバックアップしました", "Sicherung gespeichert", "Sauvegarde enregistrée"),
+    "Could not save backup" to listOf("無法儲存備份", "儲存唔到備份", "バックアップを保存できませんでした", "Sicherung konnte nicht gespeichert werden", "Impossible d’enregistrer la sauvegarde"),
+    "Settings and playlists restored" to listOf("設定及播放清單已還原", "設定同歌單還原咗", "設定とプレイリストを復元しました", "Einstellungen und Playlists wiederhergestellt", "Paramètres et listes restaurés"),
+    "Invalid or unreadable backup" to listOf("備份無效或無法讀取", "備份唔啱或者讀唔到", "無効または読み取れないバックアップ", "Ungültige oder unlesbare Sicherung", "Sauvegarde invalide ou illisible"),
     "Could not update document access. Please retry." to listOf("無法更新文件存取權限，請重試。", "改唔到文件權限，請再試。", "ファイルのアクセス権を更新できません。再試行してください。", "Dateizugriff konnte nicht aktualisiert werden. Bitte erneut versuchen.", "Impossible de modifier l’accès au document. Réessayez."),
     "Use a relative folder path without . or .. or :" to listOf("請輸入相對資料夾路徑，不可包含 .、.. 或 :", "用相對資料夾路徑，唔好加 .、.. 或 :", ".、..、: を含まない相対フォルダーパスを入力してください", "Relativen Ordnerpfad ohne . oder .. oder : verwenden", "Utilisez un chemin relatif sans . ni .. ni :"),
     "Clearing cache…" to listOf("正在清除快取…", "清緊快取…", "キャッシュを削除中…", "Cache wird geleert…", "Suppression du cache…"),

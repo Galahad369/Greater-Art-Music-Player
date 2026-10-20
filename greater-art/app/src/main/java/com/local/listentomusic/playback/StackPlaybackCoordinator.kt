@@ -346,7 +346,8 @@ internal class StackPlaybackCoordinator(
                 voice.player.playWhenReady = true
             }
         }
-        val primaryDuration = sessionDuration()
+        // Only the actual primary can be asked to play to its own EOF.
+        val primaryDuration = slots.firstOrNull { it.file.path == primaryPath }?.let { knownDuration(it.file) } ?: 0L
         setMainPlayWhenReady(primaryDuration <= 0L || master < primaryDuration)
         publish()
     }
@@ -487,7 +488,7 @@ internal class StackPlaybackCoordinator(
     }
 
     private fun sessionDuration(): Long =
-        slots.firstOrNull { it.file.path == primaryPath }?.let { knownDuration(it.file) } ?: 0L
+        slots.maxOfOrNull { knownDuration(it.file) } ?: 0L
 
     private fun clampToSession(value: Long): Long {
         val duration = sessionDuration()
@@ -555,11 +556,15 @@ internal class StackPlaybackCoordinator(
         if (index < 0) return
         if (slots.size == 1) { stop(clearMain = true); return }
         if (slots.size == 2) {
+            val resume = playing
             if (path == primaryPath) {
                 val survivor = slots.first { it.file.path != path }
                 if (!setPrimary(survivor.file.path)) { stop(clearMain = true); return }
             }
             stop(clearMain = false)
+            // Leaving Stack mode must not leave the surviving primary paused by
+            // the synchronisation gate used while promoting it.
+            if (resume && main.currentMediaItem != null) main.play()
             return
         }
         if (path == primaryPath) {
@@ -821,8 +826,19 @@ internal class StackPlaybackCoordinator(
     }
 
     fun onPrimaryEnded() {
-        // ENDED arrives via both isPlaying and playbackState callbacks; restart once.
+        // A shorter primary reaching EOF does not end the entire Stack: promote
+        // the longest surviving take first, then honor Stack repeat at the true end.
         if (!active || !playing || internalMainChange || gated) return
+        val at = position()
+        val duration = sessionDuration()
+        val primaryLength = slots.firstOrNull { it.file.path == primaryPath }?.let { knownDuration(it.file) } ?: 0L
+        if (duration > primaryLength && primaryLength > 0L) {
+            val survivor = slots.asSequence()
+                .filter { it.file.path != primaryPath && it.error == null }
+                .filter { knownDuration(it.file) <= 0L || knownDuration(it.file) > at }
+                .maxByOrNull { knownDuration(it.file) }
+            if (survivor != null && setPrimary(survivor.file.path)) return
+        }
         if (loopEnabled) seek(0L) else pause()
     }
 

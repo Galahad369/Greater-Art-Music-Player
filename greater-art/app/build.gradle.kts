@@ -8,11 +8,11 @@ android {
     compileSdk = 37
 
     defaultConfig {
-                        applicationId = "com.local.listentomusic"
-                        minSdk = 26
-                        targetSdk = 37
-        versionCode = 281
-        versionName = "1.21.58"
+        applicationId = "com.local.listentomusic"
+        minSdk = 26
+        targetSdk = 37
+        versionCode = 282
+        versionName = "1.21.59"
         buildConfigField("boolean", "STACK_PCM_PROTOTYPE", (providers.gradleProperty("stackPcmPrototype").orNull == "true").toString())
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
@@ -75,11 +75,11 @@ android {
     }
 
     buildFeatures {
-            compose = true
-            buildConfig = true
-        }
+        compose = true
+        buildConfig = true
+    }
 
-        packaging {
+    packaging {
         resources.excludes += "/META-INF/{AL2.0,LGPL2.1}"
     }
 }

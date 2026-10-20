@@ -703,6 +703,7 @@ private fun VideoPlayerStage(
     var stageWindowBounds by remember { mutableStateOf<androidx.compose.ui.geometry.Rect?>(null) }
     val density = LocalDensity.current
     val currentControlsVisible by rememberUpdatedState(controlsVisible)
+    val currentImmersive by rememberUpdatedState(immersive)
     val toolbarBottomPx = if (toolbarWindowBounds != null && stageWindowBounds != null)
         (toolbarWindowBounds!!.bottom - stageWindowBounds!!.top).coerceAtLeast(0f)
     else with(density) { 72.dp.toPx() }
@@ -937,13 +938,13 @@ private fun VideoPlayerStage(
                     // Centre tap toggles. Side taps only reveal hidden chrome and
                     // retain the same-side double-tap seeking contract.
                     val side = seekSideForX(startPosition.x, size.width.toFloat())
-                    if (immersive && isCenterVideoTap(startPosition.x, size.width.toFloat())) {
+                    if (currentImmersive && isCenterVideoTap(startPosition.x, size.width.toFloat())) {
                         onControlsVisibilityChange(!currentControlsVisible)
                         lastSeekSide = null
                         lastSeekTapMs = 0L
                         return@awaitEachGesture
                     }
-                    if (immersive && !currentControlsVisible) onControlsVisibilityChange(true)
+                    if (currentImmersive && !currentControlsVisible) onControlsVisibilityChange(true)
                     val nowMs = android.os.SystemClock.uptimeMillis()
                     if (sideDoubleTapSeeks(side, nowMs, lastSeekSide, lastSeekTapMs)) {
                         val delta = when (side) {
@@ -1042,7 +1043,7 @@ private fun VideoPlayerStage(
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     OverlayIconButton(onClick = onPrevious, enabled = playback.hasPrevious) {
-                        Icon(Icons.Rounded.SkipPrevious, "Previous", tint = GaVideoOverlay.foreground, modifier = Modifier.size(GaControl.prominentIcon))
+                        Icon(Icons.Rounded.SkipPrevious, uiText(playback.appLanguage, "Previous", "上一首"), tint = GaVideoOverlay.foreground, modifier = Modifier.size(GaControl.prominentIcon))
                     }
                     // Keep the center play control available whenever controls are visible.
                     Box(
@@ -1052,13 +1053,13 @@ private fun VideoPlayerStage(
                     ) {
                         Icon(
                             if (playback.isPlaying) Icons.Rounded.Pause else Icons.Rounded.PlayArrow,
-                            if (playback.isPlaying) "Pause" else "Play",
+                            uiText(playback.appLanguage, if (playback.isPlaying) "Pause" else "Play", if (playback.isPlaying) "暫停" else "播放"),
                             modifier = Modifier.size(GaControl.heroIcon),
                             tint = GaVideoOverlay.foreground,
                         )
                     }
                     OverlayIconButton(onClick = onNext, enabled = playback.hasNext) {
-                        Icon(Icons.Rounded.SkipNext, "Next", tint = GaVideoOverlay.foreground, modifier = Modifier.size(GaControl.prominentIcon))
+                        Icon(Icons.Rounded.SkipNext, uiText(playback.appLanguage, "Next", "下一首"), tint = GaVideoOverlay.foreground, modifier = Modifier.size(GaControl.prominentIcon))
                     }
                 }
 
@@ -1500,9 +1501,13 @@ private fun NowPlayingQueue(
     LaunchedEffect(currentQueueIndex, visibleIndex) {
         if (visibleIndex >= 0 && !listState.isScrollInProgress) listState.scrollToItem(visibleIndex)
     }
+    var handledLocateTrigger by remember { mutableIntStateOf(0) }
     LaunchedEffect(locateTrigger, visibleIndex) {
-        // Rerun after clearing a filter that was hiding the playing song.
-        if (locateTrigger > 0 && visibleIndex >= 0) listState.animateScrollToItem(visibleIndex)
+        // Consume each Locate request exactly once, even after the filter changes.
+        if (locateTrigger > handledLocateTrigger && visibleIndex >= 0) {
+            handledLocateTrigger = locateTrigger
+            listState.animateScrollToItem(visibleIndex)
+        }
     }
     LaunchedEffect(listState) {
         try {
@@ -2592,7 +2597,8 @@ private fun FullscreenEffect(enabled: Boolean, landscape: Boolean? = null) {
         }
     }
 
-    DisposableEffect(activity, enabled, systemDark) {
+    val latestSystemDark by rememberUpdatedState(systemDark)
+    DisposableEffect(activity, enabled) {
         val window = activity.window
         val decorView = window.decorView
         val insets = WindowCompat.getInsetsController(window, decorView)
@@ -2620,8 +2626,8 @@ private fun FullscreenEffect(enabled: Boolean, landscape: Boolean? = null) {
                 applied
             }
         } else {
-            insets.isAppearanceLightStatusBars = !systemDark
-            insets.isAppearanceLightNavigationBars = !systemDark
+            insets.isAppearanceLightStatusBars = !latestSystemDark
+            insets.isAppearanceLightNavigationBars = !latestSystemDark
         }
 
         onDispose {
@@ -2636,8 +2642,8 @@ private fun FullscreenEffect(enabled: Boolean, landscape: Boolean? = null) {
                 }
                 insets.show(WindowInsetsCompat.Type.systemBars())
             }
-            insets.isAppearanceLightStatusBars = !systemDark
-            insets.isAppearanceLightNavigationBars = !systemDark
+            insets.isAppearanceLightStatusBars = !latestSystemDark
+            insets.isAppearanceLightNavigationBars = !latestSystemDark
         }
     }
 }

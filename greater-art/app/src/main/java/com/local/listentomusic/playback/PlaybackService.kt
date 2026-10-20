@@ -30,6 +30,9 @@ import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import java.io.File
@@ -44,6 +47,7 @@ class PlaybackService : MediaLibraryService() {
     private lateinit var preferences: AppPreferences
     private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
     private val saveMutex = Mutex()
+    private val practiceLoopPlaying = MutableStateFlow(false)
     private val saveGeneration = AtomicLong()
     private var destroyed = false
     private var saveJob: Job? = null
@@ -197,10 +201,20 @@ class PlaybackService : MediaLibraryService() {
             }
             override fun onAudioSessionIdChanged(audioSessionId: Int) { applyGain() }
             override fun onIsPlayingChanged(isPlaying: Boolean) {
+                practiceLoopPlaying.value = isPlaying
                 stackCoordinator.onMainIsPlayingChanged(isPlaying)
                 scheduleSave()
             }
             override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
+                if (PracticeLoop.state.value.path?.let { it != mediaItem?.mediaId } == true) PracticeLoop.clear()
+                // A–B timer's end-of-track request must stop both the primary and
+                // companion players, including Repeat One transitions.
+                if ((reason == Player.MEDIA_ITEM_TRANSITION_REASON_AUTO ||
+                        reason == Player.MEDIA_ITEM_TRANSITION_REASON_REPEAT) &&
+                    PlaybackSleepTimer.finishAtTrackEnd()) {
+                    if (stackCoordinator.active) stackCoordinator.pause()
+                    pauseEveryPlayer()
+                }
                 stackCoordinator.onMainMediaChanged(mediaItem?.mediaId)
                 retriedPath = null
                 widgetArtwork = null
@@ -221,7 +235,12 @@ class PlaybackService : MediaLibraryService() {
                 scheduleSave()
             }
             override fun onPlaybackStateChanged(playbackState: Int) {
-                if (playbackState == Player.STATE_ENDED) stackCoordinator.onPrimaryEnded()
+                if (playbackState == Player.STATE_ENDED) {
+                    if (PlaybackSleepTimer.finishAtTrackEnd()) {
+                        if (stackCoordinator.active) stackCoordinator.pause()
+                        pauseEveryPlayer()
+                    } else stackCoordinator.onPrimaryEnded()
+                }
                 else if (playbackState == Player.STATE_READY) stackCoordinator.onMainReady()
                 scheduleSave(); publishDiagnostics()
             }
@@ -261,11 +280,33 @@ class PlaybackService : MediaLibraryService() {
             }
         }
         serviceScope.launch {
-            while (isActive) {
-                val range = PracticeLoop.state.value
-                if (range.path != null && range.path != player.currentMediaItem?.mediaId) PracticeLoop.clear()
-                else if (player.isPlaying && range.start != null && range.end != null && player.currentPosition >= range.end) player.seekTo(range.start)
-                delay(50)
+            // Only poll during a complete active A–B loop, not 20 times per second
+            // for the entire lifetime of an idle/paused playback service.
+            combine(PracticeLoop.state, practiceLoopPlaying) { range, playing -> range to playing }
+                .collectLatest { (range, playing) ->
+                    if (!playing || range.path == null || range.start == null || range.end == null) return@collectLatest
+                    while (isActive) {
+                        if (range.path != player.currentMediaItem?.mediaId) {
+                            PracticeLoop.clear()
+                            break
+                        }
+                        if (player.currentPosition >= range.end) player.seekTo(range.start)
+                        delay(50)
+                    }
+                }
+        }
+        serviceScope.launch {
+            // Timer remains active when the UI Activity / ViewModel goes away.
+            PlaybackSleepTimer.deadline.collectLatest { until ->
+                if (until == null) return@collectLatest
+                while (isActive) {
+                    if (PlaybackSleepTimer.tick()) {
+                        if (stackCoordinator.active) stackCoordinator.pause()
+                        pauseEveryPlayer()
+                        break
+                    }
+                    delay(1_000)
+                }
             }
         }
         serviceScope.launch {
