@@ -21,6 +21,8 @@ data class MediaFile(
     val album: String = "",
     val searchExtras: String = "",
     val coverUri: String = "",
+    /** Original path relative to the discovered root, not an opaque provider document ID. */
+    val relativePath: String? = null,
 ) {
     val id: String get() = path
     val reference: MediaReference

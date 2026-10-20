@@ -63,6 +63,15 @@ class ScopedMediaDiscoveryFoldersTest {
     }
 
     @Test
+    fun exclusionsIgnoreCaseAndAmbiguousTransportStreamDocuments() {
+        assertEquals(listOf("a.mp3", "b.flac", "c.mp3"), names(setOf("pRiVaTe")))
+        assertEquals(listOf("a.mp3", "also.mp3", "b.flac", "secret.mp3"), names(setOf("rOcK/lIvE")))
+        assertNull(scopedMediaKind("script.ts", "application/typescript"))
+        assertNull(scopedMediaKind("unknown.ts", "application/octet-stream"))
+        assertEquals(MediaKind.VIDEO, scopedMediaKind("movie.ts", "video/mp2t"))
+    }
+
+    @Test
     fun excludedFoldersAreNeverQueried() = runBlocking {
         val access = Access(tree)
         ScopedMediaDiscovery(access).scan(listOf("content://tree"), false, excludedFolders = setOf("Private"))

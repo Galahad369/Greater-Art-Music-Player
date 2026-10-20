@@ -56,10 +56,41 @@ class MediaScannerTest {
     }
 
     @Test
+    fun ignoresTypeScriptButRetainsPacketizedTransportStream() {
+        Files.write(root.resolve("script.ts"), "export const x = 1;".toByteArray())
+        val packets = ByteArray(188 * 3)
+        for (index in 0..2) packets[index * 188] = 0x47.toByte()
+        Files.write(root.resolve("video.ts"), packets)
+        assertEquals(listOf("video.ts"), MediaScanner.scanFolder(root.toFile()).map { it.name })
+    }
+
+    @Test
+    fun excludesCaseInsensitiveFolderAndDescendants() {
+        Files.createDirectories(root.resolve("Music/Live")).let {
+            Files.write(it.resolve("secret.mp3"), byteArrayOf(1))
+        }
+        Files.write(root.resolve("outside.mp3"), byteArrayOf(1))
+        assertEquals(listOf("outside.mp3"),
+            MediaScanner.scanFolder(root.toFile(), setOf("mUsIc")).map { it.name })
+    }
+
+    @Test
     fun keepsTheRequestedHiResExtensionsDiscoverable() {
         assertTrue(
             setOf("flac", "alac", "ape", "dsf", "dff", "aiff", "opus")
                 .all(MediaScanner.supportedExtensions::contains),
         )
+    }
+
+    @Test fun recognizesAllTransportPacketStridesAndRejectsTruncation() {
+        for ((stride, offset) in listOf(188 to 0, 192 to 4, 204 to 0)) {
+            val packets = ByteArray(stride * 3)
+            repeat(3) { packets[offset + it * stride] = 0x47 }
+            val file = root.resolve("packet-$stride.ts").toFile()
+            file.writeBytes(packets)
+            assertTrue(MediaScanner.looksLikeTransportStream(file))
+            file.writeBytes(packets.copyOf(offset + stride * 2))
+            assertFalse(MediaScanner.looksLikeTransportStream(file))
+        }
     }
 }

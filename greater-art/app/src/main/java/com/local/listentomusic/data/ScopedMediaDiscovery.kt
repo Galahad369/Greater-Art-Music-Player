@@ -40,6 +40,8 @@ internal fun scopedMediaKind(name: String, mime: String?): MediaKind? {
     if (name.isBlank() || name.startsWith('.')) return null
     val type = mime.orEmpty().lowercase(Locale.ROOT)
     val extension = name.substringAfterLast('.', "").lowercase(Locale.ROOT)
+    // SAF does not expose raw packet headers here. Require an explicit video MIME for .ts.
+    if (extension == "ts" && !type.startsWith("video/")) return null
     return when {
         type.startsWith("video/") || extension in MediaScanner.videoExtensions -> MediaKind.VIDEO
         type.startsWith("audio/") || extension in MediaScanner.audioExtensions -> MediaKind.AUDIO
@@ -55,19 +57,21 @@ internal class ScopedMediaDiscovery(private val access: ScopedDiscoveryAccess) {
         require(maxDocuments in 1..100_000 && maxFolders in 1..2000 && maxDepth in 1..64)
         // Same rule as MediaScanner.scanFolder: paths relative to the granted root, slash-normalised, a folder is excluded
         // with its whole subtree when `relative == it || relative.startsWith("$it/")`.
-        val excluded = excludedFolders.map { it.replace('\\', '/').trim('/') }.filter { it.isNotBlank() }.toSet()
+        val excluded = excludedFolders.map { it.replace('\\', '/').trim('/').lowercase(Locale.ROOT) }
+            .filter { it.isNotBlank() }.toSet()
         val records = linkedMapOf<String, ScopedMediaRecord>()
         val issues = mutableListOf<DiscoveryIssue>()
         val completedRoots = mutableListOf<Pair<String, List<ScopedMediaRecord>>>()
         var inspected = 0
         var queriedFolders = 0
         fun add(row: ScopedRow, origin: ScopedOrigin, target: MutableMap<String, ScopedMediaRecord>,
-            sidecars: ScopedSidecars = ScopedSidecars()) {
+            sidecars: ScopedSidecars = ScopedSidecars(), relativePath: String? = null) {
             val kind = scopedMediaKind(row.name, row.mime) ?: return
             if (row.directory || MediaSource.parse(row.uri) !is MediaSource.ContentUri ||
                 MediaSource.parse(row.stableId) !is MediaSource.ContentUri) return
             val file = MediaFile(row.stableId, row.name, row.durationMs.coerceAtLeast(0),
-                row.size.coerceAtLeast(0), row.modifiedMs.coerceAtLeast(0), kind, sourcePath = row.uri)
+                row.size.coerceAtLeast(0), row.modifiedMs.coerceAtLeast(0), kind, sourcePath = row.uri,
+                relativePath = relativePath)
             target.putIfAbsent(row.stableId, ScopedMediaRecord(file, origin, sidecars))
         }
         suspend fun guarded(origin: ScopedOrigin, block: suspend () -> Unit) {
@@ -119,7 +123,8 @@ internal class ScopedMediaDiscovery(private val access: ScopedDiscoveryAccess) {
                     currentCoroutineContext().ensureActive()
                     if (row.directory) {
                         val childRelative = if (relative.isEmpty()) row.name else "$relative/${row.name}"
-                        if (excluded.any { childRelative == it || childRelative.startsWith("$it/") }) continue
+                        val relativeKey = childRelative.lowercase(Locale.ROOT)
+                        if (excluded.any { relativeKey == it || relativeKey.startsWith("$it/") }) continue
                         if (depth < maxDepth && queriedFolders + pending.size < maxFolders)
                             pending.add(Triple(row.documentId, depth + 1, childRelative))
                         else limited = true
@@ -128,7 +133,8 @@ internal class ScopedMediaDiscovery(private val access: ScopedDiscoveryAccess) {
                             lyricsUri = sidecarIndex.resolve(sidecarIndex.lyricsFor(row.name), uriByLowerName),
                             artworkUri = sidecarIndex.resolve(sidecarIndex.artworkFor(row.name), uriByLowerName),
                         )
-                        add(row, ScopedOrigin.SAF, rootRecords, sidecars)
+                        add(row, ScopedOrigin.SAF, rootRecords, sidecars,
+                            if (relative.isEmpty()) row.name else "$relative/${row.name}")
                     }
                 }
                 inspected += listing.inspected.coerceIn(0, remaining)

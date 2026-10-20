@@ -3,7 +3,7 @@
 This file describes the **current repository state only**. Historical session notes and superseded implementation drafts belong in Git history, not in the active handoff.
 
 **Project:** `greater-art/` in the repository checkout
-**Current source:** `1.21.58 (code 281)` — SOURCE_ONLY; reviewed artwork-adaptive accents and release-only R8, retaining diagnostics and fullscreen verification fixes
+**Current source:** `1.21.63 (code 286)` — SOURCE_ONLY; Claude audit remediation for sleep timer, scanning, Stack and fullscreen while retaining reviewed adaptive accents/release-only R8
 **Current version:** `1.21.39 (code 262)`
 **Latest APK:** `releases/GreaterArt-1.21.39.apk` (`26,877,593 bytes`; SHA-256 `e636fb7c1bfdbdf5500d48863a9f6c778aec47bb2090e433bb2e86037e468104`)
 **Application ID:** `com.local.listentomusic`
@@ -13,6 +13,72 @@ This file describes the **current repository state only**. Historical session no
 **Verification boundary:** Exact build source `b20489581b6125ce3963c767ed8e419c979a6820`; 358 JVM tests, 21 API36 emulator tests, zero lint errors; signature, pinned certificate, version/package, 16KiB ZIP alignment and upgrade installation checked. Emulator tests cover scoped URI discovery/access, live primary-video Dynamic Ambient colors and retained player identity, floating presentations and accessibility/Developer Mode interactions. No app fatal in the inspected crash buffer. This is a debug sideload build, not production signing, physical-phone acceptance, full security assessment or a universal bug-free guarantee. The prior 1.21.37 artifact and its evidence remain unchanged in history.
 
 ## Repository state
+
+### October 20 — Service-authoritative Stack queue (1.21.63/code286)
+
+- 1.21.62 is retained as c2434f8. Its large-Library API36 run exposes a pending
+  controller append arriving after Stack starts, beyond the ViewModel guard.
+  Reject ordinary app admissions while Stack owns playback and enforce append
+  isolation again at the actual service player-command boundary.
+- A late-append regression exercises the real MediaController. Stack companion
+  additions still use the coordinator; explicit ordinary playback exits Stack first.
+- Correctness fixtures isolate and restore folder, playlist, resume, floating,
+  background and DEV preferences rather than inheriting unrelated emulator state.
+  This is not performance measurement or a source-quality workaround.
+- 63 passes418 JVM tests, zero lint errors, debug/test/R8 release assembly;
+  API36 passes41/41 and API34/35 each pass24/24 (no ignored cases). Recheck the
+  special storage app-op after every QA installation. Full evidence, failed-run
+  controls and limitations: `docs/CLAUDE_AUDIT_VERIFICATION_2026-10-20.md`.
+- Fresh63 CI and exact merged-main rebuild are separate gates. Current source
+  remains SOURCE_ONLY; no39 APK replacement or production release is authorized.
+
+### October 20 — Stack reconnect isolation (1.21.62/code285)
+
+- The combined61 regression exposed a Stack cleared during Activity reconnection.
+  Do not treat its single primary item as an ordinary restored queue and append
+  Library songs; also ignore reentrant media events for retired items. Real media
+  replacement still exits Stack. Add dedicated real-player regressions for both.
+- 1.21.61 remains committed as1893d2c; no amendment or version reuse. Its corrected
+  API35 run passes21/21, API34 passes21/21; API36 combined run exposes the above
+  defect, so it is not claimed as38/38.1.21.62 passes418 JVM tests, zero lint
+  errors and all Android builds; API35 passes23/23 including both new regressions.
+  The two new tests both fail against unchanged61 (queue1→3 and cleared Stack).
+  Final API34/36, CI and exact merged-main rebuild remain gates before promotion.
+- Keep Library performance profiling separate and preserve privacy PR174.
+
+### October 20 — Claude audit behavioral follow-up (1.21.61/code284)
+
+- Fix actual Stack gate Pause commands even while the underlying primary is already
+  parked, retain an existing working Stack until replacement companions initialize,
+  and account for offsets/rates when selecting the surviving EOF boundary.
+- Recheck grants for URI queue admission and scoped external audio browsing. Rule
+  playlists use scanned relative filenames instead of opaque provider document IDs.
+- Clear Library data on broad-permission revocation; retry a failed shared controller
+  on a user request without creating duplicate live connections. Timer clocks are
+  injectable for tests, bounded against overflow, and cleared with service destruction.
+- Fix reentrant parked callbacks cancelling a promoted primary's gate. The mapped
+  ticker checks end-of-track sleep before promotion/looping, not just Media3 ENDED.
+- Full Android gates pass (418 JVM tests, zero lint errors, debug/test/R8 release).
+  Windows builds and passes 73 core tests. API36 passes 25 UI/storage tests and a
+  subsequent 13 playback/narrow-toolbar tests; five EOF repeats also pass. These use
+  owned silent PCM/video and synthetic failures, not acoustic alignment evidence.
+  API34 passes all21 playback/fullscreen/audio/PiP cases. Fix independently rounded
+  toolbar padding at420dpi so six48dp actions are not clipped by two pixels.
+  API35 final rerun, final merge/rebuild and remaining limits are tracked in
+  `docs/CLAUDE_AUDIT_VERIFICATION_2026-10-20.md`. Keep this candidate SOURCE_ONLY.
+
+### October 20 — build fix for Claude audit (1.21.60/code283)
+
+- Android CI on 1.21.59 reported an unresolved Compose `mutableIntStateOf` reference in the one-shot Locate state. Fix to the already imported `mutableStateOf(0)` with version increment in the same commit. All other review/QA limits from 1.21.59 remain in force.
+
+### October 20 — Claude source-audit remediation (1.21.59/code282)
+
+- Move end-of-track and countdown sleep timer execution out of MainViewModel into the independent playback service. Timer uses SystemClock.elapsedRealtime and survives Activity closure while the service remains active; Repeat One and end-of-queue pause both primary and Stack voices.
+- Poll 50ms A/B practice-loop positions only while playing and both markers are set. Prevent TypeScript .ts being indexed as video (bounded MPEG-TS sync sniff for local files; explicit video MIME required for SAF), unify case-insensitive relative folder pruning in both discovery paths.
+- Queue rescans requested mid-scan rather than discarding them, cache failed duration probes, surface controller connection errors, and remove the dead internal path from the external library-audio filter.
+- Handle backup/restore coroutine cancellation explicitly and localize success/failure messages in six languages. Pre-serialize before opening truncating SAF writes, but third-party ContentResolver streams still cannot guarantee atomic replacement.
+- Replace mutable nullable overlay window assertions with a locally owned host, extend Stack to longest remaining playable duration and resume the survivor when leaving a two-track Stack, and fix stale immersive gesture/theme effect + one-shot queue Locate capture.
+- Claude's hi-res codec suspicion, remaining UI strings, large-screen orientation, dependency governance and APK/history size require independent QA/policy approval. Do not remove formats or rewrite history automatically. SOURCE_ONLY; latest verified personal sideload 1.21.39/code262 untouched.
 
 ### October 19–20 — reviewed Grok audit follow-up (1.21.58/code281)
 

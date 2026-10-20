@@ -142,6 +142,18 @@ class FullscreenRotationTest {
             capture("landscape")
             assertFullscreenToolbarAlignment("Rotate to portrait")
             assertToolbarInsideScreenSafeRegion(activity)
+            // Material light/dark changes must not dispose the orientation owner
+            // or hand the working video surface away during fullscreen.
+            for (theme in listOf(com.local.listentomusic.data.ThemeMode.LIGHT, com.local.listentomusic.data.ThemeMode.DARK)) {
+                preferences.setThemeMode(theme)
+                compose.waitForIdle()
+                kotlinx.coroutines.delay(250)
+                instrumentation.runOnMainSync {
+                    assertEquals(Configuration.ORIENTATION_LANDSCAPE, activity.resources.configuration.orientation)
+                    assertEquals(lease.player, VideoSurfaceOwner.state.value.player)
+                    assertEquals(lease.view, VideoSurfaceOwner.state.value.view)
+                }
+            }
             compose.onNodeWithContentDescription("Rotate to portrait").assertIsDisplayed().performClick()
             compose.waitUntil(20_000) {
                 activity.resources.configuration.orientation == Configuration.ORIENTATION_PORTRAIT
@@ -163,6 +175,7 @@ class FullscreenRotationTest {
             preferences.setFloatingWindowMode(old.floatingWindowMode)
             preferences.setResumePlayback(old.resumePlayback)
             preferences.setSeekOffsetMs(old.seekOffsetMs)
+            preferences.setThemeMode(old.themeMode)
         }
     }
 
@@ -211,7 +224,13 @@ class FullscreenRotationTest {
                 val now = android.os.SystemClock.elapsedRealtime()
                 if (now - sampledAt < 100L) false else {
                     sampledAt = now
-                    val next = requireNotNull(instrumentation.uiAutomation.takeScreenshot())
+                    val next = instrumentation.uiAutomation.takeScreenshot()
+                    if (next == null) {
+                        // Rotation can briefly leave the compositor without a
+                        // capture buffer. Still require three real stable frames.
+                        stableSamples = 0
+                        return@waitUntil false
+                    }
                     stableSamples = if (previous?.sameAs(next) == true) stableSamples + 1 else 0
                     previous?.recycle()
                     previous = next

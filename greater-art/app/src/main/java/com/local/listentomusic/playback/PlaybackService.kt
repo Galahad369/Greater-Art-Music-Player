@@ -12,6 +12,7 @@ import androidx.media3.common.MediaItem
 import androidx.media3.common.MediaMetadata
 import androidx.media3.common.PlaybackException
 import androidx.media3.common.Player
+import androidx.media3.common.ForwardingPlayer
 import androidx.media3.exoplayer.DefaultLoadControl
 import androidx.media3.exoplayer.DefaultRenderersFactory
 import androidx.media3.exoplayer.ExoPlayer
@@ -30,6 +31,9 @@ import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import java.io.File
@@ -44,6 +48,7 @@ class PlaybackService : MediaLibraryService() {
     private lateinit var preferences: AppPreferences
     private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
     private val saveMutex = Mutex()
+    private val practiceLoopPlaying = MutableStateFlow(false)
     private val saveGeneration = AtomicLong()
     private var destroyed = false
     private var saveJob: Job? = null
@@ -117,10 +122,12 @@ class PlaybackService : MediaLibraryService() {
         // so a first play tap cannot strand the fresh player in Media3's Repeat Off.
         player.repeatMode = Player.REPEAT_MODE_ONE
         player.shuffleModeEnabled = false
-        stackCoordinator = StackPlaybackCoordinator(this, player, serviceScope, ::applyMixLevels)
+        stackCoordinator = StackPlaybackCoordinator(this, player, serviceScope,
+            onPrimaryBoundary = PlaybackSleepTimer::finishAtTrackEnd, onLevelsChanged = ::applyMixLevels)
         StackPlayback.startCommand = { files ->
-            layers.toList().forEach { removeLayer(it.id) }
-            stackCoordinator.start(files)
+            stackCoordinator.start(files).also { started ->
+                if (started) layers.toList().forEach { removeLayer(it.id) }
+            }
         }
         StackPlayback.addCommand = stackCoordinator::add
         StackPlayback.removeCommand = stackCoordinator::remove
@@ -180,7 +187,33 @@ class PlaybackService : MediaLibraryService() {
             restoreLastSession(saved)
         }
 
-        mediaSession = MediaLibrarySession.Builder(this, player, LocalLibraryCallback(this, serviceScope)).build()
+        // During a Stack gate the real player is already parked (playWhenReady=false).
+        // Intercept the command itself: another Pause emits no ExoPlayer state event.
+        val sessionPlayer = object : ForwardingPlayer(player) {
+            override fun play() {
+                if (stackCoordinator.active) {
+                    ensureFocus()
+                    if (focusHeld) stackCoordinator.play()
+                } else super.play()
+            }
+            override fun pause() = pauseEveryPlayer()
+            override fun setPlayWhenReady(ready: Boolean) { if (ready) play() else pause() }
+            // A controller's pre-Stack append can arrive after async admission.
+            // Stack owns one primary queue item; its takes use the coordinator.
+            override fun addMediaItems(items: List<MediaItem>) {
+                if (!stackCoordinator.active) super.addMediaItems(items)
+            }
+            override fun addMediaItems(index: Int, items: List<MediaItem>) {
+                if (!stackCoordinator.active) super.addMediaItems(index, items)
+            }
+            override fun addMediaItem(item: MediaItem) {
+                if (!stackCoordinator.active) super.addMediaItem(item)
+            }
+            override fun addMediaItem(index: Int, item: MediaItem) {
+                if (!stackCoordinator.active) super.addMediaItem(index, item)
+            }
+        }
+        mediaSession = MediaLibrarySession.Builder(this, sessionPlayer, LocalLibraryCallback(this, serviceScope)).build()
         player.addListener(object : Player.Listener {
             override fun onPlayWhenReadyChanged(playWhenReady: Boolean, reason: Int) {
                 if (playWhenReady) ensureFocus()
@@ -197,10 +230,22 @@ class PlaybackService : MediaLibraryService() {
             }
             override fun onAudioSessionIdChanged(audioSessionId: Int) { applyGain() }
             override fun onIsPlayingChanged(isPlaying: Boolean) {
+                practiceLoopPlaying.value = isPlaying
+                if (!isPlaying && player.playbackState == Player.STATE_ENDED && PlaybackSleepTimer.finishAtTrackEnd())
+                    pauseEveryPlayer()
                 stackCoordinator.onMainIsPlayingChanged(isPlaying)
                 scheduleSave()
             }
             override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
+                if (PracticeLoop.state.value.path?.let { it != mediaItem?.mediaId } == true) PracticeLoop.clear()
+                // Sleep timer's end-of-track request must stop both the primary and
+                // companion players, including Repeat One transitions.
+                if ((reason == Player.MEDIA_ITEM_TRANSITION_REASON_AUTO ||
+                        reason == Player.MEDIA_ITEM_TRANSITION_REASON_REPEAT) &&
+                    PlaybackSleepTimer.finishAtTrackEnd()) {
+                    if (stackCoordinator.active) stackCoordinator.pause()
+                    pauseEveryPlayer()
+                }
                 stackCoordinator.onMainMediaChanged(mediaItem?.mediaId)
                 retriedPath = null
                 widgetArtwork = null
@@ -221,7 +266,12 @@ class PlaybackService : MediaLibraryService() {
                 scheduleSave()
             }
             override fun onPlaybackStateChanged(playbackState: Int) {
-                if (playbackState == Player.STATE_ENDED) stackCoordinator.onPrimaryEnded()
+                if (playbackState == Player.STATE_ENDED) {
+                    if (PlaybackSleepTimer.finishAtTrackEnd()) {
+                        if (stackCoordinator.active) stackCoordinator.pause()
+                        pauseEveryPlayer()
+                    } else stackCoordinator.onPrimaryEnded()
+                }
                 else if (playbackState == Player.STATE_READY) stackCoordinator.onMainReady()
                 scheduleSave(); publishDiagnostics()
             }
@@ -261,11 +311,33 @@ class PlaybackService : MediaLibraryService() {
             }
         }
         serviceScope.launch {
-            while (isActive) {
-                val range = PracticeLoop.state.value
-                if (range.path != null && range.path != player.currentMediaItem?.mediaId) PracticeLoop.clear()
-                else if (player.isPlaying && range.start != null && range.end != null && player.currentPosition >= range.end) player.seekTo(range.start)
-                delay(50)
+            // Only poll during a complete active A–B loop, not 20 times per second
+            // for the entire lifetime of an idle/paused playback service.
+            combine(PracticeLoop.state, practiceLoopPlaying) { range, playing -> range to playing }
+                .collectLatest { (range, playing) ->
+                    if (!playing || range.path == null || range.start == null || range.end == null) return@collectLatest
+                    while (isActive) {
+                        if (range.path != player.currentMediaItem?.mediaId) {
+                            PracticeLoop.clear()
+                            break
+                        }
+                        if (player.currentPosition >= range.end) player.seekTo(range.start)
+                        delay(50)
+                    }
+                }
+        }
+        serviceScope.launch {
+            // Timer remains active when the UI Activity / ViewModel goes away.
+            PlaybackSleepTimer.deadline.collectLatest { until ->
+                if (until == null) return@collectLatest
+                while (isActive) {
+                    if (PlaybackSleepTimer.tick()) {
+                        if (stackCoordinator.active) stackCoordinator.pause()
+                        pauseEveryPlayer()
+                        break
+                    }
+                    delay(1_000)
+                }
             }
         }
         serviceScope.launch {
@@ -285,6 +357,7 @@ class PlaybackService : MediaLibraryService() {
 
     override fun onDestroy() {
         destroyed = true
+        PlaybackSleepTimer.cancel()
         TemporaryPlaybackSpeed.end()
         TemporaryPlaybackSpeed.detach()
         stackCoordinator.release()

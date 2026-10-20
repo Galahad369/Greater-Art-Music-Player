@@ -252,6 +252,9 @@ internal fun toolbarActionVisibility(availableWidthDp: Float, hasRotate: Boolean
     )
 }
 
+internal fun toolbarAvailableSlots(widthPx: Int, targetPx: Int, chromePx: Int): Int =
+    if (targetPx <= 0) 0 else ((widthPx - chromePx).coerceAtLeast(0) / targetPx)
+
 internal fun fittedVideoPanLimit(viewport: IntSize, aspectRatio: Float, scale: Float): Offset {
     if (viewport.width <= 0 || viewport.height <= 0 || !aspectRatio.isFinite() ||
         aspectRatio <= 0f || !scale.isFinite() || scale <= 1f) return Offset.Zero
@@ -703,6 +706,7 @@ private fun VideoPlayerStage(
     var stageWindowBounds by remember { mutableStateOf<androidx.compose.ui.geometry.Rect?>(null) }
     val density = LocalDensity.current
     val currentControlsVisible by rememberUpdatedState(controlsVisible)
+    val currentImmersive by rememberUpdatedState(immersive)
     val toolbarBottomPx = if (toolbarWindowBounds != null && stageWindowBounds != null)
         (toolbarWindowBounds!!.bottom - stageWindowBounds!!.top).coerceAtLeast(0f)
     else with(density) { 72.dp.toPx() }
@@ -937,13 +941,13 @@ private fun VideoPlayerStage(
                     // Centre tap toggles. Side taps only reveal hidden chrome and
                     // retain the same-side double-tap seeking contract.
                     val side = seekSideForX(startPosition.x, size.width.toFloat())
-                    if (immersive && isCenterVideoTap(startPosition.x, size.width.toFloat())) {
+                    if (currentImmersive && isCenterVideoTap(startPosition.x, size.width.toFloat())) {
                         onControlsVisibilityChange(!currentControlsVisible)
                         lastSeekSide = null
                         lastSeekTapMs = 0L
                         return@awaitEachGesture
                     }
-                    if (immersive && !currentControlsVisible) onControlsVisibilityChange(true)
+                    if (currentImmersive && !currentControlsVisible) onControlsVisibilityChange(true)
                     val nowMs = android.os.SystemClock.uptimeMillis()
                     if (sideDoubleTapSeeks(side, nowMs, lastSeekSide, lastSeekTapMs)) {
                         val delta = when (side) {
@@ -1042,7 +1046,7 @@ private fun VideoPlayerStage(
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     OverlayIconButton(onClick = onPrevious, enabled = playback.hasPrevious) {
-                        Icon(Icons.Rounded.SkipPrevious, "Previous", tint = GaVideoOverlay.foreground, modifier = Modifier.size(GaControl.prominentIcon))
+                        Icon(Icons.Rounded.SkipPrevious, uiText(playback.appLanguage, "Previous", "上一首"), tint = GaVideoOverlay.foreground, modifier = Modifier.size(GaControl.prominentIcon))
                     }
                     // Keep the center play control available whenever controls are visible.
                     Box(
@@ -1052,13 +1056,13 @@ private fun VideoPlayerStage(
                     ) {
                         Icon(
                             if (playback.isPlaying) Icons.Rounded.Pause else Icons.Rounded.PlayArrow,
-                            if (playback.isPlaying) "Pause" else "Play",
+                            uiText(playback.appLanguage, if (playback.isPlaying) "Pause" else "Play", if (playback.isPlaying) "暫停" else "播放"),
                             modifier = Modifier.size(GaControl.heroIcon),
                             tint = GaVideoOverlay.foreground,
                         )
                     }
                     OverlayIconButton(onClick = onNext, enabled = playback.hasNext) {
-                        Icon(Icons.Rounded.SkipNext, "Next", tint = GaVideoOverlay.foreground, modifier = Modifier.size(GaControl.prominentIcon))
+                        Icon(Icons.Rounded.SkipNext, uiText(playback.appLanguage, "Next", "下一首"), tint = GaVideoOverlay.foreground, modifier = Modifier.size(GaControl.prominentIcon))
                     }
                 }
 
@@ -1500,9 +1504,13 @@ private fun NowPlayingQueue(
     LaunchedEffect(currentQueueIndex, visibleIndex) {
         if (visibleIndex >= 0 && !listState.isScrollInProgress) listState.scrollToItem(visibleIndex)
     }
+    var handledLocateTrigger by remember { mutableStateOf(0) }
     LaunchedEffect(locateTrigger, visibleIndex) {
-        // Rerun after clearing a filter that was hiding the playing song.
-        if (locateTrigger > 0 && visibleIndex >= 0) listState.animateScrollToItem(visibleIndex)
+        // Consume each Locate request exactly once, even after the filter changes.
+        if (locateTrigger > handledLocateTrigger && visibleIndex >= 0) {
+            handledLocateTrigger = locateTrigger
+            listState.animateScrollToItem(visibleIndex)
+        }
     }
     LaunchedEffect(listState) {
         try {
@@ -2301,9 +2309,17 @@ internal fun NowPlayingTopBar(
         .onGloballyPositioned { onTopBarBoundsChanged(it.boundsInWindow()) }) {
         // Keep 48dp targets at every width. Under 224dp, provide two compact
         // rows rather than squeezing/clipping Rotate, Lock, Fullscreen and Close.
-        val actions = toolbarActionVisibility(maxWidth.value, onRotate != null)
-        val compact = maxWidth.value < if (onRotate != null) 224f else 176f
-        val oneColumn = maxWidth.value < 128f
+        val density = LocalDensity.current
+        // Round the combined inset once. At 420dpi, independently rounded
+        // 12dp + 4dp pads steal two pixels from six exact 48dp targets.
+        val outerPx = with(density) { 12.dp.roundToPx() }
+        val insetPx = with(density) { 16.dp.roundToPx() }
+        val innerPadding = with(density) { (insetPx - outerPx).toDp() }
+        val slots = toolbarAvailableSlots(constraints.maxWidth,
+            with(density) { GaControl.touchTarget.roundToPx() }, insetPx * 2)
+        val actions = toolbarActionVisibility(32f + slots * 48f, onRotate != null)
+        val compact = slots < if (onRotate != null) 4 else 3
+        val oneColumn = slots < 2
         val chrome = Modifier.fillMaxWidth()
             .padding(horizontal = 12.dp, vertical = 6.dp)
             .clip(topBarShape)
@@ -2314,7 +2330,7 @@ internal fun NowPlayingTopBar(
                 else MaterialTheme.colorScheme.outlineVariant.copy(alpha = NOW_PLAYING_AMBIENT_OUTLINE_ALPHA),
                 topBarShape,
             )
-            .padding(horizontal = GaSpacing.xs)
+            .padding(horizontal = innerPadding)
 
         val rotateButton: @Composable () -> Unit = {
             if (onRotate != null) IconButton(
@@ -2592,7 +2608,8 @@ private fun FullscreenEffect(enabled: Boolean, landscape: Boolean? = null) {
         }
     }
 
-    DisposableEffect(activity, enabled, systemDark) {
+    val latestSystemDark by rememberUpdatedState(systemDark)
+    DisposableEffect(activity, enabled) {
         val window = activity.window
         val decorView = window.decorView
         val insets = WindowCompat.getInsetsController(window, decorView)
@@ -2620,8 +2637,8 @@ private fun FullscreenEffect(enabled: Boolean, landscape: Boolean? = null) {
                 applied
             }
         } else {
-            insets.isAppearanceLightStatusBars = !systemDark
-            insets.isAppearanceLightNavigationBars = !systemDark
+            insets.isAppearanceLightStatusBars = !latestSystemDark
+            insets.isAppearanceLightNavigationBars = !latestSystemDark
         }
 
         onDispose {
@@ -2636,8 +2653,8 @@ private fun FullscreenEffect(enabled: Boolean, landscape: Boolean? = null) {
                 }
                 insets.show(WindowInsetsCompat.Type.systemBars())
             }
-            insets.isAppearanceLightStatusBars = !systemDark
-            insets.isAppearanceLightNavigationBars = !systemDark
+            insets.isAppearanceLightStatusBars = !latestSystemDark
+            insets.isAppearanceLightNavigationBars = !latestSystemDark
         }
     }
 }

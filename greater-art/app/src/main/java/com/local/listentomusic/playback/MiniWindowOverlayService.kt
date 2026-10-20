@@ -250,7 +250,10 @@ class MiniWindowOverlayService : Service(), LifecycleOwner, ViewModelStoreOwner,
         }
         applyModeLayout()
         try {
-            root?.let { wm?.addView(it, params!!) }
+            val overlayRoot = root ?: error("Overlay root unavailable")
+            val overlayParams = params ?: error("Overlay layout unavailable")
+            val windowManager = wm ?: error("Window manager unavailable")
+            windowManager.addView(overlayRoot, overlayParams)
         } catch (error: RuntimeException) {
             // Keep the user's Mini preference intact. A temporary OEM overlay failure
             // must not silently rewrite Settings to a different floating mode.
@@ -388,7 +391,7 @@ class MiniWindowOverlayService : Service(), LifecycleOwner, ViewModelStoreOwner,
     private var ready = false
 
     private fun buildView() {
-        root = object : FrameLayout(this) {
+        val host = object : FrameLayout(this) {
             override fun onInterceptTouchEvent(event: MotionEvent): Boolean {
                 if (docked || expanded) return false
                 if (event.actionMasked == MotionEvent.ACTION_DOWN) drag(this, event)
@@ -398,15 +401,15 @@ class MiniWindowOverlayService : Service(), LifecycleOwner, ViewModelStoreOwner,
                 return false
             }
         }
-        // Compose installs its window recomposer on the window root, not on the
-        // nested ComposeView. All owner tags must exist here before attachment.
-        root!!.setViewTreeLifecycleOwner(this)
-        root!!.setViewTreeViewModelStoreOwner(this)
-        root!!.setViewTreeSavedStateRegistryOwner(this)
-        root!!.setViewTreeOnBackPressedDispatcherOwner(this)
+        root = host
+        // Use the owned host during construction, not nullable shared service state.
+        host.setViewTreeLifecycleOwner(this)
+        host.setViewTreeViewModelStoreOwner(this)
+        host.setViewTreeSavedStateRegistryOwner(this)
+        host.setViewTreeOnBackPressedDispatcherOwner(this)
         compact = com.local.listentomusic.ui.components.CompactPlayerView(this).also {
             it.onOpen = { openApp() }
-            root!!.addView(it, FrameLayout.LayoutParams(-1, -1))
+            host.addView(it, FrameLayout.LayoutParams(-1, -1))
             videoView = it.video
             it.setDetached(!docked)
         }
@@ -415,11 +418,12 @@ class MiniWindowOverlayService : Service(), LifecycleOwner, ViewModelStoreOwner,
             visibility = View.GONE
             isClickable = false
         }
-        root!!.addView(dangerTint, FrameLayout.LayoutParams(-1, -1))
+        host.addView(dangerTint, FrameLayout.LayoutParams(-1, -1))
     }
 
     private fun ensureExpandedHost(): Boolean {
         if (expandedHostReady) return true
+        val host = root ?: return false
         return runCatching {
             savedStateController.performAttach()
             savedStateController.performRestore(null)
@@ -465,7 +469,7 @@ class MiniWindowOverlayService : Service(), LifecycleOwner, ViewModelStoreOwner,
                     )
                 }
             }
-            }.also { root!!.addView(it, FrameLayout.LayoutParams(-1, -1)) }
+            }.also { host.addView(it, FrameLayout.LayoutParams(-1, -1)) }
             lifecycleRegistry.currentState = Lifecycle.State.RESUMED
             expandedHostReady = true
             true

@@ -273,6 +273,14 @@ private fun stackFitCoherentInstrumentMap(anchors: List<StackInstrumentAnchor>, 
 internal fun stackMappedPosition(masterMs: Long, slot: StackSlot): Long =
     (masterMs * slot.alignmentScale + (slot.alignmentOffsetUs ?: slot.offsetMs * 1000.0) / 1000).roundToLong()
 
+/** Convert a take's EOF back to the master timeline, respecting offset and rate. */
+internal fun stackTimelineEnd(slot: StackSlot, durationMs: Long): Long {
+    if (durationMs <= 0L || !slot.alignmentScale.isFinite() || slot.alignmentScale <= 0.0) return 0L
+    val offset = (slot.alignmentOffsetUs ?: slot.offsetMs * 1000.0) / 1000.0
+    if (!offset.isFinite()) return 0L
+    return kotlin.math.ceil((durationMs - offset) / slot.alignmentScale).toLong().coerceAtLeast(0L)
+}
+
 internal fun stackRebaseMappings(slots: List<StackSlot>, primary: StackSlot): List<StackSlot> {
     val b = primary.alignmentOffsetUs ?: primary.offsetMs * 1000.0
     return slots.map { slot ->

@@ -218,12 +218,9 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     private val _playback = MutableStateFlow(PlaybackUiState())
     val playback: StateFlow<PlaybackUiState> = _playback.asStateFlow()
 
-    private val _sleepTimer = MutableStateFlow(SleepTimerState())
-    val sleepTimer: StateFlow<SleepTimerState> = _sleepTimer.asStateFlow()
-    private var sleepTimerJob: Job? = null
-    private var sleepTimerEndsAt: Long = 0L
-    // Single-job wakeup. The exact remainingMs is computed at fire time,
-    // so we never have to chase a moving target. End-of-track uses a flag, not a clock.
+    // The playback service owns timer lifetime and monotonic clock; Activity
+    // teardown must not silently abandon a pending sleep timer.
+    val sleepTimer: StateFlow<SleepTimerState> = com.local.listentomusic.playback.PlaybackSleepTimer.state
 
     private val _controller = MutableStateFlow<MediaController?>(null)
     val controller: StateFlow<MediaController?> = _controller.asStateFlow()
@@ -235,15 +232,16 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     private var controllerLease: com.local.listentomusic.playback.SharedPlaybackResource.Lease<ListenableFuture<MediaController>>? = null
     private var tickerJob: Job? = null
-        private var scanJob: Job? = null
+    private var scanJob: Job? = null
+    private var rescanQueued = false
         private var durationProbeJob: Job? = null
         private var waveformWarmupJob: Job? = null
         private var waveformAheadJob: Job? = null
-        private var durationProbePath: String? = null
-        private val probedDurations = mutableMapOf<String, Long>()
+    private var durationProbePath: String? = null
+    private val probedDurations = mutableMapOf<String, Long>()
     private var pendingPlay: MediaFile? = null
     private var expandRestoredQueue = false
-        private var lastPlaybackError: String? = null
+    private var lastPlaybackError: String? = null
         private var videoFrameRendered = false
 
     private val playerListener = object : Player.Listener {
@@ -259,7 +257,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         }
 
         override fun onPlayerError(error: PlaybackException) {
-            lastPlaybackError = "This file could not be decoded on this device. Trying the next item."
+            lastPlaybackError = "This file could not be decoded on this device."
             publishPlayback(_controller.value ?: return)
         }
 
@@ -269,9 +267,8 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
         override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
                     if (reason != Player.MEDIA_ITEM_TRANSITION_REASON_REPEAT) videoFrameRendered = false
-                    // Sleep timer in "end of track" mode fires when the next item lands.
-                    val timer = _sleepTimer.value
-                    if (timer.active && timer.endOfTrack) cancelSleepTimer()
+                    // PlaybackService handles the timer across Activity lifecycles,
+                    // including Repeat One and end-of-queue transitions.
                 }
 
         override fun onRenderedFirstFrame() {
@@ -341,17 +338,28 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     fun rescan() {
         if (!preferencesLoaded) return
         if (!hasStorageAccess() && userPreferences.scopedMediaTreeUri == null) {
+            scanJob?.cancel()
+            scanJob = null
+            rescanQueued = false
+            scannedFiles = emptyList()
+            applySortingAndFilter()
+            if (graphRequested) requestGraph()
             _stackFiles.value = emptyList()
             _library.value = _library.value.copy(status = LibraryStatus.NEEDS_PERMISSION)
             return
         }
-        if (scanJob?.isActive == true) return
+        if (scanJob?.isActive == true) {
+            rescanQueued = true
+            return
+        }
         scanJob = viewModelScope.launch {
+            try {
             if (_library.value.files.isEmpty()) _library.value = _library.value.copy(status = LibraryStatus.SCANNING)
             val tree = userPreferences.scopedMediaTreeUri
             val discovered = if (tree != null) com.local.listentomusic.data.ScopedMediaDiscovery(
                 com.local.listentomusic.data.AndroidScopedDiscoveryAccess(getApplication<Application>().contentResolver))
-                .scan(listOf(tree), includeMediaStore = false) else null
+                .scan(listOf(tree), includeMediaStore = false,
+                    excludedFolders = userPreferences.excludedFolders.toSet()) else null
             if (discovered != null) {
                 scopedPreviewStatus.value = com.local.listentomusic.ui.scopedResultText(
                     userPreferences.appLanguage, discovered.records.size, discovered.inspected) +
@@ -363,6 +371,13 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 else MediaScanner.scan(userPreferences.excludedFolders.toSet())
             when (val result = scan) {
                 is ScanResult.Success -> {
+                    val previous = scannedFiles.associateBy { it.path }
+                    val incoming = result.files.associateBy { it.path }
+                    probedDurations.keys.removeAll { id ->
+                        val before = previous[id]; val after = incoming[id]
+                        before == null || after == null || before.sourcePath != after.sourcePath ||
+                            before.modifiedMs != after.modifiedMs || before.sizeBytes != after.sizeBytes
+                    }
                     scannedFiles = result.files
                     if (graphRequested) requestGraph()
                     refreshMetadata()
@@ -388,6 +403,15 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                         status = LibraryStatus.CANNOT_READ,
                         targetPath = result.path,
                     )
+                }
+            }
+            } finally {
+                if (scanJob === kotlinx.coroutines.currentCoroutineContext()[Job]) {
+                    scanJob = null
+                    if (rescanQueued) {
+                        rescanQueued = false
+                        rescan()
+                    }
                 }
             }
         }
@@ -433,6 +457,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             // A tap can arrive while the MediaSession connection is still starting.
             // Keep it instead of silently dropping the user's request.
             pendingPlay = file
+            if (controllerLease == null) connectController()
             return
         }
         playNow(player, file)
@@ -694,15 +719,34 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     fun backupSettings(uri: Uri) = viewModelScope.launch(Dispatchers.IO) {
         val context = getApplication<Application>()
-        val result = runCatching {
-            context.contentResolver.openOutputStream(uri, "wt")!!.bufferedWriter().use { it.write(preferences.exportBackup()) }
+        val language = settings.value.appLanguage
+        val success = try {
+            // Build the payload before opening a truncating provider stream.
+            // Third-party SAF providers cannot guarantee atomic replacement.
+            val payload = preferences.exportBackup().toByteArray(Charsets.UTF_8)
+            kotlinx.coroutines.currentCoroutineContext().ensureActive()
+            val output = context.contentResolver.openOutputStream(uri, "wt")
+                ?: error("Backup document unavailable")
+            output.use { it.write(payload); it.flush() }
+            kotlinx.coroutines.currentCoroutineContext().ensureActive()
+            true
+        } catch (cancelled: kotlinx.coroutines.CancellationException) {
+            throw cancelled
+        } catch (_: Exception) {
+            false
         }
-        withContext(Dispatchers.Main) { android.widget.Toast.makeText(context, if (result.isSuccess) "Backup saved" else "Could not save backup", android.widget.Toast.LENGTH_LONG).show() }
+        withContext(Dispatchers.Main) {
+            android.widget.Toast.makeText(context, com.local.listentomusic.ui.uiText(
+                language, if (success) "Backup saved" else "Could not save backup",
+                if (success) "設定已備份" else "無法儲存備份",
+            ), android.widget.Toast.LENGTH_LONG).show()
+        }
     }
 
     fun restoreSettings(uri: Uri) = viewModelScope.launch(Dispatchers.IO) {
         val context = getApplication<Application>()
-        val result = runCatching {
+        val language = settings.value.appLanguage
+        val success = try {
             val bytes = context.contentResolver.openInputStream(uri)!!.use { input ->
                 val output = java.io.ByteArrayOutputStream()
                 val buffer = ByteArray(8192)
@@ -714,11 +758,20 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 output.toByteArray()
             }
             require(bytes.size <= 5_000_000)
+            kotlinx.coroutines.currentCoroutineContext().ensureActive()
             preferences.restoreBackup(bytes.toString(Charsets.UTF_8))
+            true
+        } catch (cancelled: kotlinx.coroutines.CancellationException) {
+            throw cancelled
+        } catch (_: Exception) {
+            false
         }
         withContext(Dispatchers.Main) {
-            if (result.isSuccess) { userPreferences = preferences.current(); scanJob?.cancel(); scanJob = null; rescan() }
-            android.widget.Toast.makeText(context, if (result.isSuccess) "Settings and playlists restored" else "Invalid or unreadable backup", android.widget.Toast.LENGTH_LONG).show()
+            if (success) { userPreferences = preferences.current(); scanJob?.cancel(); scanJob = null; rescan() }
+            android.widget.Toast.makeText(context, com.local.listentomusic.ui.uiText(
+                language, if (success) "Settings and playlists restored" else "Invalid or unreadable backup",
+                if (success) "設定及播放清單已還原" else "備份無效或無法讀取",
+            ), android.widget.Toast.LENGTH_LONG).show()
         }
     }
 
@@ -972,38 +1025,13 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-    // -1L minute target = pause at the end of the current track.
-    fun setSleepTimer(minutes: Long) {
-        sleepTimerJob?.cancel()
-        if (minutes == 0L) {
-            cancelSleepTimer()
-            return
-        }
-        if (minutes == -1L) {
-            _sleepTimer.value = SleepTimerState(active = true, endOfTrack = true)
-            return
-        }
-        sleepTimerEndsAt = System.currentTimeMillis() + minutes * 60_000L
-        _sleepTimer.value = SleepTimerState(active = true, remainingMs = minutes * 60_000L)
-        sleepTimerJob = viewModelScope.launch {
-            while (true) {
-                val remaining = (sleepTimerEndsAt - System.currentTimeMillis()).coerceAtLeast(0L)
-                _sleepTimer.value = _sleepTimer.value.copy(remainingMs = remaining)
-                if (remaining == 0L) break
-                delay(1_000L)
-            }
-            _controller.value?.pause()
-            _sleepTimer.value = SleepTimerState()
-        }
-    }
+    // -1L = pause at the end of this track, including Repeat One.
+    fun setSleepTimer(minutes: Long) = com.local.listentomusic.playback.PlaybackSleepTimer.set(minutes)
 
-    fun cancelSleepTimer() {
-        sleepTimerJob?.cancel()
-        sleepTimerJob = null
-        _sleepTimer.value = SleepTimerState()
-    }
+    fun cancelSleepTimer() = com.local.listentomusic.playback.PlaybackSleepTimer.cancel()
 
     private fun connectController() {
+        if (_controller.value != null || controllerLease != null) return
         val context = getApplication<Application>()
         val lease = com.local.listentomusic.playback.PlaybackConnection.acquire(context)
         controllerLease = lease
@@ -1011,9 +1039,11 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         future.addListener({
             if (controllerLease !== lease) return@addListener
             runCatching { future.get() }.onSuccess { mediaController ->
+                lastPlaybackError = null
                 _controller.value = mediaController
                 mediaController.addListener(playerListener)
-                expandRestoredQueue = mediaController.mediaItemCount == 1
+                expandRestoredQueue = mediaController.mediaItemCount == 1 &&
+                    !com.local.listentomusic.playback.StackPlayback.state.value.active
                 if (expandRestoredQueue && orderedFiles.isNotEmpty()) applySortingAndFilter()
                 syncPlaybackQueue()
                 publishPlayback(mediaController)
@@ -1022,6 +1052,12 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                     pendingPlay = null
                     playNow(mediaController, requested)
                 }
+            }.onFailure {
+                controllerLease = null
+                lease.close()
+                lastPlaybackError = "Could not connect to playback service."
+                _playback.value = _playback.value.copy(connected = false, errorMessage = lastPlaybackError)
+                // Keep pendingPlay intact for a future successful connection.
             }
         }, ContextCompat.getMainExecutor(context))
     }
@@ -1129,7 +1165,6 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         } else prefs.activePlaylistId
             ?.let { id -> prefs.playlists.firstOrNull { it.id == id } }
             ?.let { playlist ->
-                val byPath = decorated.associateBy(MediaFile::path)
                 playlist.rule?.let { rule -> sortedLibrary.filter { rule.matches(it, MediaScanner.targetFolder().path) } }
                     ?: com.local.listentomusic.model.expandStackKeyword(
                         explicitPaths = playlist.paths,
@@ -1156,7 +1191,8 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         _controller.value?.let { player ->
             if (expandRestoredQueue && ordered.isNotEmpty()) {
                 expandRestoredQueue = false
-                if (player.mediaItemCount == 1 && prefs.activePlaylistId == null) {
+                if (player.mediaItemCount == 1 && prefs.activePlaylistId == null &&
+                    !com.local.listentomusic.playback.StackPlayback.state.value.active) {
                     val current = player.currentMediaItem?.mediaId
                     player.addMediaItems(ordered.filter { it.path != current }.map(MediaFile::toMediaItem))
                 }
@@ -1237,6 +1273,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     fun setGraphOptions(options: com.local.listentomusic.graph.GraphOptions) = viewModelScope.launch { preferences.setGraphOptions(options) }
 
     fun refreshPlaybackSession() {
+        if (_controller.value == null && controllerLease == null) connectController()
         syncPlaybackQueue()
         _controller.value?.let(::publishPlayback)
     }
@@ -1277,7 +1314,9 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                     runCatching { retriever.release() }
                 }
             }
-            if (duration != null && duration > 0L) probedDurations[path] = duration
+            kotlinx.coroutines.currentCoroutineContext().ensureActive()
+            // Cache unknown durations as zero to avoid reopening the same failing URI every 500ms.
+            probedDurations[path] = duration?.coerceAtLeast(0L) ?: 0L
             durationProbePath = null
             _controller.value?.let(::publishPlayback)
         }
@@ -1289,7 +1328,6 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         scanJob?.cancel()
         durationProbeJob?.cancel()
         waveformWarmupJob?.cancel()
-        sleepTimerJob?.cancel()
         _controller.value?.removeListener(playerListener)
         controllerLease?.close()
         controllerLease = null

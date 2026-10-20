@@ -6,6 +6,7 @@ import com.local.listentomusic.model.MediaKind
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.File
+import java.util.Locale
 
 object MediaScanner {
     internal val videoExtensions = setOf(
@@ -16,6 +17,30 @@ object MediaScanner {
         "ape", "dsf", "dff", "amr", "ac3", "eac3", "mka",
     )
     internal val supportedExtensions = videoExtensions + audioExtensions
+
+    /** A TypeScript source file is also named .ts. Inspect only three TS packet headers. */
+    internal fun looksLikeTransportStream(file: File): Boolean = runCatching {
+        val sample = ByteArray(616)
+        var count = 0
+        file.inputStream().use { input ->
+            while (count < sample.size) {
+                val n = input.read(sample, count, sample.size - count)
+                if (n <= 0) break
+                count += n
+            }
+        }
+        listOf(188 to 0, 192 to 4, 204 to 0).any { (stride, offset) ->
+            count > offset + stride * 2 &&
+                sample[offset] == 0x47.toByte() &&
+                sample[offset + stride] == 0x47.toByte() &&
+                sample[offset + 2 * stride] == 0x47.toByte()
+        }
+    }.getOrDefault(false)
+
+    internal fun isSupportedLocalMedia(file: File): Boolean {
+        val extension = file.extension.lowercase(Locale.ROOT)
+        return extension in supportedExtensions && (extension != "ts" || looksLikeTransportStream(file))
+    }
 
     @Suppress("DEPRECATION")
     fun targetFolder(): File =
@@ -52,18 +77,19 @@ object MediaScanner {
 
     /** Pure folder traversal kept separate so recursive discovery can be unit-tested. */
     internal fun scanFolder(folder: File, excludedFolders: Set<String> = emptySet()): List<MediaFile> {
-        val excluded = excludedFolders.map { it.replace('\\', '/').trim('/') }.filter { it.isNotBlank() }.toSet()
+        val excluded = excludedFolders.map { it.replace('\\', '/').trim('/').lowercase(Locale.ROOT) }
+            .filter { it.isNotBlank() }.toSet()
         val sheets = mutableListOf<File>()
         val files = folder.walkTopDown()
             .onEnter { dir ->
                 if (dir == folder) true else {
-                    val relative = dir.relativeTo(folder).invariantSeparatorsPath
+                    val relative = dir.relativeTo(folder).invariantSeparatorsPath.lowercase(Locale.ROOT)
                     excluded.none { relative == it || relative.startsWith("$it/") }
                 }
             }
             .onFail { _, _ -> /* Ignore unreadable children and keep the rest of the library. */ }
             .onEach { if (it.isFile && !isHiddenEntry(it) && it.extension.equals("cue", true)) sheets += it }
-            .filter { it.isFile && !isHiddenEntry(it) && it.extension.lowercase() in supportedExtensions }
+            .filter { it.isFile && !isHiddenEntry(it) && isSupportedLocalMedia(it) }
             // Keep the launch scan fast: do not open or decode every file here.
             // Thumbnails and expensive metadata are loaded from a bounded background cache.
             .map { file ->
@@ -73,7 +99,8 @@ object MediaScanner {
                     durationMs = 0L,
                     sizeBytes = file.length(),
                     modifiedMs = file.lastModified(),
-                    kind = if (file.extension.lowercase() in videoExtensions) {
+                    relativePath = file.relativeTo(folder).invariantSeparatorsPath,
+                    kind = if (file.extension.lowercase(Locale.ROOT) in videoExtensions) {
                         MediaKind.VIDEO
                     } else {
                         MediaKind.AUDIO
