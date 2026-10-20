@@ -7,7 +7,7 @@ This file is the authoritative version policy for Greater Art. If any handoff no
 ## Machine-checkable state
 
 
-Current source: **1.21.59 (code 282)**
+Current source: **1.21.60 (code 283)**
 Allowed consumed transition: **1.21.45 (code 268) -> 1.21.48 (code 271)**
 
 The open draft security PR #174 separately consumes 1.21.46/code269
@@ -384,3 +384,5 @@ Previous baseline: 1.13.26 (code 115).
 - 1.21.58 (code 281) — Review and complete remaining Grok #187 scope: stable current-artwork/existing-sample Material accents gated by Ambient/intensity with contrast/High-contrast/Monochrome/OLED guards; release-only R8 with consumer rules and stable persisted enum members, resource shrinking deferred; release compilation in CI; existing SAF/Nodes behavior retained with solver regressions. SOURCE_ONLY until release acceptance; no verified artifacts replaced.
 
 - 1.21.59 (code 282) — Claude source-audit hardening on clean 1.21.58: service-driven monotonic sleep timer including Repeat One/end-of-queue; suspend idle 50ms A–B polling; reject TypeScript .ts in Download via bounded transport-packet recognition and require video MIME for scoped .ts; case-insensitive relative excluded folders in both scanners; queued rescans and unsuccessful duration-probe caching; external library audio-only dead-branch cleanup; explicit controller failure, cancelled backup/restore propagation with localized outcomes and prebuilt payload; null-safe overlay construction; longest-remaining Stack duration and survivor playback; updated fullscreen immersive captures/theme-effect and explicit Locate behavior; targeted tests and build-indent cleanup. SOURCE_ONLY; physical QA/codec testing required; last verified APK remains 1.21.39/code262.
+
+- 1.21.60 (code 283) — Follow-up to 1.21.59: fix the fullscreen Locate one-shot state declaration so Kotlin/Compose compiles under the project's imported runtime API. Use existing imported `mutableStateOf(0)` instead of unimported `mutableIntStateOf`. No additional playback or UI behavior changes. SOURCE_ONLY, latest verified APK remains 1.21.39/code262.

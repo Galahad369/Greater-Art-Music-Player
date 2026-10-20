@@ -2,7 +2,7 @@
 
 ## Baseline and isolation
 
-This source-only candidate is **1.21.59 / code282**, based on main
+This source-only candidate is **1.21.60 / code283** (follow-up to 1.21.59's Android compilation fix), based on main
 `e96f8dc690b4e138d1303d7fbf9cbed36c8342cb`.
 No release artifact, signature or historical branch/tag changes.
 The latest verified personal sideload is still **1.21.39 / code262**.

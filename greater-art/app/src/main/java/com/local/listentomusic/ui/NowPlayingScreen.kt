@@ -1501,7 +1501,7 @@ private fun NowPlayingQueue(
     LaunchedEffect(currentQueueIndex, visibleIndex) {
         if (visibleIndex >= 0 && !listState.isScrollInProgress) listState.scrollToItem(visibleIndex)
     }
-    var handledLocateTrigger by remember { mutableIntStateOf(0) }
+    var handledLocateTrigger by remember { mutableStateOf(0) }
     LaunchedEffect(locateTrigger, visibleIndex) {
         // Consume each Locate request exactly once, even after the filter changes.
         if (locateTrigger > handledLocateTrigger && visibleIndex >= 0) {
