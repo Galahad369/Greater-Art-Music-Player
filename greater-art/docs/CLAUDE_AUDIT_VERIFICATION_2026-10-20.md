@@ -193,3 +193,79 @@ errors/skips, lint zero errors, debug/test/R8 release assembly. API35 passes
 **23/23**, no skipped tests,121.064s: the same two old-code-control failures now
 pass together with the eleven earlier playback cases, fullscreen/theme/rotation,
 both narrow toolbars, six audio layouts and PiP. Final API34/36 and62 CI remain.
+
+## Service-boundary follow-up:1.21.63/code286
+
+1.21.62 is committed as`c2434f8399fce4cd42aaf6e2565319b17922aba3`.
+Its Android, native Windows (source-built codecs/core tests/installer step),
+version, public audit, dependency review and CodeQL checks all pass. Nevertheless
+its larger-Library API36 run fails2/40: reconnect observes226 ordinary queue entries
+and the timer case loses Stack. API34 fails3/23 (scan readiness and subsequent
+playback/presentation timeouts). Neither run is counted as acceptance. Do not
+merge the source merely because CI is green.
+
+The ViewModel guard is too early for an append already in Media3's asynchronous
+admission/command queue before Stack starts.1.21.63 checks internal admission
+after IO on the service looper and rejects ordinary app requests while Stack owns
+playback; the session-facing player also guards every append overload at command
+application time. Companion additions still use the coordinator. Explicit ordinary
+app playback exits Stack first and remains allowed. No player reload, quality cap
+or extra decoder is introduced by this boundary guard.
+
+A direct late-controller-append regression verifies authoritative correction of the
+optimistic controller timeline. Correctness fixtures isolate and restore scoped
+folder/exclusions, playlist, resume, floating/background and DEV preferences, not
+inherit unrelated filters or wallpaper. This is not a benchmark with functionality
+disabled; the separate performance audit must measure each requested mode.
+
+63 remains uncommitted while full gates and controlled old-code/candidate tests
+run. Preserve both61 and62 commits; never amend a consumed identity. Earlier
+versions' CI results do not establish63 acceptance.
+
+63 full Android gates pass (418 JVM, zero failures/errors/skips, zero lint errors,
+debug/instrumentation/R8 release assembled,7m9s). The direct late-append test fails
+on unchanged62 (1 test,1 failure,23.951s) and passes on63. API36 then passes the
+complete **41/41** combined run, no ignored/failures,305.519s, including the real
+larger-Library reconnect and all earlier UI/storage/thumbnail coverage.
+
+API34's remaining scan/video timeouts were traced to a concrete fixture error:
+`appops get ... MANAGE_EXTERNAL_STORAGE` returned`default`, with recent denied
+access, after the update. Reapply and verify the QA`allow` prerequisite after each
+install, not just on initial AVD creation. Do not modify playback to hide denial.
+With that prerequisite corrected,63 passes **24/24**, zero ignored/failures,
+141.950s: all14 playback cases plus fullscreen, narrow toolbars, audio layouts and
+PiP. Passing39→61/62 update installation is distinct from clean cold-launch39
+acceptance; the first cold launcher call timed out during emulator startup.
+
+API34/36 portrait/landscape screenshot files are retained with the raw build
+evidence. Final API35 rerun,63 CI and merged-main rebuild are still required.
+
+## Final63 pre-integration acceptance
+
+| Gate | Result | Scope |
+| --- | --- | --- |
+| JVM |418 passed;0 failed/errors/skipped|Pure logic, timer clock, mapping, scanners, leases, pixel bounds|
+| Lint |0 errors;46 warnings;4 hints|Warnings/hints retained, not hidden|
+| Android build |PASS|Debug, instrumentation and R8 release; wrapper9.8.1/Java21|
+| API36 |41/41;305.519s|Fourteen real-player cases, fullscreen/theme/gestures, audio, PiP, inspector, scoped storage, thumbnails|
+| API34 |24/24;141.950s|Fourteen real-player cases plus fullscreen/audio/narrow toolbar/PiP|
+| API35 |24/24;144.726s|Same24-case matrix on Android15/420dpi|
+| Local Windows |73/73 core tests;build PASS|Pinned codec source installation;unchanged0.1.16/code17|
+| Preceding62 CI |PASS|Android,Windows/version/public audit/dependency review/CodeQL;not inherited as63 CI|
+
+No ignored/fixture-skipped cases in these final runs. All devices are x86_64
+emulators, not Samsung hardware. API36 is1080x2340/density450; API34/35 are
+1080x2400/density420. Portrait/landscape screenshots were inspected: native FIT
+frame retained, toolbar/timeline/transport inside safe bounds, no observed player
+replacement. Narrow110dp/160dp component tests are not full tablet/foldable QA.
+The preserved24-second1280x720 fixture is not a source-quality cap.
+
+The original39 artifact hash/certificate remain unchanged.63 has not been
+published/promoted, and no physical-phone, sample-perfect acoustic sync, all-codec,
+all-provider or universal crash-free claim is made. The separate scrolling audit
+is measurement-only until a dominant bottleneck is demonstrated; its scripts,
+traces and experimental candidates do not belong in PR191.
+
+At the63 commit, fresh-head CI and exact merged-main rebuild remain integration
+gates. Record their actual SHAs/results in the PR and final technical report;
+never substitute a branch or older-version pass for merged-source verification.

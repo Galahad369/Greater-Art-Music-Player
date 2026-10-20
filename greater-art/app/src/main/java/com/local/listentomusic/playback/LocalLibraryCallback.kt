@@ -102,9 +102,12 @@ class LocalLibraryCallback(private val context: Context, private val scope: Coro
         if (controller.packageName == context.packageName) {
             // Internal queues already came from our scanner. Avoid another complete
             // recursive scan on every row tap; validate only the requested paths.
-            return@future withContext(Dispatchers.IO) { mediaItems.filter { request ->
+            val admitted = withContext(Dispatchers.IO) { mediaItems.filter { request ->
                 readableInternalMediaItem(context, request)
             } }
+            // Recheck on the service looper after IO. Ordinary app playback
+            // explicitly exits Stack first; companion additions bypass this queue.
+            return@future if (StackPlayback.state.value.active) emptyList() else admitted
         }
         // Internal requests returned above; all remaining trusted browsers see audio only.
         val allowed = files().filter { it.kind == MediaKind.AUDIO }

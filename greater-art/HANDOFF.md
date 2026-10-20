@@ -3,7 +3,7 @@
 This file describes the **current repository state only**. Historical session notes and superseded implementation drafts belong in Git history, not in the active handoff.
 
 **Project:** `greater-art/` in the repository checkout
-**Current source:** `1.21.62 (code 285)` — SOURCE_ONLY; Claude audit remediation for sleep timer, scanning, Stack and fullscreen while retaining reviewed adaptive accents/release-only R8
+**Current source:** `1.21.63 (code 286)` — SOURCE_ONLY; Claude audit remediation for sleep timer, scanning, Stack and fullscreen while retaining reviewed adaptive accents/release-only R8
 **Current version:** `1.21.39 (code 262)`
 **Latest APK:** `releases/GreaterArt-1.21.39.apk` (`26,877,593 bytes`; SHA-256 `e636fb7c1bfdbdf5500d48863a9f6c778aec47bb2090e433bb2e86037e468104`)
 **Application ID:** `com.local.listentomusic`
@@ -13,6 +13,24 @@ This file describes the **current repository state only**. Historical session no
 **Verification boundary:** Exact build source `b20489581b6125ce3963c767ed8e419c979a6820`; 358 JVM tests, 21 API36 emulator tests, zero lint errors; signature, pinned certificate, version/package, 16KiB ZIP alignment and upgrade installation checked. Emulator tests cover scoped URI discovery/access, live primary-video Dynamic Ambient colors and retained player identity, floating presentations and accessibility/Developer Mode interactions. No app fatal in the inspected crash buffer. This is a debug sideload build, not production signing, physical-phone acceptance, full security assessment or a universal bug-free guarantee. The prior 1.21.37 artifact and its evidence remain unchanged in history.
 
 ## Repository state
+
+### October 20 — Service-authoritative Stack queue (1.21.63/code286)
+
+- 1.21.62 is retained as c2434f8. Its large-Library API36 run exposes a pending
+  controller append arriving after Stack starts, beyond the ViewModel guard.
+  Reject ordinary app admissions while Stack owns playback and enforce append
+  isolation again at the actual service player-command boundary.
+- A late-append regression exercises the real MediaController. Stack companion
+  additions still use the coordinator; explicit ordinary playback exits Stack first.
+- Correctness fixtures isolate and restore folder, playlist, resume, floating,
+  background and DEV preferences rather than inheriting unrelated emulator state.
+  This is not performance measurement or a source-quality workaround.
+- 63 passes418 JVM tests, zero lint errors, debug/test/R8 release assembly;
+  API36 passes41/41 and API34/35 each pass24/24 (no ignored cases). Recheck the
+  special storage app-op after every QA installation. Full evidence, failed-run
+  controls and limitations: `docs/CLAUDE_AUDIT_VERIFICATION_2026-10-20.md`.
+- Fresh63 CI and exact merged-main rebuild are separate gates. Current source
+  remains SOURCE_ONLY; no39 APK replacement or production release is authorized.
 
 ### October 20 — Stack reconnect isolation (1.21.62/code285)
 

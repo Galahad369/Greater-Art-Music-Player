@@ -198,6 +198,20 @@ class PlaybackService : MediaLibraryService() {
             }
             override fun pause() = pauseEveryPlayer()
             override fun setPlayWhenReady(ready: Boolean) { if (ready) play() else pause() }
+            // A controller's pre-Stack append can arrive after async admission.
+            // Stack owns one primary queue item; its takes use the coordinator.
+            override fun addMediaItems(items: List<MediaItem>) {
+                if (!stackCoordinator.active) super.addMediaItems(items)
+            }
+            override fun addMediaItems(index: Int, items: List<MediaItem>) {
+                if (!stackCoordinator.active) super.addMediaItems(index, items)
+            }
+            override fun addMediaItem(item: MediaItem) {
+                if (!stackCoordinator.active) super.addMediaItem(item)
+            }
+            override fun addMediaItem(index: Int, item: MediaItem) {
+                if (!stackCoordinator.active) super.addMediaItem(index, item)
+            }
         }
         mediaSession = MediaLibrarySession.Builder(this, sessionPlayer, LocalLibraryCallback(this, serviceScope)).build()
         player.addListener(object : Player.Listener {

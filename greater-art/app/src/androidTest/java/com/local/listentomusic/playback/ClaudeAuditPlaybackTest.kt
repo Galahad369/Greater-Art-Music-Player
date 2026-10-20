@@ -31,10 +31,22 @@ class ClaudeAuditPlaybackTest {
     private lateinit var scope: CoroutineScope
     private var controller: MediaController? = null
     private var foreground: androidx.test.core.app.ActivityScenario<com.local.listentomusic.MainActivity>? = null
+    private var originalPreferences: com.local.listentomusic.data.UserPreferences? = null
 
     @Before fun fixtures() {
         root = File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS), "GA-Audit-${UUID.randomUUID()}")
         check(root.mkdirs())
+        runBlocking {
+            val prefs = AppPreferences(context)
+            originalPreferences = prefs.current()
+            prefs.setScopedMediaTreeUri(null)
+            prefs.setExcludedFolders(emptyList())
+            prefs.setActivePlaylist(null)
+            prefs.setResumePlayback(false)
+            prefs.setFloatingWindowMode(com.local.listentomusic.data.FloatingWindowMode.NONE)
+            prefs.setBackgroundMode(com.local.listentomusic.data.AppBackgroundMode.DEFAULT)
+            prefs.setDeveloperMode(false)
+        }
     }
 
     @After fun cleanup() {
@@ -48,6 +60,18 @@ class ClaudeAuditPlaybackTest {
         foreground = null
         context.stopService(Intent(context, MiniWindowOverlayService::class.java))
         context.stopService(Intent(context, PlaybackService::class.java))
+        instrumentation.waitForIdleSync()
+        originalPreferences?.let { old -> runBlocking {
+            val prefs = AppPreferences(context)
+            prefs.setScopedMediaTreeUri(old.scopedMediaTreeUri)
+            prefs.setExcludedFolders(old.excludedFolders)
+            prefs.setActivePlaylist(old.activePlaylistId)
+            prefs.setResumePlayback(old.resumePlayback)
+            prefs.setFloatingWindowMode(old.floatingWindowMode)
+            prefs.setBackgroundMode(old.backgroundMode)
+            prefs.setDeveloperMode(old.developerMode)
+            prefs.savePlayback(old.lastPath, old.lastPositionMs, old.playbackSpeed, old.repeatMode)
+        } }
         root.deleteRecursively() // only this test's UUID-owned synthetic files
     }
 
@@ -188,6 +212,24 @@ class ClaudeAuditPlaybackTest {
         instrumentation.runOnMainSync {
             assertTrue(StackPlayback.state.value.active)
             assertEquals(1, remote.mediaItemCount)
+            assertEquals(files.first().path, remote.currentMediaItem?.mediaId)
+        }
+    }
+
+    @Test fun aLateControllerAppendCannotExpandTheActiveStackQueue() {
+        val files = listOf(wave("primary", 15_000), wave("take", 15_000))
+        val ordinary = wave("late-library-item", 15_000)
+        val remote = connect()
+        instrumentation.runOnMainSync { assertTrue(StackPlayback.start(files)) }
+        await("Stack is ready") { StackPlayback.state.value.runningTracks == 2 }
+        instrumentation.runOnMainSync { remote.addMediaItems(listOf(ordinary.toMediaItem())) }
+        var queueSize = -1
+        await("server acknowledges that Stack owns only its primary") {
+            instrumentation.runOnMainSync { queueSize = remote.mediaItemCount }
+            queueSize == 1
+        }
+        instrumentation.runOnMainSync {
+            assertTrue(StackPlayback.state.value.active)
             assertEquals(files.first().path, remote.currentMediaItem?.mediaId)
         }
     }
