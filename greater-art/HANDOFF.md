@@ -39,7 +39,11 @@ This file describes the **current repository state only**. Historical session no
   or native video-size loss is observed. Do not claim one clean 32-test run.
 - Android15: eight component tests pass; after handling a fresh-install
   notification prompt, both real fullscreen/PiP tests pass in a 138.175s targeted
-  rerun. Android14 QA boot/test remains pending at this checkpoint.
+  rerun. Android14 passes all ten fullscreen/audio/narrow-toolbar/PiP tests in
+  125.967s. After dismissing the system fullscreen tutorial, its real-Activity
+  rerun passes in 32.183s with unobstructed portrait/landscape screenshots inspected.
+  Temporary QA grants/settings are restored; these are generic sized emulators,
+  not Samsung firmware or physical-device acceptance.
 - Disposable minified API36 candidate passes package/version/certificate/16KiB
   alignment, upgrade/cold launch, populated Library and persisted Settings,
   Media3 playback and live-video dock smoke. Screenshots inspected; no fatal in

@@ -119,8 +119,14 @@ not a fatal app exception. After handling that prompt on the isolated QA device,
 both fullscreen gesture/rotation and native PiP tests pass their targeted rerun
 in 138.175s. Temporary storage/overlay/notification grants are restored. This is
 eight passes plus two successful reruns, not one clean ten-test execution.
-Android14/API34 image is installed and its isolated QA device is booting; no
-Android14 runtime result is claimed yet.
+Android14/API34: all ten fullscreen/audio/narrow-toolbar/native-PiP tests pass in
+125.967s without skips. First captures show Android's own immersive-mode tutorial
+covering the player, so they are not accepted as visual evidence. After confirming
+that tutorial only on the temporary QA device, the real fullscreen test passes
+again in 32.183s; fresh portrait/landscape captures are inspected unobstructed.
+Player/surface identity, native 1280x720 and whole-frame FIT remain intact. All
+temporary test grants and the tutorial setting are restored. Both cross-API QA
+devices use 1080x2340 at density450; they are generic Android, not Samsung firmware.
 
 ### Build and test mistakes to avoid
 
@@ -135,6 +141,10 @@ Android14 runtime result is claimed yet.
    missing overlay permission means no visible video owner, not broken sampling.
    Fresh installations also need their notification prompt handled before an
    ActivityScenario test; its cleanup exception can mask the original interruption.
+   Android's first-use fullscreen tutorial can cover screenshots even while app
+   semantics assertions pass. Inspect real captures and confirm that system hint
+   on QA devices before accepting layout evidence; do not patch the player to
+   compensate for the operating system's tutorial.
    Restore all temporary grants after the run.
 4. Stateful fixture tests must set and restore resume/seek preferences. Do not
    diagnose an EOF-clamped seek as a broken gesture without checking positions.
