@@ -28,6 +28,92 @@ class ThumbnailRequestSchedulerTest {
         while (!condition()) delay(1)
     }
 
+    @Test fun diskCacheHitCompletesDuringFlingWithoutGeneration() = runBlocking {
+        val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
+        try {
+            val queue = ThumbnailRequestScheduler<String, String>(scope, 3)
+            queue.setPaused(true)
+            val generationCalls = AtomicInteger()
+            val result = async { queue.loadStaged("visible",
+                diskProbe = { "cached bitmap" },
+                generation = { generationCalls.incrementAndGet(); "generated bitmap" }) }
+            assertEquals("cached bitmap", withTimeout(4_000) { result.await() })
+            assertEquals(0, generationCalls.get())
+        } finally { scope.cancel() }
+    }
+
+    @Test fun diskCacheMissKeepsRequestForGenerationAfterFling() = runBlocking {
+        val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
+        try {
+            val queue = ThumbnailRequestScheduler<String, String>(scope, 2)
+            queue.setPaused(true)
+            val diskCalls = AtomicInteger()
+            val generateCalls = AtomicInteger()
+            val result = async { queue.loadStaged("miss",
+                diskProbe = { diskCalls.incrementAndGet(); null },
+                generation = { generateCalls.incrementAndGet(); "fresh" }) }
+            until { queue.snapshot().queued == 1 && diskCalls.get() == 1 }
+            assertFalse(result.isCompleted)
+            assertEquals(0, generateCalls.get())
+            queue.setPaused(false)
+            assertEquals("fresh", withTimeout(4_000) { result.await() })
+            assertEquals(1, diskCalls.get())
+            assertEquals(1, generateCalls.get())
+        } finally { scope.cancel() }
+    }
+
+    @Test fun scrollPausePreservesInFlightDiskAndAllowsOnlyOneDiskProbeAtATime() = runBlocking {
+        val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
+        try {
+            val queue = ThumbnailRequestScheduler<String, String>(scope, 3)
+            val diskEntered = CompletableDeferred<Unit>()
+            val releaseDisk = CompletableDeferred<Unit>()
+            val first = async { queue.loadStaged("first",
+                diskProbe = { diskEntered.complete(Unit); releaseDisk.await(); "cache 1" }) }
+            withTimeout(4_000) { diskEntered.await() }
+            queue.setPaused(true)
+            val calls = AtomicInteger()
+            val secondStarted = CompletableDeferred<Unit>()
+            val second = async { queue.loadStaged("second",
+                diskProbe = { calls.incrementAndGet(); secondStarted.complete(Unit); "cache 2" }) }
+            // The already-running disk read keeps its permit across scroll start.
+            until { queue.snapshot().queued == 1 }
+            assertEquals(0, calls.get())
+            assertFalse(first.isCompleted)
+            releaseDisk.complete(Unit)
+            assertEquals("cache 1", withTimeout(4_000) { first.await() })
+            assertEquals("cache 2", withTimeout(4_000) { second.await() })
+            assertEquals(1, calls.get())
+        } finally { scope.cancel() }
+    }
+
+    @Test fun generationIsCancelledAndRetriedButDiskProbeIsNotRepeated() = runBlocking {
+        val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
+        try {
+            val queue = ThumbnailRequestScheduler<String, String>(scope, 1)
+            val entered = CompletableDeferred<Unit>()
+            val diskCalls = AtomicInteger()
+            val generationCalls = AtomicInteger()
+            val request = async { queue.loadStaged("generated",
+                diskProbe = { diskCalls.incrementAndGet(); null },
+                generation = {
+                    if (generationCalls.incrementAndGet() == 1) {
+                        entered.complete(Unit)
+                        awaitCancellation()
+                    }
+                    "ready"
+                }) }
+            withTimeout(4_000) { entered.await() }
+            queue.setPaused(true)
+            until { queue.snapshot().running == 0 }
+            assertFalse(request.isCompleted)
+            queue.setPaused(false)
+            assertEquals("ready", withTimeout(4_000) { request.await() })
+            assertEquals(1, diskCalls.get())
+            assertEquals(2, generationCalls.get())
+        } finally { scope.cancel() }
+    }
+
     @Test fun cacheMissesWaitForIdle() = runBlocking {
         val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
         try {

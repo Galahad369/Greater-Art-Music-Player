@@ -3,7 +3,7 @@
 This file describes the **current repository state only**. Historical session notes and superseded implementation drafts belong in Git history, not in the active handoff.
 
 **Project:** `greater-art/` in the repository checkout
-**Current source:** `1.21.68 (code 291)` — SOURCE_ONLY; Claude audit remediation for sleep timer, scanning, Stack and fullscreen while retaining reviewed adaptive accents/release-only R8
+**Current source:** `1.21.70 (code 293)` — SOURCE_ONLY; Claude audit remediation for sleep timer, scanning, Stack and fullscreen while retaining reviewed adaptive accents/release-only R8
 **Current version:** `1.21.39 (code 262)`
 **Latest APK:** `releases/GreaterArt-1.21.39.apk` (`26,877,593 bytes`; SHA-256 `e636fb7c1bfdbdf5500d48863a9f6c778aec47bb2090e433bb2e86037e468104`)
 **Application ID:** `com.local.listentomusic`
@@ -13,6 +13,14 @@ This file describes the **current repository state only**. Historical session no
 **Verification boundary:** Exact build source `b20489581b6125ce3963c767ed8e419c979a6820`; 358 JVM tests, 21 API36 emulator tests, zero lint errors; signature, pinned certificate, version/package, 16KiB ZIP alignment and upgrade installation checked. Emulator tests cover scoped URI discovery/access, live primary-video Dynamic Ambient colors and retained player identity, floating presentations and accessibility/Developer Mode interactions. No app fatal in the inspected crash buffer. This is a debug sideload build, not production signing, physical-phone acceptance, full security assessment or a universal bug-free guarantee. The prior 1.21.37 artifact and its evidence remain unchanged in history.
 
 ## Repository state
+
+### October 21 — Thumbnail disk-cache probes during scrolling (1.21.70/code293)
+
+- The first side-branch code identity 1.21.69/code292 was consumed in unmerged PR #198 but failed the strict per-commit ledger validator. This clean one-parent integration reintroduces its source on 1.21.68 main as 1.21.70/code293 under the explicitly allowed consumed transition. Follow-up to Claude's static audit and reviewed 1.21.68 UI/scheduler hot-path improvements. Thumbnail requests now have an independent disk probe and optional generation stage. A disk hit can finish during a Library fling, while a disk miss remains queued for generation when scrolling stops.
+- Scheduler allows a maximum of one newly launched disk probe at a time during scroll. Existing disk reads survive a scroll-start pause; expensive generation jobs are still cancelled and requeued. Native-work permits remain held until actual job exit, and stale consumer cancellation/clear/version epoch guards remain intact.
+- The repository gates only media extraction at scroll checkpoints; disk probes use the existing bitmap semaphore and writer locks. Physical-frame trace and fling-stop before/after measurement are still outstanding; no performance gain is claimed.
+- Added JVM regressions covering cache-hit delivery during fling, disk-miss generation deferral, disk read preservation and generation cancellation/retry.
+- SOURCE_ONLY. Verified personal 1.21.39 sideload and the independent Desktop and privacy branch remain unchanged.
 
 ### October 21 — Combined 1.21.68 integration after CI test correction
 

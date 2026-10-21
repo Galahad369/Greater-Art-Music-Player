@@ -59,3 +59,6 @@ sets, performs a stable one-pass scheduler priority search and avoids layers on
 non-current thumbnails. It retains all PR #192 swipe/action optimizations and the
 1.21.65 indicator. These are source inefficiencies, not verified frame-time causes.
 No changes to cancellation/decode behavior without real-device profiling evidence.
+
+## October 21 — Scroll-time disk-cache work (1.21.70; first side-branch identity 1.21.69 consumed)
+The scheduler now distinguishes cheap on-disk cache probes from platform-media thumbnail extraction. An in-flight disk probe survives scroll start; new scroll-time disk probes are serialized to one; disk hits can render during scrolling. Misses queue a separate generation stage that starts only after scrolling stops. Native generation still cancels on scroll start and holds its permit until actual exit. JVM tests protect this separation. Device Perfetto/FrameTimeline data is required to determine whether fling-stop pop-in improves; do not assume source changes guarantee lower jank.

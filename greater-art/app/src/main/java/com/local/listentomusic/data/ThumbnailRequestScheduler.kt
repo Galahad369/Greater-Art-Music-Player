@@ -31,10 +31,17 @@ internal class ThumbnailRequestScheduler<K : Any, V : Any>(
     private val capacity: Int = 96,
     private val onStats: (ThumbnailQueueStats) -> Unit = {},
 ) {
-    private class Request<V : Any>(val load: suspend () -> V?, val prefetch: Boolean) {
+    private enum class Phase { DISK, GENERATION }
+
+    private class Request<V : Any>(
+        val diskProbe: (suspend () -> V?)?,
+        val generation: (suspend () -> V?)?,
+        val prefetch: Boolean,
+    ) {
         val result = CompletableDeferred<V?>()
         var consumers = 1
         var job: Job? = null
+        var phase = if (diskProbe != null) Phase.DISK else Phase.GENERATION
     }
 
     private val guard = Any()
@@ -42,6 +49,7 @@ internal class ThumbnailRequestScheduler<K : Any, V : Any>(
     private val viewports = mutableMapOf<String, Set<K>>()
     private var paused = false
     private var running = 0
+    private var runningDisk = 0
     private var shared = 0
     private var cancelled = 0
     private var rejected = 0
@@ -49,7 +57,28 @@ internal class ThumbnailRequestScheduler<K : Any, V : Any>(
 
     init { require(workers > 0 && capacity >= workers) }
 
-    suspend fun load(key: K, prefetch: Boolean = false, loader: suspend () -> V?): V? {
+    // Legacy generation-only work retains its existing cancellation contract.
+    suspend fun load(key: K, prefetch: Boolean = false, loader: suspend () -> V?): V? =
+        enqueue(key, prefetch, null, loader)
+
+    /**
+     * A visible request may read its small persistent disk cache while flinging.
+     * On a miss, leave the same request queued for the expensive generation
+     * stage after scrolling ends. Cache-only callers omit generation.
+     */
+    suspend fun loadStaged(
+        key: K,
+        prefetch: Boolean = false,
+        diskProbe: suspend () -> V?,
+        generation: (suspend () -> V?)? = null,
+    ): V? = enqueue(key, prefetch, diskProbe, generation)
+
+    private suspend fun enqueue(
+        key: K,
+        prefetch: Boolean,
+        diskProbe: (suspend () -> V?)?,
+        generation: (suspend () -> V?)?,
+    ): V? {
         coroutineContext.ensureActive()
         val request = synchronized(guard) {
             requests[key]?.also {
@@ -60,7 +89,7 @@ internal class ThumbnailRequestScheduler<K : Any, V : Any>(
                 publishLocked()
                 null
             } else {
-                Request(loader, prefetch).also {
+                Request(diskProbe, generation, prefetch).also {
                     requests[key] = it
                     peakPending = maxOf(peakPending, requests.size)
                 }
@@ -86,7 +115,11 @@ internal class ThumbnailRequestScheduler<K : Any, V : Any>(
         if (paused == value) return@synchronized
         paused = value
         if (value) requests.values.forEach { request ->
-            request.job?.takeIf { it.isActive }?.let { cancelled++; it.cancel() }
+            // Preserve in-flight disk reads; only native frame/artwork extraction
+            // gets interrupted. A cancelled generation remains queued for idle.
+            if (request.phase == Phase.GENERATION) {
+                request.job?.takeIf { it.isActive }?.let { cancelled++; it.cancel() }
+            }
         }
         pumpLocked()
     }
@@ -109,14 +142,14 @@ internal class ThumbnailRequestScheduler<K : Any, V : Any>(
     fun snapshot(): ThumbnailQueueStats = synchronized(guard) { statsLocked() }
 
     private fun pumpLocked() {
-        while (scope.isActive && !paused && running < workers) {
+        while (scope.isActive && running < workers && (!paused || runningDisk == 0)) {
             // Stable insertion order within each priority class. Select in one
             // pass without allocating a filtered request list on each pump.
             var next: Map.Entry<K, Request<V>>? = null
             var bestPriority = 3
             for (entry in requests.entries) {
                 val request = entry.value
-                if (request.job != null) continue
+                if (request.job != null || (paused && request.phase == Phase.GENERATION)) continue
                 val priority = when {
                     viewports.values.any { entry.key in it } -> 0
                     !request.prefetch -> 1
@@ -131,14 +164,25 @@ internal class ThumbnailRequestScheduler<K : Any, V : Any>(
             val selected = next ?: break
             val key = selected.key
             val request = selected.value
+            val phase = request.phase
             val job = scope.launch(start = CoroutineStart.LAZY) {
                 try {
-                    val value = request.load()
+                    val value = when (phase) {
+                        Phase.DISK -> request.diskProbe!!.invoke()
+                        Phase.GENERATION -> request.generation!!.invoke()
+                    }
                     coroutineContext.ensureActive()
                     synchronized(guard) {
-                        if (requests[key] === request && !paused) {
-                            requests.remove(key)
-                            request.result.complete(value)
+                        if (requests[key] === request) {
+                            if (phase == Phase.DISK && value == null && request.generation != null) {
+                                request.phase = Phase.GENERATION
+                            } else if (phase == Phase.DISK || !paused) {
+                                // Disk hits are safe to deliver during a fling.
+                                requests.remove(key)
+                                request.result.complete(value)
+                            }
+                            // A native generation that ignored cancellation must
+                            // never publish its result during a scroll.
                         }
                     }
                 } catch (cancel: CancellationException) {
@@ -154,14 +198,24 @@ internal class ThumbnailRequestScheduler<K : Any, V : Any>(
             }
             request.job = job
             running++
-            // Handles cancellation before the LAZY coroutine even enters its body.
+            if (phase == Phase.DISK) runningDisk++
+            // Keep resource permits held until the actual job exits (including
+            // uncancellable native decode), and retry generation after idle.
             job.invokeOnCompletion { cause -> synchronized(guard) {
                 request.job = null
                 running--
-                if (requests[key] === request && (cause !is CancellationException || !scope.isActive)) {
-                    requests.remove(key)
-                    if (cause == null) request.result.complete(null)
-                    else request.result.completeExceptionally(cause)
+                if (phase == Phase.DISK) runningDisk--
+                if (requests[key] === request) {
+                    when {
+                        !scope.isActive -> {
+                            requests.remove(key)
+                            request.result.cancel()
+                        }
+                        cause != null && cause !is CancellationException -> {
+                            requests.remove(key)
+                            request.result.completeExceptionally(cause)
+                        }
+                    }
                 }
                 pumpLocked()
             } }
