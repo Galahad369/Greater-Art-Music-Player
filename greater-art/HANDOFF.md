@@ -3,7 +3,7 @@
 This file describes the **current repository state only**. Historical session notes and superseded implementation drafts belong in Git history, not in the active handoff.
 
 **Project:** `greater-art/` in the repository checkout
-**Current source:** `1.21.67 (code 290)` — SOURCE_ONLY; Claude audit remediation for sleep timer, scanning, Stack and fullscreen while retaining reviewed adaptive accents/release-only R8
+**Current source:** `1.21.68 (code 291)` — SOURCE_ONLY; Claude audit remediation for sleep timer, scanning, Stack and fullscreen while retaining reviewed adaptive accents/release-only R8
 **Current version:** `1.21.39 (code 262)`
 **Latest APK:** `releases/GreaterArt-1.21.39.apk` (`26,877,593 bytes`; SHA-256 `e636fb7c1bfdbdf5500d48863a9f6c778aec47bb2090e433bb2e86037e468104`)
 **Application ID:** `com.local.listentomusic`
@@ -13,6 +13,13 @@ This file describes the **current repository state only**. Historical session no
 **Verification boundary:** Exact build source `b20489581b6125ce3963c767ed8e419c979a6820`; 358 JVM tests, 21 API36 emulator tests, zero lint errors; signature, pinned certificate, version/package, 16KiB ZIP alignment and upgrade installation checked. Emulator tests cover scoped URI discovery/access, live primary-video Dynamic Ambient colors and retained player identity, floating presentations and accessibility/Developer Mode interactions. No app fatal in the inspected crash buffer. This is a debug sideload build, not production signing, physical-phone acceptance, full security assessment or a universal bug-free guarantee. The prior 1.21.37 artifact and its evidence remain unchanged in history.
 
 ## Repository state
+
+### October 21 — Combined 1.21.68 integration after CI test correction
+
+- PR #195 introduced interactive Android Nodes neighbor springs (1.21.66/code289); its initial Android CI compiled successfully and ran 425 JVM tests with one failed assertion incorrectly expecting a compressed neighbor to move toward the dragged node. The test is corrected to assert the physically appropriate repulsion direction.
+- PR #196 introduced bounded Library viewport/scheduler/row allocation reduction (1.21.67/code290). Both commits remain preserved as side-branch ancestors.
+- Under VERSION_RULES, main's 1.21.65/code288 advances to 1.21.68/code291 using an explicit consumed transition. Do not claim test or app release verification until the new combined commit checks pass.
+- The historical privacy branch and the verified 1.21.39 sideload APK remain untouched.
 
 ### October 21 — Library scrolling low-risk source optimizations (1.21.67/code290)
 

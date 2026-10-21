@@ -7,7 +7,17 @@ This file is the authoritative version policy for Greater Art. If any handoff no
 ## Machine-checkable state
 
 
-Current source: **1.21.67 (code 290)**
+Current source: **1.21.68 (code 291)**
+Allowed consumed transition: **1.21.65 (code 288) -> 1.21.68 (code 291)**
+
+Side branch PR #195 consumed 1.21.66/code289 for interactive Android Nodes
+physics, but its initial CI caught a direction-specific spring assertion that
+was not physically correct when a pinned node crossed its neighbor.
+Side branch PR #196 consumed 1.21.67/code290 for source-level Library
+performance improvements while PR #195 was being verified.
+This integration commit keeps both histories, fixes that assertion, and carries
+both sets of source changes forward into 1.21.68/code291 without reusing their
+versions or importing an old-version merge into main.
 Allowed consumed transition: **1.21.45 (code 268) -> 1.21.48 (code 271)**
 
 The open draft security PR #174 separately consumes 1.21.46/code269
@@ -398,3 +408,4 @@ Previous baseline: 1.13.26 (code 115).
 
 - 1.21.66 (code 289): Android Nodes local spring response after deliberate node drag, with bounded two-hop interactions and off-main post-release settling; restore existing persisted force sliders to the Nodes controls. Graph build, playback, pager/swipe ownership, pinch and full-library memory limits preserved. No desktop or personal APK changes.
 - 1.21.67 (code 290): reduce Library viewport allocations with distinct integer range snapshots, preserve viewport priorities with single-pass scheduler selection and repeated-viewport suppression, skip duplicate queue-stats emissions, remove graphics-layer wrapper from non-current Library rows and scope playback state to the active row. Preserve existing cancellation, thumbnail generation, RAM, disk, video/wallpaper and PR #192 optimizations.
+- 1.21.68 (code 291): coordinate and verify the combined Android Nodes interactive physics plus Library viewport allocation improvements; correct the neighbor-direction assertion identified by PR #195's Android CI. Document 1.21.66/67 side branch consumed identity and explicitly authorize transition from main 1.21.65 to 1.21.68. Final integration remains SOURCE_ONLY pending exact SHA CI.

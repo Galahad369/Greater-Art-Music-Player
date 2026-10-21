@@ -13,7 +13,9 @@ class NodeDragSpringTest {
         val spring = NodeDragSpring(points, edges, GraphOptions(), 0)
         val newPositions = spring.advance(GraphPoint(100f, 0f), steps = 6)
         assertEquals(GraphPoint(100f, 0f), newPositions[0])
-        assertTrue(newPositions.getValue(1).x > points[1].x)
+        // The pin moves *past* the neighbor, compressing its spring;
+        // the physically correct response is away from the pin (left).
+        assertTrue(newPositions.getValue(1).x < points[1].x)
         assertTrue(newPositions.values.all { it.x.isFinite() && it.y.isFinite() })
         assertEquals(3, spring.activeCount)
         assertTrue(3 !in newPositions)
