@@ -60,6 +60,7 @@ data class UserPreferences(
     val extendedSearch: Boolean = false,
     val localOverrides: Map<String, com.local.listentomusic.model.LocalOverride> = emptyMap(),
     val replayGainEnabled: Boolean = false,
+    val bluetoothOnlyListening: Boolean = false,
     val blackDiscMode: Boolean = false,
     val playHistoryEnabled: Boolean = false,
     val favouritePaths: List<String> = emptyList(),
@@ -165,6 +166,7 @@ class AppPreferences(private val context: Context) {
         val extendedSearch = booleanPreferencesKey("extended_search")
         val localOverrides = stringPreferencesKey("local_overrides")
         val replayGainEnabled = booleanPreferencesKey("replay_gain_enabled")
+        val bluetoothOnlyListening = booleanPreferencesKey("bluetooth_only_listening")
         val blackDiscMode = booleanPreferencesKey("black_disc_mode")
         val playHistoryEnabled = booleanPreferencesKey("play_history_enabled")
         val playHistory = stringPreferencesKey("play_history_v1")
@@ -235,6 +237,7 @@ class AppPreferences(private val context: Context) {
             extendedSearch = prefs[Keys.extendedSearch] ?: false,
             localOverrides = decodeOverrides(prefs[Keys.localOverrides].orEmpty()),
             replayGainEnabled = prefs[Keys.replayGainEnabled] ?: false,
+            bluetoothOnlyListening = prefs[Keys.bluetoothOnlyListening] ?: false,
             blackDiscMode = prefs[Keys.blackDiscMode] ?: false,
             playHistoryEnabled = prefs[Keys.playHistoryEnabled] ?: false,
             favouritePaths = decodeOrder(prefs[Keys.favouritePaths].orEmpty()),
@@ -385,6 +388,7 @@ class AppPreferences(private val context: Context) {
         }
     }
     suspend fun setReplayGainEnabled(value: Boolean) = edit { it[Keys.replayGainEnabled] = value }
+    suspend fun setBluetoothOnlyListening(value: Boolean) = edit { it[Keys.bluetoothOnlyListening] = value }
     suspend fun setBlackDiscMode(value: Boolean) = edit { it[Keys.blackDiscMode] = value }
     suspend fun setPlayHistoryEnabled(value: Boolean) = edit { it[Keys.playHistoryEnabled] = value }
     suspend fun toggleFavourite(path: String) = edit { prefs ->
@@ -536,6 +540,7 @@ class AppPreferences(private val context: Context) {
             it.remove(Keys.showAbRepeat)
             it.remove(Keys.extendedSearch)
             it.remove(Keys.replayGainEnabled)
+            it.remove(Keys.bluetoothOnlyListening)
             it.remove(Keys.blackDiscMode)
             it.remove(Keys.playHistoryEnabled)
             it.remove(Keys.playHistory)
