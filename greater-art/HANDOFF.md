@@ -3,7 +3,7 @@
 This file describes the **current repository state only**. Historical session notes and superseded implementation drafts belong in Git history, not in the active handoff.
 
 **Project:** `greater-art/` in the repository checkout
-**Current source:** `1.21.63 (code 286)` — SOURCE_ONLY; Claude audit remediation for sleep timer, scanning, Stack and fullscreen while retaining reviewed adaptive accents/release-only R8
+**Current source:** `1.21.64 (code 287)` — SOURCE_ONLY; Claude audit remediation for sleep timer, scanning, Stack and fullscreen while retaining reviewed adaptive accents/release-only R8
 **Current version:** `1.21.39 (code 262)`
 **Latest APK:** `releases/GreaterArt-1.21.39.apk` (`26,877,593 bytes`; SHA-256 `e636fb7c1bfdbdf5500d48863a9f6c778aec47bb2090e433bb2e86037e468104`)
 **Application ID:** `com.local.listentomusic`
@@ -13,6 +13,14 @@ This file describes the **current repository state only**. Historical session no
 **Verification boundary:** Exact build source `b20489581b6125ce3963c767ed8e419c979a6820`; 358 JVM tests, 21 API36 emulator tests, zero lint errors; signature, pinned certificate, version/package, 16KiB ZIP alignment and upgrade installation checked. Emulator tests cover scoped URI discovery/access, live primary-video Dynamic Ambient colors and retained player identity, floating presentations and accessibility/Developer Mode interactions. No app fatal in the inspected crash buffer. This is a debug sideload build, not production signing, physical-phone acceptance, full security assessment or a universal bug-free guarantee. The prior 1.21.37 artifact and its evidence remain unchanged in history.
 
 ## Repository state
+
+### October 21 — Bluetooth-only, vinyl, Ads and Library indicator (1.21.64/code287)
+
+- Private listening is now an opt-in Bluetooth-only connection requirement under Playback settings, off by default. No speaker playback is started without a Bluetooth output while enabled. Loss of the last Bluetooth output pauses players; removing one endpoint during a Bluetooth handoff does not falsely pause. Device presence is not proof of active audio routing; verify on actual headsets and manufacturer firmware before privacy acceptance. Reconnection never auto-resumes.
+- Black Disc renders with a contrasting outer rim on Default/dark backgrounds, including missing-cover audio; test-tagged instrumented UI assertions cover enabled/disabled states. Animation still follows playback.
+- Ads toggle retains its label but has no explanatory description; parody screen no longer explains the setting.
+- Library replaces the active double-bar marker with a compact play triangle (or a paused dot). Only the thumbnail pixels are translated 4dp in a fixed measured slot; title/details/controls remain stationary.
+- Source-only: CI and physical-device Bluetooth/video/vinyl regressions required; immutable 1.21.39 personal sideload remains untouched.
 
 ### October 20 — Service-authoritative Stack queue (1.21.63/code286)
 

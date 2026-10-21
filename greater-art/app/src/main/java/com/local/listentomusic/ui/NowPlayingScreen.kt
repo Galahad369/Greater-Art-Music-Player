@@ -137,6 +137,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -1305,12 +1306,16 @@ private fun BlackDiscArtwork(
         }
     }
     Box(
-        modifier = modifier.graphicsLayer { rotationZ = rotation.value },
+        modifier = modifier.testTag("BLACK_DISC_ARTWORK").graphicsLayer { rotationZ = rotation.value },
         contentAlignment = Alignment.Center,
     ) {
         Canvas(Modifier.fillMaxSize()) {
             val radius = size.minDimension / 2f
-            drawCircle(Color(0xFF070808), radius)
+            // The dark vinyl must remain distinguishable from the Default and
+            // Void dark backgrounds, even with no embedded album artwork.
+            drawCircle(Color(0xFF909A96), radius)
+            drawCircle(Color(0xFF070808), radius * .975f)
+            drawCircle(Color(0xFF222827), radius * .92f, style = Stroke(width = 2.dp.toPx()))
             listOf(.94f, .87f, .79f, .70f, .61f, .52f).forEachIndexed { index, scale ->
                 drawCircle(
                     color = if (index % 2 == 0) Color.White.copy(alpha = .11f) else Color.Black.copy(alpha = .72f),

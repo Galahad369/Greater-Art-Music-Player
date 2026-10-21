@@ -42,6 +42,13 @@ import java.util.concurrent.atomic.AtomicLong
 internal fun shouldRestoreSavedSession(serviceAlive: Boolean, mediaItemCount: Int): Boolean =
     serviceAlive && mediaItemCount == 0
 
+/** Device handoffs may remove the old A2DP sink while a replacement sink remains. */
+internal fun shouldPauseForBluetoothOutputLoss(
+    removedBluetoothOutput: Boolean,
+    anyBluetoothOutputConnected: Boolean,
+    bluetoothOnlyListening: Boolean,
+): Boolean = !anyBluetoothOutputConnected && (removedBluetoothOutput || bluetoothOnlyListening)
+
 class PlaybackService : MediaLibraryService() {
     private lateinit var player: ExoPlayer
     private lateinit var mediaSession: MediaLibrarySession
@@ -55,6 +62,7 @@ class PlaybackService : MediaLibraryService() {
     private var speedBeforeTemporaryHold: Float? = null
     private var retriedPath: String? = null
     private var gainEnabled = false
+    private var bluetoothOnlyListening = false
     private var enhancer: android.media.audiofx.LoudnessEnhancer? = null
     private var widgetArtwork: android.graphics.Bitmap? = null
     private var widgetJob: Job? = null
@@ -70,13 +78,23 @@ class PlaybackService : MediaLibraryService() {
             }.build()
     }
     private val audioManager by lazy { getSystemService(AudioManager::class.java) }
+    private fun hasConnectedBluetoothOutput(): Boolean = runCatching {
+        audioManager.getDevices(AudioManager.GET_DEVICES_OUTPUTS).any(::isBluetoothOutput)
+    }.getOrDefault(false)
+
     private val audioDeviceCallback = object : AudioDeviceCallback() {
         override fun onAudioDevicesRemoved(removedDevices: Array<out AudioDeviceInfo>) {
-            if (::player.isInitialized && removedDevices.any(::isBluetoothOutput)) {
-                // Never spill private playback through the phone speaker after a
-                // Bluetooth headset/speaker disappears.
-                pauseEveryPlayer()
-            }
+            if (!::player.isInitialized || destroyed) return
+            // Android can remove an older A2DP device while replacing it with BLE or
+            // another headset. Do not pause unless the last Bluetooth output is gone.
+            if (shouldPauseForBluetoothOutputLoss(
+                    removedDevices.any(::isBluetoothOutput),
+                    hasConnectedBluetoothOutput(), bluetoothOnlyListening,
+                )) pauseEveryPlayer()
+        }
+        override fun onAudioDevicesAdded(addedDevices: Array<out AudioDeviceInfo>) {
+            // Never resume on connection: the user explicitly controls playback.
+            // The current output is checked again before a subsequent Play request.
         }
     }
 
@@ -216,6 +234,10 @@ class PlaybackService : MediaLibraryService() {
         mediaSession = MediaLibrarySession.Builder(this, sessionPlayer, LocalLibraryCallback(this, serviceScope)).build()
         player.addListener(object : Player.Listener {
             override fun onPlayWhenReadyChanged(playWhenReady: Boolean, reason: Int) {
+                if (playWhenReady && bluetoothOnlyListening && !hasConnectedBluetoothOutput()) {
+                    pauseEveryPlayer()
+                    return
+                }
                 if (playWhenReady) ensureFocus()
                 else if (reason == Player.PLAY_WHEN_READY_CHANGE_REASON_AUDIO_BECOMING_NOISY) pauseEveryPlayer()
                 if (playWhenReady && !focusHeld) return
@@ -304,6 +326,10 @@ class PlaybackService : MediaLibraryService() {
 
         serviceScope.launch {
             preferences.values.collect { savedPreferences ->
+                if (bluetoothOnlyListening != savedPreferences.bluetoothOnlyListening) {
+                    bluetoothOnlyListening = savedPreferences.bluetoothOnlyListening
+                    if (bluetoothOnlyListening && !hasConnectedBluetoothOutput()) pauseEveryPlayer()
+                }
                 if (gainEnabled != savedPreferences.replayGainEnabled) {
                     gainEnabled = savedPreferences.replayGainEnabled
                     applyGain()

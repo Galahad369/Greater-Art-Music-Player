@@ -431,6 +431,7 @@ fun GreaterArtApp(
                         preferences = settings,
                         playHistory = playHistory,
                         currentPath = playback.currentPath,
+                        isPlaying = playback.isPlaying,
                         // The outer Scaffold's bottom inset is the mini-player height.
                         // Applying it to the whole Library created a permanent dead band.
                         // The list now draws behind the player and keeps only a scroll-end inset.
@@ -584,6 +585,7 @@ fun GreaterArtApp(
                             viewModel.setScopedMediaTree(null) else grantFailure()
                     },
                     onReplayGainEnabled = viewModel::setReplayGainEnabled,
+                    onBluetoothOnlyListening = viewModel::setBluetoothOnlyListening,
                     onBlackDiscMode = viewModel::setBlackDiscMode,
                     onPlayHistoryEnabled = viewModel::setPlayHistoryEnabled,
                     onBackup = { backupPicker.launch("Greater-Art-settings.json") },

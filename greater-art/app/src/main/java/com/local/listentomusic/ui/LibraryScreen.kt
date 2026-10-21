@@ -28,6 +28,7 @@ import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.Sort
 import androidx.compose.material.icons.rounded.DragHandle
@@ -156,6 +157,7 @@ fun LibraryScreen(
     onAddSelected: (String, List<String>) -> Unit,
     onCreateSelected: (String, List<String>) -> Unit,
     showTopBar: Boolean = true,
+    isPlaying: Boolean = false,
     onThumbnailViewport: (String, List<MediaFile>, List<MediaFile>, Boolean) -> Unit = { _, _, _, _ -> },
 ) {
     val language = preferences.appLanguage
@@ -439,6 +441,7 @@ fun LibraryScreen(
                             MediaFileRow(
                                 file = item,
                                 isCurrent = item.path == currentPath,
+                                isPlaying = isPlaying,
                                 isSelected = item.path in selected,
                                 index = index,
                                 itemCount = state.files.size,
@@ -681,6 +684,7 @@ private fun CreatePlaylistDialog(
 private fun MediaFileRow(
     file: MediaFile,
     isCurrent: Boolean,
+    isPlaying: Boolean,
     isSelected: Boolean,
     index: Int,
     itemCount: Int,
@@ -812,14 +816,23 @@ private fun MediaFileRow(
             // Reserve the same 12 dp for every row so artwork and titles never jump
             // sideways when the active song changes.
             Box(Modifier.width(12.dp), contentAlignment = Alignment.CenterStart) {
-                if (isCurrent) Row(horizontalArrangement = Arrangement.spacedBy(2.dp)) {
-                    repeat(2) {
-                        Box(Modifier.width(2.dp).height(18.dp).background(MaterialTheme.colorScheme.secondary))
-                    }
+                if (isCurrent) {
+                    if (isPlaying) Icon(
+                        Icons.Rounded.PlayArrow,
+                        contentDescription = uiText(language, "Now playing", "正在播放"),
+                        modifier = Modifier.size(12.dp),
+                        tint = MaterialTheme.colorScheme.secondary,
+                    ) else Box(
+                        Modifier.size(6.dp).background(MaterialTheme.colorScheme.secondary, CircleShape)
+                    )
                 }
             }
             if (showThumbnails) {
-                MediaThumbnail(file, thumbnail, rowSize, miniSize, thumbnailBrush)
+                // Translate pixels only. The measured thumbnail slot and everything
+                // after it (title, metadata, buttons) keep their original positions.
+                Box(Modifier.graphicsLayer { translationX = if (isCurrent) 4.dp.toPx() else 0f }) {
+                    MediaThumbnail(file, thumbnail, rowSize, miniSize, thumbnailBrush)
+                }
                 Spacer(Modifier.width(rowSize.textSpacing))
             }
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.Center) {

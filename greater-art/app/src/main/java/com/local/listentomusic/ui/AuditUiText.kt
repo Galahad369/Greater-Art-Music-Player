@@ -16,6 +16,14 @@ internal fun auditUiText(language: AppLanguage, english: String): String? {
 }
 
 private val auditMessages = mapOf(
+    "Private listening — Bluetooth only" to listOf("私人聆聽 — 僅限藍牙", "私人聽歌 — 只用藍牙", "プライベート再生 — Bluetoothのみ", "Privates Hören — nur Bluetooth", "Écoute privée — Bluetooth uniquement"),
+    "Require a connected Bluetooth audio output for playback. Pause if it disconnects; reconnecting never starts playback automatically." to listOf(
+        "必須連接藍牙音訊裝置才能播放。斷線時暫停，重新連線不會自動播放。",
+        "要連住藍牙音訊裝置先播得。斷線就暫停，重新連線唔會自動播。",
+        "Bluetooth音声機器の接続が必要です。切断時は一時停止し、再接続しても自動再生しません。",
+        "Wiedergabe nur mit verbundenem Bluetooth-Audiogerät. Bei Trennung pausieren; keine automatische Fortsetzung.",
+        "Lecture uniquement avec un appareil audio Bluetooth connecté. Pause à la déconnexion, sans reprise automatique.",
+    ),
     "Backup saved" to listOf("設定已備份", "設定備份咗", "設定をバックアップしました", "Sicherung gespeichert", "Sauvegarde enregistrée"),
     "Could not save backup" to listOf("無法儲存備份", "儲存唔到備份", "バックアップを保存できませんでした", "Sicherung konnte nicht gespeichert werden", "Impossible d’enregistrer la sauvegarde"),
     "Settings and playlists restored" to listOf("設定及播放清單已還原", "設定同歌單還原咗", "設定とプレイリストを復元しました", "Einstellungen und Playlists wiederhergestellt", "Paramètres et listes restaurés"),
