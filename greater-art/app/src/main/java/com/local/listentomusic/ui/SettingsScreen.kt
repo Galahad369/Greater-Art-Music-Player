@@ -149,6 +149,7 @@ fun SettingsScreen(
     onPreviewScopedFolder: () -> Unit,
     onClearScopedFolder: () -> Unit,
     onReplayGainEnabled: (Boolean) -> Unit,
+    onBluetoothOnlyListening: (Boolean) -> Unit,
     onBlackDiscMode: (Boolean) -> Unit,
     onPlayHistoryEnabled: (Boolean) -> Unit,
     onEqualizer: () -> Unit,
@@ -371,6 +372,12 @@ fun SettingsScreen(
                         uiText(language, "Use track gain tags with peak protection. Untagged files play unchanged; boosting needs a peak tag and device support.", "使用曲目增益標籤及峰值保護。沒有標籤時保持原音量，增強音量需要峰值標籤和裝置支援。"),
                         preferences.replayGainEnabled,
                         onReplayGainEnabled,
+                    )
+                    SwitchSetting(
+                        uiText(language, "Private listening — Bluetooth only", "私人聆聽 — 僅限藍牙"),
+                        uiText(language, "Require a connected Bluetooth audio output for playback. Pause if it disconnects; reconnecting never starts playback automatically.", "必須連接藍牙音訊裝置才能播放。斷線時暫停，重新連線不會自動播放。"),
+                        preferences.bluetoothOnlyListening,
+                        onBluetoothOnlyListening,
                     )
                     SwitchSetting(
                         uiText(language, "Black disc mode", "黑膠唱片模式"),
@@ -601,7 +608,7 @@ fun SettingsScreen(
                     Spacer(Modifier.height(GaSpacing.sm))
                     SwitchSetting(
                                         uiText(language, "Toggle Ads On", "開啟廣告"),
-                                        uiText(language, "Optional parody: loud colours, wobbling buttons and a five-second skip. Buttons open a Rickroll in your browser.", "可選惡搞：高飽和配色、晃動按鈕與五秒跳過。按鈕會在瀏覽器開啟 Rickroll。"),
+                                        "",
                                         preferences.jokeAdsEnabled,
                                         onJokeAdsEnabled,
                                     )
@@ -658,13 +665,13 @@ internal fun SwitchSetting(title: String, description: String, checked: Boolean,
         modifier = Modifier.inspectElement("SETTING_SWITCH", title)
             .toggleable(value = checked, enabled = enabled, role = Role.Switch, onValueChange = onChecked),
         headlineContent = { Text(title, fontWeight = FontWeight.SemiBold) },
-        supportingContent = {
+        supportingContent = if (description.isBlank()) null else ({
             Text(
                 description,
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
-        },
+        }),
         trailingContent = { Switch(checked, onCheckedChange = null, enabled = enabled) },
         colors = ListItemDefaults.colors(containerColor = Color.Transparent),
     )

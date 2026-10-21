@@ -3,7 +3,7 @@
 This file describes the **current repository state only**. Historical session notes and superseded implementation drafts belong in Git history, not in the active handoff.
 
 **Project:** `greater-art/` in the repository checkout
-**Current source:** `1.21.64 (code 287)` — SOURCE_ONLY; Claude audit remediation for sleep timer, scanning, Stack and fullscreen while retaining reviewed adaptive accents/release-only R8
+**Current source:** `1.21.65 (code 288)` — SOURCE_ONLY; Claude audit remediation for sleep timer, scanning, Stack and fullscreen while retaining reviewed adaptive accents/release-only R8
 **Current version:** `1.21.39 (code 262)`
 **Latest APK:** `releases/GreaterArt-1.21.39.apk` (`26,877,593 bytes`; SHA-256 `e636fb7c1bfdbdf5500d48863a9f6c778aec47bb2090e433bb2e86037e468104`)
 **Application ID:** `com.local.listentomusic`
@@ -13,6 +13,15 @@ This file describes the **current repository state only**. Historical session no
 **Verification boundary:** Exact build source `b20489581b6125ce3963c767ed8e419c979a6820`; 358 JVM tests, 21 API36 emulator tests, zero lint errors; signature, pinned certificate, version/package, 16KiB ZIP alignment and upgrade installation checked. Emulator tests cover scoped URI discovery/access, live primary-video Dynamic Ambient colors and retained player identity, floating presentations and accessibility/Developer Mode interactions. No app fatal in the inspected crash buffer. This is a debug sideload build, not production signing, physical-phone acceptance, full security assessment or a universal bug-free guarantee. The prior 1.21.37 artifact and its evidence remain unchanged in history.
 
 ## Repository state
+
+### October 21 — Four-fix integration atop Library performance (1.21.65/code288)
+
+- Supersedes separate draft PR #193 (1.21.64/code287 collision with merged PR #192). Integrates features on top of main rather than importing an incompatible old tree: preserve PR #192's lazy swipe underlay, selection Set lookup, remember-cached row details and draw-phase row colour.
+- Private listening — Bluetooth only is an opt-in Playback preference (off by default). It pauses when no connected Bluetooth output remains, avoids old-device removal false positives during device handoffs, and does not auto-play when Bluetooth reconnects. A connected device does not prove that the actual media route is Bluetooth: physical route validation remains mandatory before claiming a complete privacy guarantee.
+- Audio Black Disc gains a visible contrast rim on dark/default backgrounds even without cover artwork; added Compose visibility tests. Device playback animation still requires runtime acceptance.
+- Toggle Ads On retains its label without an explanatory Settings description; the in-ad joke explanation is removed without adding real ads or new external SDKs.
+- Active Library indicator is a small play arrow; a paused current item uses a dot. Translate only thumbnail pixels 4dp, leaving text and trailing controls aligned.
+- Source-only; latest immutable personally verified APK remains 1.21.39/code262. CI compilation is not equivalent to physical Bluetooth, output-route, vinly-motion or sideload acceptance.
 
 ### October 21 — Library row work reduction (1.21.64/code287)
 

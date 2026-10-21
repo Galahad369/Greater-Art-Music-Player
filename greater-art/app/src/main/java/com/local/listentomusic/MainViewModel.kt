@@ -662,6 +662,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
     fun setReplayGainEnabled(value: Boolean) = updatePreference { preferences.setReplayGainEnabled(value) }
+    fun setBluetoothOnlyListening(value: Boolean) = updatePreference { preferences.setBluetoothOnlyListening(value) }
     fun setBlackDiscMode(value: Boolean) = updatePreference { preferences.setBlackDiscMode(value) }
     fun setPlayHistoryEnabled(value: Boolean) = updatePreference { preferences.setPlayHistoryEnabled(value) }
     fun toggleFavourite(path: String) = updatePreference { preferences.toggleFavourite(path) }

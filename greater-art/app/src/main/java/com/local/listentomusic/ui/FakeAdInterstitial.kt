@@ -44,7 +44,7 @@ fun FakeAdInterstitial(onSkip: () -> Unit, onOpenLink: () -> Unit) {
                     Text(label, fontWeight = FontWeight.Black, textAlign = TextAlign.Center)
                 }
             }
-            Text("100% unnecessary • 0% improvement\nYou enabled this joke in Settings.", color = Color.White, textAlign = TextAlign.Center)
+            Text("100% unnecessary • 0% improvement", color = Color.White, textAlign = TextAlign.Center)
         }
         val alignment = when (corner) { 0 -> Alignment.TopStart; 1 -> Alignment.TopEnd; 2 -> Alignment.BottomStart; else -> Alignment.BottomEnd }
         Button(onClick = onSkip, enabled = remaining == 0, modifier = Modifier.align(alignment).padding(12.dp),

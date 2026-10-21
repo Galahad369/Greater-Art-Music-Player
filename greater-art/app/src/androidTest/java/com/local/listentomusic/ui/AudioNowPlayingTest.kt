@@ -151,7 +151,19 @@ class AudioNowPlayingTest {
     @Test fun narrowPortraitAndBlackDiscKeepTopActions() {
         show(DpSize(320.dp, 640.dp), disc = true)
         assertChrome()
+        compose.onNodeWithTag("BLACK_DISC_ARTWORK").assertIsDisplayed()
         capture("disc")
+    }
+
+    @Test fun discIsVisibleWithNoArtworkAndDefaultTheme() {
+        show(disc = true)
+        compose.onNodeWithTag("BLACK_DISC_ARTWORK").assertIsDisplayed()
+        compose.onNodeWithContentDescription("Play").assertIsDisplayed()
+    }
+
+    @Test fun discIsAbsentWhenSettingDisabled() {
+        show(disc = false)
+        compose.onNodeWithTag("BLACK_DISC_ARTWORK").assertDoesNotExist()
     }
 
     @Test fun narrowOverlayFullscreenDoesNotOfferUnusableRotation() {
