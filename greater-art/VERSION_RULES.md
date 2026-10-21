@@ -7,7 +7,7 @@ This file is the authoritative version policy for Greater Art. If any handoff no
 ## Machine-checkable state
 
 
-Current source: **1.21.63 (code 286)**
+Current source: **1.21.64 (code 287)**
 Allowed consumed transition: **1.21.45 (code 268) -> 1.21.48 (code 271)**
 
 The open draft security PR #174 separately consumes 1.21.46/code269
@@ -392,3 +392,5 @@ Previous baseline: 1.13.26 (code 115).
 - 1.21.62 (code 285) — Follow-up to committed1.21.61: preserve Stack across Activity reconnection by preventing ordinary restored-Library queue expansion while Stack owns playback; ignore retired media callbacks that no longer match the actual primary. Real-player regressions cover reconnect/scanning and stale-versus-real replacement. SOURCE_ONLY; unchanged verified APK/signing identity, no Library scrolling optimization mixed into PR191.
 
 - 1.21.63 (code 286) — Enforce Stack primary-queue isolation at the service command/admission boundary, including late controller appends already queued before Stack starts; keep explicit ordinary playback and coordinator companion additions unchanged. Add real late-append regression and restore fixture preferences so user folders/playlists/background do not contaminate correctness tests. SOURCE_ONLY; no verified artifacts replaced.
+
+- 1.21.64 (code 287) — Claude Library-row audit follow-up: omit closed action underlays while preserving opening/closing animation and48dp targets; draw animated row color without composition reads; reuse formatted details, bitmap wrappers and selected-path membership. Add measured Compose action lifecycle/metadata/inspector regressions.8GB target RAM does not override actual heap/pressure limits; no video surface/quality, cache freshness or signing changes. SOURCE_ONLY; verified1.21.39 unchanged.
