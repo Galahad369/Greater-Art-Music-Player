@@ -230,9 +230,8 @@ class ThumbnailRepository(private val context: Context) {
                     for (file in adjacent.take(2)) {
                         if (ListScrollBudget.scrolling.value) break
                         val id = requestId(file)
-                        if (memoryHit(id) == null) scheduler.load("prefetch:$id", prefetch = true) {
-                            loadUnscheduled(file, id, diskOnly = true)
-                        }
+                        if (memoryHit(id) == null) scheduler.loadStaged("prefetch:$id", prefetch = true,
+                            diskProbe = { loadUnscheduled(file, id, diskOnly = true) })
                     }
                 } catch (cancel: CancellationException) { throw cancel }
                 catch (_: Exception) { _stats.update { it.copy(failed = it.failed + 1) } }
@@ -254,7 +253,10 @@ class ThumbnailRepository(private val context: Context) {
     suspend fun load(file: MediaFile): Bitmap? {
         val id = requestId(file)
         memoryHit(id)?.let { return it }
-        return try { scheduler.load(id) { loadUnscheduled(file, id) } }
+        return try { scheduler.loadStaged(id,
+            diskProbe = { loadUnscheduled(file, id, diskOnly = true) },
+            generation = { loadUnscheduled(file, id, generationOnly = true) },
+        ) }
         catch (cancel: CancellationException) { throw cancel }
         catch (_: Exception) { _stats.update { it.copy(failed = it.failed + 1) }; null }
     }
@@ -265,19 +267,25 @@ class ThumbnailRepository(private val context: Context) {
         memoryHit(id)?.let { return it }
         // Do not coalesce a cache miss with a real UI load: that load still needs
         // its generation path. Both paths share the existing bounded writer lock.
-        return try { scheduler.load("cached:$id") { loadUnscheduled(file, id, diskOnly = true) } }
+        return try { scheduler.loadStaged("cached:$id",
+            diskProbe = { loadUnscheduled(file, id, diskOnly = true) }) }
         catch (cancel: CancellationException) { throw cancel }
         catch (_: Exception) { null }
     }
 
-    private suspend fun checkpoint() {
+    private suspend fun checkpoint(allowDiskWhileScrolling: Boolean = false) {
         coroutineContext.ensureActive()
-        // Closing the small collector race also protects a task waiting for a resource permit.
-        if (ListScrollBudget.scrolling.value) throw CancellationException("Thumbnail deferred for scrolling")
+        // Only the disk-cache probe may continue during a fling; generation is
+        // still cooperatively cancelled before touching platform decoders.
+        if (!allowDiskWhileScrolling && ListScrollBudget.scrolling.value)
+            throw CancellationException("Thumbnail generation deferred for scrolling")
     }
 
-    private suspend fun loadUnscheduled(file: MediaFile, id: String, diskOnly: Boolean = false): Bitmap? = withContext(Dispatchers.IO) {
-        checkpoint()
+    private suspend fun loadUnscheduled(
+        file: MediaFile, id: String,
+        diskOnly: Boolean = false, generationOnly: Boolean = false,
+    ): Bitmap? = withContext(Dispatchers.IO) {
+        checkpoint(allowDiskWhileScrolling = diskOnly)
         val epoch = generation.get()
         if (pruned.compareAndSet(false, true)) pruneScope.launch { pruneDiskCache() }
         val key = cacheKey(file)
@@ -292,14 +300,20 @@ class ThumbnailRepository(private val context: Context) {
         try {
             mutex.withLock {
                 memoryCache.get(key)?.let { rememberBitmap(id, key, it); return@withLock it }
-                val artifactKey = resolveArtworkKey(key)
-                diskWorkers.withPermit { checkpoint(); readDisk(artifactKey) }?.let {
-                    checkpoint()
-                    if (generation.get() == epoch) rememberBitmap(id, artifactKey, it)
-                    _stats.update { value -> value.copy(diskHits = value.diskHits + 1) }
-                    return@withLock it
+                if (!generationOnly) {
+                    val artifactKey = resolveArtworkKey(key)
+                    diskWorkers.withPermit {
+                        checkpoint(allowDiskWhileScrolling = diskOnly)
+                        readDisk(artifactKey)
+                    }?.let {
+                        checkpoint(allowDiskWhileScrolling = diskOnly)
+                        if (generation.get() == epoch) rememberBitmap(id, artifactKey, it)
+                        _stats.update { value -> value.copy(diskHits = value.diskHits + 1) }
+                        return@withLock it
+                    }
                 }
                 if (diskOnly) return@withLock null
+                checkpoint()
                 if (readMissing(key)) {
                     _stats.update { value -> value.copy(missingArtwork = value.missingArtwork + 1) }
                     return@withLock null
