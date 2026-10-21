@@ -7,7 +7,7 @@ This file is the authoritative version policy for Greater Art. If any handoff no
 ## Machine-checkable state
 
 
-Current source: **1.21.65 (code 288)**
+Current source: **1.21.66 (code 289)**
 Allowed consumed transition: **1.21.45 (code 268) -> 1.21.48 (code 271)**
 
 The open draft security PR #174 separately consumes 1.21.46/code269
@@ -395,3 +395,5 @@ Previous baseline: 1.13.26 (code 115).
 
 - 1.21.64 (code 287) — Claude Library-row audit follow-up: omit closed action underlays while preserving opening/closing animation and48dp targets; draw animated row color without composition reads; reuse formatted details, bitmap wrappers and selected-path membership. Add measured Compose action lifecycle/metadata/inspector regressions.8GB target RAM does not override actual heap/pressure limits; no video surface/quality, cache freshness or signing changes. SOURCE_ONLY; verified1.21.39 unchanged.
 - 1.21.65 (code 288) — Four-fix integration atop 1.21.64 main: Bluetooth-only opt-in, Black Disc visible dark rim, concise Ads toggle without explanatory joke text, Library play marker and thumbnail-only 4dp visual shift. The original parallel PR #193 already consumed the 1.21.64/code287 label on its unmerged branch; its changes are ported as a new single-main-parent commit under 1.21.65, without importing the duplicate-version commit. Keep the immutable 1.21.39 APK untouched.
+
+- 1.21.66 (code 289): Android Nodes local spring response after deliberate node drag, with bounded two-hop interactions and off-main post-release settling; restore existing persisted force sliders to the Nodes controls. Graph build, playback, pager/swipe ownership, pinch and full-library memory limits preserved. No desktop or personal APK changes.

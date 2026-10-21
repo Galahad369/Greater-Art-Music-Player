@@ -63,8 +63,10 @@ not a guarantee of globally exact nearest neighbors. No dense N×N matrix is ret
 repulsion and 180 cooling steps on Dispatchers.Default. Stronger edges have shorter
 target distances and stronger springs. Repulsion samples at most 32 nodes per nearby
 grid cell. Isolated media remain visible. There is no continuous force solver on the
-main thread or while the graph is hidden. Dragging moves the selected node without
-restarting the full solve; those manual offsets are intentionally not persisted.
+main thread or while the graph is hidden. Dragging keeps the selected node pinned under the finger; neighboring linked
+nodes react through a bounded two-hop spring neighborhood, then settle off-main
+after release for at most 36 updates. It never restarts the full solve or runs a
+perpetual physics frame loop; the temporary positions are not persisted.
 
 Canvas uses the app palette, culls offscreen nodes and caps ordinary labels. Selected
 and playing nodes receive emphasis. No thumbnail decoding is launched for graph nodes.

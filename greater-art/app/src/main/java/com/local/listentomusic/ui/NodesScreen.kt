@@ -45,6 +45,13 @@ import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import com.local.listentomusic.graph.LibraryGraph
 import com.local.listentomusic.graph.GraphOptions
+import com.local.listentomusic.graph.GraphPoint
+import com.local.listentomusic.graph.NodeDragSpring
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import com.local.listentomusic.data.AppLanguage
 import com.local.listentomusic.graph.presentGraph
 import com.local.listentomusic.ui.components.GaChromeSurface
@@ -87,6 +94,9 @@ private fun GraphCanvas(graph: LibraryGraph, currentPath: String?, onPlay: (Stri
     var scale by remember(graph) { mutableFloatStateOf(1f) }
     var pan by remember(graph) { mutableStateOf(Offset.Zero) }
     val moved = remember(graph) { mutableStateMapOf<Int, Offset>() }
+    val physicsScope = rememberCoroutineScope()
+    val settleJob = remember(graph) { mutableStateOf<Job?>(null) }
+    DisposableEffect(graph) { onDispose { settleJob.value?.cancel() } }
     var selected by remember(graph) { mutableIntStateOf(-1) }
     val focusIndex = selected.takeIf { it >= 0 } ?: current.takeIf { it >= 0 } ?: -1
     val focusNeighbors = remember(presentation.edges, focusIndex) {
@@ -146,6 +156,7 @@ private fun GraphCanvas(graph: LibraryGraph, currentPath: String?, onPlay: (Stri
         }
     }
     fun fit() {
+        settleJob.value?.cancel()
         val w = (graph.points.maxOf { it.x } - graph.points.minOf { it.x } + 100f).coerceAtLeast(100f)
         val h = (graph.points.maxOf { it.y } - graph.points.minOf { it.y } + 100f).coerceAtLeast(100f)
         scale = min(viewport.width / w, viewport.height / h).coerceIn(0.08f, 3f)
@@ -222,6 +233,7 @@ private fun GraphCanvas(graph: LibraryGraph, currentPath: String?, onPlay: (Stri
 
                     var netDrag = Offset.Zero
                     var nodeDragging = false
+                    var spring: NodeDragSpring? = null
                     val nodeDragThresholdPx =
                         nodeDragActivationDistancePx(viewConfiguration.touchSlop, 20.dp.toPx())
                     var multi = false
@@ -251,9 +263,15 @@ private fun GraphCanvas(graph: LibraryGraph, currentPath: String?, onPlay: (Stri
                             if (!nodeDragging && netDrag.getDistance() >= nodeDragThresholdPx) {
                                 nodeDragging = true
                                 selected = hit
+                                settleJob.value?.cancel()
+                                spring = NodeDragSpring(graph.points, presentation.edges, options, hit,
+                                    moved.mapValues { (_, offset) -> GraphPoint(offset.x, offset.y) })
                             }
                             if (nodeDragging) {
-                                moved[hit] = position(hit) + delta / scale
+                                val next = position(hit) + delta / scale
+                                spring?.advance(GraphPoint(next.x, next.y), steps = 4)?.forEach { (index, point) ->
+                                    moved[index] = Offset(point.x, point.y)
+                                }
                                 event.changes.forEach { it.consume() }
                             }
                         }
@@ -261,6 +279,20 @@ private fun GraphCanvas(graph: LibraryGraph, currentPath: String?, onPlay: (Stri
                         // The parent HorizontalPager therefore owns horizontal swipes.
                     } while (event.changes.any { it.pressed })
 
+                    if (nodeDragging && !multi && spring != null) {
+                        // Releasing the pinned node lets a bounded local spring
+                        // neighborhood settle. The graph's global 180-step solve
+                        // is never restarted on the UI thread by a drag.
+                        val released = spring
+                        settleJob.value = physicsScope.launch {
+                            repeat(36) {
+                                val frame = withContext(Dispatchers.Default) { released.advance(steps = 3) }
+                                frame.forEach { (index, point) -> moved[index] = Offset(point.x, point.y) }
+                                if (released.isQuiet) return@launch
+                                delay(16)
+                            }
+                        }
+                    }
                     if (!multi && !nodeDragging && hit != null) {
                         selected = hit
                         onPlayCurrent(graph.nodes[hit].id)
@@ -454,6 +486,14 @@ private fun GraphControls(options: GraphOptions, onSave: (GraphOptions) -> Unit,
                     GraphSlider(text("Node size"), String.format(java.util.Locale.ROOT, "%.1f×", edit.nodeSize), edit.nodeSize, .6f..2f) { edit = edit.copy(nodeSize = it) }
                     GraphToggle(text("Filename labels"), edit.showLabels) { edit = edit.copy(showLabels = it) }
                     GraphToggle(text("Size by strong connections"), edit.sizeByConnections) { edit = edit.copy(sizeByConnections = it) }
+                }
+                GraphControlSection(text("Forces")) {
+                    GraphSlider(text("Link distance"), String.format(java.util.Locale.ROOT, "%.2f×", edit.linkDistance),
+                        edit.linkDistance, .55f..1.8f) { edit = edit.copy(linkDistance = it) }
+                    GraphSlider(text("Repulsion"), String.format(java.util.Locale.ROOT, "%.2f×", edit.repulsion),
+                        edit.repulsion, .35f..2f) { edit = edit.copy(repulsion = it) }
+                    GraphSlider(text("Spring damping"), String.format(java.util.Locale.ROOT, "%.2f", edit.bounce),
+                        edit.bounce, .55f.. .94f) { edit = edit.copy(bounce = it) }
                 }
                 Text(text("The double-ring node is playing. Larger nodes have more strong filename connections."),
                     style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
