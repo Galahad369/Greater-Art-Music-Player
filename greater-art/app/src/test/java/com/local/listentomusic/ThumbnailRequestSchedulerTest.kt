@@ -59,6 +59,23 @@ class ThumbnailRequestSchedulerTest {
         } finally { scope.cancel() }
     }
 
+    @Test fun unchangedViewportDoesNotAffectStablePriorityOrder() = runBlocking {
+        val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
+        try {
+            val queue = ThumbnailRequestScheduler<String, String>(scope, 1)
+            queue.setPaused(true)
+            val order = Collections.synchronizedList(mutableListOf<String>())
+            val first = async { queue.load("prefetch", prefetch = true) { order.add("prefetch"); "a" } }
+            val second = async { queue.load("visible") { order.add("visible"); "b" } }
+            val third = async { queue.load("normal") { order.add("normal"); "c" } }
+            until { queue.snapshot().queued == 3 }
+            repeat(10) { queue.setViewport("library", setOf("visible")) }
+            queue.setPaused(false)
+            withTimeout(4_000) { first.await(); second.await(); third.await() }
+            assertEquals(listOf("visible", "normal", "prefetch"), order.toList())
+        } finally { scope.cancel() }
+    }
+
     @Test fun cancellingOneConsumerDoesNotCancelSharedDecode() = runBlocking {
         val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
         try {

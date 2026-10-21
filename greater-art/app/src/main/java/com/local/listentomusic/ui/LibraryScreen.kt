@@ -407,18 +407,25 @@ fun LibraryScreen(
                     LaunchedEffect(listState, state.files, preferences.showThumbnails) {
                         var previousFirst = listState.firstVisibleItemIndex
                         try {
+                            // Observe a compact range, not a fresh list allocation on
+                            // every animated scroll frame. snapshotFlow suppresses
+                            // unchanged (scrolling, first, last) triples.
                             snapshotFlow {
-                                listState.isScrollInProgress to listState.layoutInfo.visibleItemsInfo.map { it.index }
-                            }.collect { (scrolling, indices) ->
+                                val visible = listState.layoutInfo.visibleItemsInfo
+                                Triple(
+                                    listState.isScrollInProgress,
+                                    visible.firstOrNull()?.index ?: 0,
+                                    visible.lastOrNull()?.index ?: -1,
+                                )
+                            }.collect { (scrolling, first, last) ->
                                 ListScrollBudget.set("library", scrolling)
                                 if (scrolling) openRowActionsPath = null
-                                val first = indices.firstOrNull() ?: 0
-                                val last = indices.lastOrNull() ?: -1
                                 val next = if (first >= previousFirst) listOf(last + 1, last + 2)
                                     else listOf(first - 1, first - 2)
                                 previousFirst = first
                                 onThumbnailViewport("library",
-                                    if (preferences.showThumbnails) indices.mapNotNull(state.files::getOrNull) else emptyList(),
+                                    if (preferences.showThumbnails && last >= first)
+                                        (first..last).mapNotNull(state.files::getOrNull) else emptyList(),
                                     if (preferences.showThumbnails && !scrolling) next.mapNotNull(state.files::getOrNull) else emptyList(),
                                     scrolling,
                                 )
@@ -445,7 +452,7 @@ fun LibraryScreen(
                             MediaFileRow(
                                 file = item,
                                 isCurrent = item.path == currentPath,
-                                isPlaying = isPlaying,
+                                isPlaying = isPlaying && item.path == currentPath,
                                 isSelected = item.path in selectedPaths,
                                 index = index,
                                 itemCount = state.files.size,
@@ -838,7 +845,13 @@ internal fun MediaFileRow(
             if (showThumbnails) {
                 // Visual translation only: retain the original measured image slot,
                 // song title, details, trailing action placement, and row height.
-                Box(Modifier.graphicsLayer { translationX = if (isCurrent) 4.dp.toPx() else 0f }) {
+                if (isCurrent) {
+                    // Only the active row needs a graphics layer for the 4dp
+                    // visual shift. Ordinary rows avoid this layer entirely.
+                    Box(Modifier.graphicsLayer { translationX = 4.dp.toPx() }) {
+                        MediaThumbnail(file, thumbnail, rowSize, miniSize, thumbnailBrush)
+                    }
+                } else {
                     MediaThumbnail(file, thumbnail, rowSize, miniSize, thumbnailBrush)
                 }
                 Spacer(Modifier.width(rowSize.textSpacing))
