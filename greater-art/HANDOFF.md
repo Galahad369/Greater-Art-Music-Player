@@ -3,7 +3,7 @@
 This file describes the **current repository state only**. Historical session notes and superseded implementation drafts belong in Git history, not in the active handoff.
 
 **Project:** `greater-art/` in the repository checkout
-**Current source:** `1.21.63 (code 286)` — SOURCE_ONLY; Claude audit remediation for sleep timer, scanning, Stack and fullscreen while retaining reviewed adaptive accents/release-only R8
+**Current source:** `1.21.64 (code 287)` — SOURCE_ONLY; Claude audit remediation for sleep timer, scanning, Stack and fullscreen while retaining reviewed adaptive accents/release-only R8
 **Current version:** `1.21.39 (code 262)`
 **Latest APK:** `releases/GreaterArt-1.21.39.apk` (`26,877,593 bytes`; SHA-256 `e636fb7c1bfdbdf5500d48863a9f6c778aec47bb2090e433bb2e86037e468104`)
 **Application ID:** `com.local.listentomusic`
@@ -13,6 +13,24 @@ This file describes the **current repository state only**. Historical session no
 **Verification boundary:** Exact build source `b20489581b6125ce3963c767ed8e419c979a6820`; 358 JVM tests, 21 API36 emulator tests, zero lint errors; signature, pinned certificate, version/package, 16KiB ZIP alignment and upgrade installation checked. Emulator tests cover scoped URI discovery/access, live primary-video Dynamic Ambient colors and retained player identity, floating presentations and accessibility/Developer Mode interactions. No app fatal in the inspected crash buffer. This is a debug sideload build, not production signing, physical-phone acceptance, full security assessment or a universal bug-free guarantee. The prior 1.21.37 artifact and its evidence remain unchanged in history.
 
 ## Repository state
+
+### October 21 — Library row work reduction (1.21.64/code287)
+
+- Apply the bounded row changes from Claude's scrolling audit: compose the two
+  action buttons only while opening/open/closing, remove them after closing, and
+  disable their actions during closure. Keep 48dp targets, translations, foreground
+  close-before-play behavior and inspector cleanup.
+- Read animated row color in drawing rather than composition; retain existing
+  graphics-layer press/reveal translation. Remember formatted details/bitmap wrappers
+  and build selection membership once per selection instead of scanning per row.
+- Target user device RAM is8GB, not an8GB app heap. No enlarged memory budgets,
+  decoder/FPS/resolution limits, primary surface changes or thumbnail TTL changes.
+- Earlier SwiftShader emulator profiling did not isolate an R8-only cure. No physical
+  phone speedup is claimed. Verification for this candidate is recorded in
+  `docs/LIBRARY_ROW_WORK_2026-10-21.md`; verified1.21.39 remains immutable.
+- Candidate passes418 JVM tests, lint(0 errors,46 warnings), debug/test/R8 assembly
+  and13/13 focused API36 tests on the owned8192MB emulator. Final committed-source
+  build/provenance remains separate from precommit testing. No frame-rate claim.
 
 ### October 20 — Service-authoritative Stack queue (1.21.63/code286)
 

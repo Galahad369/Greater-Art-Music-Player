@@ -71,6 +71,8 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.updateTransition
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
@@ -84,6 +86,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.drawscope.clipRect
 import androidx.compose.ui.graphics.Brush
@@ -181,6 +184,7 @@ fun LibraryScreen(
     var selected by androidx.compose.runtime.saveable.rememberSaveable(
         state.query, preferences.activePlaylistId, selectionResultKey,
     ) { mutableStateOf(emptyList<String>()) }
+    val selectedPaths = remember(selected) { selected.toHashSet() }
     var selectionMenu by remember(state.query, preferences.activePlaylistId, selectionResultKey) { mutableStateOf(false) }
     var selectionNameDialog by remember(state.query, preferences.activePlaylistId, selectionResultKey) { mutableStateOf(false) }
     var selectionName by remember { mutableStateOf("") }
@@ -439,7 +443,7 @@ fun LibraryScreen(
                             MediaFileRow(
                                 file = item,
                                 isCurrent = item.path == currentPath,
-                                isSelected = item.path in selected,
+                                isSelected = item.path in selectedPaths,
                                 index = index,
                                 itemCount = state.files.size,
                                 dragEnabled = !favouritesActive && selected.isEmpty() && activePlaylist?.rule == null && state.query.isBlank() && (activePlaylist != null || state.sortMode == SortMode.CUSTOM),
@@ -678,7 +682,7 @@ private fun CreatePlaylistDialog(
 }
 
 @Composable
-private fun MediaFileRow(
+internal fun MediaFileRow(
     file: MediaFile,
     isCurrent: Boolean,
     isSelected: Boolean,
@@ -716,7 +720,7 @@ private fun MediaFileRow(
     }
     val pressSource = remember { MutableInteractionSource() }
     val pressed by pressSource.collectIsPressedAsState()
-    val rowColor by animateColorAsState(
+    val rowColor = animateColorAsState(
         if (isCurrent || isSelected) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.66f)
         else MaterialTheme.colorScheme.surface.copy(alpha = 0.42f),
         animationSpec = androidx.compose.animation.core.tween(190),
@@ -744,11 +748,11 @@ private fun MediaFileRow(
             },
         )
     } else Modifier
-    val revealProgress by animateFloatAsState(
-        targetValue = if (actionsOpen) 1f else 0f,
-        animationSpec = androidx.compose.animation.core.tween(durationMillis = GaMotion.standardMs),
+    val actionsTransition = updateTransition(actionsOpen, label = "library-row-actions")
+    val revealProgress = actionsTransition.animateFloat(
+        transitionSpec = { androidx.compose.animation.core.tween(durationMillis = GaMotion.standardMs) },
         label = "library-row-actions-reveal",
-    )
+    ) { open -> if (open) 1f else 0f }
     val density = LocalDensity.current
     val addActionSize = 48.dp
     val deleteActionSize = 48.dp
@@ -767,12 +771,14 @@ private fun MediaFileRow(
             .border(1.dp, rowOutline, rowShape)
             .inspectElement("LIBRARY_MEDIA_ROW", file.name),
     ) {
-        Row(
+        // Keep the underlay through the closing animation, then remove its layout,
+        // inspector entries and hidden accessibility actions from ordinary rows.
+        if (actionsTransition.currentState || actionsTransition.targetState) Row(
             modifier = Modifier.align(Alignment.CenterEnd).width(actionWidth)
                 .drawWithContent content@{
                     // Keep the action underlay fixed. Only draw the portion physically
                     // uncovered by the translated foreground; no width/height animation.
-                    clipRect(left = size.width * (1f - revealProgress)) {
+                    clipRect(left = size.width * (1f - revealProgress.value)) {
                         this@content.drawContent()
                     }
                 },
@@ -780,6 +786,7 @@ private fun MediaFileRow(
         ) {
             IconButton(
                 onClick = onAddToList,
+                enabled = actionsOpen,
                 modifier = Modifier.size(addActionSize).inspectElement("LIBRARY_ADD_TO_LIST", "Add ${file.name} to a song list"),
             ) {
                 Icon(
@@ -790,6 +797,7 @@ private fun MediaFileRow(
             }
             IconButton(
                 onClick = onDelete,
+                enabled = actionsOpen,
                 modifier = Modifier.size(deleteActionSize).inspectElement("LIBRARY_DELETE_INLINE", "Delete ${file.name}"),
             ) {
                 Icon(Icons.Rounded.Delete, uiText(language, "Delete", "刪除"), Modifier.size(18.dp))
@@ -797,8 +805,8 @@ private fun MediaFileRow(
         }
         Row(
             Modifier.fillMaxWidth()
-                .graphicsLayer { translationX = tapOffset.dp.toPx() - actionWidthPx * revealProgress }
-                .background(rowColor)
+                .graphicsLayer { translationX = tapOffset.dp.toPx() - actionWidthPx * revealProgress.value }
+                .drawBehind { drawRect(rowColor.value) }
                 .clickable(
                     interactionSource = pressSource,
                     indication = androidx.compose.material3.ripple(),
@@ -837,11 +845,11 @@ private fun MediaFileRow(
                 if (showFileDetails) {
                     Spacer(Modifier.height(if (rowSize == LibraryRowSize.SMALL) 2.dp else 4.dp))
                     Text(
-                        buildString {
+                        remember(file.name, file.sizeBytes, file.durationMs) { buildString {
                             append(file.name.substringAfterLast('.', "media").uppercase())
                             append("  •  ${formatBytes(file.sizeBytes)}")
                             if (file.durationMs > 0) append("  •  ${formatDuration(file.durationMs)}")
-                        },
+                        } },
                         style = if (rowSize == LibraryRowSize.LARGE) MaterialTheme.typography.bodyMedium else MaterialTheme.typography.labelMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         maxLines = 1,
@@ -883,13 +891,14 @@ internal fun libraryThumbnailSizeDp(
 @Composable
 private fun MediaThumbnail(file: MediaFile, bitmap: Bitmap?, rowSize: LibraryRowSize, miniSize: LibraryRowSize, brush: Brush) {
     val shape = androidx.compose.ui.graphics.RectangleShape
+    val image = remember(bitmap) { bitmap?.asImageBitmap() }
     val (widthDp, heightDp) = libraryThumbnailSizeDp(rowSize, miniSize)
     Box(
         Modifier.size(widthDp.dp, heightDp.dp).clip(shape).background(brush),
         contentAlignment = Alignment.Center,
     ) {
-        if (bitmap != null) {
-            Image(bitmap.asImageBitmap(), null, Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
+        if (image != null) {
+            Image(image, null, Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
             // The row itself is tappable to play; do not paint a play button on the thumbnail.
         } else {
             Icon(
