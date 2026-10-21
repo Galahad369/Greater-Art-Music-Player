@@ -3,7 +3,7 @@
 This file describes the **current repository state only**. Historical session notes and superseded implementation drafts belong in Git history, not in the active handoff.
 
 **Project:** `greater-art/` in the repository checkout
-**Current source:** `1.21.66 (code 289)` — SOURCE_ONLY; Claude audit remediation for sleep timer, scanning, Stack and fullscreen while retaining reviewed adaptive accents/release-only R8
+**Current source:** `1.21.67 (code 290)` — SOURCE_ONLY; Claude audit remediation for sleep timer, scanning, Stack and fullscreen while retaining reviewed adaptive accents/release-only R8
 **Current version:** `1.21.39 (code 262)`
 **Latest APK:** `releases/GreaterArt-1.21.39.apk` (`26,877,593 bytes`; SHA-256 `e636fb7c1bfdbdf5500d48863a9f6c778aec47bb2090e433bb2e86037e468104`)
 **Application ID:** `com.local.listentomusic`
@@ -13,6 +13,14 @@ This file describes the **current repository state only**. Historical session no
 **Verification boundary:** Exact build source `b20489581b6125ce3963c767ed8e419c979a6820`; 358 JVM tests, 21 API36 emulator tests, zero lint errors; signature, pinned certificate, version/package, 16KiB ZIP alignment and upgrade installation checked. Emulator tests cover scoped URI discovery/access, live primary-video Dynamic Ambient colors and retained player identity, floating presentations and accessibility/Developer Mode interactions. No app fatal in the inspected crash buffer. This is a debug sideload build, not production signing, physical-phone acceptance, full security assessment or a universal bug-free guarantee. The prior 1.21.37 artifact and its evidence remain unchanged in history.
 
 ## Repository state
+
+### October 21 — Library scrolling low-risk source optimizations (1.21.67/code290)
+
+- Follow-up to a read-only Claude Library audit. Viewport observation now collects only scroll state and first/last visible integer indices, avoiding per-frame `visibleItemsInfo.map` allocations and suppressing calls when the visible range is unchanged.
+- Scheduler viewport no-op for identical sets and queue selection is single-pass without a filtered-list allocation. Stats are only published on change. Existing viewport priority/deduplication/cancellation policy is preserved and a same-viewport priority-order JVM regression was added.
+- The playing indicator and 4dp thumbnail shift from 1.21.65 remain, while non-current rows no longer allocate the extra graphics layer. Per-row isPlaying is false for non-current media. Preserve PR #192 lazy actions, draw-behind colour, selection Set, thumbnail RAM hits and 160ms disk prefetch.
+- **Not changed:** in-flight cancellation, decoder/disk gating, video background ownership, tab transitions, root collection, inspector internals or baseline-profile tooling. Their hypothetical performance impact needs a controlled R8 physical trace before risking functional regressions.
+- SOURCE_ONLY, no device frame-time measurements or verified current-version APK. Exact verified personal sideload remains 1.21.39.
 
 ### October 21 — Restore Android Nodes interactive physics (1.21.66/code289)
 

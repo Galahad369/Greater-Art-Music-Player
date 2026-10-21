@@ -9,7 +9,7 @@ Greater Art is a local-first Android audio and video player. This repository con
 - [App documentation](greater-art/README.md) · [Handoff and verification](greater-art/HANDOFF.md)
 - [User demonstration](greater-art-user-demo.html) · [Technical demonstration](greater-art-technical-demo.html)
 
-Current Android source: **1.21.66 / code 289 — SOURCE_ONLY**. Library rows omit closed action layouts, draw animated color without composition reads and reuse metadata/bitmap wrappers; see the [row follow-up](greater-art/docs/LIBRARY_ROW_WORK_2026-10-21.md). Portrait-first fullscreen, concise diagnostics, cache-only artwork accents and release-only R8 are retained. High contrast/Monochrome remain fixed and OLED stays black. Latest verified APK remains 1.21.39; physical-device and minified-release acceptance are separate gates.
+Current Android source: **1.21.67 / code 290 — SOURCE_ONLY**. Library rows omit closed action layouts, draw animated color without composition reads and reuse metadata/bitmap wrappers; see the [row follow-up](greater-art/docs/LIBRARY_ROW_WORK_2026-10-21.md). Portrait-first fullscreen, concise diagnostics, cache-only artwork accents and release-only R8 are retained. High contrast/Monochrome remain fixed and OLED stays black. Latest verified APK remains 1.21.39; physical-device and minified-release acceptance are separate gates.
 Windows Desktop is independently versioned at **0.1.16 / code17 — locally verified development delivery**, with interactive Nodes physics and middle-mouse/Space+drag pan.
 The [installed/portable receipt](desktop/RELEASE_0.1.16.md) records exact hashes and remaining gates. It is an original
 native C++ IDE-style workspace with offline EXE setup and desktop shortcuts.

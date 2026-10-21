@@ -7,7 +7,7 @@ This file is the authoritative version policy for Greater Art. If any handoff no
 ## Machine-checkable state
 
 
-Current source: **1.21.66 (code 289)**
+Current source: **1.21.67 (code 290)**
 Allowed consumed transition: **1.21.45 (code 268) -> 1.21.48 (code 271)**
 
 The open draft security PR #174 separately consumes 1.21.46/code269
@@ -397,3 +397,4 @@ Previous baseline: 1.13.26 (code 115).
 - 1.21.65 (code 288) — Four-fix integration atop 1.21.64 main: Bluetooth-only opt-in, Black Disc visible dark rim, concise Ads toggle without explanatory joke text, Library play marker and thumbnail-only 4dp visual shift. The original parallel PR #193 already consumed the 1.21.64/code287 label on its unmerged branch; its changes are ported as a new single-main-parent commit under 1.21.65, without importing the duplicate-version commit. Keep the immutable 1.21.39 APK untouched.
 
 - 1.21.66 (code 289): Android Nodes local spring response after deliberate node drag, with bounded two-hop interactions and off-main post-release settling; restore existing persisted force sliders to the Nodes controls. Graph build, playback, pager/swipe ownership, pinch and full-library memory limits preserved. No desktop or personal APK changes.
+- 1.21.67 (code 290): reduce Library viewport allocations with distinct integer range snapshots, preserve viewport priorities with single-pass scheduler selection and repeated-viewport suppression, skip duplicate queue-stats emissions, remove graphics-layer wrapper from non-current Library rows and scope playback state to the active row. Preserve existing cancellation, thumbnail generation, RAM, disk, video/wallpaper and PR #192 optimizations.

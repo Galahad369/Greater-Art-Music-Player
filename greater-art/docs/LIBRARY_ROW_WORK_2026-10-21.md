@@ -50,3 +50,12 @@ Final committed-source APK provenance is separate from the above precommit evide
 SOURCE_ONLY until separate acceptance. Immutable verified APK stays1.21.39/code262;
 signing identity, Desktop and privacy PR174 are unchanged. Candidate APKs must use a
 new non-overwriting path and carry their actual version/hash/source provenance.
+
+## October 21 — Range-keyed viewport and row-layer follow-up (1.21.67)
+An additional read-only audit noted map allocation each scroll frame, filtered-list
+allocation in scheduler selection and a graphics-layer wrapper on every visible row.
+The source follow-up collects (scrolling, first, last) triples, skips unchanged viewport
+sets, performs a stable one-pass scheduler priority search and avoids layers on
+non-current thumbnails. It retains all PR #192 swipe/action optimizations and the
+1.21.65 indicator. These are source inefficiencies, not verified frame-time causes.
+No changes to cancellation/decode behavior without real-device profiling evidence.

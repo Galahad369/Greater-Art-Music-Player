@@ -92,6 +92,8 @@ internal class ThumbnailRequestScheduler<K : Any, V : Any>(
     }
 
     fun setViewport(holder: String, visible: Set<K>) = synchronized(guard) {
+        // Avoid a queue pump when the viewport membership hasn't changed.
+        if (viewports[holder] == visible || (visible.isEmpty() && holder !in viewports)) return@synchronized
         if (visible.isEmpty()) viewports.remove(holder) else viewports[holder] = visible
         pumpLocked()
     }
@@ -108,16 +110,27 @@ internal class ThumbnailRequestScheduler<K : Any, V : Any>(
 
     private fun pumpLocked() {
         while (scope.isActive && !paused && running < workers) {
-            val next = requests.entries.filter { it.value.job == null }
-                .minByOrNull { (key, request) ->
-                    when {
-                        viewports.values.any { key in it } -> 0
-                        !request.prefetch -> 1
-                        else -> 2
-                    }
-                } ?: break
-            val key = next.key
-            val request = next.value
+            // Stable insertion order within each priority class. Select in one
+            // pass without allocating a filtered request list on each pump.
+            var next: Map.Entry<K, Request<V>>? = null
+            var bestPriority = 3
+            for (entry in requests.entries) {
+                val request = entry.value
+                if (request.job != null) continue
+                val priority = when {
+                    viewports.values.any { entry.key in it } -> 0
+                    !request.prefetch -> 1
+                    else -> 2
+                }
+                if (priority < bestPriority) {
+                    next = entry
+                    bestPriority = priority
+                    if (priority == 0) break
+                }
+            }
+            val selected = next ?: break
+            val key = selected.key
+            val request = selected.value
             val job = scope.launch(start = CoroutineStart.LAZY) {
                 try {
                     val value = request.load()
@@ -161,5 +174,12 @@ internal class ThumbnailRequestScheduler<K : Any, V : Any>(
         queued = requests.values.count { it.job == null }, running = running,
         shared = shared, cancelled = cancelled, rejected = rejected, peakPending = peakPending,
     )
-    private fun publishLocked() { onStats(statsLocked()) }
+    private var publishedStats: ThumbnailQueueStats? = null
+    private fun publishLocked() {
+        val stats = statsLocked()
+        if (stats != publishedStats) {
+            publishedStats = stats
+            onStats(stats)
+        }
+    }
 }
