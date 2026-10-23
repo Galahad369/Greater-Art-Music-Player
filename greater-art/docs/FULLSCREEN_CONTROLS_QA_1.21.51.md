@@ -54,3 +54,6 @@ be separately recorded against the exact 1.21.51 build SHA and certificate.
   instrumentation sources is not evidence of executing them.
 
 Record exact device, API, model, test run, screenshot/recording, and PASS/FAIL.
+
+## October 23 — 1.21.72 Lock/top bar renderer parity
+Every *visible* top toolbar action, including Lock/Unlock, is now drawn inside the actual toolbar through one shared renderer. When locked, an invisible but accessible Unlock hit target sits above the input blocker at the same measured position. Verify a consistent 48dp target, centered 32dp icon canvas and 26dp glyph against Rotate, Fullscreen and Close across portrait/landscape, locked/unlocked and paused/playing. The lock stays above its input blocker and uses the existing shared 180ms chrome fade. On fullscreen video, wait 2.5 seconds while idle and check all toolbar buttons hide together; center tap reveals them, and touch/seek/zoom gestures temporarily suspend the timer. Never accept a CI compile or geometry-only test as proof of visual fade parity on hardware.
