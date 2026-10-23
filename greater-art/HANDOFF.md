@@ -3,7 +3,7 @@
 This file describes the **current repository state only**. Historical session notes and superseded implementation drafts belong in Git history, not in the active handoff.
 
 **Project:** `greater-art/` in the repository checkout
-**Current source:** `1.21.75 (code 298)` — VERIFIED personal debug sideload, bounded emulator smoke verification; full fullscreen test acceptance unresolved
+**Current source:** `1.21.76 (code 299)` — SOURCE_ONLY; guarded independent sync workflow, no Android runtime changes beyond version metadata
 **Current version:** `1.21.75 (code 298)`
 **Latest APK:** `releases/GreaterArt-1.21.75.apk` (`27,008,689 bytes`; SHA-256 `71b4a972d6ff9d515be8d5977f1884aaeac398f665f80d9d8de076dc8f01ffd0`)
 **Application ID:** `com.local.listentomusic`
@@ -13,6 +13,13 @@ This file describes the **current repository state only**. Historical session no
 **Verification boundary:** Exact build source `b143786`; 437 JVM tests, zero lint errors (46 warnings, 4 hints); package/version, pinned signing certificate, ZIP CRC, 16KiB ZIP alignment and reinstall checked. Twelve focused emulator cases passed across runs: shell recomposition, four row, five cache-pipeline and two narrow-toolbar tests. The extra real-video fullscreen regression did NOT pass: initial combined run timed out awaiting playback; isolated rerun captured actual portrait/landscape video but failed at ActivityScenario.close (null state/STARTED). Inspected landscape pixels show the 1280x720 fixture with Fit pillarboxing and visible controls, not proof that the complete rotation/gesture sequence passed. No app fatal in the inspected crash buffer. VERIFIED here means bounded build/signature/emulator-smoke verification, not all-test/fullscreen acceptance, physical-phone performance, production signing, security certification or universal bug-free proof. Prior releases remain immutable.
 
 ## Repository state
+
+### October 23 — Independent safe sync and latest-only local release view (1.21.76/code299)
+
+- Recurrent cause: committing deletion of old tracked APKs to tidy the folder, then pushing directly to protected main. Repair must address both release visibility and the protected-main workflow; force-push/repeated pull is not a solution.
+- New root Sync-GreaterArt.cmd runs scripts/sync-greater-art.py: clean-tree/repository checks, optional latest-only sparse checkout, recoverable archive of deletion-only main cleanup, version guard, PR/required-CI merge and main fast-forward. No auto-staging, force push, stash deletion, conflict guesses or privacy-branch merge. See docs/SAFE_SYNC.md.
+- Actual 9a7f4f2 deletion-only commit is preserved at refs/archive/apk-cleanup-9a7f4f2 before main pointer repair; historical APKs remain in Git while only the current verified APK is visible locally. No Git history or signed release was rewritten. Sparse checkout does not reclaim object-history storage.
+- Disposable-repository safety tests cover recovery/history preservation, source/mixed/reverted changes, dirty/untracked work, feature branches, wrong remotes and custom sparse rules; now run in version CI. Full helper end-to-end PR execution and new-version APK verification pending. The pre-existing full fullscreen regression remains unresolved; workflow tooling does not claim to fix it.
 
 ### October 23 — 1.21.75 sideload finalization and merge review
 

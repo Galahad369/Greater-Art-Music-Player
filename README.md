@@ -1,5 +1,7 @@
 # Greater Art
 
+**Sync without an AI agent:** double-click [Sync-GreaterArt.cmd](Sync-GreaterArt.cmd). It uses protected-main PR checks and shows only the latest APK locally without deleting historical releases. [Instructions and recovery](docs/SAFE_SYNC.md).
+
 Greater Art is a local-first Android audio and video player. This repository contains the app, its documentation, release APKs, and the checks used to build and audit it: `Galahad369/Greater-Art-Music-Player`.
 
 > **Vibe-coded disclosure:** Greater Art was built through iterative work with AI coding agents. Human direction, product decisions, device feedback, and acceptance guide the work; substantial code and documentation are AI-assisted.
@@ -9,7 +11,7 @@ Greater Art is a local-first Android audio and video player. This repository con
 - [App documentation](greater-art/README.md) · [Handoff and verification](greater-art/HANDOFF.md)
 - [User demonstration](greater-art-user-demo.html) · [Technical demonstration](greater-art-technical-demo.html)
 
-Current Android source: **1.21.75 / code 298**. Background scroll reads are scoped below the shell; thumbnail RAM-hit diagnostics are developer-only and batched. Library swipe/reveal and staged disk-cache scheduling are preserved. The matching debug sideload passed 437 JVM tests and twelve focused emulator cases; the full rotation test remains failing as recorded in HANDOFF. Physical-device and minified-release acceptance are separate gates.
+Current Android source: **1.21.76 / code 299 — SOURCE_ONLY** (independent safe-sync workflow; Android runtime unchanged beyond version metadata). The latest verified sideload is still 1.21.75. Background-scoped scroll reads, developer-only batched RAM diagnostics and existing playback quality are preserved; the full rotation regression remains unresolved as recorded in HANDOFF.
 Windows Desktop is independently versioned at **0.1.16 / code17 — locally verified development delivery**, with interactive Nodes physics and middle-mouse/Space+drag pan.
 The [installed/portable receipt](desktop/RELEASE_0.1.16.md) records exact hashes and remaining gates. It is an original
 native C++ IDE-style workspace with offline EXE setup and desktop shortcuts.
