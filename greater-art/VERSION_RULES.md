@@ -7,7 +7,14 @@ This file is the authoritative version policy for Greater Art. If any handoff no
 ## Machine-checkable state
 
 
-Current source: **1.21.68 (code 291)**
+Current source: **1.21.70 (code 293)**
+Allowed consumed transition: **1.21.68 (code 291) -> 1.21.70 (code 293)**
+
+An earlier side-branch 1.21.69/code292 introduced the staged-cache policy but
+failed the per-commit ledger validator because its tracked entry did not use
+the required machine-readable syntax. Do not rewrite that history or merge it.
+Reintroduce the reviewed source changes directly atop main under the next
+unused 1.21.70/code293 identity; record 1.21.69 as consumed in the ledger.
 Allowed consumed transition: **1.21.65 (code 288) -> 1.21.68 (code 291)**
 
 Side branch PR #195 consumed 1.21.66/code289 for interactive Android Nodes
@@ -409,3 +416,6 @@ Previous baseline: 1.13.26 (code 115).
 - 1.21.66 (code 289): Android Nodes local spring response after deliberate node drag, with bounded two-hop interactions and off-main post-release settling; restore existing persisted force sliders to the Nodes controls. Graph build, playback, pager/swipe ownership, pinch and full-library memory limits preserved. No desktop or personal APK changes.
 - 1.21.67 (code 290): reduce Library viewport allocations with distinct integer range snapshots, preserve viewport priorities with single-pass scheduler selection and repeated-viewport suppression, skip duplicate queue-stats emissions, remove graphics-layer wrapper from non-current Library rows and scope playback state to the active row. Preserve existing cancellation, thumbnail generation, RAM, disk, video/wallpaper and PR #192 optimizations.
 - 1.21.68 (code 291): coordinate and verify the combined Android Nodes interactive physics plus Library viewport allocation improvements; correct the neighbor-direction assertion identified by PR #195's Android CI. Document 1.21.66/67 side branch consumed identity and explicitly authorize transition from main 1.21.65 to 1.21.68. Final integration remains SOURCE_ONLY pending exact SHA CI.
+
+- 1.21.69 (code 292): consumed by the original side-branch implementation fa74f05a (PR #198), which failed the strict per-commit ledger check. Its exact commit and verification failure remain preserved; the unmergeable history is not imported.
+- 1.21.70 (code 293): integrate the staged disk-cache probe and deferred-generation policy cleanly atop main 1.21.68. During scrolling, at most one new disk probe can begin; in-flight disk jobs continue, misses queue generation until idle, and expensive extraction remains cancellable. Add scheduler tests for cache-hit delivery, disk-miss deferral, in-flight preservation and generation retry. SOURCE_ONLY, last verified 1.21.39 sideload unchanged.
