@@ -7,7 +7,7 @@ This file is the authoritative version policy for Greater Art. If any handoff no
 ## Machine-checkable state
 
 
-Current source: **1.21.72 (code 295)**
+Current source: **1.21.73 (code 296)**
 Allowed consumed transition: **1.21.68 (code 291) -> 1.21.70 (code 293)**
 
 An earlier side-branch 1.21.69/code292 introduced the staged-cache policy but
@@ -421,3 +421,4 @@ Previous baseline: 1.13.26 (code 115).
 - 1.21.70 (code 293): integrate the staged disk-cache probe and deferred-generation policy cleanly atop main 1.21.68. During scrolling, at most one new disk probe can begin; in-flight disk jobs continue, misses queue generation until idle, and expensive extraction remains cancellable. Add scheduler tests for cache-hit delivery, disk-miss deferral, in-flight preservation and generation retry. SOURCE_ONLY, last verified 1.21.39 sideload unchanged.
 - 1.21.71 (code 294): selectively integrate Claude d0fe253 performance audit after PR199: paused Stack ticker with immediate command wake, lazy ambient composition, idle sampler backoff, lyric memoization and indexed M3U references. Preserve staged thumbnails and carry forward the local real-disk regression; defer cache pruning during scrolling. Reject unsafe split resume storage, delayed ViewModel resume polling and stepping waveform thumb; preserve original patch and private local69 recovery history. SOURCE_ONLY; no measured battery/performance claim or replacement of verified artifacts.
 - 1.21.72 (code 295): unify all Now Playing top-bar action rendering through one Compose component, including the in-toolbar Lock/Unlock action (only the invisible Unlock hit target is elevated over the input blocker); standardize the 48dp hit target, 32dp canvas, 26dp glyph, tint, accessibility and inspector behavior. Keep measured Lock placement above the input blocker, existing shared 180ms chrome fade, 2.5s idle auto-hide and gestures, and media surfaces unchanged. Extend fullscreen instrumentation toolbar alignment to Rotate/Lock/Exit/Close. SOURCE_ONLY; verified 1.21.39 APK unchanged.
+- 1.21.73 (code 296): remove persistent "2× · Locked" video-stage text. Show "2× · Pull down to lock" and "Release for 1×" only during their gestures; after a successful lock, display a 1.2-second confirmation then hide. Clear it on unlock/media change. No change to actual 2× playback, 2× hold/drag gesture, user speed setting, fullscreen/toolbar visibility, or original certified APK. Add pure policy regression tests; SOURCE_ONLY.

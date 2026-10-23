@@ -3,7 +3,7 @@
 This file describes the **current repository state only**. Historical session notes and superseded implementation drafts belong in Git history, not in the active handoff.
 
 **Project:** `greater-art/` in the repository checkout
-**Current source:** `1.21.72 (code 295)` — SOURCE_ONLY; Claude audit remediation for sleep timer, scanning, Stack and fullscreen while retaining reviewed adaptive accents/release-only R8
+**Current source:** `1.21.73 (code 296)` — SOURCE_ONLY; Claude audit remediation for sleep timer, scanning, Stack and fullscreen while retaining reviewed adaptive accents/release-only R8
 **Current version:** `1.21.39 (code 262)`
 **Latest APK:** `releases/GreaterArt-1.21.39.apk` (`26,877,593 bytes`; SHA-256 `e636fb7c1bfdbdf5500d48863a9f6c778aec47bb2090e433bb2e86037e468104`)
 **Application ID:** `com.local.listentomusic`
@@ -13,6 +13,14 @@ This file describes the **current repository state only**. Historical session no
 **Verification boundary:** Exact build source `b20489581b6125ce3963c767ed8e419c979a6820`; 358 JVM tests, 21 API36 emulator tests, zero lint errors; signature, pinned certificate, version/package, 16KiB ZIP alignment and upgrade installation checked. Emulator tests cover scoped URI discovery/access, live primary-video Dynamic Ambient colors and retained player identity, floating presentations and accessibility/Developer Mode interactions. No app fatal in the inspected crash buffer. This is a debug sideload build, not production signing, physical-phone acceptance, full security assessment or a universal bug-free guarantee. The prior 1.21.37 artifact and its evidence remain unchanged in history.
 
 ## Repository state
+
+### October 23 — Nonpersistent fullscreen 2× speed banner (1.21.73/code296)
+
+- The video-stage "2× · Locked" banner used to stay visible for the entire duration of 2× playback. Keep the 2× playback state but show the banner only for 1.2 seconds after an explicit successful pull-down lock gesture.
+- While actually holding and dragging, retain the "2× · Pull down to lock" hint, and during the hold-to-unlock sequence retain "Release for 1×." Gesture status takes precedence over lock confirmation. A new media item or explicit unlock clears the confirmation.
+- Do not change toolbar Lock/Unlock, player auto-hide, media surfaces, seek/zoom/pan, long-press speed activation, lock gestures, or speed control. Add JVM regression for idle 2× hidden vs active gesture/brief confirmation; device-level gesture timing acceptance still outstanding.
+- SOURCE_ONLY. The pinned verified sideload remains 1.21.39/code262.
+
 
 ### October 23 — Shared fullscreen top-toolbar action rendering (1.21.72/code295)
 
