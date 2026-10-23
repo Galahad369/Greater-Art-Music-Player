@@ -3,7 +3,7 @@
 This file describes the **current repository state only**. Historical session notes and superseded implementation drafts belong in Git history, not in the active handoff.
 
 **Project:** `greater-art/` in the repository checkout
-**Current source:** `1.21.74 (code 297)` — SOURCE_ONLY; Claude audit remediation for sleep timer, scanning, Stack and fullscreen while retaining reviewed adaptive accents/release-only R8
+**Current source:** `1.21.75 (code 298)` — SOURCE_ONLY; background-scoped scroll reads and developer-only batched thumbnail RAM-hit diagnostics
 **Current version:** `1.21.39 (code 262)`
 **Latest APK:** `releases/GreaterArt-1.21.39.apk` (`26,877,593 bytes`; SHA-256 `e636fb7c1bfdbdf5500d48863a9f6c778aec47bb2090e433bb2e86037e468104`)
 **Application ID:** `com.local.listentomusic`
@@ -13,6 +13,21 @@ This file describes the **current repository state only**. Historical session no
 **Verification boundary:** Exact build source `b20489581b6125ce3963c767ed8e419c979a6820`; 358 JVM tests, 21 API36 emulator tests, zero lint errors; signature, pinned certificate, version/package, 16KiB ZIP alignment and upgrade installation checked. Emulator tests cover scoped URI discovery/access, live primary-video Dynamic Ambient colors and retained player identity, floating presentations and accessibility/Developer Mode interactions. No app fatal in the inspected crash buffer. This is a debug sideload build, not production signing, physical-phone acceptance, full security assessment or a universal bug-free guarantee. The prior 1.21.37 artifact and its evidence remain unchanged in history.
 
 ## Repository state
+
+### October 23 — Scoped scroll invalidation and RAM-hit bookkeeping (1.21.75/code298)
+
+- Pass lifecycle-collected scroll State through the root without reading its value. AppBackground owns the value read, preserving its existing video-surface settle delay, ambient motion policy and graphics layer. Add a real AppBackground Compose shell-recomposition regression.
+- RAM hits increment an atomic counter only while Developer Mode is enabled. Publish its cumulative diagnostic-session count at most once per second; no hit-triggered stats Flow copies or disabled-mode timer. Both RAM-hit paths use the same counter. Preference observation and publishing run on the existing IO scope. The diagnostic count no longer includes hits while Developer Mode is off.
+- Preserve request identity, TTL, cache contents, scheduler/disk-during-scroll behavior, generation deferral, swipe/reveal, inspector and playback quality. Synchronous thumbnail seeding, modifier-node migration and row animation changes are not included.
+- Cause/prevention: do not confuse a root invalidation with proven child recomposition or assume disk cache reads are blocked; test the restart boundary and preserve the staged scheduler. No measured fling/frame-time improvement claimed.
+- Verification: 437 JVM tests passed (zero failures/errors/skips); lint passed with 0 errors, 46 warnings and 4 hints; debug app/test APKs compiled. API36 GreaterArt_Scroll_QA36: the new AppBackground shell test passed, proving observed scroll edges without additional shell compositions in the harness. The real LibraryScreen skip count and release/physical fling p95/p99 remain unmeasured. Four LibraryRowWork tests and five ThumbnailPipeline tests passed separately via AndroidJUnitRunner (9/9, 24.598s), including real disk reads during fling, generation deferral and closed-underlay semantics. Gradle's combined-class filter only ran the first class, so the remaining nine were explicitly rerun rather than counted from assembly alone. Version guard and diff checks passed; preserved scheduler/row/ambient/inspector files have zero diff.
+- Test-only correction before commit: removed an invalid explicit import for the assertExists member, then recompiled and executed the strengthened test. SOURCE_ONLY: no immutable release APK added or replaced, no physical-device trace or R8 performance claim.
+
+### Remote unification audit — separately queued, not included in 1.21.75
+
+- Read the supplied audit against c078c58. Confirmed source-level leads: Fit/Crop changes do not key the pinch-transform reset; pan limits use fitted geometry; dedicated fullscreen supplies empty current/queue Share callbacks; Previous enablement differs between immersive and regular controls; queue Add underlays remain composed when closed. These are not physical-device reproductions or claimed fixes.
+- Review audio transitions, hidden-action semantics and translations before a focused follow-up; do not standardize every icon size blindly across different control roles. Keep inspector-node migration and physical release-build fling profiling separate.
+- Draft privacy PR174 remains isolated; no merge, protected-ref mutation or published-history rewrite is authorized by this audit. Remote branch/CI counts in the report are not freshly verified here.
 
 ### October 23 — Fullscreen may Fit or Crop; never Stretch (1.21.74/code297)
 
