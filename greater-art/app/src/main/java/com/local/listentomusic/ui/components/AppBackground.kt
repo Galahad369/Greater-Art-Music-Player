@@ -220,8 +220,6 @@ fun AppBackground(
             videoSurfaceActive && !listScrolling && (attachCustomVideoBackground || usePrimaryVideoBackground)
 
     Box(modifier.fillMaxSize().graphicsLayer()) {
-        val ambient = if (mode == AppBackgroundMode.ADAPTIVE_DYNAMIC) Modifier else Modifier.ambientBackdrop(null,
-            androidx.compose.material3.MaterialTheme.colorScheme.background.luminance() > .5f, currentPath)
         val videoFallback = mode == AppBackgroundMode.CUSTOM_VIDEO &&
             (preferences.customBackgroundVideoUri == null || !attachCustomVideoBackground) ||
             mode == AppBackgroundMode.CURRENT_VIDEO &&
@@ -229,7 +227,7 @@ fun AppBackground(
             !mirrorCurrentVideoBackground
         val videoMode = mode == AppBackgroundMode.CUSTOM_VIDEO || mode == AppBackgroundMode.CURRENT_VIDEO
         if (visible && (mode == AppBackgroundMode.DEFAULT || videoFallback || (videoMode && !liveVideoSurface))) {
-            if (mode == AppBackgroundMode.CURRENT_VIDEO) Box(Modifier.fillMaxSize().then(ambient))
+            if (mode == AppBackgroundMode.CURRENT_VIDEO) AmbientBackdropBox(currentPath)
             else DefaultMetalBackground()
         } else if (visible) {
             Box(Modifier.fillMaxSize().background(androidx.compose.material3.MaterialTheme.colorScheme.background))
@@ -237,7 +235,7 @@ fun AppBackground(
         when (mode) {
             AppBackgroundMode.ADAPTIVE_DYNAMIC -> if (visible) Box(Modifier.fillMaxSize()
                 .adaptiveAmbientBackdrop(ambientArtwork, currentPath, preferences, visible, listScrolling))
-            AppBackgroundMode.AMBIENT -> if (visible) Box(Modifier.fillMaxSize().then(ambient))
+            AppBackgroundMode.AMBIENT -> if (visible) AmbientBackdropBox(currentPath)
             AppBackgroundMode.DEFAULT -> Unit
             AppBackgroundMode.CUSTOM_IMAGE -> preferences.customBackgroundImageUri
                 ?.let(Uri::parse)
@@ -284,6 +282,17 @@ fun AppBackground(
         val veil = if (mode == AppBackgroundMode.DEFAULT && isLight) Color.White else Color.Black
         Box(Modifier.matchParentSize().background(veil.copy(alpha = dim)))
     }
+}
+
+/**
+ * Composed only where it is displayed: the ambient modifier collects video colour samples,
+ * runs a colour histogram and keeps three colour animations alive, which is wasted work
+ * whenever a live video surface (or another background mode) covers it.
+ */
+@Composable
+private fun AmbientBackdropBox(currentPath: String?) {
+    val light = androidx.compose.material3.MaterialTheme.colorScheme.background.luminance() > .5f
+    Box(Modifier.fillMaxSize().ambientBackdrop(null, light, currentPath))
 }
 
 @Composable

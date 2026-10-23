@@ -3,7 +3,7 @@
 This file describes the **current repository state only**. Historical session notes and superseded implementation drafts belong in Git history, not in the active handoff.
 
 **Project:** `greater-art/` in the repository checkout
-**Current source:** `1.21.70 (code 293)` — SOURCE_ONLY; Claude audit remediation for sleep timer, scanning, Stack and fullscreen while retaining reviewed adaptive accents/release-only R8
+**Current source:** `1.21.71 (code 294)` — SOURCE_ONLY; Claude audit remediation for sleep timer, scanning, Stack and fullscreen while retaining reviewed adaptive accents/release-only R8
 **Current version:** `1.21.39 (code 262)`
 **Latest APK:** `releases/GreaterArt-1.21.39.apk` (`26,877,593 bytes`; SHA-256 `e636fb7c1bfdbdf5500d48863a9f6c778aec47bb2090e433bb2e86037e468104`)
 **Application ID:** `com.local.listentomusic`
@@ -13,6 +13,15 @@ This file describes the **current repository state only**. Historical session no
 **Verification boundary:** Exact build source `b20489581b6125ce3963c767ed8e419c979a6820`; 358 JVM tests, 21 API36 emulator tests, zero lint errors; signature, pinned certificate, version/package, 16KiB ZIP alignment and upgrade installation checked. Emulator tests cover scoped URI discovery/access, live primary-video Dynamic Ambient colors and retained player identity, floating presentations and accessibility/Developer Mode interactions. No app fatal in the inspected crash buffer. This is a debug sideload build, not production signing, physical-phone acceptance, full security assessment or a universal bug-free guarantee. The prior 1.21.37 artifact and its evidence remain unchanged in history.
 
 ## Repository state
+
+### October 23 — Reviewed PR/branch consolidation (1.21.71/code294)
+
+- PR199 merged at801dd16 after all required checks and Windows passed; closed PR198's branch contains no unique runtime changes versus199 and is eligible for removal after recovery archival. Keep blocked privacy PR174 isolated; do not rewrite published history.
+- Selectively integrate Claude d0fe253: paused Stack polling250ms with command wake (active/gated50ms unchanged), lazy classic Ambient composition, no-surface sampler2000ms backoff, lyric text reuse, indexed M3U lookup preserving first-match/ambiguous-name behavior. Full original mail patch is in docs/imported-patches/claude-performance-audit-original.patch.
+- Reject the proposed two-DataStore resume split: path and position would cease to be an atomic snapshot, initial asynchronous resume could use0, and reset/backup semantics were not migrated. Preserve the existing preferences transaction. Also reject the2s ViewModel timer delay (stale position immediately after Resume) and waveform thumb2Hz stepping. No quality reduction.
+- Carry the locally verified69 real-disk scroll regression into the staged70 pipeline and keep cache pruning idle-only. Add M3U first-match/range tests and a real paused-Stack seek/resume regression.
+- The divergent local69 history includes a handoff-only commit adding APK65 under source68, which cannot pass strict commit provenance. Preserve full local history and exact65/69 bytes in the private merge-20261023-bc3453b recovery bundle; port compatible work rather than pushing invalid ancestors or rewriting them. The local69 personal sideload remains recoverable; canonical repository release remains39 until a separately verified current artifact is finalized.
+- Review and actual verification outcomes: docs/PR_INTEGRATION_2026-10-23.md. Source-only71 must not be represented as the existing verified69 APK.
 
 ### October 21 — Thumbnail disk-cache probes during scrolling (1.21.70/code293)
 

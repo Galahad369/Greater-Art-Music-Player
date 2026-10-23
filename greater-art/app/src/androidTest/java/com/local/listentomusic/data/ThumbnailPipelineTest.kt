@@ -24,6 +24,24 @@ import java.util.UUID
 
 @RunWith(AndroidJUnit4::class)
 class ThumbnailPipelineTest {
+    @Test fun visibleAndDecorativeDiskHitsLoadDuringFlingWithoutGeneration() = runBlocking {
+        val fixture = Fixture()
+        try {
+            val audio = fixture.audio("fling-disk")
+            assertNotNull(withTimeout(8_000) { fixture.repository.load(audio) })
+            val generated = fixture.repository.stats.value.generated
+            fixture.repository.trimMemory(ComponentCallbacks2.TRIM_MEMORY_BACKGROUND)
+            ListScrollBudget.set("thumbnail-test", true)
+            assertNotNull(withTimeout(4_000) { fixture.repository.load(audio) })
+            fixture.repository.trimMemory(ComponentCallbacks2.TRIM_MEMORY_BACKGROUND)
+            assertNotNull(withTimeout(4_000) { fixture.repository.loadCached(audio) })
+            assertEquals(generated, fixture.repository.stats.value.generated)
+            assertTrue(fixture.repository.stats.value.diskHits >= 2)
+            assertNull(withTimeout(4_000) { fixture.repository.loadCached(fixture.audio("cold")) })
+            assertEquals(generated, fixture.repository.stats.value.generated)
+        } finally { fixture.close() }
+    }
+
     @Test fun decorativeCacheReadNeverGeneratesOnMissAndCanReuseWarmDisk() = runBlocking {
         val fixture = Fixture()
         try {

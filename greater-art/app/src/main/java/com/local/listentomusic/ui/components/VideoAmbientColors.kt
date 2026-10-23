@@ -36,7 +36,8 @@ object VideoAmbientColors {
                     if (pixels != null && sourceAfterCopy?.first == id && sourceAfterCopy.second === view)
                         mutable.value = VideoAmbientSample(id, pixels.toList())
                 }
-                delay(900L)
+                // No playing video surface: nothing to sample, so poll slowly.
+                delay(if (candidate != null) 900L else 2_000L)
             }
         }
     }

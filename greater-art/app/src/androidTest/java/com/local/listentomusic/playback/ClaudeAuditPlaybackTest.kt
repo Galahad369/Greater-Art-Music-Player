@@ -136,6 +136,27 @@ class ClaudeAuditPlaybackTest {
         }
     }
 
+    @Test fun pausedStackSeekStaysPausedThenResumesAllVoices() {
+        val files = listOf(wave("one", 8000), wave("two", 8000))
+        direct()
+        instrumentation.runOnMainSync { assertTrue(coordinator.start(files)) }
+        await("two voices start") { StackPlayback.state.value.runningTracks == 2 }
+        instrumentation.runOnMainSync { coordinator.pause() }
+        Thread.sleep(600)
+        instrumentation.runOnMainSync {
+            coordinator.seek(1000)
+            assertFalse(StackPlayback.state.value.playing)
+            assertFalse(main.playWhenReady)
+        }
+        Thread.sleep(300)
+        instrumentation.runOnMainSync {
+            assertFalse(main.playWhenReady)
+            coordinator.play()
+        }
+        await("both voices resume after idle seek") { StackPlayback.state.value.runningTracks == 2 }
+        instrumentation.runOnMainSync { assertTrue(main.isPlaying) }
+    }
+
     @Test fun allocationFailureKeepsTheWorkingStackAndPrimary() {
         val old = listOf(wave("one", 5000), wave("two", 5000))
         val replacement = listOf(wave("three", 5000), wave("four", 5000))

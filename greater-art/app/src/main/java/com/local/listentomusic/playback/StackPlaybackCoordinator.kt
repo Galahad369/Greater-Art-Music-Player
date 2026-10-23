@@ -17,8 +17,10 @@ import com.local.listentomusic.model.MediaFile
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withTimeoutOrNull
 import java.io.File
 
 private fun newStackAudioPlayer(context: Context): ExoPlayer =
@@ -98,6 +100,8 @@ internal class StackPlaybackCoordinator(
     private var previousShuffle = false
     private var loopEnabled = false
     private var ticker: Job? = null
+    /** Wakes an idle (paused) ticker immediately when play or a seek arrives. */
+    private val tickerWake = Channel<Unit>(Channel.CONFLATED)
     private var internalMainChange = false
     private var released = false
     private var recoveringPrimaryVideo = false
@@ -664,6 +668,7 @@ internal class StackPlaybackCoordinator(
         if (anchorMs >= sessionDuration() && sessionDuration() > 0L) seek(0L)
         if (playing) return
         playing = true
+        tickerWake.trySend(Unit)
         anchorTimeMs = SystemClock.elapsedRealtime()
         val master = position()
         val nowMs = SystemClock.elapsedRealtime()
@@ -689,6 +694,7 @@ internal class StackPlaybackCoordinator(
         if (!active) return
         val plan = stackSeekPlan(targetMs, sessionDuration(), primaryEvent)
         anchorMs = plan.positionMs
+        tickerWake.trySend(Unit)
         anchorTimeMs = SystemClock.elapsedRealtime()
         val nowMs = SystemClock.elapsedRealtime()
         voices.toList().forEach { voice ->
@@ -909,7 +915,10 @@ internal class StackPlaybackCoordinator(
         ticker?.cancel()
         ticker = scope.launch {
             while (isActive && active) {
-                delay(STACK_SYNC_TICK_MS)
+                // Fine 20 Hz sync only while playing or opening the start gate; a paused
+                // session idles at 4 Hz and wakes at once on play or seek.
+                if (playing || gated) delay(STACK_SYNC_TICK_MS)
+                else withTimeoutOrNull(STACK_IDLE_TICK_MS) { tickerWake.receive() }
                 if (gated) {
                     tryOpenStartGate()
                 } else {
