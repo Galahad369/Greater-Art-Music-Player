@@ -4,12 +4,12 @@ Greater Art is a local-first Android audio and video player. This repository con
 
 > **Vibe-coded disclosure:** Greater Art was built through iterative work with AI coding agents. Human direction, product decisions, device feedback, and acceptance guide the work; substantial code and documentation are AI-assisted.
 
-- Latest emulator-verified sideload APK: **1.21.39 (code 262)** — see the [verification boundary](greater-art/HANDOFF.md); physical-phone and production-signing acceptance remain pending.
-- APK: [GreaterArt-1.21.39.apk](greater-art/releases/GreaterArt-1.21.39.apk)
+- Latest build/signature/emulator-smoke-verified sideload APK: **1.21.75 (code 298)** — see the [verification boundary](greater-art/HANDOFF.md); full fullscreen regression, physical-phone and production-signing acceptance remain pending.
+- APK: [GreaterArt-1.21.75.apk](greater-art/releases/GreaterArt-1.21.75.apk)
 - [App documentation](greater-art/README.md) · [Handoff and verification](greater-art/HANDOFF.md)
 - [User demonstration](greater-art-user-demo.html) · [Technical demonstration](greater-art-technical-demo.html)
 
-Current Android source: **1.21.74 / code 297 — SOURCE_ONLY**. Library rows omit closed action layouts, draw animated color without composition reads and reuse metadata/bitmap wrappers; see the [row follow-up](greater-art/docs/LIBRARY_ROW_WORK_2026-10-21.md). Portrait-first fullscreen, concise diagnostics, cache-only artwork accents and release-only R8 are retained. High contrast/Monochrome remain fixed and OLED stays black. Latest verified APK remains 1.21.39; physical-device and minified-release acceptance are separate gates.
+Current Android source: **1.21.75 / code 298**. Background scroll reads are scoped below the shell; thumbnail RAM-hit diagnostics are developer-only and batched. Library swipe/reveal and staged disk-cache scheduling are preserved. The matching debug sideload passed 437 JVM tests and twelve focused emulator cases; the full rotation test remains failing as recorded in HANDOFF. Physical-device and minified-release acceptance are separate gates.
 Windows Desktop is independently versioned at **0.1.16 / code17 — locally verified development delivery**, with interactive Nodes physics and middle-mouse/Space+drag pan.
 The [installed/portable receipt](desktop/RELEASE_0.1.16.md) records exact hashes and remaining gates. It is an original
 native C++ IDE-style workspace with offline EXE setup and desktop shortcuts.

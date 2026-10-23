@@ -16,7 +16,7 @@ This file is the authoritative version policy for Greater Art. If any handoff no
 ## Machine-checkable state
 
 
-Current source: **1.21.74 (code 297)**
+Current source: **1.21.75 (code 298)**
 Allowed consumed transition: **1.21.68 (code 291) -> 1.21.70 (code 293)**
 
 An earlier side-branch 1.21.69/code292 introduced the staged-cache policy but
@@ -75,8 +75,8 @@ Allowed consumed transition: **1.21.22 (code 245) -> 1.21.24 (code 247)**
 1.21.23/code246 is consumed by the separate PR #153 PCM prototype (`881f39c`).
 Claude's supplied adaptive-sync patch proposed that identity too; integration
 used 1.21.24/code247 in its preserved history. Adaptive sync is model-backed, not acoustically verified.
-Current release state: **SOURCE_ONLY**
-Latest verified APK: **1.21.39 (code 262)**
+Current release state: **VERIFIED**
+Latest verified APK: **1.21.75 (code 298)**
 Allowed series transition: **1.14.15 -> 1.15.1**
 Allowed series transition: **1.15.89 -> 1.20.2**
 Allowed series transition: **1.20.5 -> 1.21.1**
@@ -147,6 +147,7 @@ Markdown/docs-only changes, release hashes/metadata, and adding a newly verified
 `.github/workflows/version-consistency.yml` runs `scripts/validate-greater-art-version.py`.
 
 ## Versions tracked
+
 
 
 
@@ -432,3 +433,4 @@ Previous baseline: 1.13.26 (code 115).
 - 1.21.72 (code 295): unify all Now Playing top-bar action rendering through one Compose component, including the in-toolbar Lock/Unlock action (only the invisible Unlock hit target is elevated over the input blocker); standardize the 48dp hit target, 32dp canvas, 26dp glyph, tint, accessibility and inspector behavior. Keep measured Lock placement above the input blocker, existing shared 180ms chrome fade, 2.5s idle auto-hide and gestures, and media surfaces unchanged. Extend fullscreen instrumentation toolbar alignment to Rotate/Lock/Exit/Close. SOURCE_ONLY; verified 1.21.39 APK unchanged.
 - 1.21.73 (code 296): remove persistent "2× · Locked" video-stage text. Show "2× · Pull down to lock" and "Release for 1×" only during their gestures; after a successful lock, display a 1.2-second confirmation then hide. Clear it on unlock/media change. No change to actual 2× playback, 2× hold/drag gesture, user speed setting, fullscreen/toolbar visibility, or original certified APK. Add pure policy regression tests; SOURCE_ONLY.
 - 1.21.74 (code 297): enforce non-stretching fullscreen geometry. Explicit fullscreen Fit/Crop toggle with Fit default, Crop = aspect-preserving Media3 ZOOM (cuts edges), never FILL/stretch; apply the selected resize mode in the PlayerView factory and on every AndroidView update including borrowed views, restore Fit in compact mini when a shared view returns. Keep pinch zoom uniform, video decoder/surface ownership, fullscreen/lock/speed and wallpaper modes independent. Add policy and fullscreen accessibility regressions. SOURCE_ONLY, verified 1.21.39 APK unchanged.
+- 1.21.75 (code 298): defer the shell's scroll-state read to AppBackground; gate thumbnail RAM-hit counting by Developer Mode and batch diagnostic publication once per second. Add atomic counter and shell-recomposition regressions. Preserve staged scheduler, swipe/reveal and source playback quality. SOURCE_ONLY; physical fling profiling pending.

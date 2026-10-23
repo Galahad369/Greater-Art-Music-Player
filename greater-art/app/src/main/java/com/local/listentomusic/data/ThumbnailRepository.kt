@@ -33,6 +33,8 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.isActive
 import java.io.File
 import java.io.FileOutputStream
 import java.security.MessageDigest
@@ -167,6 +169,7 @@ class ThumbnailRepository(private val context: Context) {
         object Failed : GenerationResult()
     }
     private val _stats = MutableStateFlow(ThumbnailStats())
+    private val memoryHits = ThumbnailMemoryHitCounter()
     val stats: StateFlow<ThumbnailStats> = _stats.asStateFlow()
     private val memoryCache = object : LruCache<String, Bitmap>(thumbnailMemoryBudgetKb(maxHeapBytes)) {
         override fun sizeOf(key: String, value: Bitmap): Int = max(1, (value.allocationByteCount + 1023) / 1024)
@@ -180,6 +183,20 @@ class ThumbnailRepository(private val context: Context) {
 
     init {
         updateMemoryBudget()
+        pruneScope.launch {
+            AppPreferences(context.applicationContext).values.map { it.developerMode }
+                .distinctUntilChanged().collectLatest { enabled ->
+                    memoryHits.enabled = enabled
+                    if (enabled) try {
+                        while (isActive) {
+                            _stats.update { it.copy(memoryHits = memoryHits.snapshot()) }
+                            delay(1_000L)
+                        }
+                    } finally {
+                        memoryHits.enabled = false
+                    }
+                }
+        }
         scheduler.setPaused(ListScrollBudget.scrolling.value)
         pruneScope.launch { ListScrollBudget.scrolling.collect { scheduler.setPaused(it) } }
         pruneScope.launch {
@@ -214,7 +231,7 @@ class ThumbnailRepository(private val context: Context) {
     private fun memoryHit(id: String): Bitmap? {
         val alias = synchronized(memoryAliases) { memoryAliases[id] }
         if (alias == null || System.currentTimeMillis() - alias.atMs >= ART_STAMP_TTL_MS) return null
-        return memoryCache.get(alias.key)?.also { _stats.update { it.copy(memoryHits = it.memoryHits + 1) } }
+        return memoryCache.get(alias.key)?.also { memoryHits.record() }
     }
 
     private fun requestId(file: MediaFile) = "${file.sourcePath}|${file.sizeBytes}|${file.modifiedMs}|${file.coverUri}"
@@ -291,7 +308,7 @@ class ThumbnailRepository(private val context: Context) {
         val key = cacheKey(file)
         memoryCache.get(key)?.let {
             rememberBitmap(id, key, it)
-            _stats.update { value -> value.copy(memoryHits = value.memoryHits + 1) }
+            memoryHits.record()
             return@withContext it
         }
         _stats.update { it.copy(inFlight = it.inFlight + 1) }

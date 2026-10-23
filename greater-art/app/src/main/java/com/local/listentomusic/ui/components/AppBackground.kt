@@ -10,6 +10,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.State
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -99,11 +100,13 @@ fun AppBackground(
     visible: Boolean = true,
     allowVideoBackground: Boolean = true,
     allowPrimaryVideoBackground: Boolean = true,
-    listScrolling: Boolean = false,
+    listScrolling: State<Boolean>? = null,
     horizontalPosition: (() -> Float)? = null,
     dimAlphaOverride: Float? = null,
     ambientArtwork: Bitmap? = null,
 ) {
+    // Read inside the background's restart scope, not the Library/navigation shell.
+    val scrolling = listScrolling?.value ?: false
     val mode = preferences.backgroundMode
     val tiles = rememberStackVideoTiles()
     val lifecycleOwner = LocalLifecycleOwner.current
@@ -206,8 +209,8 @@ fun AppBackground(
     // During list fling drop only the presentation surface. CURRENT_VIDEO shares the
     // real player, so this cannot create/release a second decoder or a second timeline.
     var videoSurfaceActive by remember { mutableStateOf(true) }
-    LaunchedEffect(listScrolling) {
-        if (listScrolling) {
+    LaunchedEffect(scrolling) {
+        if (scrolling) {
             videoSurfaceActive = false
         } else {
             delay(VIDEO_SURFACE_SETTLE_MS)
@@ -217,7 +220,7 @@ fun AppBackground(
     val liveVideoSurface =
         tiledStack ||
             mirrorCurrentVideoBackground ||
-            videoSurfaceActive && !listScrolling && (attachCustomVideoBackground || usePrimaryVideoBackground)
+            videoSurfaceActive && !scrolling && (attachCustomVideoBackground || usePrimaryVideoBackground)
 
     Box(modifier.fillMaxSize().graphicsLayer()) {
         val videoFallback = mode == AppBackgroundMode.CUSTOM_VIDEO &&
@@ -234,7 +237,7 @@ fun AppBackground(
         }
         when (mode) {
             AppBackgroundMode.ADAPTIVE_DYNAMIC -> if (visible) Box(Modifier.fillMaxSize()
-                .adaptiveAmbientBackdrop(ambientArtwork, currentPath, preferences, visible, listScrolling))
+                .adaptiveAmbientBackdrop(ambientArtwork, currentPath, preferences, visible, scrolling))
             AppBackgroundMode.AMBIENT -> if (visible) AmbientBackdropBox(currentPath)
             AppBackgroundMode.DEFAULT -> Unit
             AppBackgroundMode.CUSTOM_IMAGE -> preferences.customBackgroundImageUri

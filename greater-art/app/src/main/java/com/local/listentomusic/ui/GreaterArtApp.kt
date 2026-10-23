@@ -89,7 +89,7 @@ fun GreaterArtApp(
     val scopedDiscoveredMedia by viewModel.scopedDiscoveredMedia.collectAsStateWithLifecycle()
     val sleepTimer by viewModel.sleepTimer.collectAsStateWithLifecycle()
     val expandedPlayerVisible by com.local.listentomusic.playback.PlayerWindowVisibility.expandedShowing.collectAsStateWithLifecycle()
-    val listScrolling by ListScrollBudget.scrolling.collectAsStateWithLifecycle()
+    val listScrolling = ListScrollBudget.scrolling.collectAsStateWithLifecycle()
     val context = LocalContext.current
     fun hasReadGrant(uri: android.net.Uri) = context.contentResolver.persistedUriPermissions.any {
         it.uri == uri && it.isReadPermission
