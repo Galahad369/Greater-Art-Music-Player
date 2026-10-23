@@ -58,6 +58,19 @@ class Release1114Test {
         assertTrue(NOW_PLAYING_ART_STAGE_ALPHA in 0f..NOW_PLAYING_AMBIENT_PANEL_ALPHA)
     }
 
+    @Test fun doubleSpeedBannerIsOnlyGestureFeedbackOrBriefLockConfirmation() {
+        // An ordinary persistent 2× speed must not block the picture with a banner.
+        assertNull(videoSpeedHint(false, false, false, 2f))
+        assertNull(videoSpeedHint(false, false, false, 1f))
+        assertNull(videoSpeedHint(false, false, true, 1f))
+        assertEquals(VideoSpeedHint.PULL_TO_LOCK, videoSpeedHint(false, true, false, 2f))
+        assertEquals(VideoSpeedHint.RELEASE_FOR_NORMAL, videoSpeedHint(true, false, false, 2f))
+        assertEquals(VideoSpeedHint.LOCK_CONFIRMED, videoSpeedHint(false, false, true, 2f))
+        // Active user gestures take precedence even during the confirmation window.
+        assertEquals(VideoSpeedHint.RELEASE_FOR_NORMAL, videoSpeedHint(true, true, true, 2f))
+        assertEquals(VideoSpeedHint.PULL_TO_LOCK, videoSpeedHint(false, true, true, 2f))
+    }
+
     @Test fun fullscreenVideoLockFollowsPlaybackControlVisibility() {
         assertTrue(shouldShowPlayerLock(immersiveVideo = true, videoControlsVisible = true))
         assertFalse(shouldShowPlayerLock(immersiveVideo = true, videoControlsVisible = false))

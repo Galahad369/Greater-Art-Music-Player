@@ -57,3 +57,11 @@ Record exact device, API, model, test run, screenshot/recording, and PASS/FAIL.
 
 ## October 23 — 1.21.72 Lock/top bar renderer parity
 Every *visible* top toolbar action, including Lock/Unlock, is now drawn inside the actual toolbar through one shared renderer. When locked, an invisible but accessible Unlock hit target sits above the input blocker at the same measured position. Verify a consistent 48dp target, centered 32dp icon canvas and 26dp glyph against Rotate, Fullscreen and Close across portrait/landscape, locked/unlocked and paused/playing. The lock stays above its input blocker and uses the existing shared 180ms chrome fade. On fullscreen video, wait 2.5 seconds while idle and check all toolbar buttons hide together; center tap reveals them, and touch/seek/zoom gestures temporarily suspend the timer. Never accept a CI compile or geometry-only test as proof of visual fade parity on hardware.
+
+## October 23 — 1.21.73 nonpersistent 2× feedback
+
+- Hold on the fullscreen video to engage temporary 2×: the "2× · Pull down to lock" banner remains visible while actively holding.
+- Pull down to lock 2×: "2× · Locked" confirms for about 1.2 seconds, then disappears without changing the locked 2× playback speed. It must not reappear on every 500ms position update, pause/resume, or regular video-controls show/hide.
+- Start with 2× speed already active: no permanent video-stage banner. Hold to arm a return to normal speed: "Release for 1×" appears during the gesture and disappears at release.
+- Verify the 2.5-second toolbar auto-hide, centre-tap toggle, video surface ownership, Lock/Unlock toolbar, seeking, pinch/pan, and both orientations remain intact.
+- Source-only unit tests are not a substitute for real-device timing/visual acceptance.

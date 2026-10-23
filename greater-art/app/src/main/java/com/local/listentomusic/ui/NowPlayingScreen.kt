@@ -224,6 +224,19 @@ internal fun shouldLockHeldDoubleSpeed(dragAfterHoldPx: Float, thresholdPx: Floa
     thresholdPx > 0f && dragAfterHoldPx >= thresholdPx
 internal fun isDoubleSpeed(speed: Float): Boolean = kotlin.math.abs(speed - 2f) <= 0.01f
 
+/** The video speed banner is gesture feedback, not a permanent 2× status display. */
+internal enum class VideoSpeedHint { RELEASE_FOR_NORMAL, PULL_TO_LOCK, LOCK_CONFIRMED }
+
+internal fun videoSpeedHint(
+    unlockArmed: Boolean, temporaryDoubleSpeed: Boolean,
+    lockConfirmationVisible: Boolean, speed: Float,
+): VideoSpeedHint? = when {
+    unlockArmed -> VideoSpeedHint.RELEASE_FOR_NORMAL
+    temporaryDoubleSpeed -> VideoSpeedHint.PULL_TO_LOCK
+    lockConfirmationVisible && isDoubleSpeed(speed) -> VideoSpeedHint.LOCK_CONFIRMED
+    else -> null
+}
+
 internal fun shouldShowPlayerLock(immersiveVideo: Boolean, videoControlsVisible: Boolean): Boolean =
     !immersiveVideo || videoControlsVisible
 
@@ -699,6 +712,15 @@ private fun VideoPlayerStage(
     val lockThresholdPx = with(LocalDensity.current) { HOLD_2X_LOCK_DISTANCE_DP.dp.toPx() }
     var temporaryDoubleSpeed by remember { mutableStateOf(false) }
     var unlockDoubleSpeedArmed by remember { mutableStateOf(false) }
+    // Clear the one-shot lock confirmation on a media change; never render
+    // a permanent "2× Locked" banner over the video.
+    var lockConfirmationVisible by remember(playback.currentPath) { mutableStateOf(false) }
+    LaunchedEffect(lockConfirmationVisible, playback.currentPath) {
+        if (lockConfirmationVisible) {
+            delay(1_200)
+            lockConfirmationVisible = false
+        }
+    }
     var panGestureActive by remember { mutableStateOf(false) }
     var playerGestureActive by remember { mutableStateOf(false) }
     var timelineInteractionActive by remember { mutableStateOf(false) }
@@ -872,6 +894,7 @@ private fun VideoPlayerStage(
                     if (onLockTemporaryDoubleSpeed()) {
                         lockedThisGesture = true
                         temporaryDoubleSpeed = false
+                        lockConfirmationVisible = true
                         haptics.performHapticFeedback(HapticFeedbackType.LongPress)
                     }
                 }
@@ -923,6 +946,7 @@ private fun VideoPlayerStage(
                 }
 
                 if (startedAtDoubleSpeed && unlockArmed) {
+                    lockConfirmationVisible = false
                     onSpeed(1f)
                     haptics.performHapticFeedback(HapticFeedbackType.LongPress)
                     lastSeekSide = null
@@ -983,11 +1007,16 @@ private fun VideoPlayerStage(
                 }
             }
         })
-        val speedGestureLabel = when {
-            unlockDoubleSpeedArmed -> uiText(playback.appLanguage, "Release for 1×", "放開回到 1×")
-            temporaryDoubleSpeed -> uiText(playback.appLanguage, "2× · Pull down to lock", "2× · 下拉鎖定")
-            isDoubleSpeed(playback.speed) -> uiText(playback.appLanguage, "2× · Locked", "2× · 已鎖定")
-            else -> null
+        val speedGestureLabel = when (videoSpeedHint(
+            unlockDoubleSpeedArmed, temporaryDoubleSpeed, lockConfirmationVisible, playback.speed
+        )) {
+            VideoSpeedHint.RELEASE_FOR_NORMAL ->
+                uiText(playback.appLanguage, "Release for 1×", "放開回到 1×")
+            VideoSpeedHint.PULL_TO_LOCK ->
+                uiText(playback.appLanguage, "2× · Pull down to lock", "2× · 下拉鎖定")
+            VideoSpeedHint.LOCK_CONFIRMED ->
+                uiText(playback.appLanguage, "2× · Locked", "2× · 已鎖定")
+            null -> null
         }
         AnimatedVisibility(
             visible = speedGestureLabel != null,
