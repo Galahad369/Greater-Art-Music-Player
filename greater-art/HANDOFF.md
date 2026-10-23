@@ -3,16 +3,22 @@
 This file describes the **current repository state only**. Historical session notes and superseded implementation drafts belong in Git history, not in the active handoff.
 
 **Project:** `greater-art/` in the repository checkout
-**Current source:** `1.21.75 (code 298)` — SOURCE_ONLY; background-scoped scroll reads and developer-only batched thumbnail RAM-hit diagnostics
-**Current version:** `1.21.39 (code 262)`
-**Latest APK:** `releases/GreaterArt-1.21.39.apk` (`26,877,593 bytes`; SHA-256 `e636fb7c1bfdbdf5500d48863a9f6c778aec47bb2090e433bb2e86037e468104`)
+**Current source:** `1.21.75 (code 298)` — VERIFIED personal debug sideload, bounded emulator smoke verification; full fullscreen test acceptance unresolved
+**Current version:** `1.21.75 (code 298)`
+**Latest APK:** `releases/GreaterArt-1.21.75.apk` (`27,008,689 bytes`; SHA-256 `71b4a972d6ff9d515be8d5977f1884aaeac398f665f80d9d8de076dc8f01ffd0`)
 **Application ID:** `com.local.listentomusic`
 **Signing certificate SHA-256:** `9e28eb45b3b171c3ea47d7da942d28d88b16538885e392a6971a80906d612fbf`
-**Build date:** `2026-10-14`
-**Test device:** `GreaterArt_A55_API36 (A55-sized emulator, API 36, Android 16)`
-**Verification boundary:** Exact build source `b20489581b6125ce3963c767ed8e419c979a6820`; 358 JVM tests, 21 API36 emulator tests, zero lint errors; signature, pinned certificate, version/package, 16KiB ZIP alignment and upgrade installation checked. Emulator tests cover scoped URI discovery/access, live primary-video Dynamic Ambient colors and retained player identity, floating presentations and accessibility/Developer Mode interactions. No app fatal in the inspected crash buffer. This is a debug sideload build, not production signing, physical-phone acceptance, full security assessment or a universal bug-free guarantee. The prior 1.21.37 artifact and its evidence remain unchanged in history.
+**Build date:** `2026-10-23`
+**Test device:** `GreaterArt_Scroll_QA36 (API36 emulator, Android 16)`
+**Verification boundary:** Exact build source `b143786`; 437 JVM tests, zero lint errors (46 warnings, 4 hints); package/version, pinned signing certificate, ZIP CRC, 16KiB ZIP alignment and reinstall checked. Twelve focused emulator cases passed across runs: shell recomposition, four row, five cache-pipeline and two narrow-toolbar tests. The extra real-video fullscreen regression did NOT pass: initial combined run timed out awaiting playback; isolated rerun captured actual portrait/landscape video but failed at ActivityScenario.close (null state/STARTED). Inspected landscape pixels show the 1280x720 fixture with Fit pillarboxing and visible controls, not proof that the complete rotation/gesture sequence passed. No app fatal in the inspected crash buffer. VERIFIED here means bounded build/signature/emulator-smoke verification, not all-test/fullscreen acceptance, physical-phone performance, production signing, security certification or universal bug-free proof. Prior releases remain immutable.
 
 ## Repository state
+
+### October 23 — 1.21.75 sideload finalization and merge review
+
+- Built exact b143786 code with testDebugUnitTest/lintDebug/assembleDebug offline on Java21. Canonical APK and hash are above; certificate unchanged from 1.21.39. No resolution/FPS/bitrate limits, no player restart workaround or code changes during finalization.
+- Fullscreen acceptance exception: 11-case combined run passed ten and failed playback-start wait in FullscreenRotationTest:72. Isolated three-case rerun passed both narrow-toolbar cases but failed FullscreenRotationTest:194 during ActivityScenario.close. Preserve this failure; do not call the full rotation test green or infer all assertions passed. Captures inspected from the real emulator, not a mockup.
+- Local main's 521636c APK-cleanup commit deletes historical APKs and replaces release metadata without the complete release guard. Preserve its exact history under refs/archive/local-apk-1.21.73-20261023; do not push invalid immutable-artifact deletions. Integrate the reviewed 1.21.75 branch via required CI instead. Draft/conflicting/failing privacy PR174 stays separate; no force merge or published-history rewrite.
 
 ### October 23 — Scoped scroll invalidation and RAM-hit bookkeeping (1.21.75/code298)
 
