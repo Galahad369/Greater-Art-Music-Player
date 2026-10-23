@@ -179,6 +179,8 @@ import androidx.media3.common.Player
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.session.MediaController
 import androidx.media3.ui.AspectRatioFrameLayout
+import androidx.compose.material.icons.rounded.Crop
+import androidx.compose.material.icons.rounded.AspectRatio
 import androidx.media3.ui.PlayerView
 import com.local.listentomusic.PlaybackUiState
 import com.local.listentomusic.playback.stackTransportUsesLoopIcon
@@ -257,15 +259,27 @@ internal data class ToolbarActionVisibility(
     val home: Boolean,
     val floatingMode: Boolean,
 )
-internal fun toolbarActionVisibility(availableWidthDp: Float, hasRotate: Boolean): ToolbarActionVisibility {
-    // 32dp horizontal chrome (12dp outer + 4dp inner on each side).
-    // Essential actions: Rotate (when present), Lock, Fullscreen, Close.
-    val baseDp = if (hasRotate) 224f else 176f
+internal fun toolbarActionVisibility(
+    availableWidthDp: Float, hasRotate: Boolean, hasFrameMode: Boolean = false,
+): ToolbarActionVisibility {
+    // 32dp horizontal chrome. Essential: Rotate, Lock, Fullscreen, Close
+    // and (on immersive video) Fit/Crop. No optional button can displace them.
+    val baseDp = (if (hasRotate) 224f else 176f) + if (hasFrameMode) 48f else 0f
     return ToolbarActionVisibility(
         floatingLauncher = availableWidthDp >= baseDp + 96f,
         home = availableWidthDp >= baseDp + 48f,
         floatingMode = availableWidthDp >= baseDp + 144f,
     )
+}
+
+/** Native Media3 resizing must never select FILL (stretch). The primary
+ * fullscreen video is independent of the decorative wallpaper scale setting.
+ * Crop preserves aspect ratio by trimming edges; Fit preserves the whole frame.
+ */
+internal enum class FullscreenFrameMode { FIT, CROP }
+internal fun fullscreenResizeMode(mode: FullscreenFrameMode): Int = when (mode) {
+    FullscreenFrameMode.FIT -> AspectRatioFrameLayout.RESIZE_MODE_FIT
+    FullscreenFrameMode.CROP -> AspectRatioFrameLayout.RESIZE_MODE_ZOOM
 }
 
 internal fun toolbarAvailableSlots(widthPx: Int, targetPx: Int, chromePx: Int): Int =
@@ -397,6 +411,9 @@ fun NowPlayingScreen(
     ) {
     var fullscreen by rememberSaveable { mutableStateOf(initialFullscreen) }
     var fullscreenLandscape by rememberSaveable { mutableStateOf(false) }
+    // Only aspect-preserving fullscreen options. Fit defaults to whole frame;
+    // Crop trims edges when the user explicitly selects screen fill.
+    var fullscreenFrameMode by rememberSaveable { mutableStateOf(FullscreenFrameMode.FIT) }
     val toggleFullscreen = {
         if (!fullscreen) fullscreenLandscape = false
         fullscreen = !fullscreen
@@ -520,6 +537,11 @@ fun NowPlayingScreen(
                     onLockAnchorBoundsChanged = reportLockAnchor,
                     onToggleControlsLock = { controlsLocked = !controlsLocked },
                     controlsLocked = controlsLocked,
+                    frameMode = fullscreenFrameMode,
+                    onToggleFrameMode = {
+                        fullscreenFrameMode = if (fullscreenFrameMode == FullscreenFrameMode.FIT)
+                            FullscreenFrameMode.CROP else FullscreenFrameMode.FIT
+                    },
                     controlsVisible = videoControlsVisible,
                     chromeTransition = videoChromeTransition,
                     onControlsVisibilityChange = { videoControlsVisible = it },
@@ -692,6 +714,8 @@ private fun VideoPlayerStage(
     onLockAnchorBoundsChanged: (androidx.compose.ui.geometry.Rect) -> Unit,
     onToggleControlsLock: () -> Unit,
     controlsLocked: Boolean,
+    frameMode: FullscreenFrameMode,
+    onToggleFrameMode: () -> Unit,
     controlsVisible: Boolean,
     chromeTransition: Transition<Boolean>,
     onControlsVisibilityChange: (Boolean) -> Unit,
@@ -806,7 +830,8 @@ private fun VideoPlayerStage(
             }
         ) {
             VideoSurface(playback.currentPath, controller, onVideoBoundsChanged, Modifier.fillMaxSize(),
-                sharedVideoView, onSharedVideoReleased)
+                sharedVideoView, onSharedVideoReleased,
+                frameMode = if (immersive) frameMode else FullscreenFrameMode.FIT)
         }
         // PlayerView is a native AndroidView and can consume touches before a
         // parent detector sees them. This transparent layer is the single input
@@ -1062,6 +1087,8 @@ private fun VideoPlayerStage(
                                         landscape = landscape,
                                         onLock = onToggleControlsLock,
                                         locked = controlsLocked,
+                                        frameMode = frameMode,
+                                        onToggleFrameMode = onToggleFrameMode,
                                         onLockAnchorBoundsChanged = onLockAnchorBoundsChanged,
                                         onTopBarBoundsChanged = { toolbarWindowBounds = it },
                                         modifier = Modifier.align(Alignment.TopCenter)
@@ -2376,6 +2403,8 @@ internal fun NowPlayingTopBar(
     fullscreen: Boolean = false,
     onLock: (() -> Unit)? = null,
     locked: Boolean = false,
+    frameMode: FullscreenFrameMode? = null,
+    onToggleFrameMode: (() -> Unit)? = null,
     onRotate: (() -> Unit)? = null,
     landscape: Boolean = false,
     onLockAnchorBoundsChanged: (androidx.compose.ui.geometry.Rect) -> Unit = {},
@@ -2399,8 +2428,10 @@ internal fun NowPlayingTopBar(
         val innerPadding = with(density) { (insetPx - outerPx).toDp() }
         val slots = toolbarAvailableSlots(constraints.maxWidth,
             with(density) { GaControl.touchTarget.roundToPx() }, insetPx * 2)
-        val actions = toolbarActionVisibility(32f + slots * 48f, onRotate != null)
-        val compact = slots < if (onRotate != null) 4 else 3
+        val canToggleFrame = frameMode != null && onToggleFrameMode != null
+        val actions = toolbarActionVisibility(32f + slots * 48f, onRotate != null, canToggleFrame)
+        val essentialSlots = (if (onRotate != null) 4 else 3) + if (canToggleFrame) 1 else 0
+        val compact = slots < essentialSlots
         val oneColumn = slots < 2
         val chrome = Modifier.fillMaxWidth()
             .padding(horizontal = 12.dp, vertical = 6.dp)
@@ -2448,6 +2479,20 @@ internal fun NowPlayingTopBar(
                 )
             }
         }
+        val frameModeButton: @Composable () -> Unit = {
+            if (canToggleFrame) PlayerToolbarAction(
+                onClick = onToggleFrameMode!!,
+                glyph = if (frameMode == FullscreenFrameMode.FIT) Icons.Rounded.Crop
+                    else Icons.Rounded.AspectRatio,
+                description = if (frameMode == FullscreenFrameMode.FIT)
+                    uiText(language, "Crop video to screen", "裁切影片填滿螢幕")
+                    else uiText(language, "Fit whole video", "完整顯示影片"),
+                foreground = foregroundColor,
+                inspectorId = "FULLSCREEN_FRAME_MODE_BUTTON",
+                inspectorDescription = if (frameMode == FullscreenFrameMode.FIT)
+                    "Crop video to screen (no stretch)" else "Fit whole video (no stretch)",
+            )
+        }
         val fullscreenButton: @Composable () -> Unit = {
             PlayerToolbarAction(
                 onClick = onFullscreen,
@@ -2476,6 +2521,7 @@ internal fun NowPlayingTopBar(
                     lockSlot()
                     fullscreenButton()
                     closeButton()
+                    frameModeButton()
                 } else {
                     Row(Modifier.height(52.dp), verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.Center) {
@@ -2486,6 +2532,11 @@ internal fun NowPlayingTopBar(
                         horizontalArrangement = Arrangement.Center) {
                         fullscreenButton()
                         closeButton()
+                    }
+                    if (canToggleFrame) Row(Modifier.height(52.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.Center) {
+                        frameModeButton()
                     }
                 }
             }
@@ -2524,6 +2575,7 @@ internal fun NowPlayingTopBar(
                 Spacer(Modifier.weight(1f))
                 rotateButton()
                 lockSlot()
+                frameModeButton()
                 fullscreenButton()
                 closeButton()
             }
@@ -2564,6 +2616,7 @@ internal fun VideoSurface(
     modifier: Modifier,
     sharedVideoView: PlayerView? = null,
     onSharedVideoReleased: () -> Unit = {},
+    frameMode: FullscreenFrameMode = FullscreenFrameMode.FIT,
 ) {
     val surfaceLifecycle = androidx.lifecycle.compose.LocalLifecycleOwner.current.lifecycle
     var surfaceActive by remember(surfaceLifecycle) { mutableStateOf(surfaceLifecycle.currentState.isAtLeast(androidx.lifecycle.Lifecycle.State.RESUMED)) }
@@ -2593,13 +2646,19 @@ internal fun VideoSurface(
                 // Media3 API 34 Compose/SurfaceView synchronization workaround.
                 // Preserve the owned PlayerView and player identity.
                 if (Build.VERSION.SDK_INT == 34) setEnableComposeSurfaceSyncWorkaround(true)
-                resizeMode = AspectRatioFrameLayout.RESIZE_MODE_FIT
+                // Explicitly forbid resizeMode=FILL: Media3 Fit or Zoom (crop)
+                // always preserves source/pixel aspect ratio.
+                resizeMode = fullscreenResizeMode(frameMode)
                 setKeepContentOnPlayerReset(true)
                 if (surfaceActive) com.local.listentomusic.ui.components.VideoSurfaceOwner.attach(
                     controller, this, overlay = sharedVideoView != null)
             }
         },
         update = { view ->
+            // A borrowed/reparented PlayerView can retain a previous owner mode.
+            // Restore the fullscreen aspect policy on every Compose update.
+            val requiredResize = fullscreenResizeMode(frameMode)
+            if (view.resizeMode != requiredResize) view.resizeMode = requiredResize
             if (surfaceActive || activity?.isInPictureInPictureMode == true)
                 com.local.listentomusic.ui.components.VideoSurfaceOwner.attach(controller, view,
                     overlay = sharedVideoView != null)

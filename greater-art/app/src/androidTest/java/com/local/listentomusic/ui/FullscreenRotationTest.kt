@@ -113,6 +113,26 @@ class FullscreenRotationTest {
             compose.waitUntil(5_000) { abs(position() - (beforeSeek + 5_000L)) < 150L }
             compose.onRoot().performTouchInput { doubleClick(Offset(width * .18f, height * .5f)) }
             compose.waitUntil(5_000) { abs(position() - beforeSeek) < 150L }
+            compose.onNodeWithContentDescription("Crop video to screen").assertIsDisplayed().performClick()
+            compose.waitForIdle()
+            fun videoResizeMode(): Int? {
+                fun find(view: android.view.View): androidx.media3.ui.PlayerView? {
+                    if (view is androidx.media3.ui.PlayerView && view.tag == "NOW_PLAYING") return view
+                    if (view is android.view.ViewGroup) for (i in 0 until view.childCount) {
+                        find(view.getChildAt(i))?.let { return it }
+                    }
+                    return null
+                }
+                return find(activity.window.decorView)?.resizeMode
+            }
+            compose.runOnIdle {
+                assertEquals(androidx.media3.ui.AspectRatioFrameLayout.RESIZE_MODE_ZOOM, videoResizeMode())
+            }
+            compose.onNodeWithContentDescription("Fit whole video").assertIsDisplayed().performClick()
+            compose.runOnIdle {
+                assertEquals(androidx.media3.ui.AspectRatioFrameLayout.RESIZE_MODE_FIT, videoResizeMode())
+            }
+            compose.onNodeWithContentDescription("Crop video to screen").assertIsDisplayed()
             compose.onNodeWithContentDescription("Lock player controls").performClick()
             compose.onNodeWithContentDescription("Unlock player controls").assertIsDisplayed()
             val lockedPosition = position()
