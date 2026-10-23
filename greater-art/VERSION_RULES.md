@@ -4,10 +4,19 @@ VERSIONED CHANGE RULE (ABSOLUTE): Any change that affects executable app behavio
 
 This file is the authoritative version policy for Greater Art. If any handoff note, README, old commit message, or conversation conflicts with this file, this file wins.
 
+## NON-NEGOTIABLE video geometry: NEVER STRETCH
+
+- **Fullscreen foreground video** and every video surface, including PiP, mini/expanded players, and decorative backgrounds, MUST preserve the original displayed aspect ratio (account for pixel width/height ratio and video rotation). NEVER distort by independently scaling X and Y.
+- Fullscreen offers **two and ONLY two** sizing choices: **Fit** (entire frame visible, letterbox/pillarbox if necessary) and **Crop** (fill screen while cutting the edges). Default fullscreen mode is Fit; the toolbar must expose a Crop/Fit toggle in immersive playback, including narrow safe-width layouts.
+- Media3 PlayerView: Fit = `AspectRatioFrameLayout.RESIZE_MODE_FIT`; Crop = `AspectRatioFrameLayout.RESIZE_MODE_ZOOM`. **`RESIZE_MODE_FILL` is forbidden**, as are `ContentScale.FillBounds`, `FIT_XY`, matrices or independently computed scaleX/scaleY that deform video. User pinch zoom must scale both axes identically and crop at the viewport bounds.
+- **Reapply** the selected aspect-preserving PlayerView resize mode when a surface is created, updated, handed between owners, or returned to mini; a reused view MUST NOT inherit an incompatible render mode. PiP and compact previews default to Fit. Do not replace or reprepare the playing video/decoder solely to change Fit/Crop.
+- Background wallpaper Fit/Crop is a separate setting. Its selection must NOT silently alter fullscreen video; fullscreen mode must NOT silently alter wallpaper mode. Historical Stretch/Fill preferences migrate to Crop, never resurrect Stretch.
+- Regression tests must cover mapping to Fit/Zoom, reject Fill, expose both choices, and exercise full-screen orientation/cutouts and surface reuse. Android CI passing does not prove pixel-perfect visual geometry: real-device landscape/portrait and mismatched-aspect fixture evidence is required before calling it verified.
+
 ## Machine-checkable state
 
 
-Current source: **1.21.73 (code 296)**
+Current source: **1.21.74 (code 297)**
 Allowed consumed transition: **1.21.68 (code 291) -> 1.21.70 (code 293)**
 
 An earlier side-branch 1.21.69/code292 introduced the staged-cache policy but
@@ -422,3 +431,4 @@ Previous baseline: 1.13.26 (code 115).
 - 1.21.71 (code 294): selectively integrate Claude d0fe253 performance audit after PR199: paused Stack ticker with immediate command wake, lazy ambient composition, idle sampler backoff, lyric memoization and indexed M3U references. Preserve staged thumbnails and carry forward the local real-disk regression; defer cache pruning during scrolling. Reject unsafe split resume storage, delayed ViewModel resume polling and stepping waveform thumb; preserve original patch and private local69 recovery history. SOURCE_ONLY; no measured battery/performance claim or replacement of verified artifacts.
 - 1.21.72 (code 295): unify all Now Playing top-bar action rendering through one Compose component, including the in-toolbar Lock/Unlock action (only the invisible Unlock hit target is elevated over the input blocker); standardize the 48dp hit target, 32dp canvas, 26dp glyph, tint, accessibility and inspector behavior. Keep measured Lock placement above the input blocker, existing shared 180ms chrome fade, 2.5s idle auto-hide and gestures, and media surfaces unchanged. Extend fullscreen instrumentation toolbar alignment to Rotate/Lock/Exit/Close. SOURCE_ONLY; verified 1.21.39 APK unchanged.
 - 1.21.73 (code 296): remove persistent "2× · Locked" video-stage text. Show "2× · Pull down to lock" and "Release for 1×" only during their gestures; after a successful lock, display a 1.2-second confirmation then hide. Clear it on unlock/media change. No change to actual 2× playback, 2× hold/drag gesture, user speed setting, fullscreen/toolbar visibility, or original certified APK. Add pure policy regression tests; SOURCE_ONLY.
+- 1.21.74 (code 297): enforce non-stretching fullscreen geometry. Explicit fullscreen Fit/Crop toggle with Fit default, Crop = aspect-preserving Media3 ZOOM (cuts edges), never FILL/stretch; apply the selected resize mode in the PlayerView factory and on every AndroidView update including borrowed views, restore Fit in compact mini when a shared view returns. Keep pinch zoom uniform, video decoder/surface ownership, fullscreen/lock/speed and wallpaper modes independent. Add policy and fullscreen accessibility regressions. SOURCE_ONLY, verified 1.21.39 APK unchanged.

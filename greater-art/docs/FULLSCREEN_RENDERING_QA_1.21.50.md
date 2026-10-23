@@ -58,3 +58,11 @@ physical/emulator observations, not a source-only assertion.
 - On a landscape device with a left or right display cutout, trigger backward/forward double-tap feedback and confirm its 116dp overlay remains inside the safe horizontal area. Passing CI is not proof of this visual check.
 - With playback paused, wait more than 2.5 seconds, verify fullscreen chrome fades out; single center taps reveal, hide, then reveal it. Fixture-backed `FullscreenRotationTest` must run on emulator/phone.
 - Record screenshots/video and device/API across Android 14/15/16. PiP/SurfaceView black frames and flicker remain a separate real-device acceptance gate.
+ 
+## October 23 — Fullscreen Fit/Crop-only acceptance (1.21.74/code297)
+
+- Mandatory: video never stretches, squashes or independently scales X/Y. Native PlayerView mode must be either FIT or ZOOM (aspect-preserving crop). Never FILL.
+- In immersive video toolbar, tap "Crop video to screen" and verify video fills bounds by trimming edges *without widening faces/circles*; tap "Fit whole video" and verify whole source frame is visible with black bars where needed.
+- Exercise portrait 9:16, 4:3 and landscape 16:9 content in both portrait/landscape viewports; inspect original proportions, cutout/safe insets, zoom/uniform pinch and return to 1×.
+- Reparent the shared PlayerView through mini -> fullscreen Crop -> mini -> fullscreen Fit, pause/resume and source switching; both modes preserve video quality, native surface ownership, first frame, playback position and correct sizing. PiP and mini must Fit.
+- New R8 Android builds and JVM/test compilation are not substitutes for real-device screenshots/recordings of mismatched-aspect footage.

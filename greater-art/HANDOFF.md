@@ -3,7 +3,7 @@
 This file describes the **current repository state only**. Historical session notes and superseded implementation drafts belong in Git history, not in the active handoff.
 
 **Project:** `greater-art/` in the repository checkout
-**Current source:** `1.21.73 (code 296)` — SOURCE_ONLY; Claude audit remediation for sleep timer, scanning, Stack and fullscreen while retaining reviewed adaptive accents/release-only R8
+**Current source:** `1.21.74 (code 297)` — SOURCE_ONLY; Claude audit remediation for sleep timer, scanning, Stack and fullscreen while retaining reviewed adaptive accents/release-only R8
 **Current version:** `1.21.39 (code 262)`
 **Latest APK:** `releases/GreaterArt-1.21.39.apk` (`26,877,593 bytes`; SHA-256 `e636fb7c1bfdbdf5500d48863a9f6c778aec47bb2090e433bb2e86037e468104`)
 **Application ID:** `com.local.listentomusic`
@@ -13,6 +13,14 @@ This file describes the **current repository state only**. Historical session no
 **Verification boundary:** Exact build source `b20489581b6125ce3963c767ed8e419c979a6820`; 358 JVM tests, 21 API36 emulator tests, zero lint errors; signature, pinned certificate, version/package, 16KiB ZIP alignment and upgrade installation checked. Emulator tests cover scoped URI discovery/access, live primary-video Dynamic Ambient colors and retained player identity, floating presentations and accessibility/Developer Mode interactions. No app fatal in the inspected crash buffer. This is a debug sideload build, not production signing, physical-phone acceptance, full security assessment or a universal bug-free guarantee. The prior 1.21.37 artifact and its evidence remain unchanged in history.
 
 ## Repository state
+
+### October 23 — Fullscreen may Fit or Crop; never Stretch (1.21.74/code297)
+
+- NON-NEGOTIABLE `VERSION_RULES.md` video geometry policy: absolutely no video stretching, including fullscreen. Fullscreen Fit shows all source image with letterboxes; Crop uses aspect-preserving trim to fill. New immersive toolbar toggle works in narrow/cutout layouts. Default Fit. No wallpaper coupling.
+- `VideoSurface` reasserts Fit/Crop mode both on creation and each AndroidView update, so a reparented shared PlayerView cannot keep an incompatible previous resize mode. Returning shared compact preview restores Fit only when the expected surface owner is the compact view (metadata callbacks cannot overwrite an active fullscreen Crop). Media3 decoder, single-video-surface and bitrate/quality contracts unchanged.
+- Pure JVM tests reject Media3 RESIZE_MODE_FILL for both modes and verify toolbars budget for the fifth essential action. Instrumented test exercises Fit/Crop toggle. Physical-device screenshots and aspect-ratio fixture acceptance still REQUIRED; do not claim resolution proven just from green CI.
+- Last verified APK remains 1.21.39/code262; the 1.21.74 change is SOURCE_ONLY.
+
 
 ### October 23 — Nonpersistent fullscreen 2× speed banner (1.21.73/code296)
 

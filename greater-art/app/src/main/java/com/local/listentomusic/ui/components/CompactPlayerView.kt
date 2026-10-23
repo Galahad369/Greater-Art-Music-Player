@@ -228,6 +228,15 @@ class CompactPlayerView(context: Context) : FrameLayout(context) {
         else MiniWindowMetrics.widthPx(resources.displayMetrics.density, miniSize)
         if (preview.layoutParams.width != width) { preview.layoutParams = preview.layoutParams.apply { this.width = width } }
         if (!expanded) {
+            // The same PlayerView may return from fullscreen Crop mode: the
+            // compact preview always restores aspect-preserving whole-frame Fit.
+            val requestedOwner = if (owner == "MINI_WINDOW") "MINI_WINDOW" else "LIBRARY_MINI"
+            // A compact UI can continue receiving metadata callbacks while
+            // fullscreen owns its borrowed PlayerView. Never override Crop in
+            // the active fullscreen view; restore Fit only once mini owns it.
+            if (VideoSurfaceOwner.expectedOwner == requestedOwner &&
+                video.resizeMode != AspectRatioFrameLayout.RESIZE_MODE_FIT)
+                video.resizeMode = AspectRatioFrameLayout.RESIZE_MODE_FIT
             if (isVideo) VideoSurfaceOwner.attach(p, video, overlay = owner == "MINI_WINDOW")
             else VideoSurfaceOwner.detach(video)
             // One decoded stream has one surface. When CURRENT_VIDEO owns it,

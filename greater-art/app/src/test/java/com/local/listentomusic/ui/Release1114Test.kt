@@ -3,6 +3,7 @@ package com.local.listentomusic.ui
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.unit.IntSize
+import androidx.media3.ui.AspectRatioFrameLayout
 import androidx.compose.ui.graphics.luminance
 import com.local.listentomusic.data.*
 import com.local.listentomusic.model.MediaFile
@@ -77,6 +78,21 @@ class Release1114Test {
         // The audio/portrait lock remains independently accessible.
         assertTrue(shouldShowPlayerLock(immersiveVideo = false, videoControlsVisible = true))
         assertTrue(shouldShowPlayerLock(immersiveVideo = false, videoControlsVisible = false))
+    }
+
+    @Test fun fullscreenVideoScalingNeverStretchesAndExposesFitAndCrop() {
+        assertEquals(AspectRatioFrameLayout.RESIZE_MODE_FIT,
+            fullscreenResizeMode(FullscreenFrameMode.FIT))
+        assertEquals(AspectRatioFrameLayout.RESIZE_MODE_ZOOM,
+            fullscreenResizeMode(FullscreenFrameMode.CROP))
+        assertNotEquals(AspectRatioFrameLayout.RESIZE_MODE_FILL,
+            fullscreenResizeMode(FullscreenFrameMode.FIT))
+        assertNotEquals(AspectRatioFrameLayout.RESIZE_MODE_FILL,
+            fullscreenResizeMode(FullscreenFrameMode.CROP))
+        // A fifth essential fullscreen action reduces optional toolbar capacity.
+        assertEquals(ToolbarActionVisibility(false, false, false),
+            toolbarActionVisibility(272f, hasRotate = true, hasFrameMode = true))
+        assertTrue(toolbarActionVisibility(368f, hasRotate = true, hasFrameMode = true).floatingLauncher)
     }
 
     @Test fun fullscreenToolbarAdaptsToCutoutSafeWidthWithoutClippingActions() {
