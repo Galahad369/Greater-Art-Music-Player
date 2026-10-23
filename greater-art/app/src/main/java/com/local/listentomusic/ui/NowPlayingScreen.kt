@@ -139,6 +139,8 @@ import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
@@ -474,6 +476,8 @@ fun NowPlayingScreen(
                                         onHome = onHome,
                                         onFullscreen = toggleFullscreen,
                                         onClose = onClose,
+                                        onLock = { controlsLocked = !controlsLocked },
+                                        locked = controlsLocked,
                                         onLockAnchorBoundsChanged = reportLockAnchor,
                                     )
                                 }
@@ -501,6 +505,8 @@ fun NowPlayingScreen(
                     onEndTemporaryDoubleSpeed = onEndTemporaryDoubleSpeed,
                     onLockTemporaryDoubleSpeed = onLockTemporaryDoubleSpeed,
                     onLockAnchorBoundsChanged = reportLockAnchor,
+                    onToggleControlsLock = { controlsLocked = !controlsLocked },
+                    controlsLocked = controlsLocked,
                     controlsVisible = videoControlsVisible,
                     chromeTransition = videoChromeTransition,
                     onControlsVisibilityChange = { videoControlsVisible = it },
@@ -559,6 +565,8 @@ fun NowPlayingScreen(
                     landscape = fullscreenLandscape,
                     onClose = onClose,
                     fullscreen = fullscreen,
+                    onLock = { controlsLocked = !controlsLocked },
+                    locked = controlsLocked,
                     onLockAnchorBoundsChanged = reportLockAnchor,
                 )
                 AudioPlayer(
@@ -615,36 +623,28 @@ fun NowPlayingScreen(
                 }
             })
         }
-        playerLockLocalOffset(playerRootBounds, lockAnchorBounds)?.let { lockOffset ->
-            // Place the animated container at the measured 48dp toolbar slot,
-            // not its child: transitions must never change the button's anchor.
-            // Sharing VideoPlayerStage's transition keeps Rotate and Lock fading
-            // in the same frame with identical durations and easing.
-            videoChromeTransition.AnimatedVisibility(
-                visible = { shouldShowPlayerLock(immersiveVideo, it) },
-                modifier = Modifier.offset { lockOffset }.size(GaControl.touchTarget),
-                enter = fadeIn(animationSpec = tween(180)),
-                exit = fadeOut(animationSpec = tween(180)),
-            ) {
-                IconButton(
-                    onClick = { controlsLocked = !controlsLocked },
-                    modifier = Modifier.size(GaControl.touchTarget)
-                        .inspectElement(
-                            "PLAYER_LOCK_BUTTON",
-                            if (controlsLocked) "Unlock Now Playing controls" else "Lock Now Playing controls",
-                        ),
+        if (controlsLocked) {
+            playerLockLocalOffset(playerRootBounds, lockAnchorBounds)?.let { lockOffset ->
+                // The *visible* Lock/Unlock glyph lives inside NowPlayingTopBar
+                // with Rotate, Fullscreen and Close, so it has identical scrim,
+                // fade, geometry and clipping. Only this transparent hit target
+                // is elevated over the locked-player input blocker.
+                videoChromeTransition.AnimatedVisibility(
+                    visible = { shouldShowPlayerLock(immersiveVideo, it) },
+                    modifier = Modifier.offset { lockOffset }.size(GaControl.touchTarget),
+                    enter = fadeIn(animationSpec = tween(180)),
+                    exit = fadeOut(animationSpec = tween(180)),
                 ) {
-                    // Rotate and Lock now have the same 48dp hit area, 32dp
-                    // icon canvas and centered 26dp primary glyph.
-                    Box(Modifier.size(32.dp), contentAlignment = Alignment.Center) {
-                        Icon(
-                            if (controlsLocked) Icons.Rounded.Lock else Icons.Rounded.LockOpen,
-                            uiText(language, if (controlsLocked) "Unlock player controls" else "Lock player controls",
-                                if (controlsLocked) "解鎖播放器控制" else "鎖定播放器控制"),
-                            tint = if (playback.isVideo && immersiveVideo) GaVideoOverlay.foreground else MaterialTheme.colorScheme.onSurface,
-                            modifier = Modifier.size(26.dp),
+                    Box(Modifier.size(GaControl.touchTarget)
+                        .inspectElement("PLAYER_UNLOCK_HIT_TARGET", "Unlocks blocked player controls")
+                        .clickable(
+                            interactionSource = remember { MutableInteractionSource() },
+                            indication = null,
+                            onClick = { controlsLocked = false },
                         )
-                    }
+                        .semantics {
+                            contentDescription = uiText(language, "Unlock player controls", "解鎖播放器控制")
+                        })
                 }
             }
         }
@@ -677,6 +677,8 @@ private fun VideoPlayerStage(
     onEndTemporaryDoubleSpeed: () -> Unit,
     onLockTemporaryDoubleSpeed: () -> Boolean,
     onLockAnchorBoundsChanged: (androidx.compose.ui.geometry.Rect) -> Unit,
+    onToggleControlsLock: () -> Unit,
+    controlsLocked: Boolean,
     controlsVisible: Boolean,
     chromeTransition: Transition<Boolean>,
     onControlsVisibilityChange: (Boolean) -> Unit,
@@ -1029,6 +1031,8 @@ private fun VideoPlayerStage(
                                         fullscreen = true,
                                         onRotate = onRotate,
                                         landscape = landscape,
+                                        onLock = onToggleControlsLock,
+                                        locked = controlsLocked,
                                         onLockAnchorBoundsChanged = onLockAnchorBoundsChanged,
                                         onTopBarBoundsChanged = { toolbarWindowBounds = it },
                                         modifier = Modifier.align(Alignment.TopCenter)
@@ -2296,6 +2300,41 @@ private fun PlaybackError(message: String?) {
     }
 }
 
+/**
+ * One visual specification for every Now Playing toolbar action, including the
+ * input-safe Lock action. Its caller owns placement and chrome visibility; it
+ * never creates a separate background or an independent animation clock.
+ */
+@Composable
+private fun PlayerToolbarAction(
+    onClick: () -> Unit,
+    glyph: androidx.compose.ui.graphics.vector.ImageVector,
+    description: String,
+    foreground: Color,
+    inspectorId: String,
+    inspectorDescription: String,
+    modifier: Modifier = Modifier,
+    rotationBadgeBackground: Color? = null,
+) {
+    IconButton(
+        onClick = onClick,
+        modifier = modifier.size(GaControl.touchTarget)
+            .inspectElement(inspectorId, inspectorDescription),
+    ) {
+        Box(Modifier.size(32.dp), contentAlignment = Alignment.Center) {
+            Icon(glyph, description, modifier = Modifier.size(26.dp), tint = foreground)
+            if (rotationBadgeBackground != null) {
+                Icon(
+                    Icons.AutoMirrored.Rounded.RotateRight, null,
+                    modifier = Modifier.size(14.dp).align(Alignment.TopEnd)
+                        .background(rotationBadgeBackground, CircleShape),
+                    tint = foreground,
+                )
+            }
+        }
+    }
+}
+
 @Composable
 internal fun NowPlayingTopBar(
     language: AppLanguage,
@@ -2306,6 +2345,8 @@ internal fun NowPlayingTopBar(
     modifier: Modifier = Modifier,
     overlay: Boolean = false,
     fullscreen: Boolean = false,
+    onLock: (() -> Unit)? = null,
+    locked: Boolean = false,
     onRotate: (() -> Unit)? = null,
     landscape: Boolean = false,
     onLockAnchorBoundsChanged: (androidx.compose.ui.geometry.Rect) -> Unit = {},
@@ -2317,7 +2358,6 @@ internal fun NowPlayingTopBar(
     val foregroundColor = foreground
     val backgroundColor = background
     val topBarShape = RoundedCornerShape(GaRadius.chrome)
-    val toolbarGlyph = 26.dp
     BoxWithConstraints(modifier.fillMaxWidth()
         .onGloballyPositioned { onTopBarBoundsChanged(it.boundsInWindow()) }) {
         // Keep 48dp targets at every width. Under 224dp, provide two compact
@@ -2346,54 +2386,59 @@ internal fun NowPlayingTopBar(
             .padding(horizontal = innerPadding)
 
         val rotateButton: @Composable () -> Unit = {
-            if (onRotate != null) IconButton(
+            if (onRotate != null) PlayerToolbarAction(
                 onClick = onRotate,
-                modifier = Modifier.size(GaControl.touchTarget)
-                    .inspectElement("ROTATE_SCREEN_BUTTON", fullscreenRotationLabel(language, landscape)),
-            ) {
-                Box(Modifier.size(32.dp)) {
-                    Icon(
-                        if (landscape) Icons.Rounded.StayCurrentPortrait else Icons.Rounded.StayCurrentLandscape,
-                        fullscreenRotationLabel(language, landscape),
-                        modifier = Modifier.size(toolbarGlyph).align(Alignment.Center), tint = foregroundColor,
-                    )
-                    Icon(Icons.AutoMirrored.Rounded.RotateRight, null,
-                        modifier = Modifier.size(14.dp).align(Alignment.TopEnd)
-                            .background(backgroundColor, CircleShape), tint = foregroundColor)
-                }
-            }
-        }
-        val lockSlot: @Composable () -> Unit = {
-            // The elevated input-safe Lock uses this measured placeholder.
-            Spacer(
-                Modifier.size(GaControl.touchTarget)
-                    .onGloballyPositioned { onLockAnchorBoundsChanged(it.boundsInWindow()) }
-                    .inspectElement("PLAYER_LOCK_ANCHOR", "Measured top-bar lock slot"),
+                glyph = if (landscape) Icons.Rounded.StayCurrentPortrait else Icons.Rounded.StayCurrentLandscape,
+                description = fullscreenRotationLabel(language, landscape),
+                foreground = foregroundColor,
+                inspectorId = "ROTATE_SCREEN_BUTTON",
+                inspectorDescription = fullscreenRotationLabel(language, landscape),
+                rotationBadgeBackground = backgroundColor,
             )
         }
-        val fullscreenButton: @Composable () -> Unit = {
-            IconButton(
-                onClick = onFullscreen,
-                modifier = Modifier.size(GaControl.touchTarget)
-                    .inspectElement("FULLSCREEN_BUTTON", if (fullscreen) "Exit fullscreen" else "Enter fullscreen"),
-            ) {
-                Icon(
-                    if (fullscreen) Icons.Rounded.FullscreenExit else Icons.Rounded.Fullscreen,
-                    if (fullscreen) uiText(language, "Exit fullscreen", "離開全螢幕")
-                        else uiText(language, "Fullscreen", "全螢幕"),
-                    tint = foregroundColor, modifier = Modifier.size(toolbarGlyph),
+        val lockSlot: @Composable () -> Unit = {
+            val anchored = Modifier.onGloballyPositioned {
+                onLockAnchorBoundsChanged(it.boundsInWindow())
+            }
+            if (onLock == null) {
+                // Component-only toolbar previews can reserve this slot without
+                // enabling a non-functional Lock action.
+                Spacer(anchored.size(GaControl.touchTarget))
+            } else {
+                PlayerToolbarAction(
+                    onClick = onLock,
+                    glyph = if (locked) Icons.Rounded.Lock else Icons.Rounded.LockOpen,
+                    description = uiText(language,
+                        if (locked) "Unlock player controls" else "Lock player controls",
+                        if (locked) "解鎖播放器控制" else "鎖定播放器控制"),
+                    foreground = foregroundColor,
+                    inspectorId = "PLAYER_LOCK_BUTTON",
+                    inspectorDescription = if (locked)
+                        "Unlock Now Playing controls" else "Lock Now Playing controls",
+                    modifier = anchored,
                 )
             }
         }
+        val fullscreenButton: @Composable () -> Unit = {
+            PlayerToolbarAction(
+                onClick = onFullscreen,
+                glyph = if (fullscreen) Icons.Rounded.FullscreenExit else Icons.Rounded.Fullscreen,
+                description = if (fullscreen) uiText(language, "Exit fullscreen", "離開全螢幕")
+                    else uiText(language, "Fullscreen", "全螢幕"),
+                foreground = foregroundColor,
+                inspectorId = "FULLSCREEN_BUTTON",
+                inspectorDescription = if (fullscreen) "Exit fullscreen" else "Enter fullscreen",
+            )
+        }
         val closeButton: @Composable () -> Unit = {
-            IconButton(
+            PlayerToolbarAction(
                 onClick = onClose,
-                modifier = Modifier.size(GaControl.touchTarget)
-                    .inspectElement("CLOSE_PLAYER_BUTTON", "Closes Now Playing without stopping playback"),
-            ) {
-                Icon(Icons.Rounded.Close, uiText(language, "Close player", "關閉播放器"),
-                    Modifier.size(toolbarGlyph), tint = foregroundColor)
-            }
+                glyph = Icons.Rounded.Close,
+                description = uiText(language, "Close player", "關閉播放器"),
+                foreground = foregroundColor,
+                inspectorId = "CLOSE_PLAYER_BUTTON",
+                inspectorDescription = "Closes Now Playing without stopping playback",
+            )
         }
         if (compact) {
             Column(chrome, horizontalAlignment = Alignment.CenterHorizontally) {
@@ -2417,40 +2462,36 @@ internal fun NowPlayingTopBar(
             }
         } else {
             Row(chrome.height(52.dp), verticalAlignment = Alignment.CenterVertically) {
-                if (actions.floatingLauncher) IconButton(
+                if (actions.floatingLauncher) PlayerToolbarAction(
                     onClick = onPictureInPicture,
-                    modifier = Modifier.size(GaControl.touchTarget)
-                        .inspectElement("FLOATING_PLAYER_BUTTON", "Opens the selected floating-player mode"),
-                ) {
-                    Icon(Icons.Rounded.PictureInPictureAlt,
-                        uiText(language, "Open floating player", "開啟浮動播放器"),
-                        tint = foregroundColor, modifier = Modifier.size(toolbarGlyph))
-                }
-                if (actions.home) IconButton(
-                    onClick = onHome, modifier = Modifier.size(GaControl.touchTarget)
-                        .inspectElement("HOME_BUTTON", "Returns to Library"),
-                ) {
-                    Icon(Icons.Rounded.Home, uiText(language, "Home", "首頁"),
-                        modifier = Modifier.size(toolbarGlyph), tint = foregroundColor)
-                }
+                    glyph = Icons.Rounded.PictureInPictureAlt,
+                    description = uiText(language, "Open floating player", "開啟浮動播放器"),
+                    foreground = foregroundColor,
+                    inspectorId = "FLOATING_PLAYER_BUTTON",
+                    inspectorDescription = "Opens the selected floating-player mode",
+                )
+                if (actions.home) PlayerToolbarAction(
+                    onClick = onHome,
+                    glyph = Icons.Rounded.Home,
+                    description = uiText(language, "Home", "首頁"),
+                    foreground = foregroundColor,
+                    inspectorId = "HOME_BUTTON",
+                    inspectorDescription = "Returns to Library",
+                )
                 val selectedMode = LocalFloatingMode.current
                 val onModeChange = LocalFloatingModeChange.current
-                if (actions.floatingMode) IconButton(
+                if (actions.floatingMode) PlayerToolbarAction(
                     onClick = { onModeChange(selectedMode.nextFloatingMode()) },
-                    modifier = Modifier.size(GaControl.touchTarget)
-                        .inspectElement("FLOATING_MODE_BUTTON",
-                            "Switch floating playback mode: ${floatingModeLabel(language, selectedMode)}"),
-                ) {
-                    Icon(
-                        when (selectedMode) {
-                            FloatingWindowMode.MINI_WINDOW -> Icons.Rounded.PictureInPictureAlt
-                            FloatingWindowMode.FOLLOW_VIDEO, FloatingWindowMode.COMPACT -> Icons.Rounded.OndemandVideo
-                            FloatingWindowMode.NONE -> Icons.Rounded.Block
-                        },
-                        floatingModeDescription(language, selectedMode),
-                        modifier = Modifier.size(toolbarGlyph), tint = foregroundColor,
-                    )
-                }
+                    glyph = when (selectedMode) {
+                        FloatingWindowMode.MINI_WINDOW -> Icons.Rounded.PictureInPictureAlt
+                        FloatingWindowMode.FOLLOW_VIDEO, FloatingWindowMode.COMPACT -> Icons.Rounded.OndemandVideo
+                        FloatingWindowMode.NONE -> Icons.Rounded.Block
+                    },
+                    description = floatingModeDescription(language, selectedMode),
+                    foreground = foregroundColor,
+                    inspectorId = "FLOATING_MODE_BUTTON",
+                    inspectorDescription = "Switch floating playback mode: ${floatingModeLabel(language, selectedMode)}",
+                )
                 Spacer(Modifier.weight(1f))
                 rotateButton()
                 lockSlot()

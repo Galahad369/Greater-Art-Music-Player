@@ -3,7 +3,7 @@
 This file describes the **current repository state only**. Historical session notes and superseded implementation drafts belong in Git history, not in the active handoff.
 
 **Project:** `greater-art/` in the repository checkout
-**Current source:** `1.21.71 (code 294)` — SOURCE_ONLY; Claude audit remediation for sleep timer, scanning, Stack and fullscreen while retaining reviewed adaptive accents/release-only R8
+**Current source:** `1.21.72 (code 295)` — SOURCE_ONLY; Claude audit remediation for sleep timer, scanning, Stack and fullscreen while retaining reviewed adaptive accents/release-only R8
 **Current version:** `1.21.39 (code 262)`
 **Latest APK:** `releases/GreaterArt-1.21.39.apk` (`26,877,593 bytes`; SHA-256 `e636fb7c1bfdbdf5500d48863a9f6c778aec47bb2090e433bb2e86037e468104`)
 **Application ID:** `com.local.listentomusic`
@@ -13,6 +13,14 @@ This file describes the **current repository state only**. Historical session no
 **Verification boundary:** Exact build source `b20489581b6125ce3963c767ed8e419c979a6820`; 358 JVM tests, 21 API36 emulator tests, zero lint errors; signature, pinned certificate, version/package, 16KiB ZIP alignment and upgrade installation checked. Emulator tests cover scoped URI discovery/access, live primary-video Dynamic Ambient colors and retained player identity, floating presentations and accessibility/Developer Mode interactions. No app fatal in the inspected crash buffer. This is a debug sideload build, not production signing, physical-phone acceptance, full security assessment or a universal bug-free guarantee. The prior 1.21.37 artifact and its evidence remain unchanged in history.
 
 ## Repository state
+
+### October 23 — Shared fullscreen top-toolbar action rendering (1.21.72/code295)
+
+- All seven presentation actions (Rotate, Lock/Unlock, Fullscreen, Close, floating launcher, Home and floating mode) now use a single Compose renderer for 48dp targets, centred 32dp canvases and 26dp glyphs. The Rotate corner badge remains a decorative overlay inside that same shared renderer.
+- Lock/Unlock **visually renders inside the actual top toolbar** alongside Rotate/Fullscreen/Close using identical scrim, fade, clipping and glyph geometry. When locked, only a transparent, 48dp accessible Unlock hit target is positioned at the measured Lock slot above the input blocker. The visible icon no longer occupies an elevated rendering layer.
+- Preserve the **same shared 180ms fullscreen toolbar/Lock fade** and **2.5-second gesture-aware auto-hide** while playing or paused. Centre-tap show/hide, side-tap reveal/seek, zoom/pan, seek thumb hold, input blocking and Android Back unlock unchanged.
+- Expand existing real-Activity test to compare geometry for Rotate/Lock/Fullscreen/Close in portrait and landscape. SOURCE_ONLY; physical device fade and artwork/video acceptance still required. Latest verified sideload stays 1.21.39/code262.
+
 
 ### October 23 — Reviewed PR/branch consolidation (1.21.71/code294)
 

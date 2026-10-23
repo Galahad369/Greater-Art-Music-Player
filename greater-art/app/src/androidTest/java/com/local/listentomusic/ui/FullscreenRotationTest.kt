@@ -114,6 +114,7 @@ class FullscreenRotationTest {
             compose.onRoot().performTouchInput { doubleClick(Offset(width * .18f, height * .5f)) }
             compose.waitUntil(5_000) { abs(position() - beforeSeek) < 150L }
             compose.onNodeWithContentDescription("Lock player controls").performClick()
+            compose.onNodeWithContentDescription("Unlock player controls").assertIsDisplayed()
             val lockedPosition = position()
             compose.onRoot().performTouchInput { doubleClick(Offset(width * .82f, height * .5f)) }
             compose.runOnIdle { assertEquals(lockedPosition, vm.controller.value!!.currentPosition) }
@@ -179,14 +180,19 @@ class FullscreenRotationTest {
         }
     }
 
-    /** Measured on the real fullscreen Activity, with rotate/lock in separate layers. */
+    /** All actions use one visual component; Lock alone is elevated above input blocking. */
     private fun assertFullscreenToolbarAlignment(rotationDescription: String) {
-        val rotate = compose.onNodeWithContentDescription(rotationDescription).fetchSemanticsNode().boundsInRoot
-        val lock = compose.onNodeWithContentDescription("Lock player controls").fetchSemanticsNode().boundsInRoot
-        assertTrue("Rotate and Lock touch targets must share their vertical center: $rotate vs $lock",
-            abs(rotate.center.y - lock.center.y) <= 2f)
-        assertEquals("Rotate and Lock must have the same touch target height", rotate.height, lock.height, 2f)
-        assertEquals("Rotate and Lock must have the same touch target width", rotate.width, lock.width, 2f)
+        val descriptions = listOf(rotationDescription, "Lock player controls", "Exit fullscreen", "Close player")
+        val bounds = descriptions.map { name ->
+            name to compose.onNodeWithContentDescription(name).fetchSemanticsNode().boundsInRoot
+        }
+        val (firstName, first) = bounds.first()
+        bounds.drop(1).forEach { (name, button) ->
+            assertTrue("$name and $firstName must share their vertical center: $button vs $first",
+                abs(button.center.y - first.center.y) <= 2f)
+            assertEquals("$name must match $firstName height", first.height, button.height, 2f)
+            assertEquals("$name must match $firstName width", first.width, button.width, 2f)
+        }
     }
 
     private fun assertToolbarInsideScreenSafeRegion(activity: FullscreenVideoActivity) {
