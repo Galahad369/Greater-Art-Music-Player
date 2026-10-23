@@ -107,6 +107,8 @@ internal const val STACK_INITIAL_SEEK_LEAD_MS = 150L
 /** A parked voice starts once the master is this close to its parked position. */
 internal const val STACK_ENTRY_LEAD_MS = 25L
 internal const val STACK_SYNC_TICK_MS = 50L
+/** Poll interval while the session is paused and not waiting on the start gate. */
+internal const val STACK_IDLE_TICK_MS = 250L
 internal const val STACK_BUFFER_GRACE_MS = 300L
 internal const val STACK_CONTROLLED_SEEK_GRACE_MS = 1_000L
 

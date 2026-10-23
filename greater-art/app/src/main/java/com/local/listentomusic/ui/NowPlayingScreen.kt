@@ -1759,14 +1759,22 @@ private fun SyncedLyricsPanel(
             lyrics.lines,
             key = { index, line -> "${line.timeMs}:$index" },
         ) { index, line ->
-            Text(
-                text = androidx.compose.ui.text.buildAnnotatedString {
+            val isActiveLine = index == activeIndex
+            val wordPosition = if (isActiveLine) positionMs else 0L
+            val spokenColor = MaterialTheme.colorScheme.secondary
+            val pendingColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.60f)
+            // Only the active line depends on playback position; other lines reuse their text.
+            val lineText = remember(line, isActiveLine, wordPosition, spokenColor, pendingColor) {
+                androidx.compose.ui.text.buildAnnotatedString {
                     if (line.words.isEmpty()) append(line.text) else line.words.forEach { word ->
-                        pushStyle(androidx.compose.ui.text.SpanStyle(color = if (index == activeIndex && word.timeMs <= positionMs)
-                            MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.60f)))
+                        pushStyle(androidx.compose.ui.text.SpanStyle(
+                            color = if (isActiveLine && word.timeMs <= wordPosition) spokenColor else pendingColor))
                         append(word.text); pop()
                     }
-                },
+                }
+            }
+            Text(
+                text = lineText,
                 modifier = Modifier.fillMaxWidth().clickable(enabled = isSynced) { onSeek(line.timeMs) }
                     .padding(vertical = 5.dp),
                 color = if (index == activeIndex) MaterialTheme.colorScheme.secondary

@@ -788,17 +788,14 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             val byPath = scannedFiles.filter { it.reference.source is com.local.listentomusic.model.MediaSource.LocalFile }
                 .associateBy { File(it.path).canonicalPath }
             val byName = scannedFiles.groupBy { it.name.lowercase(Locale.ROOT) }
+            val specialReferences = com.local.listentomusic.model.M3uLibraryIndex(scannedFiles)
             val paths = com.local.listentomusic.model.parseM3u(raw).asSequence()
                 .mapNotNull { entry ->
                     val decoded = Uri.decode(entry.path.removePrefix("file://"))
                     if (entry.path.startsWith("content://"))
-                        return@mapNotNull scannedFiles.firstOrNull {
-                            it.id == entry.path || it.sourcePath == entry.path
-                        }?.id
+                        return@mapNotNull specialReferences.content(entry.path)?.id
                     if (entry.start != null) {
-                        val candidates = scannedFiles.filter { it.clipStartMs == entry.start && it.clipEndMs == entry.end }
-                        return@mapNotNull (candidates.firstOrNull { it.sourcePath == decoded }
-                            ?: candidates.filter { File(it.sourcePath).name == File(decoded).name }.singleOrNull())?.path
+                        return@mapNotNull specialReferences.clipped(decoded, entry.start, entry.end)?.path
                     }
                     runCatching { File(decoded).canonicalPath }.getOrNull()?.let(byPath::get)?.path
                         ?: byName[File(decoded).name.lowercase(Locale.ROOT)]?.singleOrNull()?.path

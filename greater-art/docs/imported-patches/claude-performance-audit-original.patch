@@ -1,0 +1,494 @@
+From d0fe25387e58e68671a59797a3b6d571484bf6ee Mon Sep 17 00:00:00 2001
+From: Claude <noreply@anthropic.com>
+Date: Fri, 23 Oct 2026 04:12:37 +0000
+Subject: [PATCH] 1.21.69: performance and battery audit fixes
+
+- Move the 5 s resume-position save to its own tiny DataStore so it no longer
+  rewrites/re-decodes main preferences or invalidates global settings state.
+- Idle the ViewModel and Stack tickers while paused; wake Stack immediately on
+  play/seek. Slow VideoAmbientColors polling when no video surface exists.
+- Read waveform progress in the draw phase; memoize non-active lyric lines.
+- Compose the ambient backdrop only where it is displayed.
+- Constant-time M3U content/clip lookups.
+
+Source-only: not built or device-tested (see docs/PERFORMANCE_AUDIT_FIXES_2026-10-23.md).
+---
+ README.md                                     |  2 +-
+ greater-art/HANDOFF.md                        |  6 +++-
+ greater-art/README.md                         |  2 +-
+ greater-art/VERSION_RULES.md                  |  3 +-
+ greater-art/app/build.gradle.kts              |  4 +--
+ .../com/local/listentomusic/MainViewModel.kt  | 22 +++++++++-----
+ .../listentomusic/data/AppPreferences.kt      | 22 ++++++++++++--
+ .../listentomusic/playback/StackPlayback.kt   |  2 ++
+ .../playback/StackPlaybackCoordinator.kt      | 11 ++++++-
+ .../listentomusic/ui/NowPlayingScreen.kt      | 26 +++++++++++-----
+ .../local/listentomusic/ui/PlaybackMotion.kt  | 11 +++++++
+ .../ui/components/AppBackground.kt            | 17 ++++++++---
+ .../ui/components/VideoAmbientColors.kt       |  3 +-
+ .../PERFORMANCE_AUDIT_FIXES_2026-10-23.md     | 30 +++++++++++++++++++
+ 14 files changed, 131 insertions(+), 30 deletions(-)
+ create mode 100644 greater-art/docs/PERFORMANCE_AUDIT_FIXES_2026-10-23.md
+
+diff --git a/README.md b/README.md
+index 168b7a9..3a04644 100644
+--- a/README.md
++++ b/README.md
+@@ -9,7 +9,7 @@ Greater Art is a local-first Android audio and video player. This repository con
+ - [App documentation](greater-art/README.md) · [Handoff and verification](greater-art/HANDOFF.md)
+ - [User demonstration](greater-art-user-demo.html) · [Technical demonstration](greater-art-technical-demo.html)
+ 
+-Current Android source: **1.21.68 / code 291 — SOURCE_ONLY**. Library rows omit closed action layouts, draw animated color without composition reads and reuse metadata/bitmap wrappers; see the [row follow-up](greater-art/docs/LIBRARY_ROW_WORK_2026-10-21.md). Portrait-first fullscreen, concise diagnostics, cache-only artwork accents and release-only R8 are retained. High contrast/Monochrome remain fixed and OLED stays black. Latest verified APK remains 1.21.39; physical-device and minified-release acceptance are separate gates.
++Current Android source: **1.21.69 / code 292 — SOURCE_ONLY**. Performance/battery audit fixes ([notes](greater-art/docs/PERFORMANCE_AUDIT_FIXES_2026-10-23.md)); previous release: Library rows omit closed action layouts, draw animated color without composition reads and reuse metadata/bitmap wrappers; see the [row follow-up](greater-art/docs/LIBRARY_ROW_WORK_2026-10-21.md). Portrait-first fullscreen, concise diagnostics, cache-only artwork accents and release-only R8 are retained. High contrast/Monochrome remain fixed and OLED stays black. Latest verified APK remains 1.21.39; physical-device and minified-release acceptance are separate gates.
+ Windows Desktop is independently versioned at **0.1.16 / code17 — locally verified development delivery**, with interactive Nodes physics and middle-mouse/Space+drag pan.
+ The [installed/portable receipt](desktop/RELEASE_0.1.16.md) records exact hashes and remaining gates. It is an original
+ native C++ IDE-style workspace with offline EXE setup and desktop shortcuts.
+diff --git a/greater-art/HANDOFF.md b/greater-art/HANDOFF.md
+index 67b0787..84fc8d3 100644
+--- a/greater-art/HANDOFF.md
++++ b/greater-art/HANDOFF.md
+@@ -3,7 +3,7 @@
+ This file describes the **current repository state only**. Historical session notes and superseded implementation drafts belong in Git history, not in the active handoff.
+ 
+ **Project:** `greater-art/` in the repository checkout
+-**Current source:** `1.21.68 (code 291)` — SOURCE_ONLY; Claude audit remediation for sleep timer, scanning, Stack and fullscreen while retaining reviewed adaptive accents/release-only R8
++**Current source:** `1.21.69 (code 292)` — SOURCE_ONLY; performance and battery audit fixes on top of the 1.21.68 Claude audit remediation for sleep timer, scanning, Stack and fullscreen while retaining reviewed adaptive accents/release-only R8
+ **Current version:** `1.21.39 (code 262)`
+ **Latest APK:** `releases/GreaterArt-1.21.39.apk` (`26,877,593 bytes`; SHA-256 `e636fb7c1bfdbdf5500d48863a9f6c778aec47bb2090e433bb2e86037e468104`)
+ **Application ID:** `com.local.listentomusic`
+@@ -14,6 +14,10 @@ This file describes the **current repository state only**. Historical session no
+ 
+ ## Repository state
+ 
++### October 23 — 1.21.69 performance and battery audit fixes (unbuilt)
++
++See `docs/PERFORMANCE_AUDIT_FIXES_2026-10-23.md`. Source-only: no Gradle build, unit test, lint or device run has been performed on this change. Run the version guard, JVM tests, lint and the A/B checks listed in that document before treating it as verified.
++
+ ### October 21 — Combined 1.21.68 integration after CI test correction
+ 
+ - PR #195 introduced interactive Android Nodes neighbor springs (1.21.66/code289); its initial Android CI compiled successfully and ran 425 JVM tests with one failed assertion incorrectly expecting a compressed neighbor to move toward the dragged node. The test is corrected to assert the physically appropriate repulsion direction.
+diff --git a/greater-art/README.md b/greater-art/README.md
+index a22daa8..ce405a8 100644
+--- a/greater-art/README.md
++++ b/greater-art/README.md
+@@ -4,7 +4,7 @@ Greater Art is a native Kotlin/Jetpack Compose player for local music and video.
+ 
+ ## Current release
+ 
+-Current source: **1.21.68 / code291 — SOURCE_ONLY**. [Library row work reduction](docs/LIBRARY_ROW_WORK_2026-10-21.md) preserves closing animations and accessibility while omitting closed action layouts and reusing metadata/bitmap wrappers. Concise localized diagnostics retain the complete technical/copy report. Fullscreen remains portrait-first with explicit rotation, gesture-aware auto-hide, safe cutout controls and retained video ownership. Ambient control accents reuse cached current artwork or existing video samples; High contrast/Monochrome stay fixed and OLED stays black. Release-only R8 is under verification; debug remains unminified. Storage/Nodes behavior and the immutable verified APK are preserved. Adaptive Dynamic combines
++Current source: **1.21.69 / code292 — SOURCE_ONLY**. [Performance/battery audit fixes](docs/PERFORMANCE_AUDIT_FIXES_2026-10-23.md); previous release: [Library row work reduction](docs/LIBRARY_ROW_WORK_2026-10-21.md) preserves closing animations and accessibility while omitting closed action layouts and reusing metadata/bitmap wrappers. Concise localized diagnostics retain the complete technical/copy report. Fullscreen remains portrait-first with explicit rotation, gesture-aware auto-hide, safe cutout controls and retained video ownership. Ambient control accents reuse cached current artwork or existing video samples; High contrast/Monochrome stay fixed and OLED stays black. Release-only R8 is under verification; debug remains unminified. Storage/Nodes behavior and the immutable verified APK are preserved. Adaptive Dynamic combines
+ Classic/Aurora/Bloom/Flow; Classic remains available. See
+ [implementation/evidence](docs/ADAPTIVE_AMBIENT_2.md). Latest verified APK is 1.21.39.
+ 
+diff --git a/greater-art/VERSION_RULES.md b/greater-art/VERSION_RULES.md
+index f19c74b..b29311f 100644
+--- a/greater-art/VERSION_RULES.md
++++ b/greater-art/VERSION_RULES.md
+@@ -7,7 +7,7 @@ This file is the authoritative version policy for Greater Art. If any handoff no
+ ## Machine-checkable state
+ 
+ 
+-Current source: **1.21.68 (code 291)**
++Current source: **1.21.69 (code 292)**
+ Allowed consumed transition: **1.21.65 (code 288) -> 1.21.68 (code 291)**
+ 
+ Side branch PR #195 consumed 1.21.66/code289 for interactive Android Nodes
+@@ -409,3 +409,4 @@ Previous baseline: 1.13.26 (code 115).
+ - 1.21.66 (code 289): Android Nodes local spring response after deliberate node drag, with bounded two-hop interactions and off-main post-release settling; restore existing persisted force sliders to the Nodes controls. Graph build, playback, pager/swipe ownership, pinch and full-library memory limits preserved. No desktop or personal APK changes.
+ - 1.21.67 (code 290): reduce Library viewport allocations with distinct integer range snapshots, preserve viewport priorities with single-pass scheduler selection and repeated-viewport suppression, skip duplicate queue-stats emissions, remove graphics-layer wrapper from non-current Library rows and scope playback state to the active row. Preserve existing cancellation, thumbnail generation, RAM, disk, video/wallpaper and PR #192 optimizations.
+ - 1.21.68 (code 291): coordinate and verify the combined Android Nodes interactive physics plus Library viewport allocation improvements; correct the neighbor-direction assertion identified by PR #195's Android CI. Document 1.21.66/67 side branch consumed identity and explicitly authorize transition from main 1.21.65 to 1.21.68. Final integration remains SOURCE_ONLY pending exact SHA CI.
++- 1.21.69 (code 292): performance and battery audit fixes: move the 5 s resume-position save into its own DataStore so it no longer rewrites or re-decodes the main preferences or invalidates the global settings state; idle the ViewModel and Stack tickers while paused; sample video ambient colours only while a video surface is live; read waveform progress while drawing; memoize non-active lyric lines; build the ambient backdrop only where displayed; constant-time M3U content/clip lookups. Source-only, not built or device-tested; see docs/PERFORMANCE_AUDIT_FIXES_2026-10-23.md.
+diff --git a/greater-art/app/build.gradle.kts b/greater-art/app/build.gradle.kts
+index 230d39a..6944398 100644
+--- a/greater-art/app/build.gradle.kts
++++ b/greater-art/app/build.gradle.kts
+@@ -11,8 +11,8 @@ android {
+         applicationId = "com.local.listentomusic"
+         minSdk = 26
+         targetSdk = 37
+-        versionCode = 291
+-        versionName = "1.21.68"
++        versionCode = 292
++        versionName = "1.21.69"
+         buildConfigField("boolean", "STACK_PCM_PROTOTYPE", (providers.gradleProperty("stackPcmPrototype").orNull == "true").toString())
+ 
+         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+diff --git a/greater-art/app/src/main/java/com/local/listentomusic/MainViewModel.kt b/greater-art/app/src/main/java/com/local/listentomusic/MainViewModel.kt
+index cac91f9..ae8d81f 100644
+--- a/greater-art/app/src/main/java/com/local/listentomusic/MainViewModel.kt
++++ b/greater-art/app/src/main/java/com/local/listentomusic/MainViewModel.kt
+@@ -154,6 +154,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
+     val thumbnailStats = thumbnailRepository.stats
+     val waveformDiagnostics = waveformRepository.diagnostics
+     private var userPreferences = UserPreferences()
++    private var resumePositionMs = 0L
+     private var preferencesLoaded = false
+     private var scannedFiles: List<MediaFile> = emptyList()
+     private var orderedFiles: List<MediaFile> = emptyList()
+@@ -285,6 +286,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
+                 _controller.value?.let(::publishPlayback)
+             }
+         }
++        viewModelScope.launch { preferences.resumePosition.collect { resumePositionMs = it } }
+         viewModelScope.launch { preferences.playHistory.collect { _playHistory.value = it } }
+         viewModelScope.launch {
+             preferences.values.collect {
+@@ -467,7 +469,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
+         val queue = com.local.listentomusic.model.browsingQueue(file, orderedFiles, scannedFiles)
+         val index = queue.indexOfFirst { it.path == file.path }.coerceAtLeast(0)
+         val resumeAt = if (userPreferences.resumePlayback && file.path == userPreferences.lastPath) {
+-            userPreferences.lastPositionMs
++            resumePositionMs
+         } else 0L
+         startNormalQueue(player, queue, index, resumeAt)
+     }
+@@ -788,15 +790,18 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
+             val byPath = scannedFiles.filter { it.reference.source is com.local.listentomusic.model.MediaSource.LocalFile }
+                 .associateBy { File(it.path).canonicalPath }
+             val byName = scannedFiles.groupBy { it.name.lowercase(Locale.ROOT) }
++            // Constant-time lookups for content:// and cue-clip entries (first match wins, as before).
++            val byContentRef = HashMap<String, MediaFile>().also { map ->
++                scannedFiles.forEach { file -> map.putIfAbsent(file.id, file); map.putIfAbsent(file.sourcePath, file) }
++            }
++            val byClip = scannedFiles.groupBy { it.clipStartMs to it.clipEndMs }
+             val paths = com.local.listentomusic.model.parseM3u(raw).asSequence()
+                 .mapNotNull { entry ->
+                     val decoded = Uri.decode(entry.path.removePrefix("file://"))
+                     if (entry.path.startsWith("content://"))
+-                        return@mapNotNull scannedFiles.firstOrNull {
+-                            it.id == entry.path || it.sourcePath == entry.path
+-                        }?.id
++                        return@mapNotNull byContentRef[entry.path]?.id
+                     if (entry.start != null) {
+-                        val candidates = scannedFiles.filter { it.clipStartMs == entry.start && it.clipEndMs == entry.end }
++                        val candidates = entry.start?.let { clipStart -> byClip[clipStart to entry.end] }.orEmpty()
+                         return@mapNotNull (candidates.firstOrNull { it.sourcePath == decoded }
+                             ?: candidates.filter { File(it.sourcePath).name == File(decoded).name }.singleOrNull())?.path
+                     }
+@@ -1069,8 +1074,11 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
+             // Labels need only two updates per second. The old 4 Hz root-state churn
+             // made long library scrolling visibly hitch on mid-range phones.
+             while (true) {
+-                _controller.value?.let(::publishPlayback)
+-                delay(500L)
++                val player = _controller.value
++                player?.let(::publishPlayback)
++                // Player events publish state changes immediately; the timer only advances
++                // the position label, so idle (paused/stopped) polling can be much slower.
++                delay(if (player?.isPlaying == true) 500L else 2_000L)
+             }
+         }
+     }
+diff --git a/greater-art/app/src/main/java/com/local/listentomusic/data/AppPreferences.kt b/greater-art/app/src/main/java/com/local/listentomusic/data/AppPreferences.kt
+index 88cb901..7dac964 100644
+--- a/greater-art/app/src/main/java/com/local/listentomusic/data/AppPreferences.kt
++++ b/greater-art/app/src/main/java/com/local/listentomusic/data/AppPreferences.kt
+@@ -13,11 +13,16 @@ import androidx.datastore.preferences.preferencesDataStore
+ import androidx.media3.common.Player
+ import com.local.listentomusic.model.SortMode
+ import kotlinx.coroutines.flow.Flow
++import kotlinx.coroutines.flow.combine
++import kotlinx.coroutines.flow.distinctUntilChanged
+ import kotlinx.coroutines.flow.first
+ import kotlinx.coroutines.flow.map
+ import java.util.UUID
+ 
+ private val Context.dataStore by preferencesDataStore(name = "listen_to_music_preferences")
++// The 5 s resume-position save lives in its own tiny store so it never rewrites or
++// re-decodes the main preferences file (playlists, history, overrides, ...).
++private val Context.resumePositionStore by preferencesDataStore(name = "listen_to_music_resume_position")
+ 
+ const val FAVOURITES_PLAYLIST_ID = "__greater_art_favourites__"
+ 
+@@ -188,7 +193,6 @@ class AppPreferences(private val context: Context) {
+             }.getOrDefault(SortMode.NAME_ASC),
+             customOrder = decodeOrder(prefs[Keys.customOrder].orEmpty()),
+             lastPath = prefs[Keys.lastPath],
+-            lastPositionMs = prefs[Keys.lastPosition] ?: 0L,
+             playbackSpeed = prefs[Keys.speed] ?: 1f,
+             repeatMode = (prefs[Keys.repeatMode] ?: Player.REPEAT_MODE_ONE.toLong()).toInt(),
+             miniWindowSize = enumValueOrDefault(prefs[Keys.miniWindowSize], LibraryRowSize.SMALL),
+@@ -247,7 +251,17 @@ class AppPreferences(private val context: Context) {
+         )
+     }
+ 
+-    suspend fun current(): UserPreferences = values.first()
++    suspend fun current(): UserPreferences = values.first().copy(lastPositionMs = resumePositionMs())
++
++    /** Resume position; falls back to the legacy key in the main store until the first save. */
++    suspend fun resumePositionMs(): Long =
++        context.resumePositionStore.data.first()[Keys.lastPosition]
++            ?: context.dataStore.data.first()[Keys.lastPosition] ?: 0L
++
++    val resumePosition: Flow<Long> = combine(context.resumePositionStore.data, context.dataStore.data) { own, legacy ->
++        own[Keys.lastPosition] ?: legacy[Keys.lastPosition] ?: 0L
++    }.distinctUntilChanged()
++
+     val playHistory: Flow<List<PlayHistoryEntry>> = context.dataStore.data.map { prefs ->
+         decodePlayHistory(prefs[Keys.playHistory].orEmpty())
+     }
+@@ -313,12 +327,14 @@ class AppPreferences(private val context: Context) {
+     }
+ 
+     suspend fun savePlayback(path: String?, positionMs: Long, speed: Float, repeatMode: Int) {
++        // DataStore skips the disk write when nothing changed, so the main store is only
++        // rewritten when the track, speed or repeat mode actually changes.
+         context.dataStore.edit { prefs ->
+             if (path == null) prefs.remove(Keys.lastPath) else prefs[Keys.lastPath] = path
+-            prefs[Keys.lastPosition] = positionMs.coerceAtLeast(0L)
+             prefs[Keys.speed] = speed
+             prefs[Keys.repeatMode] = repeatMode.toLong()
+         }
++        context.resumePositionStore.edit { it[Keys.lastPosition] = positionMs.coerceAtLeast(0L) }
+     }
+ 
+     suspend fun setMiniWindowSize(value: LibraryRowSize) = edit { it[Keys.miniWindowSize] = value.name }
+diff --git a/greater-art/app/src/main/java/com/local/listentomusic/playback/StackPlayback.kt b/greater-art/app/src/main/java/com/local/listentomusic/playback/StackPlayback.kt
+index 380a063..576a2c9 100644
+--- a/greater-art/app/src/main/java/com/local/listentomusic/playback/StackPlayback.kt
++++ b/greater-art/app/src/main/java/com/local/listentomusic/playback/StackPlayback.kt
+@@ -107,6 +107,8 @@ internal const val STACK_INITIAL_SEEK_LEAD_MS = 150L
+ /** A parked voice starts once the master is this close to its parked position. */
+ internal const val STACK_ENTRY_LEAD_MS = 25L
+ internal const val STACK_SYNC_TICK_MS = 50L
++/** Poll interval while the session is paused and not waiting on the start gate. */
++internal const val STACK_IDLE_TICK_MS = 250L
+ internal const val STACK_BUFFER_GRACE_MS = 300L
+ internal const val STACK_CONTROLLED_SEEK_GRACE_MS = 1_000L
+ 
+diff --git a/greater-art/app/src/main/java/com/local/listentomusic/playback/StackPlaybackCoordinator.kt b/greater-art/app/src/main/java/com/local/listentomusic/playback/StackPlaybackCoordinator.kt
+index 0639a48..fa3b2c9 100644
+--- a/greater-art/app/src/main/java/com/local/listentomusic/playback/StackPlaybackCoordinator.kt
++++ b/greater-art/app/src/main/java/com/local/listentomusic/playback/StackPlaybackCoordinator.kt
+@@ -17,8 +17,10 @@ import com.local.listentomusic.model.MediaFile
+ import kotlinx.coroutines.CoroutineScope
+ import kotlinx.coroutines.Job
+ import kotlinx.coroutines.delay
++import kotlinx.coroutines.channels.Channel
+ import kotlinx.coroutines.isActive
+ import kotlinx.coroutines.launch
++import kotlinx.coroutines.withTimeoutOrNull
+ import java.io.File
+ 
+ private fun newStackAudioPlayer(context: Context): ExoPlayer =
+@@ -98,6 +100,8 @@ internal class StackPlaybackCoordinator(
+     private var previousShuffle = false
+     private var loopEnabled = false
+     private var ticker: Job? = null
++    /** Wakes an idle (paused) ticker immediately when play or a seek arrives. */
++    private val tickerWake = Channel<Unit>(Channel.CONFLATED)
+     private var internalMainChange = false
+     private var released = false
+     private var recoveringPrimaryVideo = false
+@@ -664,6 +668,7 @@ internal class StackPlaybackCoordinator(
+         if (anchorMs >= sessionDuration() && sessionDuration() > 0L) seek(0L)
+         if (playing) return
+         playing = true
++        tickerWake.trySend(Unit)
+         anchorTimeMs = SystemClock.elapsedRealtime()
+         val master = position()
+         val nowMs = SystemClock.elapsedRealtime()
+@@ -689,6 +694,7 @@ internal class StackPlaybackCoordinator(
+         if (!active) return
+         val plan = stackSeekPlan(targetMs, sessionDuration(), primaryEvent)
+         anchorMs = plan.positionMs
++        tickerWake.trySend(Unit)
+         anchorTimeMs = SystemClock.elapsedRealtime()
+         val nowMs = SystemClock.elapsedRealtime()
+         voices.toList().forEach { voice ->
+@@ -909,7 +915,10 @@ internal class StackPlaybackCoordinator(
+         ticker?.cancel()
+         ticker = scope.launch {
+             while (isActive && active) {
+-                delay(STACK_SYNC_TICK_MS)
++                // Fine 20 Hz sync only while playing or opening the start gate; a paused
++                // session idles at 4 Hz and wakes at once on play or seek.
++                if (playing || gated) delay(STACK_SYNC_TICK_MS)
++                else withTimeoutOrNull(STACK_IDLE_TICK_MS) { tickerWake.receive() }
+                 if (gated) {
+                     tryOpenStartGate()
+                 } else {
+diff --git a/greater-art/app/src/main/java/com/local/listentomusic/ui/NowPlayingScreen.kt b/greater-art/app/src/main/java/com/local/listentomusic/ui/NowPlayingScreen.kt
+index 83ea285..edff606 100644
+--- a/greater-art/app/src/main/java/com/local/listentomusic/ui/NowPlayingScreen.kt
++++ b/greater-art/app/src/main/java/com/local/listentomusic/ui/NowPlayingScreen.kt
+@@ -1759,14 +1759,22 @@ private fun SyncedLyricsPanel(
+             lyrics.lines,
+             key = { index, line -> "${line.timeMs}:$index" },
+         ) { index, line ->
+-            Text(
+-                text = androidx.compose.ui.text.buildAnnotatedString {
++            val isActiveLine = index == activeIndex
++            val wordPosition = if (isActiveLine) positionMs else 0L
++            val spokenColor = MaterialTheme.colorScheme.secondary
++            val pendingColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.60f)
++            // Only the active line depends on playback position; other lines reuse their text.
++            val lineText = remember(line, isActiveLine, wordPosition, spokenColor, pendingColor) {
++                androidx.compose.ui.text.buildAnnotatedString {
+                     if (line.words.isEmpty()) append(line.text) else line.words.forEach { word ->
+-                        pushStyle(androidx.compose.ui.text.SpanStyle(color = if (index == activeIndex && word.timeMs <= positionMs)
+-                            MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.60f)))
++                        pushStyle(androidx.compose.ui.text.SpanStyle(
++                            color = if (isActiveLine && word.timeMs <= wordPosition) spokenColor else pendingColor))
+                         append(word.text); pop()
+                     }
+-                },
++                }
++            }
++            Text(
++                text = lineText,
+                 modifier = Modifier.fillMaxWidth().clickable(enabled = isSynced) { onSeek(line.timeMs) }
+                     .padding(vertical = 5.dp),
+                 color = if (index == activeIndex) MaterialTheme.colorScheme.secondary
+@@ -1867,8 +1875,10 @@ private fun WaveformTimeline(
+     val playbackFraction = if (hasDuration) {
+         playback.positionMs.toDouble().div(playback.durationMs.toDouble()).toFloat().coerceIn(0f, 1f)
+     } else 0f
+-    val animatedProgress by animateFloatAsState(playbackFraction, androidx.compose.animation.core.tween(if (playback.isPlaying) 450 else 0), label = "wave-progress")
+-    val fraction = if (seeking) seekFraction else animatedProgress
++    // Keep the animated value as State and read it only while drawing the bars; the slider
++    // follows the 2 Hz position publish instead of recomposing on every display frame.
++    val animatedProgress = animateFloatAsState(playbackFraction, androidx.compose.animation.core.tween(if (playback.isPlaying) 450 else 0), label = "wave-progress")
++    val fraction = if (seeking) seekFraction else playbackFraction
+     val active = MaterialTheme.colorScheme.secondary
+     val inactive = MaterialTheme.colorScheme.outlineVariant
+     val thumbScale = animateFloatAsState(if (seeking) 1.22f else 1f, androidx.compose.animation.core.tween(130), label = "wave-thumb")
+@@ -1911,7 +1921,7 @@ private fun WaveformTimeline(
+                 )
+             },
+         track = {
+-            AnimatedWaveformBars(displayPeaks, fraction, active, inactive, playback.isPlaying, Modifier.fillMaxWidth().height(44.dp))
++            AnimatedWaveformBars(displayPeaks, { if (seeking) seekFraction else animatedProgress.value }, active, inactive, playback.isPlaying, Modifier.fillMaxWidth().height(44.dp))
+         },
+     )
+     PracticeMarkers(playback)
+diff --git a/greater-art/app/src/main/java/com/local/listentomusic/ui/PlaybackMotion.kt b/greater-art/app/src/main/java/com/local/listentomusic/ui/PlaybackMotion.kt
+index 97f6f9e..ec9de28 100644
+--- a/greater-art/app/src/main/java/com/local/listentomusic/ui/PlaybackMotion.kt
++++ b/greater-art/app/src/main/java/com/local/listentomusic/ui/PlaybackMotion.kt
+@@ -53,6 +53,16 @@ internal fun snapPracticePosition(position: Long, duration: Long, markers: List<
+ @Composable
+ internal fun AnimatedWaveformBars(peaks: FloatArray?, fraction: Float, active: Color, inactive: Color,
+     playing: Boolean, modifier: Modifier) {
++    AnimatedWaveformBars(peaks, { fraction }, active, inactive, playing, modifier)
++}
++
++/**
++ * [fractionProvider] is read while drawing, so a per-frame progress animation redraws the
++ * bars without recomposing the surrounding slider and labels on every display frame.
++ */
++@Composable
++internal fun AnimatedWaveformBars(peaks: FloatArray?, fractionProvider: () -> Float, active: Color,
++    inactive: Color, playing: Boolean, modifier: Modifier) {
+     val reveal = remember { Animatable(1f) }
+     LaunchedEffect(peaks) {
+         if (peaks != null && android.animation.ValueAnimator.areAnimatorsEnabled()) {
+@@ -60,6 +70,7 @@ internal fun AnimatedWaveformBars(peaks: FloatArray?, fraction: Float, active: C
+         } else reveal.snapTo(1f)
+     }
+     Canvas(modifier.graphicsLayer()) {
++        val fraction = fractionProvider()
+         val count = peaks?.size ?: 60
+         val spacing = size.width / count
+         repeat(count) { i ->
+diff --git a/greater-art/app/src/main/java/com/local/listentomusic/ui/components/AppBackground.kt b/greater-art/app/src/main/java/com/local/listentomusic/ui/components/AppBackground.kt
+index 1878614..0f8545c 100644
+--- a/greater-art/app/src/main/java/com/local/listentomusic/ui/components/AppBackground.kt
++++ b/greater-art/app/src/main/java/com/local/listentomusic/ui/components/AppBackground.kt
+@@ -220,8 +220,6 @@ fun AppBackground(
+             videoSurfaceActive && !listScrolling && (attachCustomVideoBackground || usePrimaryVideoBackground)
+ 
+     Box(modifier.fillMaxSize().graphicsLayer()) {
+-        val ambient = if (mode == AppBackgroundMode.ADAPTIVE_DYNAMIC) Modifier else Modifier.ambientBackdrop(null,
+-            androidx.compose.material3.MaterialTheme.colorScheme.background.luminance() > .5f, currentPath)
+         val videoFallback = mode == AppBackgroundMode.CUSTOM_VIDEO &&
+             (preferences.customBackgroundVideoUri == null || !attachCustomVideoBackground) ||
+             mode == AppBackgroundMode.CURRENT_VIDEO &&
+@@ -229,7 +227,7 @@ fun AppBackground(
+             !mirrorCurrentVideoBackground
+         val videoMode = mode == AppBackgroundMode.CUSTOM_VIDEO || mode == AppBackgroundMode.CURRENT_VIDEO
+         if (visible && (mode == AppBackgroundMode.DEFAULT || videoFallback || (videoMode && !liveVideoSurface))) {
+-            if (mode == AppBackgroundMode.CURRENT_VIDEO) Box(Modifier.fillMaxSize().then(ambient))
++            if (mode == AppBackgroundMode.CURRENT_VIDEO) AmbientBackdropBox(currentPath)
+             else DefaultMetalBackground()
+         } else if (visible) {
+             Box(Modifier.fillMaxSize().background(androidx.compose.material3.MaterialTheme.colorScheme.background))
+@@ -237,7 +235,7 @@ fun AppBackground(
+         when (mode) {
+             AppBackgroundMode.ADAPTIVE_DYNAMIC -> if (visible) Box(Modifier.fillMaxSize()
+                 .adaptiveAmbientBackdrop(ambientArtwork, currentPath, preferences, visible, listScrolling))
+-            AppBackgroundMode.AMBIENT -> if (visible) Box(Modifier.fillMaxSize().then(ambient))
++            AppBackgroundMode.AMBIENT -> if (visible) AmbientBackdropBox(currentPath)
+             AppBackgroundMode.DEFAULT -> Unit
+             AppBackgroundMode.CUSTOM_IMAGE -> preferences.customBackgroundImageUri
+                 ?.let(Uri::parse)
+@@ -286,6 +284,17 @@ fun AppBackground(
+     }
+ }
+ 
++/**
++ * Composed only where it is displayed: the ambient modifier collects video colour samples,
++ * runs a colour histogram and keeps three colour animations alive, which is wasted work
++ * whenever a live video surface (or another background mode) covers it.
++ */
++@Composable
++private fun AmbientBackdropBox(currentPath: String?) {
++    val light = androidx.compose.material3.MaterialTheme.colorScheme.background.luminance() > .5f
++    Box(Modifier.fillMaxSize().ambientBackdrop(null, light, currentPath))
++}
++
+ @Composable
+ private fun DefaultMetalBackground() {
+     val palette = androidx.compose.material3.MaterialTheme.colorScheme
+diff --git a/greater-art/app/src/main/java/com/local/listentomusic/ui/components/VideoAmbientColors.kt b/greater-art/app/src/main/java/com/local/listentomusic/ui/components/VideoAmbientColors.kt
+index 777726d..d8175e9 100644
+--- a/greater-art/app/src/main/java/com/local/listentomusic/ui/components/VideoAmbientColors.kt
++++ b/greater-art/app/src/main/java/com/local/listentomusic/ui/components/VideoAmbientColors.kt
+@@ -36,7 +36,8 @@ object VideoAmbientColors {
+                     if (pixels != null && sourceAfterCopy?.first == id && sourceAfterCopy.second === view)
+                         mutable.value = VideoAmbientSample(id, pixels.toList())
+                 }
+-                delay(900L)
++                // No playing video surface: nothing to sample, so poll slowly.
++                delay(if (candidate != null) 900L else 2_000L)
+             }
+         }
+     }
+diff --git a/greater-art/docs/PERFORMANCE_AUDIT_FIXES_2026-10-23.md b/greater-art/docs/PERFORMANCE_AUDIT_FIXES_2026-10-23.md
+new file mode 100644
+index 0000000..be6dd21
+--- /dev/null
++++ b/greater-art/docs/PERFORMANCE_AUDIT_FIXES_2026-10-23.md
+@@ -0,0 +1,30 @@
++# Performance and battery audit fixes — 1.21.69 (code 292)
++
++Status: **source-only. Not compiled, not unit-tested, not device-tested.** The authoring environment had no Android SDK and no Gradle dependency access; each edited Kotlin file was only syntax-parsed. Expect to fix any compile error on first build.
++
++## Changes
++
++| Area | Change | Why |
++| --- | --- | --- |
++| `AppPreferences` | `lastPositionMs` moved to a second tiny DataStore (`listen_to_music_resume_position`). `values` no longer carries it; `current()` merges it; `resumePosition` flow and `resumePositionMs()` fall back to the legacy key until the first save. | The 5 s save used to rewrite the whole preferences file, re-decode every JSON blob and publish a new `UserPreferences` (root/`settings` recomposition) while playing. |
++| `MainViewModel` | Holds `resumePositionMs` from `preferences.resumePosition`; `playNow` uses it. Position ticker polls at 2 s while not playing (500 ms while playing). | Player events already publish state changes immediately. |
++| `StackPlaybackCoordinator` | Ticker runs at 50 ms only while playing or gated; otherwise idles at 250 ms (`STACK_IDLE_TICK_MS`) and is woken at once by `play()` and seeks through a conflated channel. | Paused sessions no longer wake at 20 Hz. |
++| `VideoAmbientColors` | Polls every 2 s (not 900 ms) when no video surface is a candidate. | Process-lifetime loop. |
++| `PlaybackMotion` / `NowPlayingScreen` | `AnimatedWaveformBars` gains a `() -> Float` overload read in the draw phase; the animated progress is held as `State`, so the slider and labels no longer recompose every frame. The slider thumb now follows the 2 Hz position publish. | Per-frame recomposition on Now Playing. |
++| `NowPlayingScreen` lyrics | Per-line `AnnotatedString` is `remember`ed; only the active line depends on position. | Rebuilt for every visible line at each tick. |
++| `AppBackground` | `ambientBackdrop` is composed only inside `AmbientBackdropBox`, where it is shown. | It was built (colour sampling, histogram, three colour animations) even when a live video covered it. |
++| `MainViewModel.importM3u` | `HashMap` lookups for `content://` and cue-clip entries (same first-match semantics). | Per-entry linear scans. |
++
++## Deliberately not changed
++
++- Thumbnail scroll gating (`ThumbnailRequestScheduler.setPaused`, `ThumbnailRepository.checkpoint`): pausing all thumbnail work during scroll is intentional from the Library work in 1.21.67/68. Allowing disk reads during a fling is a trade-off that needs a device trace first.
++- Already fixed upstream in 1.21.67/68: scheduler single-pass pump, viewport range snapshots, per-row graphics layer, `isPlaying` plumbing.
++- `TextureView` video surfaces, `inspectElement` as a `Modifier.Node`, Nodes draw allocations, baseline profile / macrobenchmark, swallowed-exception counters: need device measurements or SDK tooling.
++
++## Verify before release
++
++1. `python3 scripts/validate-greater-art-version.py`, JVM tests, lint, `assembleRelease`.
++2. Upgrade install: resume position survives (legacy key fallback), then pause/kill/resume.
++3. Stack: pause, resume, seek while paused; start-gate latency unchanged.
++4. Now Playing: waveform progress smooth, slider thumb acceptable on short tracks.
++5. A/B battery and gfxinfo/Perfetto runs against 1.21.68 (screen off paused, screen off playing, Stack paused).
+-- 
+2.43.0

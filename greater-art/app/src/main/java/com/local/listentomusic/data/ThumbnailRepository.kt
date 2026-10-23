@@ -287,7 +287,7 @@ class ThumbnailRepository(private val context: Context) {
     ): Bitmap? = withContext(Dispatchers.IO) {
         checkpoint(allowDiskWhileScrolling = diskOnly)
         val epoch = generation.get()
-        if (pruned.compareAndSet(false, true)) pruneScope.launch { pruneDiskCache() }
+        if (!ListScrollBudget.scrolling.value && pruned.compareAndSet(false, true)) pruneScope.launch { pruneDiskCache() }
         val key = cacheKey(file)
         memoryCache.get(key)?.let {
             rememberBitmap(id, key, it)
