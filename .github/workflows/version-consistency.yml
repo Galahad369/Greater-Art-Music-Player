@@ -25,6 +25,9 @@ jobs:
       - name: Validate current source/release state
         run: python3 scripts/validate-greater-art-version.py
 
+      - name: Verify guarded sync safety in disposable repositories
+        run: python3 -m unittest discover -s scripts -p test_safe_sync.py -v
+
       - name: Validate independent desktop identity
         shell: bash
         run: |
