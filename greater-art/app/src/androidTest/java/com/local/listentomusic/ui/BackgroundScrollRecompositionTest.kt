@@ -3,6 +3,10 @@ package com.local.listentomusic.ui
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.State
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
+import com.local.listentomusic.PlaybackUiState
+import kotlinx.coroutines.flow.StateFlow
 import androidx.compose.material3.Text
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.test.junit4.v2.createComposeRule
@@ -50,5 +54,31 @@ class BackgroundScrollRecompositionTest {
 
     @Composable private fun ScrollProbe(state: State<Boolean>) {
         Text(if (state.value) "scrolling" else "idle")
+    }
+
+    @Test fun clockUpdatesReachTheLeafWithoutRecomposingTheShell() {
+        val initial = PlaybackUiState(currentPath = "one.mp4", isPlaying = true)
+        val playback = MutableStateFlow(initial)
+        val commits = AtomicInteger()
+        compose.setContent {
+            val projected = remember { playback.libraryShellPlayback() }
+            val shell by projected.collectAsStateWithLifecycle(initialValue = initial)
+            SideEffect { commits.incrementAndGet() }
+            Text(if (shell.isPlaying) "playing" else "paused")
+            ClockProbe(playback)
+        }
+        compose.waitForIdle()
+        val baseline = commits.get()
+        compose.runOnIdle { playback.value = playback.value.copy(positionMs = 500L) }
+        compose.onNodeWithText("position=500").assertExists()
+        compose.runOnIdle { assertEquals(baseline, commits.get()) }
+        compose.runOnIdle { playback.value = playback.value.copy(isPlaying = false) }
+        compose.onNodeWithText("paused").assertExists()
+        compose.runOnIdle { assertTrue(commits.get() > baseline) }
+    }
+
+    @Composable private fun ClockProbe(source: StateFlow<PlaybackUiState>) {
+        val state by source.collectAsStateWithLifecycle()
+        Text("position=${state.positionMs}")
     }
 }

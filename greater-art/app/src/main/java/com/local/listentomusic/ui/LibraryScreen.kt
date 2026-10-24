@@ -1,6 +1,7 @@
 package com.local.listentomusic.ui
 
 import android.graphics.Bitmap
+import kotlinx.coroutines.flow.onEach
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -162,6 +163,7 @@ fun LibraryScreen(
     showTopBar: Boolean = true,
     isPlaying: Boolean = false,
     onThumbnailViewport: (String, List<MediaFile>, List<MediaFile>, Boolean) -> Unit = { _, _, _, _ -> },
+    onPeekThumbnail: (MediaFile) -> Bitmap? = { null },
 ) {
     val language = preferences.appLanguage
     val thumbnailBrush = rememberThumbnailBrush()
@@ -417,9 +419,11 @@ fun LibraryScreen(
                                     visible.firstOrNull()?.index ?: 0,
                                     visible.lastOrNull()?.index ?: -1,
                                 )
-                            }.collect { (scrolling, first, last) ->
+                            }.onEach { (scrolling, _, _) ->
+                                // Budget edges must never wait for viewport pacing.
                                 ListScrollBudget.set("library", scrolling)
                                 if (scrolling) openRowActionsPath = null
+                            }.pacedThumbnailViewports().collect { (scrolling, first, last) ->
                                 val next = if (first >= previousFirst) listOf(last + 1, last + 2)
                                     else listOf(first - 1, first - 2)
                                 previousFirst = first
@@ -459,6 +463,7 @@ fun LibraryScreen(
                                 dragEnabled = !favouritesActive && selected.isEmpty() && activePlaylist?.rule == null && state.query.isBlank() && (activePlaylist != null || state.sortMode == SortMode.CUSTOM),
                                 onMove = onMoveItem,
                                 onLoadThumbnail = onLoadThumbnail,
+                                onPeekThumbnail = onPeekThumbnail,
                                 thumbnailBrush = thumbnailBrush,
                                 rowSize = preferences.libraryRowSize,
                                 miniSize = preferences.miniWindowSize,
@@ -714,20 +719,18 @@ internal fun MediaFileRow(
     onAddToList: () -> Unit,
     onDelete: () -> Unit,
     moreDescription: String,
+    onPeekThumbnail: (MediaFile) -> Bitmap? = { null },
 ) {
     var accumulatedDrag by remember(index, file.path) { mutableFloatStateOf(0f) }
-    var thumbnail by remember(file.path, file.sizeBytes, file.modifiedMs, file.coverUri, showThumbnails) {
-        mutableStateOf<Bitmap?>(null)
+    var thumbnail by remember(file.path, file.sourcePath, file.sizeBytes, file.modifiedMs, file.coverUri, showThumbnails) {
+        mutableStateOf(if (showThumbnails) onPeekThumbnail(file) else null)
     }
-    LaunchedEffect(file.path, file.sizeBytes, file.modifiedMs, file.coverUri, showThumbnails) {
-        if (!showThumbnails) {
-            thumbnail = null
-            return@LaunchedEffect
+    if (showThumbnails && thumbnail == null) {
+        LaunchedEffect(file.path, file.sourcePath, file.sizeBytes, file.modifiedMs, file.coverUri) {
+            // Only misses enter the suspend pipeline; the repository retains its
+            // existing disk/generation/scroll policy and cancellation ownership.
+            thumbnail = onLoadThumbnail(file)
         }
-        if (thumbnail != null) return@LaunchedEffect
-        // RAM hits remain immediate during a fling; the shared repository owns all
-        // disk/decode scheduling and cancels obsolete work when this effect leaves.
-        thumbnail = onLoadThumbnail(file)
     }
     val pressSource = remember { MutableInteractionSource() }
     val pressed by pressSource.collectIsPressedAsState()
