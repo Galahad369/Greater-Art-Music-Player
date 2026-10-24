@@ -6,12 +6,12 @@ Greater Art is a local-first Android audio and video player. This repository con
 
 > **Vibe-coded disclosure:** Greater Art was built through iterative work with AI coding agents. Human direction, product decisions, device feedback, and acceptance guide the work; substantial code and documentation are AI-assisted.
 
-- Latest build/signature/emulator-smoke-verified sideload APK: **1.21.76 (code 299)** — see the [verification boundary](greater-art/HANDOFF.md); full fullscreen regression, physical-phone and production-signing acceptance remain pending.
-- APK: [GreaterArt-1.21.76.apk](greater-art/releases/GreaterArt-1.21.76.apk)
+- Branch build/signature/emulator-functionally-verified APK: **1.21.77 (code 300)** — performance acceptance and main integration pending; see the [verification boundary](greater-art/HANDOFF.md).
+- APK: [GreaterArt-1.21.77.apk](greater-art/releases/GreaterArt-1.21.77.apk)
 - [App documentation](greater-art/README.md) · [Handoff and verification](greater-art/HANDOFF.md)
 - [User demonstration](greater-art-user-demo.html) · [Technical demonstration](greater-art-technical-demo.html)
 
-Current Android source and matching personal sideload: **1.21.76 / code 299** (independent safe-sync workflow; Android runtime unchanged beyond version metadata). Background-scoped scroll reads, developer-only batched RAM diagnostics and existing playback quality are preserved; the full rotation regression remains unresolved as recorded in HANDOFF.
+Current branch source and matching sideload: **1.21.77 / code 300**. RAM-seeded Library rows, cached request identities, paced viewport callbacks and position-free shell state passed functional tests; [physical trace/profile acceptance](docs/LIBRARY_AUDIT_2026-10-24.md) is unfinished. No measured speedup claimed. The full rotation regression remains unresolved as recorded in HANDOFF; main integration is pending.
 Windows Desktop is independently versioned at **0.1.16 / code17 — locally verified development delivery**, with interactive Nodes physics and middle-mouse/Space+drag pan.
 The [installed/portable receipt](desktop/RELEASE_0.1.16.md) records exact hashes and remaining gates. It is an original
 native C++ IDE-style workspace with offline EXE setup and desktop shortcuts.
