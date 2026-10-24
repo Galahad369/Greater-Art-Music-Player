@@ -1,12 +1,14 @@
 package com.local.listentomusic.model
 
 import android.net.Uri
+import androidx.compose.runtime.Immutable
 import androidx.media3.common.MediaItem
 import androidx.media3.common.MediaMetadata
 import java.io.File
 
 enum class MediaKind { AUDIO, VIDEO }
 
+@Immutable
 data class MediaFile(
     val path: String,
     val name: String,
@@ -24,6 +26,10 @@ data class MediaFile(
     /** Original path relative to the discovered root, not an opaque provider document ID. */
     val relativePath: String? = null,
 ) {
+    /** Shared by row RAM probes and the scheduler; copy() creates a fresh identity. */
+    internal val thumbnailRequestId: String by lazy(LazyThreadSafetyMode.PUBLICATION) {
+        "$sourcePath|$sizeBytes|$modifiedMs|$coverUri"
+    }
     val id: String get() = path
     val reference: MediaReference
         get() = MediaReference(id, requireNotNull(MediaSource.parse(sourcePath)) {

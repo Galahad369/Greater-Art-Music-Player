@@ -3,16 +3,24 @@
 This file describes the **current repository state only**. Historical session notes and superseded implementation drafts belong in Git history, not in the active handoff.
 
 **Project:** `greater-art/` in the repository checkout
-**Current source:** `1.21.76 (code 299)` — VERIFIED personal debug sideload; guarded independent sync workflow, no Android runtime changes beyond version metadata
-**Current version:** `1.21.76 (code 299)`
-**Latest APK:** `releases/GreaterArt-1.21.76.apk` (`27,008,689 bytes`; SHA-256 `993c54a7af0ccdeca5de4b201090b685598b5625526844cf3d582d3229c3782e`)
+**Current source:** `1.21.77 (code 300)` — VERIFIED branch sideload for functional checks; physical performance acceptance pending, not merged to main
+**Current version:** `1.21.77 (code 300)`
+**Latest APK:** `releases/GreaterArt-1.21.77.apk` (`28,080,589 bytes`; SHA-256 `ed9bd0d16df22670004300cc878bc1c148969c8105b70ee68bd62b0f9b0b7ded`)
 **Application ID:** `com.local.listentomusic`
 **Signing certificate SHA-256:** `9e28eb45b3b171c3ea47d7da942d28d88b16538885e392a6971a80906d612fbf`
-**Build date:** `2026-10-23`
+**Build date:** `2026-10-24`
 **Test device:** `GreaterArt_Scroll_QA36 (API36 emulator, Android 16)`
-**Verification boundary:** Exact build source `acc09fc`; 437 JVM tests, zero lint errors (46 warnings, 4 hints), nine offline Git safety tests; package/version, pinned certificate, ZIP CRC and 16KiB ZIP alignment checked. The API36 emulator accepted the 1.21.75→1.21.76 update and launched MainActivity; its declared test permissions were granted after Android's permission prompt. No app fatal in the inspected crash buffer. No Android runtime-source diff from 1.21.75 beyond version metadata. The twelve focused emulator cases passed on 1.21.75, not rerun or counted as new 1.21.76 cases. Its full fullscreen regression remains unresolved (playback-start timeout; isolated rerun ActivityScenario.close null-state failure despite actual portrait/landscape captures). On October24 finalization, no emulator was connected; signature/hash/version were rechecked against the unchanged built bytes. VERIFIED means bounded build/signature/emulator-smoke verification, not full fullscreen/physical-device/performance/security acceptance or universal bug-free proof. Historical releases remain immutable and are only hidden locally.
+**Verification boundary:** Exact source `36a3ca9`; 440 JVM tests passed, lint 0 errors/46 warnings/4 hints, debug app/test assembly passed. Owned API36 emulator installed the candidate and passed 12 focused cases in 27.769s: RAM seeding/disabled thumbnails, clock/scroll restart-boundary harnesses, prior row semantics and real cache pipeline regressions. Pinned signing certificate, manifest/package/version, ZIP CRC, 16KiB ZIP alignment and hash checked after the source commit. These are functional checks, not physical before/after Perfetto traces, full production-root skip counts or measured performance gains. No generated app-specific baseline profile added. Prior full fullscreen regression remains unresolved and was not rerun or claimed fixed. VERIFIED is a bounded branch-sideload receipt, not main integration, production signing, physical-device performance/security acceptance or universal bug-free proof.
 
 ## Repository state
+
+### October24 — Library audit follow-up (1.21.77/code300)
+
+- Peek only the TTL-valid RAM alias/LRU synchronously; no disk, decoding, scheduler entry or diagnostics emission. Seed row state before its miss-loading effect. Disabled thumbnails never probe. Include sourcePath in row effect/remember invalidation so URI-backed replacements do not retain stale artwork.
+- Memoize the existing four-field request identity on immutable MediaFile instances, preserving key semantics and rebuilding on copy(). Coalesce motion viewport callbacks with a 50ms trailing bound; immediate scroll-budget/action-close events stay upstream of pacing. Preserve final idle delivery, cleanup, generation pause/cancellation, disk-during-fling and two-adjacent idle prefetch.
+- Shell playback projection omits only positionMs. Control/media changes still propagate; Settings uses speed/repeat/shuffle, and Developer diagnostics collect the real clock inside their leaf. No Now Playing/Stack clock downgrade.
+- Audit correction: ProfileInstaller is already transitive (current APK metadata confirms it), and the existing local release output contains baseline.prof/profm. No app-specific profile or physical capture was found. Do not claim zero AOT, add a duplicate dependency or invent blanket profile rules. Capture a real Library/pager journey before committing an app-owned generated profile; current release-output identity must be checked before attributing it to a version.
+- No physical phone is connected. Before/after release Perfetto traces and jank attribution cannot be supplied yet. No inferred frame-time improvement, placeholder-frame guarantee, R8 speedup or GPU-cause claim. Preserve inspector and #192 row styling/reveal; no playback quality or surface changes. Functional verification: 440 JVM tests passed; lint 0 errors/46 warnings/4 hints; debug app/test assembly passed; twelve focused API36 cases passed in 27.769s. Test setup fixes were made before commit: subscribe before the SharedFlow burst; remember the shell initial snapshot to satisfy StateFlow lint. See ../docs/LIBRARY_AUDIT_2026-10-24.md for actual evidence, the old 1.21.71 profile-output identity, and unfulfilled trace/profile acceptance. Do not call this measured optimization complete or merge solely on emulator timing.
 
 ### October 23 — Independent safe sync and latest-only local release view (1.21.76/code299)
 

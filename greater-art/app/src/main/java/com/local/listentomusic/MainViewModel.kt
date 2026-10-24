@@ -485,6 +485,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         player.prepare()
     }
 
+    fun peekThumbnail(file: MediaFile): Bitmap? = thumbnailRepository.peekMemory(file)
     suspend fun loadThumbnail(file: MediaFile): Bitmap? = thumbnailRepository.load(file)
 
     fun thumbnailViewport(holder: String, visible: List<MediaFile>, adjacent: List<MediaFile>, scrolling: Boolean) =
