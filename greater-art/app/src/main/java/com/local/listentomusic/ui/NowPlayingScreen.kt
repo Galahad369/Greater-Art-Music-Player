@@ -1083,6 +1083,8 @@ private fun VideoPlayerStage(
                                         onClose = onClose,
                                         overlay = true,
                                         fullscreen = true,
+                                        speed = playback.speed,
+                                        onSpeed = onSpeed,
                                         onRotate = onRotate,
                                         landscape = landscape,
                                         onLock = onToggleControlsLock,
@@ -2401,6 +2403,8 @@ internal fun NowPlayingTopBar(
     modifier: Modifier = Modifier,
     overlay: Boolean = false,
     fullscreen: Boolean = false,
+    speed: Float = 1f,
+    onSpeed: ((Float) -> Unit)? = null,
     onLock: (() -> Unit)? = null,
     locked: Boolean = false,
     frameMode: FullscreenFrameMode? = null,
@@ -2429,8 +2433,9 @@ internal fun NowPlayingTopBar(
         val slots = toolbarAvailableSlots(constraints.maxWidth,
             with(density) { GaControl.touchTarget.roundToPx() }, insetPx * 2)
         val canToggleFrame = frameMode != null && onToggleFrameMode != null
-        val actions = toolbarActionVisibility(32f + slots * 48f, onRotate != null, canToggleFrame)
-        val essentialSlots = (if (onRotate != null) 4 else 3) + if (canToggleFrame) 1 else 0
+        val hasSpeed = fullscreen && onSpeed != null
+        val actions = toolbarActionVisibility(32f + (slots - if (hasSpeed) 1 else 0) * 48f, onRotate != null, canToggleFrame)
+        val essentialSlots = (if (onRotate != null) 4 else 3) + (if (canToggleFrame) 1 else 0) + (if (hasSpeed) 1 else 0)
         val compact = slots < essentialSlots
         val oneColumn = slots < 2
         val chrome = Modifier.fillMaxWidth()
@@ -2445,6 +2450,24 @@ internal fun NowPlayingTopBar(
             )
             .padding(horizontal = innerPadding)
 
+        val speedButton: @Composable () -> Unit = {
+            if (hasSpeed) {
+                var menuOpen by remember { mutableStateOf(false) }
+                Box {
+                    IconButton(onClick = { menuOpen = true }, modifier = Modifier.size(GaControl.touchTarget)
+                        .inspectElement("FULLSCREEN_SPEED_BUTTON", speedLabel(speed))) {
+                        Text(speedLabel(speed), color = foregroundColor,
+                            style = MaterialTheme.typography.labelLarge, maxLines = 1)
+                    }
+                    DropdownMenu(menuOpen, { menuOpen = false }) {
+                        playbackSpeeds.forEach { choice ->
+                            DropdownMenuItem(text = { Text(if (choice == speed) "✓  ${speedLabel(choice)}" else speedLabel(choice)) },
+                                onClick = { menuOpen = false; onSpeed(choice) })
+                        }
+                    }
+                }
+            }
+        }
         val rotateButton: @Composable () -> Unit = {
             if (onRotate != null) PlayerToolbarAction(
                 onClick = onRotate,
@@ -2516,6 +2539,7 @@ internal fun NowPlayingTopBar(
         }
         if (compact) {
             Column(chrome, horizontalAlignment = Alignment.CenterHorizontally) {
+                if (hasSpeed) Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Start) { speedButton() }
                 if (oneColumn) {
                     rotateButton()
                     lockSlot()
@@ -2542,6 +2566,7 @@ internal fun NowPlayingTopBar(
             }
         } else {
             Row(chrome.height(52.dp), verticalAlignment = Alignment.CenterVertically) {
+                speedButton()
                 if (actions.floatingLauncher) PlayerToolbarAction(
                     onClick = onPictureInPicture,
                     glyph = Icons.Rounded.PictureInPictureAlt,
