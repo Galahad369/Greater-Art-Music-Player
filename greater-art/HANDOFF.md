@@ -3,14 +3,14 @@
 This file describes the **current repository state only**. Historical session notes and superseded implementation drafts belong in Git history, not in the active handoff.
 
 **Project:** `greater-art/` in the repository checkout
-**Current source:** `1.21.78 (code 301)` — SOURCE_ONLY; fullscreen speed-control restoration under verification
-**Current version:** `1.21.77 (code 300)`
-**Latest APK:** `releases/GreaterArt-1.21.77.apk` (`28,080,589 bytes`; SHA-256 `ed9bd0d16df22670004300cc878bc1c148969c8105b70ee68bd62b0f9b0b7ded`)
+**Current source:** `1.21.78 (code 301)` — VERIFIED local branch sideload; not merged to main
+**Current version:** `1.21.78 (code 301)`
+**Latest APK:** `releases/GreaterArt-1.21.78.apk` (`28,085,150 bytes`; SHA-256 `e3bbb103108a5d607c2f33f340d56f282694ac0bec298007e96d8268dface740`)
 **Application ID:** `com.local.listentomusic`
 **Signing certificate SHA-256:** `9e28eb45b3b171c3ea47d7da942d28d88b16538885e392a6971a80906d612fbf`
-**Build date:** `2026-10-24`
+**Build date:** `2026-10-25`
 **Test device:** `GreaterArt_Scroll_QA36 (API36 emulator, Android 16)`
-**Verification boundary:** Exact source `36a3ca9`; 440 JVM tests passed, lint 0 errors/46 warnings/4 hints, debug app/test assembly passed. Owned API36 emulator installed the candidate and passed 12 focused cases in 27.769s: RAM seeding/disabled thumbnails, clock/scroll restart-boundary harnesses, prior row semantics and real cache pipeline regressions. Pinned signing certificate, manifest/package/version, ZIP CRC, 16KiB ZIP alignment and hash checked after the source commit. These are functional checks, not physical before/after Perfetto traces, full production-root skip counts or measured performance gains. No generated app-specific baseline profile added. Prior full fullscreen regression remains unresolved and was not rerun or claimed fixed. VERIFIED is a bounded branch-sideload receipt, not main integration, production signing, physical-device performance/security acceptance or universal bug-free proof.
+**Verification boundary:** Exact source `e52f6e0`; 440 JVM tests passed, lint 0 errors/46 warnings/4 hints, debug app/test assembly passed after commit. API36 emulator upgrade installed successfully; FullscreenToolbarTest passed 4/4 cases in 28.333s, covering visible left-side speed, menu selection/callback, narrow and ultra-narrow essential actions. Certificate unchanged; package/version, ZIP CRC, 16KiB alignment and SHA-256 checked. Component functional verification is not full fullscreen rotation, physical-device visual/acoustic/performance acceptance, production signing or universal bug-free proof. Existing Library physical trace/profile acceptance and the prior full rotation failure remain unresolved.
 
 ## Repository state
 
@@ -18,7 +18,7 @@ This file describes the **current repository state only**. Historical session no
 
 - Cause: immersive NowPlayingTopBar never received the playback speed or its change callback, so the toolbar could not display a selector. Wire the existing session command directly; show the current speed on the left and reuse playbackSpeeds without restarting media.
 - Reserve one 48dp slot before optional toolbar actions; narrow layouts retain a left-aligned speed row rather than clipping essential actions. Normal player controls remain unchanged.
-- Added component regressions for left-side placement, opening/selecting a speed and narrow-layout access. Verification pending; the previous APK/evidence below remains 1.21.77, not a receipt for this source.
+- Added component regressions for left-side placement, opening/selecting a speed and narrow-layout access. All four toolbar cases passed on the existing API36 emulator; no new emulator/worktree created. Exact-source debug build, unit/lint and artifact verification recorded above. Not pushed or merged as part of this local fix.
 
 ### October24 — Library audit follow-up (1.21.77/code300)
 
