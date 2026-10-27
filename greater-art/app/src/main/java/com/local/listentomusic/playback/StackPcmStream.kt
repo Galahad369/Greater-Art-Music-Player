@@ -19,6 +19,25 @@ internal data class NativePcmBlock(val start: Long, val samples: FloatArray, val
     val end: Long get() = start + samples.size / channels
 }
 
+/** App-UID MediaExtractor can report native 24/32-bit WAV as already truncated PCM16. */
+internal fun pcmPrecisionAdmissible(mime: String, sourceBits: Int?, outputEncoding: Int): Boolean =
+    outputEncoding == AudioFormat.ENCODING_PCM_FLOAT && (sourceBits == null || sourceBits in 1..32) ||
+        outputEncoding == AudioFormat.ENCODING_PCM_16BIT && when (mime) {
+            "audio/raw" -> sourceBits != null && sourceBits in 1..16
+            "audio/mp4a-latm", "audio/mpeg" -> true
+            else -> false
+        }
+
+private fun MediaFormat.sourceBits(): Int? =
+    if (containsKey("bits-per-sample")) getInteger("bits-per-sample").takeIf { it > 0 } else null
+
+private fun requirePcmPrecision(mime: String, source: MediaFormat, outputEncoding: Int) {
+    val sourceBits = source.sourceBits()
+    require(pcmPrecisionAdmissible(mime, sourceBits, outputEncoding)) {
+        "Unsupported PCM precision: native bits=$sourceBits, output=$outputEncoding; legacy output retained"
+    }
+}
+
 internal fun pcmSpec(file: MediaFile, context: android.content.Context? = null): PcmSpec {
     val source = File(file.sourcePath)
     require(if (context != null) com.local.listentomusic.data.mediaReadable(context, file)
@@ -30,6 +49,11 @@ internal fun pcmSpec(file: MediaFile, context: android.content.Context? = null):
             extractor.getTrackFormat(it).getString(MediaFormat.KEY_MIME)?.startsWith("audio/") == true
         } ?: error("No audio track")
         val format = extractor.getTrackFormat(index)
+        if (format.getString(MediaFormat.KEY_MIME) == "audio/raw") {
+            val encoding = if (format.containsKey(MediaFormat.KEY_PCM_ENCODING))
+                format.getInteger(MediaFormat.KEY_PCM_ENCODING) else AudioFormat.ENCODING_PCM_16BIT
+            requirePcmPrecision("audio/raw", format, encoding)
+        }
         val rate = format.getInteger(MediaFormat.KEY_SAMPLE_RATE)
         val channels = format.getInteger(MediaFormat.KEY_CHANNEL_COUNT)
         require(rate in 8000..192000 && channels in 1..2) { "Prototype requires mono/stereo native PCM" }
@@ -58,17 +82,13 @@ internal class StackPcmStream(scope: CoroutineScope, private val file: MediaFile
             // PCM16 when it ignores a float request, then convert losslessly to
             // mixer float. Never request a lower precision, cap source rate, or
             // accept PCM16 as a substitute for high-bit-depth lossless material.
-            val nativeLossy16 = mime == "audio/mp4a-latm" || mime == "audio/mpeg"
             var encoding = AudioFormat.ENCODING_PCM_16BIT
             fun setFormat(output: MediaFormat) {
                 require(output.getInteger(MediaFormat.KEY_SAMPLE_RATE) == spec.rate &&
                     output.getInteger(MediaFormat.KEY_CHANNEL_COUNT) == spec.channels) { "PCM format changed" }
                 encoding = if (output.containsKey(MediaFormat.KEY_PCM_ENCODING)) output.getInteger(MediaFormat.KEY_PCM_ENCODING)
                     else AudioFormat.ENCODING_PCM_16BIT
-                require(encoding == AudioFormat.ENCODING_PCM_FLOAT ||
-                    encoding == AudioFormat.ENCODING_PCM_16BIT && (mime == "audio/raw" || nativeLossy16)) {
-                    "Unsupported PCM precision: legacy output retained"
-                }
+                requirePcmPrecision(mime, format, encoding)
             }
             if (mime == "audio/raw") setFormat(format)
             extractor.selectTrack(index)

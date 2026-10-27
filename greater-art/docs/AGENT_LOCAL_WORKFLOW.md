@@ -48,6 +48,15 @@ service from a visible button, keep that Activity until the service acknowledges
 startup, and use unique `.wav` names. Do not restart instrumentation midway through
 playback; it terminates the target process. Capture duration and useful bursts,
 not a nominal test sleep, determine the evidence window.
+Match completion and filename on the same log line, not a space-joined log array;
+verify the finalized container and byte count before analysis or the next run.
+
+Shared-output qualification lesson: zero inter-voice spread can hide a pause of
+the entire mix. Check complete-burst counts, reference cadence and underruns as
+well as relative offsets. Retain failed setup attempts under distinct names.
+Validate actual extractor precision before acquiring experimental audio output:
+source bit depth and decoder output encoding can disagree. Safe refusal is not
+a fidelity-support pass; restore the ordinary default-off build after experiments.
 
 Before editing:
 

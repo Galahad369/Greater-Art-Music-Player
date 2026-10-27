@@ -37,6 +37,67 @@ class PcmPrototypeTest {
     private fun media(file: File) = MediaFile(file.canonicalPath, file.name, 1000, file.length(),
         file.lastModified(), MediaKind.AUDIO, sourcePath = file.canonicalPath, clipStartMs = 500, clipEndMs = 1500)
 
+    @Test fun nativeFloatStereoIsExactOrRefusedBeforeOutput(): Unit = runBlocking {
+        val rate = 96_000
+        val frames = rate / 10
+        val bytes = ByteBuffer.allocate(44 + frames * 8).order(ByteOrder.LITTLE_ENDIAN)
+        bytes.put("RIFF".toByteArray()).putInt(36 + frames * 8).put("WAVEfmt ".toByteArray())
+            .putInt(16).putShort(3).putShort(2).putInt(rate).putInt(rate * 8)
+            .putShort(8).putShort(32).put("data".toByteArray()).putInt(frames * 8)
+        fun sample(frame: Int, channel: Int): Float =
+            (if (channel == 0) 1f else -1f) * (0.00001f + frame % 17 * 0.0000001f)
+        repeat(frames) { frame -> repeat(2) { channel -> bytes.putFloat(sample(frame, channel)) } }
+        val file = File("/sdcard/Download", "ga-float-precision-${UUID.randomUUID()}.wav")
+        val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
+        try {
+            file.writeBytes(bytes.array())
+            val source = MediaFile(file.canonicalPath, file.name, 100, file.length(),
+                file.lastModified(), MediaKind.AUDIO)
+            val extractor = android.media.MediaExtractor()
+            val format = try {
+                extractor.setDataSource(file.canonicalPath)
+                extractor.getTrackFormat(0).also {
+                    android.util.Log.i("PcmPrototypeTest", "float source format=$it")
+                }
+            } finally { extractor.release() }
+            if (format.getInteger(android.media.MediaFormat.KEY_PCM_ENCODING) != android.media.AudioFormat.ENCODING_PCM_FLOAT) {
+                val failure = runCatching { pcmSpec(source) }.exceptionOrNull()
+                assertTrue("Converted float source must be explicitly refused", failure is IllegalArgumentException &&
+                    failure.message.orEmpty().contains("precision"))
+                if (BuildConfig.STACK_PCM_PROTOTYPE) {
+                    var acquired = false
+                    val host = object : PcmPrototypeHost {
+                        override suspend fun acquireExclusiveAudio(): Boolean { acquired = true; return true }
+                        override suspend fun restoreLegacy(positionMs: Long, resume: Boolean, reason: String?) {
+                            fail("Unsupported format changed legacy output")
+                        }
+                        override fun onClock(positionMs: Long, playing: Boolean) { fail("Unsupported format changed clock") }
+                    }
+                    val engine = SharedClockPcmPrototype(InstrumentationRegistry.getInstrumentation().targetContext, host)
+                    try {
+                        assertFalse(engine.start(listOf(StackSlot(source)), source.path))
+                        assertFalse("Unsupported precision acquired output", acquired)
+                    } finally { engine.release() }
+                }
+                android.util.Log.i("PcmPrototypeTest", "float fidelity gate: REFUSED, not a native-float playback pass")
+                return@runBlocking
+            }
+            val spec = pcmSpec(source)
+            assertEquals(rate, spec.rate)
+            assertEquals(2, spec.channels)
+            val stream = StackPcmStream(scope, source, spec, 0)
+            try {
+                val block = withTimeout(2_000) { stream.blocks.receive() }
+                android.util.Log.i("PcmPrototypeTest", "float decoded start=${block.start} first=${block.samples.take(6)}")
+                assertEquals(0L, block.start)
+                repeat(256) { frame -> repeat(2) { channel ->
+                    assertEquals("Float precision/channel lost at $frame/$channel",
+                        sample(frame, channel), block.samples[frame * 2 + channel], 0.000000001f)
+                } }
+            } finally { stream.close() }
+        } finally { scope.cancel(); file.delete() }
+    }
+
     @Test fun nativeMonoStereoClipsAndCancellationRemainBounded() = runBlocking<Unit> {
         val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
         val created = mutableListOf<File>()
