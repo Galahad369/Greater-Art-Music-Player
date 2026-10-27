@@ -6,12 +6,12 @@ Greater Art is a local-first Android audio and video player. This repository con
 
 > **Vibe-coded disclosure:** Greater Art was built through iterative work with AI coding agents. Human direction, product decisions, device feedback, and acceptance guide the work; substantial code and documentation are AI-assisted.
 
-- Latest build/signature/emulator-smoke-verified sideload APK: **1.21.76 (code 299)** — see the [verification boundary](greater-art/HANDOFF.md); full fullscreen regression, physical-phone and production-signing acceptance remain pending.
-- APK: [GreaterArt-1.21.76.apk](greater-art/releases/GreaterArt-1.21.76.apk)
+- Build/signature/emulator-functionally-verified APK: **1.21.80 (code 303)** — see the [verification boundary](greater-art/HANDOFF.md); physical performance acceptance remains pending.
+- APK: [GreaterArt-1.21.80.apk](greater-art/releases/GreaterArt-1.21.80.apk)
 - [App documentation](greater-art/README.md) · [Handoff and verification](greater-art/HANDOFF.md)
 - [User demonstration](greater-art-user-demo.html) · [Technical demonstration](greater-art-technical-demo.html)
 
-Current Android source and matching personal sideload: **1.21.76 / code 299** (independent safe-sync workflow; Android runtime unchanged beyond version metadata). Background-scoped scroll reads, developer-only batched RAM diagnostics and existing playback quality are preserved; the full rotation regression remains unresolved as recorded in HANDOFF.
+Current source and matching sideload: **1.21.80 / code 303**. Includes RAM-seeded Library rows, clock-isolated shell state, directly visible fullscreen speed control, completed Android Nodes physics port and checksum-pinned Gradle 9.8.2. Functional tests passed; [physical trace/profile acceptance](docs/LIBRARY_AUDIT_2026-10-24.md) and the prior full rotation regression remain unfinished. No measured speedup or universal crash-free claim.
 Windows Desktop is independently versioned at **0.1.16 / code17 — locally verified development delivery**, with interactive Nodes physics and middle-mouse/Space+drag pan.
 The [installed/portable receipt](desktop/RELEASE_0.1.16.md) records exact hashes and remaining gates. It is an original
 native C++ IDE-style workspace with offline EXE setup and desktop shortcuts.
@@ -22,7 +22,7 @@ Integrated Mini/Android PiP/No Floating, queue Locate, readiness-gated PiP start
 and independent High Contrast. [Full engineering evidence and remaining gates](greater-art/docs/QUALITY_PASS_2026-10-12.md).
 Classic/Aurora/Bloom/Flow coexist without another video decoder; see the
 [feature evidence](greater-art/docs/ADAPTIVE_AMBIENT_2.md). Latest verified APK
-is 1.21.39. Selected-folder URI Library/playback is preserved
+is 1.21.80. Selected-folder URI Library/playback is preserved
 with distributed timing anchors, confidence-gated linear drift maps and bounded
 original-rate transient refinement. Library Performance v2
 stages 1–2. Shared viewport-priority artwork work pauses during fling; RAM hits stay

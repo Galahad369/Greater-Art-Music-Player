@@ -3,16 +3,46 @@
 This file describes the **current repository state only**. Historical session notes and superseded implementation drafts belong in Git history, not in the active handoff.
 
 **Project:** `greater-art/` in the repository checkout
-**Current source:** `1.21.76 (code 299)` — VERIFIED personal debug sideload; guarded independent sync workflow, no Android runtime changes beyond version metadata
-**Current version:** `1.21.76 (code 299)`
-**Latest APK:** `releases/GreaterArt-1.21.76.apk` (`27,008,689 bytes`; SHA-256 `993c54a7af0ccdeca5de4b201090b685598b5625526844cf3d582d3229c3782e`)
+**Current source:** `1.21.80 (code 303)` — VERIFIED bounded functional sideload; PR207 integration
+**Current version:** `1.21.80 (code 303)`
+**Latest APK:** `releases/GreaterArt-1.21.80.apk` (`27,025,073 bytes`; SHA-256 `76791737701736a45b9b441851212f2c8cacf83542991b5c0e58ffbbfc3d29b4`)
 **Application ID:** `com.local.listentomusic`
 **Signing certificate SHA-256:** `9e28eb45b3b171c3ea47d7da942d28d88b16538885e392a6971a80906d612fbf`
-**Build date:** `2026-10-23`
+**Build date:** `2026-10-27`
 **Test device:** `GreaterArt_Scroll_QA36 (API36 emulator, Android 16)`
-**Verification boundary:** Exact build source `acc09fc`; 437 JVM tests, zero lint errors (46 warnings, 4 hints), nine offline Git safety tests; package/version, pinned certificate, ZIP CRC and 16KiB ZIP alignment checked. The API36 emulator accepted the 1.21.75→1.21.76 update and launched MainActivity; its declared test permissions were granted after Android's permission prompt. No app fatal in the inspected crash buffer. No Android runtime-source diff from 1.21.75 beyond version metadata. The twelve focused emulator cases passed on 1.21.75, not rerun or counted as new 1.21.76 cases. Its full fullscreen regression remains unresolved (playback-start timeout; isolated rerun ActivityScenario.close null-state failure despite actual portrait/landscape captures). On October24 finalization, no emulator was connected; signature/hash/version were rechecked against the unchanged built bytes. VERIFIED means bounded build/signature/emulator-smoke verification, not full fullscreen/physical-device/performance/security acceptance or universal bug-free proof. Historical releases remain immutable and are only hidden locally.
+**Verification boundary:** Exact source `3b49022`; Gradle9.8.2/Java21 unit/lint/debug app/test build passed. 446 JVM tests, zero failures/errors; lint 0 errors/46 warnings/4 hints. Final API36 upgrade passed 15/15 focused cases in 37.285s: Nodes tap/drag/controls/graph replacement, fullscreen speed/narrow toolbar, Library row semantics/RAM seeding, actual cache/disk-during-scroll regressions. Nine disposable Git sync-safety tests passed outside sandbox. Certificate unchanged; package/version, ZIP CRC, 16KiB alignment and SHA-256 checked. This is not full fullscreen rotation, physical-device visual/acoustic/performance acceptance, production signing or universal bug-free proof. Existing Library physical trace/profile acceptance and the prior full rotation failure remain unresolved.
 
 ## Repository state
+
+### October 27 — Dependency integration (1.21.80/code303)
+
+- PR206 only changes Gradle 9.8.1 to 9.8.2 but its unversioned build commit fails the repository guard. Apply its exact functional update in this fresh versioned commit; pin the checksum retrieved from services.gradle.org. Preserve the original PR and credit Dependabot; do not import a known-invalid commit into main or waive the guard.
+- Exact 1.21.79 source 1ab718b passed unit/lint/debug app/test assembly with Gradle9.8.1 and 15 focused API36 cases in 64.483s. Exact final source 3b49022 passed with Gradle9.8.2; repeat final APK upgrade/regressions passed 15/15 in 37.285s. First emulator attempts failed to attach/crashed before testing amid system memory/CPU pressure and Bluetooth/Android system faults; these are not counted as passing or assumed to be app defects. Owned emulator actually reports 2GB, not the historical 8GB assumption; no user AVD was modified.
+- Local download initially failed Java PKIX certificate validation. Retried using Windows-ROOT trusted certificates for that invocation, retaining TLS checks and the official pinned distribution SHA-256. No trust-all workaround or persistent machine configuration change. Initial new test compilation referenced unavailable coroutines-test; corrected the test harness to a queued dispatcher with existing dependencies before source commit. Sandbox Git test failures were permission-denied during disposable repo creation; unsandboxed rerun passed 9/9.
+- Original PR206 commit 17418ec296bf37f75ef737a011df00da66d6c64e preserved under local refs/archive/dependabot-pr206-17418ec; exact update integrated at 3b49022 with valid version and checksum. PR207 carries all local77/78/79/80 work. No stash, release deletion, force push or history rewrite.
+- PR174 remains draft/conflicting with failing privacy audit. No authorization to rewrite published history or force-merge it; retain its unique work unchanged.
+
+### October 27 — Finish Hermes Android Nodes physics port (1.21.79/code302)
+
+- Preserve and complete all four existing uncommitted graph files; desktop unchanged. Connect Nodes drag to GraphMotion on Dispatchers.Default; generation filtering prevents obsolete graphs replacing current points. Direct dragged point follows the finger; connected nodes settle after release. Finally releases the pin on gesture cancellation/pinch/navigation. Fit and Playing use current simulated positions.
+- Cached settled graphs start asleep, with strong-link distance, weighted hub and bounded Barnes-Hut layout matching the desktop approach. Cache fingerprint changes to layout2. Add physics/worker regression tests adapted from desktop GraphMotionTests.
+- Preserve thumbnail scheduler and 80ms background surface settle behavior: the supplied audits did not demonstrate a performance benefit from keeping another video surface active through scroll. No claimed frame-time improvement.
+- Claude Library suggestions are design proposals, not verified defects. Current row already uses squared geometry, selection HashSet and RAM seed. Broad header/chips/action-sheet/deletion redesign deferred; do not silently remove explicit triple-confirm deletion policy.
+- Exact-source build/runtime evidence recorded above; final artifact is 1.21.80. Original four Hermes graph changes are retained and completed, not discarded. Quick drag release preserves the last pin coordinate even when requests coalesce; regression tests cover it. Idle frame consumption suspends until worker output. No perpetual artificial jiggle.
+
+### October 25 — Restore fullscreen speed control (1.21.78/code301)
+
+- Cause: immersive NowPlayingTopBar never received the playback speed or its change callback, so the toolbar could not display a selector. Wire the existing session command directly; show the current speed on the left and reuse playbackSpeeds without restarting media.
+- Reserve one 48dp slot before optional toolbar actions; narrow layouts retain a left-aligned speed row rather than clipping essential actions. Normal player controls remain unchanged.
+- Added component regressions for left-side placement, opening/selecting a speed and narrow-layout access. All four toolbar cases passed on the existing API36 emulator; no new emulator/worktree created. Exact-source debug build, unit/lint and artifact verification recorded above. Not pushed or merged as part of this local fix.
+
+### October24 — Library audit follow-up (1.21.77/code300)
+
+- Peek only the TTL-valid RAM alias/LRU synchronously; no disk, decoding, scheduler entry or diagnostics emission. Seed row state before its miss-loading effect. Disabled thumbnails never probe. Include sourcePath in row effect/remember invalidation so URI-backed replacements do not retain stale artwork.
+- Memoize the existing four-field request identity on immutable MediaFile instances, preserving key semantics and rebuilding on copy(). Coalesce motion viewport callbacks with a 50ms trailing bound; immediate scroll-budget/action-close events stay upstream of pacing. Preserve final idle delivery, cleanup, generation pause/cancellation, disk-during-fling and two-adjacent idle prefetch.
+- Shell playback projection omits only positionMs. Control/media changes still propagate; Settings uses speed/repeat/shuffle, and Developer diagnostics collect the real clock inside their leaf. No Now Playing/Stack clock downgrade.
+- Audit correction: ProfileInstaller is already transitive (current APK metadata confirms it), and the existing local release output contains baseline.prof/profm. No app-specific profile or physical capture was found. Do not claim zero AOT, add a duplicate dependency or invent blanket profile rules. Capture a real Library/pager journey before committing an app-owned generated profile; current release-output identity must be checked before attributing it to a version.
+- No physical phone is connected. Before/after release Perfetto traces and jank attribution cannot be supplied yet. No inferred frame-time improvement, placeholder-frame guarantee, R8 speedup or GPU-cause claim. Preserve inspector and #192 row styling/reveal; no playback quality or surface changes. Functional verification: 440 JVM tests passed; lint 0 errors/46 warnings/4 hints; debug app/test assembly passed; twelve focused API36 cases passed in 27.769s. Test setup fixes were made before commit: subscribe before the SharedFlow burst; remember the shell initial snapshot to satisfy StateFlow lint. See ../docs/LIBRARY_AUDIT_2026-10-24.md for actual evidence, the old 1.21.71 profile-output identity, and unfulfilled trace/profile acceptance. Do not call this measured optimization complete or merge solely on emulator timing.
 
 ### October 23 — Independent safe sync and latest-only local release view (1.21.76/code299)
 

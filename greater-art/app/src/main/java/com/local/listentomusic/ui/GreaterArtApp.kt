@@ -81,7 +81,12 @@ fun GreaterArtApp(
 ) {
     val library by viewModel.library.collectAsStateWithLifecycle()
     val queue by viewModel.queue.collectAsStateWithLifecycle()
-    val playback by viewModel.playback.collectAsStateWithLifecycle()
+    val (shellPlayback, initialPlayback) = remember(viewModel) {
+        viewModel.playback.libraryShellPlayback() to viewModel.playback.value.copy(positionMs = 0L)
+    }
+    val playback by shellPlayback.collectAsStateWithLifecycle(
+        initialValue = initialPlayback,
+    )
     val controller by viewModel.controller.collectAsStateWithLifecycle()
     val settings by viewModel.settings.collectAsStateWithLifecycle()
     val playHistory by viewModel.playHistory.collectAsStateWithLifecycle()
@@ -427,6 +432,7 @@ fun GreaterArtApp(
                         appName = appName,
                         showTopBar = false,
                         onThumbnailViewport = viewModel::thumbnailViewport,
+                        onPeekThumbnail = viewModel::peekThumbnail,
                         state = library,
                         preferences = settings,
                         playHistory = playHistory,
@@ -615,6 +621,8 @@ fun GreaterArtApp(
             }
             if (settings.developerMode) {
                 DiagnosticsLayer {
+                // The real clock is collected only in this diagnostics leaf.
+                val playback by viewModel.playback.collectAsStateWithLifecycle()
                 // Counter updates invalidate this child composition, not the whole
                 // Library/player. DEV must not turn a cache load into app-root churn.
                 val thumbnailStats by viewModel.thumbnailStats.collectAsStateWithLifecycle()

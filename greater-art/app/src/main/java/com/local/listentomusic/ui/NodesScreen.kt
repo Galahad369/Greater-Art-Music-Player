@@ -46,12 +46,10 @@ import androidx.compose.ui.unit.dp
 import com.local.listentomusic.graph.LibraryGraph
 import com.local.listentomusic.graph.GraphOptions
 import com.local.listentomusic.graph.GraphPoint
-import com.local.listentomusic.graph.NodeDragSpring
-import kotlinx.coroutines.Job
+import com.local.listentomusic.graph.GraphMotion
+import com.local.listentomusic.graph.graphNodeWeights
+import com.local.listentomusic.graph.toForces
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import com.local.listentomusic.data.AppLanguage
 import com.local.listentomusic.graph.presentGraph
 import com.local.listentomusic.ui.components.GaChromeSurface
@@ -94,9 +92,39 @@ private fun GraphCanvas(graph: LibraryGraph, currentPath: String?, onPlay: (Stri
     var scale by remember(graph) { mutableFloatStateOf(1f) }
     var pan by remember(graph) { mutableStateOf(Offset.Zero) }
     val moved = remember(graph) { mutableStateMapOf<Int, Offset>() }
-    val physicsScope = rememberCoroutineScope()
-    val settleJob = remember(graph) { mutableStateOf<Job?>(null) }
-    DisposableEffect(graph) { onDispose { settleJob.value?.cancel() } }
+    val motion = remember(graph) { GraphMotion(Dispatchers.Default) }
+    var pinned by remember(graph) { mutableIntStateOf(-1) }
+    var pinPosition by remember(graph) { mutableStateOf(Offset.Zero) }
+    LaunchedEffect(motion) { motion.start(this).join() }
+    LaunchedEffect(motion, presentation.edges, options.linkDistance, options.repulsion, options.bounce) {
+        val points = graph.points.mapIndexed { i, point ->
+            moved[i]?.let { GraphPoint(it.x, it.y) } ?: point
+        }
+        val generation = motion.reset(points, presentation.edges,
+            graphNodeWeights(points.size, presentation.edges), options.toForces(), startAwake = moved.isNotEmpty())
+        var previous = 0L
+        var awake = false
+        while (true) {
+            val frame = if (!awake && pinned < 0) {
+                previous = 0L
+                motion.awaitFrame()
+            } else motion.take()
+            frame?.takeIf { it.generation == generation }?.let {
+                it.xy.indices.step(2).forEach { offset ->
+                    val index = offset / 2
+                    if (index != pinned) moved[index] = Offset(it.xy[offset], it.xy[offset + 1])
+                }
+                awake = it.awake
+            }
+            if (!awake && pinned < 0) continue
+            withFrameNanos { now ->
+                if (awake || pinned >= 0) motion.request(
+                    if (previous == 0L) 1.0 / 60 else ((now - previous) / 1e9).coerceAtMost(.05),
+                    pinned, pinPosition.x.toDouble(), pinPosition.y.toDouble())
+                previous = now
+            }
+        }
+    }
     var selected by remember(graph) { mutableIntStateOf(-1) }
     val focusIndex = selected.takeIf { it >= 0 } ?: current.takeIf { it >= 0 } ?: -1
     val focusNeighbors = remember(presentation.edges, focusIndex) {
@@ -156,13 +184,12 @@ private fun GraphCanvas(graph: LibraryGraph, currentPath: String?, onPlay: (Stri
         }
     }
     fun fit() {
-        settleJob.value?.cancel()
-        val w = (graph.points.maxOf { it.x } - graph.points.minOf { it.x } + 100f).coerceAtLeast(100f)
-        val h = (graph.points.maxOf { it.y } - graph.points.minOf { it.y } + 100f).coerceAtLeast(100f)
+        val points = graph.points.mapIndexed { i, p -> moved[i] ?: Offset(p.x, p.y) }
+        val w = (points.maxOf { it.x } - points.minOf { it.x } + 100f).coerceAtLeast(100f)
+        val h = (points.maxOf { it.y } - points.minOf { it.y } + 100f).coerceAtLeast(100f)
         scale = min(viewport.width / w, viewport.height / h).coerceIn(0.08f, 3f)
-        pan = Offset(-(graph.points.maxOf { it.x } + graph.points.minOf { it.x }) / 2 * scale,
-            -(graph.points.maxOf { it.y } + graph.points.minOf { it.y }) / 2 * scale)
-        moved.clear()
+        pan = Offset(-(points.maxOf { it.x } + points.minOf { it.x }) / 2 * scale,
+            -(points.maxOf { it.y } + points.minOf { it.y }) / 2 * scale)
     }
     LaunchedEffect(graph, viewport) { if (viewport.width > 0 && viewport.height > 0) fit() }
     Column(modifier.inspectElement("NODES_CONTENT", "Graph toolbar, interactive canvas, and gesture hint")) {
@@ -177,7 +204,10 @@ private fun GraphCanvas(graph: LibraryGraph, currentPath: String?, onPlay: (Stri
                 GraphTool(Icons.Rounded.CenterFocusStrong, text("Fit"), "NODES_FIT_BUTTON") { fit() }
                 GraphTool(Icons.Rounded.Search, text("Find"), "NODES_FIND_BUTTON") { picker = true }
                 GraphTool(Icons.Rounded.MyLocation, text("Playing"), "NODES_PLAYING_BUTTON", enabled = current >= 0) {
-                    if (current >= 0) { scale = 2f; pan = Offset(-graph.points[current].x * scale, -graph.points[current].y * scale) }
+                    if (current >= 0) {
+                        scale = 2f
+                        pan = -(moved[current] ?: Offset(graph.points[current].x, graph.points[current].y)) * scale
+                    }
                 }
                 GraphTool(Icons.Rounded.Tune, text("Controls"), "NODES_CONTROLS_BUTTON") { controls = true }
             }
@@ -233,16 +263,16 @@ private fun GraphCanvas(graph: LibraryGraph, currentPath: String?, onPlay: (Stri
 
                     var netDrag = Offset.Zero
                     var nodeDragging = false
-                    var spring: NodeDragSpring? = null
                     val nodeDragThresholdPx =
                         nodeDragActivationDistancePx(viewConfiguration.touchSlop, 20.dp.toPx())
                     var multi = false
-                    do {
+                    try { do {
                         val event = awaitPointerEvent()
                         val pressedCount = event.changes.count { it.pressed }
                         multi = multi || pressedCount > 1
 
                         if (multi) {
+                            pinned = -1
                             // Two fingers belong to graph zoom. There is deliberately
                             // no user-driven map translation: preserve the currently
                             // centered graph point while scale changes.
@@ -263,35 +293,22 @@ private fun GraphCanvas(graph: LibraryGraph, currentPath: String?, onPlay: (Stri
                             if (!nodeDragging && netDrag.getDistance() >= nodeDragThresholdPx) {
                                 nodeDragging = true
                                 selected = hit
-                                settleJob.value?.cancel()
-                                spring = NodeDragSpring(graph.points, presentation.edges, options, hit,
-                                    moved.mapValues { (_, offset) -> GraphPoint(offset.x, offset.y) })
+                                pinned = hit
                             }
                             if (nodeDragging) {
                                 val next = position(hit) + delta / scale
-                                spring?.advance(GraphPoint(next.x, next.y), steps = 4)?.forEach { (index, point) ->
-                                    moved[index] = Offset(point.x, point.y)
-                                }
+                                pinPosition = next
+                                moved[hit] = next
+                                motion.request(1.0 / 60, hit, next.x.toDouble(), next.y.toDouble())
                                 event.changes.forEach { it.consume() }
                             }
                         }
                         // Empty single-finger gestures are never consumed here.
                         // The parent HorizontalPager therefore owns horizontal swipes.
                     } while (event.changes.any { it.pressed })
-
-                    if (nodeDragging && !multi && spring != null) {
-                        // Releasing the pinned node lets a bounded local spring
-                        // neighborhood settle. The graph's global 180-step solve
-                        // is never restarted on the UI thread by a drag.
-                        val released = spring
-                        settleJob.value = physicsScope.launch {
-                            repeat(36) {
-                                val frame = withContext(Dispatchers.Default) { released.advance(steps = 3) }
-                                frame.forEach { (index, point) -> moved[index] = Offset(point.x, point.y) }
-                                if (released.isQuiet) return@launch
-                                delay(16)
-                            }
-                        }
+                    } finally {
+                        pinned = -1
+                        motion.request(1.0 / 60, -1, 0.0, 0.0)
                     }
                     if (!multi && !nodeDragging && hit != null) {
                         selected = hit

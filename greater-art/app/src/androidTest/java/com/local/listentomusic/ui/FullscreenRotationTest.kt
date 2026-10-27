@@ -9,6 +9,7 @@ import androidx.compose.ui.test.assertHeightIsAtLeast
 import androidx.compose.ui.test.junit4.v2.createEmptyComposeRule
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
+import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.onAllNodesWithContentDescription
@@ -272,6 +273,38 @@ class FullscreenRotationTest {
 /** Component-only tests need a hosting Activity; the real-Activity test must not create one. */
 class FullscreenToolbarTest {
     @get:Rule val compose = createComposeRule()
+
+    @Test fun fullscreenSpeedIsVisibleOnLeftAndChangesPlayback() {
+        var selected = 1f
+        compose.setContent {
+            Box(Modifier.width(360.dp)) {
+                NowPlayingTopBar(AppLanguage.ENGLISH, {}, {}, {}, {}, fullscreen = true,
+                    onRotate = {}, speed = 1f, onSpeed = { selected = it })
+            }
+        }
+        val speed = compose.onNodeWithText("1×").assertIsDisplayed()
+        val speedBounds = speed.fetchSemanticsNode().boundsInRoot
+        val rotateBounds = compose.onNodeWithContentDescription("Rotate to landscape")
+            .assertIsDisplayed().fetchSemanticsNode().boundsInRoot
+        assertTrue("Speed belongs on the left", speedBounds.right <= rotateBounds.left)
+        speed.performClick()
+        compose.onNodeWithText("1.5×").assertIsDisplayed().performClick()
+        compose.runOnIdle { assertEquals(1.5f, selected, 0f) }
+    }
+
+    @Test fun narrowFullscreenKeepsSpeedAndEssentialActions() {
+        compose.setContent {
+            Box(Modifier.width(160.dp)) {
+                NowPlayingTopBar(AppLanguage.ENGLISH, {}, {}, {}, {}, fullscreen = true,
+                    onRotate = {}, speed = 1.25f, onSpeed = {})
+            }
+        }
+        compose.onNodeWithText("1.25×").assertIsDisplayed().performClick()
+        compose.onNodeWithText("2×").assertIsDisplayed().performClick()
+        compose.onNodeWithContentDescription("Rotate to landscape").assertIsDisplayed()
+        compose.onNodeWithContentDescription("Exit fullscreen").assertIsDisplayed()
+        compose.onNodeWithContentDescription("Close player").assertIsDisplayed()
+    }
 
     /** No video fixture required: the narrow toolbar must wrap, never clip buttons. */
     @Test fun narrowFullscreenToolbarRetainsRotateExitAndClose() {

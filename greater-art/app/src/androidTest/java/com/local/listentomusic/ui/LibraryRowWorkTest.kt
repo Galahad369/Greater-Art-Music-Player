@@ -33,14 +33,35 @@ class LibraryRowWorkTest {
         play: () -> Unit = {},
         add: () -> Unit = {},
         delete: () -> Unit = {},
+        thumbnails: Boolean = false,
+        peek: (MediaFile) -> android.graphics.Bitmap? = { null },
+        load: suspend (MediaFile) -> android.graphics.Bitmap? = { null },
     ) {
         MediaFileRow(item, isCurrent = true, isSelected = false, index = 0, itemCount = 1,
-            dragEnabled = false, onMove = { _, _ -> }, onLoadThumbnail = { null },
+            dragEnabled = false, onMove = { _, _ -> }, onLoadThumbnail = load,
+            onPeekThumbnail = peek,
             thumbnailBrush = Brush.linearGradient(listOf(Color.Black, Color.DarkGray)),
             rowSize = LibraryRowSize.SMALL, miniSize = LibraryRowSize.SMALL,
-            showThumbnails = false, showFileDetails = true, language = AppLanguage.ENGLISH,
+            showThumbnails = thumbnails, showFileDetails = true, language = AppLanguage.ENGLISH,
             actionsOpen = open, onPlay = play, onToggleActions = toggle,
             onAddToList = add, onDelete = delete, moreDescription = "Actions")
+    }
+
+    @Test fun seededRamHitSkipsSuspendLoadAndHiddenThumbnailsNeverProbe() {
+        val bitmap = android.graphics.Bitmap.createBitmap(2, 2, android.graphics.Bitmap.Config.ARGB_8888)
+        val visible = mutableStateOf(true)
+        var probes = 0
+        var loads = 0
+        compose.setContent { GreaterArtTheme(ThemeMode.DARK) {
+            Row(open = false, toggle = {}, thumbnails = visible.value,
+                peek = { probes++; bitmap }, load = { loads++; null })
+        } }
+        compose.runOnIdle {
+            assertEquals(1, probes)
+            assertEquals(0, loads)
+            visible.value = false
+        }
+        compose.runOnIdle { assertEquals(1, probes); assertEquals(0, loads) }
     }
 
     @Test fun closedActionsAreAbsentAndOpenActionsKeepFullTouchTargets() {

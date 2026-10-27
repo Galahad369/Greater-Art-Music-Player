@@ -228,13 +228,16 @@ class ThumbnailRepository(private val context: Context) {
     }
 
     /** No filesystem calls on the hot RAM path, including while a list is flinging. */
-    private fun memoryHit(id: String): Bitmap? {
+    private fun memoryHit(id: String, countHit: Boolean = true): Bitmap? {
         val alias = synchronized(memoryAliases) { memoryAliases[id] }
         if (alias == null || System.currentTimeMillis() - alias.atMs >= ART_STAMP_TTL_MS) return null
-        return memoryCache.get(alias.key)?.also { memoryHits.record() }
+        return memoryCache.get(alias.key)?.also { if (countHit) memoryHits.record() }
     }
 
-    private fun requestId(file: MediaFile) = "${file.sourcePath}|${file.sizeBytes}|${file.modifiedMs}|${file.coverUri}"
+    /** Composition-safe RAM probe: no filesystem, scheduling, decoding or stats publication. */
+    fun peekMemory(file: MediaFile): Bitmap? = memoryHit(requestId(file), countHit = false)
+
+    private fun requestId(file: MediaFile) = file.thumbnailRequestId
 
     /** Visible rows win; idle prefetch reads at most two adjacent disk entries, never extracts frames. */
     fun setViewport(holder: String, visible: List<MediaFile>, adjacent: List<MediaFile>, scrolling: Boolean) {
