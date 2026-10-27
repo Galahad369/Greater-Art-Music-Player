@@ -16,7 +16,7 @@ This file is the authoritative version policy for Greater Art. If any handoff no
 ## Machine-checkable state
 
 
-Current source: **1.21.79 (code 302)**
+Current source: **1.21.80 (code 303)**
 Allowed consumed transition: **1.21.68 (code 291) -> 1.21.70 (code 293)**
 
 An earlier side-branch 1.21.69/code292 introduced the staged-cache policy but
@@ -439,3 +439,4 @@ Previous baseline: 1.13.26 (code 115).
 - 1.21.77 (code 300): seed Library rows from synchronous RAM-only probes, memoize immutable media thumbnail identities, coalesce viewport callbacks with a 50ms motion cadence while keeping scroll-budget edges upstream, and omit position ticks from shell state while diagnostics retain the real clock. Preserve scheduler, swipe/reveal, background and playback quality. Add identity/flow/row regressions. App-specific profile generation and physical-device Perfetto comparison remain pending; no speedup claim.
 - 1.21.78 (code 301): restore a directly visible left-side fullscreen speed selector using existing playback choices and command callback; reserve its touch target before optional actions and wrap on narrow layouts. No player/surface or quality changes.
 - 1.21.79 (code 302): finish Hermes desktop-physics port for Android Nodes with bounded off-main live simulation, generation-safe results, cache layout revision and cancellation-safe drag release. Preserve existing navigation, playback and video quality; add physics regressions. No unmeasured scroll/surface policy change.
+- 1.21.80 (code 303): integrate Dependabot PR206 Gradle 9.8.2 update under a valid fresh build identity, pin its official distribution SHA-256 and preserve the original PR history separately. No Android runtime or desktop changes beyond the version identity.

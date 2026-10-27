@@ -3,7 +3,7 @@
 This file describes the **current repository state only**. Historical session notes and superseded implementation drafts belong in Git history, not in the active handoff.
 
 **Project:** `greater-art/` in the repository checkout
-**Current source:** `1.21.79 (code 302)` — SOURCE_ONLY Nodes integration under verification
+**Current source:** `1.21.80 (code 303)` — SOURCE_ONLY Nodes and Gradle integration under verification
 **Current version:** `1.21.78 (code 301)`
 **Latest APK:** `releases/GreaterArt-1.21.78.apk` (`28,085,150 bytes`; SHA-256 `e3bbb103108a5d607c2f33f340d56f282694ac0bec298007e96d8268dface740`)
 **Application ID:** `com.local.listentomusic`
@@ -13,6 +13,12 @@ This file describes the **current repository state only**. Historical session no
 **Verification boundary:** Exact source `e52f6e0`; 440 JVM tests passed, lint 0 errors/46 warnings/4 hints, debug app/test assembly passed after commit. API36 emulator upgrade installed successfully; FullscreenToolbarTest passed 4/4 cases in 28.333s, covering visible left-side speed, menu selection/callback, narrow and ultra-narrow essential actions. Certificate unchanged; package/version, ZIP CRC, 16KiB alignment and SHA-256 checked. Component functional verification is not full fullscreen rotation, physical-device visual/acoustic/performance acceptance, production signing or universal bug-free proof. Existing Library physical trace/profile acceptance and the prior full rotation failure remain unresolved.
 
 ## Repository state
+
+### October 27 — Dependency integration (1.21.80/code303)
+
+- PR206 only changes Gradle 9.8.1 to 9.8.2 but its unversioned build commit fails the repository guard. Apply its exact functional update in this fresh versioned commit; pin the checksum retrieved from services.gradle.org. Preserve the original PR and credit Dependabot; do not import a known-invalid commit into main or waive the guard.
+- Exact 1.21.79 source 1ab718b passed unit/lint/debug app/test assembly with Gradle9.8.1. Nodes UI initial run passed after emulator system startup failures; final combined checks and artifact receipt follow after the build-tool update.
+- PR174 remains draft/conflicting with failing privacy audit. No authorization to rewrite published history or force-merge it; retain its unique work unchanged.
 
 ### October 27 — Finish Hermes Android Nodes physics port (1.21.79/code302)
 
