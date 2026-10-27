@@ -11,8 +11,8 @@ android {
         applicationId = "com.local.listentomusic"
         minSdk = 26
         targetSdk = 37
-        versionCode = 304
-        versionName = "1.21.81"
+        versionCode = 305
+        versionName = "1.21.82"
         buildConfigField("boolean", "STACK_PCM_PROTOTYPE", (providers.gradleProperty("stackPcmPrototype").orNull == "true").toString())
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"

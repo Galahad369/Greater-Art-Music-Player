@@ -3,7 +3,7 @@
 This file describes the **current repository state only**. Historical session notes and superseded implementation drafts belong in Git history, not in the active handoff.
 
 **Project:** `greater-art/` in the repository checkout
-**Current source:** `1.21.81 (code 304)` — SOURCE_ONLY; isolated Stack measurement harness, production engine unchanged
+**Current source:** `1.21.82 (code 305)` — SOURCE_ONLY; shared-output refinement under verification, production engine unchanged
 **Current version:** `1.21.80 (code 303)`
 **Latest APK:** `releases/GreaterArt-1.21.80.apk` (`27,025,073 bytes`; SHA-256 `76791737701736a45b9b441851212f2c8cacf83542991b5c0e58ffbbfc3d29b4`)
 **Application ID:** `com.local.listentomusic`
@@ -13,6 +13,15 @@ This file describes the **current repository state only**. Historical session no
 **Verification boundary:** Exact source `3b49022`; Gradle9.8.2/Java21 unit/lint/debug app/test build passed. 446 JVM tests, zero failures/errors; lint 0 errors/46 warnings/4 hints. Final API36 upgrade passed 15/15 focused cases in 37.285s: Nodes tap/drag/controls/graph replacement, fullscreen speed/narrow toolbar, Library row semantics/RAM seeding, actual cache/disk-during-scroll regressions. Nine disposable Git sync-safety tests passed outside sandbox. Certificate unchanged; package/version, ZIP CRC, 16KiB alignment and SHA-256 checked. This is not full fullscreen rotation, physical-device visual/acoustic/performance acceptance, production signing or universal bug-free proof. Existing Library physical trace/profile acceptance and the prior full rotation failure remain unresolved.
 
 ## Repository state
+
+### October 28 — Native precision and bounded shared-output refinement (1.21.82/code305)
+
+- User requires full shared-output parity before making a release. No maintenance/default-off APK is promoted as completion; existing 1.21.80 release/signing identity and production routing remain unchanged.
+- Reuse Media3 1.11.1 WAV extraction for native PCM8/16/24 and float32. API36 strict tests preserve 96kHz stereo float samples below PCM16 precision and every PCM24 bit at 192kHz through clip/seek. Unrepresentable integer PCM32 is still refused before the lease. Scoped URI precision/deleted-source rejection passes with All Files Access denied and its original mode restored.
+- Dedicated audio worker, reusable windows/render arrays, exact cached native fractional-delay kernel, 1,024-frame batching and bounded native-rate decode-ahead. No reduced taps, rates, channels, bitrate, video resolution or FPS. Early candidates failed (8, 1 and 20 underruns); retain their logs. Final native fractional eight-lane test passed 20s at each 48/192kHz with zero observed underruns/waits. Not sustained physical/thermal acceptance.
+- Three full-minute six-lane captured runs plus pre/post calibration recover 116/116 complete bursts each, p95 estimated spread below 0.01ms, 500ms reference cadence and zero observed underruns/waits. Sources stayed frozen during capture and WAV hashes match device originals. Generated mono PCM16 capture does not certify stereo high-resolution output or actual cover alignment.
+- 453 JVM tests pass; lint 0 errors/47 warnings/4 hints; default-off unit/lint/debug app/test restoration passes (2m40s). Enabled transport passes 1/1 (9.983s), final default precision/isolation and production transport passes 8/8 (5.997s). Scoped URI case passes 1/1 (0.639s). Test capture permission revoked. Internal-only default-off APK `App/output/stack-refinement-20261028/GreaterArt-1.21.82-default-off-core-test.apk`, SHA-256 `23795636cec048ab51be0cbf9507906ed5b88479b8059c92f2ee9c85b4624aeb`; pinned signing certificate verified. Full evidence in the [refinement report](docs/STACK_SHARED_OUTPUT_REFINEMENT_2026-10-28.md). No release until nonidentity tempo/pitch, gain/EOF/primary/restore parity, video/surface/lifecycle and real-corpus acceptance are complete.
+- Android Nodes interaction baseline passed; isolated compilation of unchanged desktop graph headers passes 9/9 reference checks. Desktop reveal is absent on the phone; presentation verification/Replay choice remains pending. No desktop artifact changed. Original takes were absent in the emulator and scoped Downloads search; user was asked for their local folder, not an acoustic recording.
 
 ### October 28 — Calibrated Stack output experiment (1.21.81/code304)
 

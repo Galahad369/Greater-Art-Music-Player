@@ -58,6 +58,14 @@ Validate actual extractor precision before acquiring experimental audio output:
 source bit depth and decoder output encoding can disagree. Safe refusal is not
 a fidelity-support pass; restore the ordinary default-off build after experiments.
 
+Native-audio lesson: express decode-ahead in time/native rate, not a fixed number
+of chunks (four 1,024-frame chunks are only 21ms at 192kHz). Profile preparation
+as well as mixing. Preserve filter/precision contracts while removing repeated
+lookups; qualify fractional alignment, not only zero-offset tones. A successful
+short eight-lane or mono capture run is not high-resolution stereo, compressed
+corpus or thermal acceptance. Respect a user gate requiring full parity before
+release instead of promoting a default-off experiment as completion.
+
 Before editing:
 
 1. Inspect `git status --short --branch`, current HEAD and concurrent builders before any checkout. Preserve unrelated work. Fetch/prune remotes; use current main as the integration baseline, but continue an already-authorized active branch instead of restarting.

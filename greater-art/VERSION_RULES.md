@@ -16,7 +16,7 @@ This file is the authoritative version policy for Greater Art. If any handoff no
 ## Machine-checkable state
 
 
-Current source: **1.21.81 (code 304)**
+Current source: **1.21.82 (code 305)**
 Allowed consumed transition: **1.21.68 (code 291) -> 1.21.70 (code 293)**
 
 An earlier side-branch 1.21.69/code292 introduced the staged-cache policy but
@@ -441,3 +441,4 @@ Previous baseline: 1.13.26 (code 115).
 - 1.21.79 (code 302): finish Hermes desktop-physics port for Android Nodes with bounded off-main live simulation, generation-safe results, cache layout revision and cancellation-safe drag release. Preserve existing navigation, playback and video quality; add physics regressions. No unmeasured scroll/surface policy change.
 - 1.21.80 (code 303): integrate Dependabot PR206 Gradle 9.8.2 update under a valid fresh build identity, pin its official distribution SHA-256 and preserve the original PR history separately. No Android runtime or desktop changes beyond the version identity.
 - 1.21.81 (code 304): isolate calibrated Stack output experiments: actual production service route, matched foreground/quiet-start setup and capture-start acknowledgement. Add a default-off prototype precision guard after API36 demonstrated float WAV truncation inside MediaExtractor; refuse before output lease instead of silently accepting PCM16. Production engine/routing remain unchanged; no release or performance/quality acceptance implied.
+- 1.21.82 (code 305): refine isolated shared output with existing Media3 native WAV extraction, exact PCM24/float decoding, dedicated audio-priority worker and reusable render/sample lookup buffers. Preserve source rate/channels and refuse unrepresentable precision; production route remains unchanged. Full parity and release remain gated on tests and evidence.

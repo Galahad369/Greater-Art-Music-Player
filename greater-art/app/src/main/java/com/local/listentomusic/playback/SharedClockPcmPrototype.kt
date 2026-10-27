@@ -11,6 +11,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlin.math.*
+import java.util.concurrent.Executors
 
 /** Host must silence ALL legacy voices before granting this exclusive lease.
  * Video may remain native quality and follow onClock; ownership is never replaced here. */
@@ -22,13 +23,18 @@ internal interface PcmPrototypeHost {
 
 internal data class PcmPrototypeStats(val active: Boolean = false, val playing: Boolean = false,
     val outputRate: Int = 0, val frame: Long = 0, val submittedFrame: Long = 0,
-    val underruns: Int = 0, val decoderWaits: Int = 0, val maxMixUs: Long = 0, val error: String? = null)
+    val underruns: Int = 0, val decoderWaits: Int = 0, val maxMixUs: Long = 0, val error: String? = null,
+    val maxPrepareUs: Long = 0, val maxRenderUs: Long = 0, val bufferFrames: Int = 0)
 
 /** Default-off, debug-build prototype. No routing changes to production PlaybackService.
  * Explicit host lease + ONE output; unsupported cases restore legacy only after release. */
 internal class SharedClockPcmPrototype(context: Context, private val host: PcmPrototypeHost) {
     private val context = context.applicationContext
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
+    private val renderDispatcher = Executors.newSingleThreadExecutor { work ->
+        Thread({ android.os.Process.setThreadPriority(android.os.Process.THREAD_PRIORITY_AUDIO); work.run() },
+            "ga-stack-output").apply { isDaemon = true }
+    }.asCoroutineDispatcher()
     private val mutex = Mutex()
     private val audio = this.context.getSystemService(AudioManager::class.java)
     private val state = MutableStateFlow(PcmPrototypeStats())
@@ -136,7 +142,7 @@ internal class SharedClockPcmPrototype(context: Context, private val host: PcmPr
     private fun launchRun() {
         val run = ++generation
         runClock = PcmFrameClock(frame)
-        job = scope.launch {
+        job = scope.launch(renderDispatcher) {
             var failure: String? = null
             var completed = false
             var sink: AudioTrack? = null
@@ -153,16 +159,24 @@ internal class SharedClockPcmPrototype(context: Context, private val host: PcmPr
                     val track = AudioTrack.Builder().setAudioAttributes(attributes).setAudioFormat(
                         AudioFormat.Builder().setSampleRate(rate).setChannelMask(AudioFormat.CHANNEL_OUT_STEREO)
                             .setEncoding(AudioFormat.ENCODING_PCM_FLOAT).build())
-                        .setBufferSizeInBytes(maxOf(minimum, PCM_BLOCK_FRAMES * 2 * 4 * 4))
+                        // 100ms scheduling headroom, not a source-rate/quality reduction.
+                        .setBufferSizeInBytes(maxOf(minimum, rate * 2 * 4 / 10))
                         .setTransferMode(AudioTrack.MODE_STREAM).build()
                     require(track.state == AudioTrack.STATE_INITIALIZED)
                     sink = track; output = track
                     var next = frame
                     var lastReport = 0L
                     var peakMixUs = 0L
+                    var peakPrepareUs = 0L
+                    var peakRenderUs = 0L
                     var started = false
-                    val prefillFrames = minOf(track.bufferSizeInFrames / 2, 4096).coerceAtLeast(PCM_BLOCK_FRAMES)
-                    state.value = PcmPrototypeStats(true, true, rate, frame, frame)
+                    val prefillFrames = minOf(track.bufferSizeInFrames - PCM_BLOCK_FRAMES,
+                        rate / 12).coerceAtLeast(PCM_BLOCK_FRAMES)
+                    val mixed = FloatArray(PCM_BLOCK_FRAMES * 2)
+                    val gains = FloatArray(slots.size)
+                    val windows = Array(slots.size) { FloatArray((PCM_BLOCK_FRAMES + PCM_SINC_RADIUS * 2 + 2) * 2) }
+                    val windowStarts = LongArray(slots.size)
+                    state.value = PcmPrototypeStats(true, true, rate, frame, frame, bufferFrames = track.bufferSizeInFrames)
                     try { while (isActive) {
                         if (next >= duration) {
                             // Drain the final output instead of cutting the primary early.
@@ -172,21 +186,36 @@ internal class SharedClockPcmPrototype(context: Context, private val host: PcmPr
                         }
                         val blockFrames = minOf(PCM_BLOCK_FRAMES.toLong(), duration - next).toInt()
                         val levels = voices
+                        val prepareStart = System.nanoTime()
                         levels.forEachIndexed { i, voice ->
                             val first = floor(pcmSourceFrame(next, rate, voice)).toLong() - PCM_SINC_RADIUS
                             val last = ceil(pcmSourceFrame(next + blockFrames - 1, rate, voice)).toLong() + PCM_SINC_RADIUS
                             lanes[i].prepare(first, last)
+                            val window = windows[i]
+                            check((last - first + 1) * 2 <= window.size) { "PCM window exceeds native-rate bound" }
+                            windowStarts[i] = first
+                            // Gather once, rather than doing deque/cache lookup for
+                            // both channels of all 32 taps of every output frame.
+                            var index = 0
+                            for (sourceFrame in first..last) {
+                                window[index++] = lanes[i].sample(sourceFrame, 0)
+                                window[index++] = lanes[i].sample(sourceFrame, 1)
+                            }
                         }
                         ensureActive()
                         val mixStart = System.nanoTime()
-                        val mixed = mixPcmBlock(next, rate, levels, blockFrames) { i, sample, channel -> lanes[i].sample(sample, channel) }
+                        peakPrepareUs = maxOf(peakPrepareUs, (mixStart - prepareStart) / 1000)
+                        mixPcmBlockInto(next, rate, levels, blockFrames, mixed, gains) { i, sample, channel ->
+                            windows[i][((sample - windowStarts[i]) * 2 + channel).toInt()]
+                        }
                         val mixUs = (System.nanoTime() - mixStart) / 1000
                         peakMixUs = maxOf(peakMixUs, mixUs)
+                        peakRenderUs = maxOf(peakRenderUs, (System.nanoTime() - prepareStart) / 1000)
                         if (started && track.playState != AudioTrack.PLAYSTATE_PLAYING) track.play()
                         var written = 0
-                        while (written < mixed.size) {
+                        while (written < blockFrames * 2) {
                             ensureActive()
-                            val count = track.write(mixed, written, mixed.size - written, AudioTrack.WRITE_BLOCKING)
+                            val count = track.write(mixed, written, blockFrames * 2 - written, AudioTrack.WRITE_BLOCKING)
                             check(count >= 0) { "AudioTrack write failed: $count" }
                             if (count == 0) { delay(1); continue }
                             written += count
@@ -201,7 +230,8 @@ internal class SharedClockPcmPrototype(context: Context, private val host: PcmPr
                         if (now - lastReport >= 100) {
                             lastReport = now
                             state.value = state.value.copy(frame = clockFrame(), submittedFrame = next,
-                                underruns = track.underrunCount, maxMixUs = peakMixUs)
+                                underruns = track.underrunCount, maxMixUs = peakMixUs,
+                                maxPrepareUs = peakPrepareUs, maxRenderUs = peakRenderUs)
                             host.onClock(state.value.frame * 1000 / rate, true)
                         }
                     } } finally { withContext(NonCancellable) { streams.forEach { it.close() } } }
@@ -241,5 +271,5 @@ internal class SharedClockPcmPrototype(context: Context, private val host: PcmPr
         }
         state.value = state.value.copy(active = false, playing = false, error = reason)
     }
-    suspend fun release() { stop(); scope.cancel() }
+    suspend fun release() { stop(); scope.cancel(); renderDispatcher.close() }
 }

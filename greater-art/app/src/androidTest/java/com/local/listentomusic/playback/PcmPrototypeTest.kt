@@ -19,9 +19,9 @@ import kotlin.math.*
 
 @RunWith(AndroidJUnit4::class)
 class PcmPrototypeTest {
-    private fun fixture(rate: Int, channels: Int): File {
+    private fun fixture(rate: Int, channels: Int, seconds: Int = 2): File {
         val file = File("/sdcard/Download", "ga-pcm-test-${UUID.randomUUID()}.wav")
-        val frames = rate * 2
+        val frames = rate * seconds
         val size = frames * channels * 2
         val bytes = ByteBuffer.allocate(44 + size).order(ByteOrder.LITTLE_ENDIAN)
         bytes.put("RIFF".toByteArray()); bytes.putInt(size + 36); bytes.put("WAVEfmt ".toByteArray())
@@ -37,7 +37,7 @@ class PcmPrototypeTest {
     private fun media(file: File) = MediaFile(file.canonicalPath, file.name, 1000, file.length(),
         file.lastModified(), MediaKind.AUDIO, sourcePath = file.canonicalPath, clipStartMs = 500, clipEndMs = 1500)
 
-    @Test fun nativeFloatStereoIsExactOrRefusedBeforeOutput(): Unit = runBlocking {
+    @Test fun nativeFloatStereoPreservesSubPcm16Samples(): Unit = runBlocking {
         val rate = 96_000
         val frames = rate / 10
         val bytes = ByteBuffer.allocate(44 + frames * 8).order(ByteOrder.LITTLE_ENDIAN)
@@ -53,35 +53,6 @@ class PcmPrototypeTest {
             file.writeBytes(bytes.array())
             val source = MediaFile(file.canonicalPath, file.name, 100, file.length(),
                 file.lastModified(), MediaKind.AUDIO)
-            val extractor = android.media.MediaExtractor()
-            val format = try {
-                extractor.setDataSource(file.canonicalPath)
-                extractor.getTrackFormat(0).also {
-                    android.util.Log.i("PcmPrototypeTest", "float source format=$it")
-                }
-            } finally { extractor.release() }
-            if (format.getInteger(android.media.MediaFormat.KEY_PCM_ENCODING) != android.media.AudioFormat.ENCODING_PCM_FLOAT) {
-                val failure = runCatching { pcmSpec(source) }.exceptionOrNull()
-                assertTrue("Converted float source must be explicitly refused", failure is IllegalArgumentException &&
-                    failure.message.orEmpty().contains("precision"))
-                if (BuildConfig.STACK_PCM_PROTOTYPE) {
-                    var acquired = false
-                    val host = object : PcmPrototypeHost {
-                        override suspend fun acquireExclusiveAudio(): Boolean { acquired = true; return true }
-                        override suspend fun restoreLegacy(positionMs: Long, resume: Boolean, reason: String?) {
-                            fail("Unsupported format changed legacy output")
-                        }
-                        override fun onClock(positionMs: Long, playing: Boolean) { fail("Unsupported format changed clock") }
-                    }
-                    val engine = SharedClockPcmPrototype(InstrumentationRegistry.getInstrumentation().targetContext, host)
-                    try {
-                        assertFalse(engine.start(listOf(StackSlot(source)), source.path))
-                        assertFalse("Unsupported precision acquired output", acquired)
-                    } finally { engine.release() }
-                }
-                android.util.Log.i("PcmPrototypeTest", "float fidelity gate: REFUSED, not a native-float playback pass")
-                return@runBlocking
-            }
             val spec = pcmSpec(source)
             assertEquals(rate, spec.rate)
             assertEquals(2, spec.channels)
@@ -96,6 +67,62 @@ class PcmPrototypeTest {
                 } }
             } finally { stream.close() }
         } finally { scope.cancel(); file.delete() }
+    }
+
+    @Test fun native192kStereo24BitKeepsEveryBitAcrossClipAndSeek(): Unit = runBlocking {
+        val rate = 192_000
+        val frames = 19_013
+        val data = ByteBuffer.allocate(44 + frames * 6).order(ByteOrder.LITTLE_ENDIAN)
+        data.put("RIFF".toByteArray()).putInt(36 + frames * 6).put("WAVEfmt ".toByteArray())
+            .putInt(16).putShort(1).putShort(2).putInt(rate).putInt(rate * 6)
+            .putShort(6).putShort(24).put("data".toByteArray()).putInt(frames * 6)
+        fun value(frame: Int, channel: Int) = if (frame % 13 == 0) channel * 2 + 1 else
+            (frame * 179 + channel * 137) % 16_777_216 - 8_388_608
+        repeat(frames) { frame -> repeat(2) { channel ->
+            val sample = value(frame, channel)
+            data.put(sample.toByte()).put((sample shr 8).toByte()).put((sample shr 16).toByte())
+        } }
+        val file = File("/sdcard/Download", "ga-pcm24-${UUID.randomUUID()}.wav")
+        val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
+        try {
+            file.writeBytes(data.array())
+            val full = MediaFile(file.canonicalPath, file.name, 100, file.length(), file.lastModified(), MediaKind.AUDIO)
+            assertEquals(frames.toLong(), pcmSpec(full).durationFrames)
+            val clip = full.copy(clipStartMs = 20, clipEndMs = 70)
+            val spec = pcmSpec(clip)
+            assertEquals(rate, spec.rate); assertEquals(2, spec.channels)
+            assertEquals(9600L, spec.durationFrames)
+            val stream = StackPcmStream(scope, clip, spec, 3000)
+            try {
+                val lane = PcmLane(stream) { fail("Native WAV unexpectedly starved") }
+                lane.prepare(3000, 3255)
+                for (frame in 3000..3255) for (channel in 0..1) {
+                    assertEquals("24-bit seek/channel mismatch $frame/$channel",
+                        value(3840 + frame, channel) / 8388608f, lane.sample(frame.toLong(), channel), 0f)
+                }
+            } finally { withTimeout(2000) { stream.close() } }
+        } finally { scope.cancel(); file.delete() }
+    }
+
+    @Test fun unsupportedInteger32IsRefusedBeforeAudioLease(): Unit = runBlocking {
+        val data = ByteBuffer.allocate(44 + 400).order(ByteOrder.LITTLE_ENDIAN)
+        data.put("RIFF".toByteArray()).putInt(436).put("WAVEfmt ".toByteArray())
+            .putInt(16).putShort(1).putShort(1).putInt(96_000).putInt(384_000)
+            .putShort(4).putShort(32).put("data".toByteArray()).putInt(400)
+        repeat(100) { data.putInt(it * 65537 + 1) }
+        val file = File("/sdcard/Download", "ga-pcm32-${UUID.randomUUID()}.wav")
+        try {
+            file.writeBytes(data.array())
+            val source = MediaFile(file.canonicalPath, file.name, 1, file.length(), file.lastModified(), MediaKind.AUDIO)
+            assertTrue(runCatching { pcmSpec(source) }.exceptionOrNull()?.message.orEmpty().contains("precision"))
+            val host = object : PcmPrototypeHost {
+                override suspend fun acquireExclusiveAudio(): Boolean { fail("Unsupported PCM32 acquired output"); return false }
+                override suspend fun restoreLegacy(positionMs: Long, resume: Boolean, reason: String?) { fail("Unsupported PCM32 changed legacy") }
+                override fun onClock(positionMs: Long, playing: Boolean) { fail("Unsupported PCM32 changed clock") }
+            }
+            val engine = SharedClockPcmPrototype(InstrumentationRegistry.getInstrumentation().targetContext, host)
+            try { assertFalse(engine.start(listOf(StackSlot(source)), source.path)) } finally { engine.release() }
+        } finally { file.delete() }
     }
 
     @Test fun nativeMonoStereoClipsAndCancellationRemainBounded() = runBlocking<Unit> {
@@ -114,7 +141,7 @@ class PcmPrototypeTest {
                     lane.prepare(0, 255)
                     assertEquals(.2 * sin(2 * PI * 1000 * 100 / rate), lane.sample(100, 0).toDouble(), .0001)
                     if (channels == 2) assertEquals(lane.sample(100, 0) * 2, lane.sample(100, 1), .0001f)
-                    // Decoder is allowed to fill only four queued chunks while consumer stalls.
+                    // Decode-ahead is bounded by sample rate, never by recording length.
                     delay(300)
                     withTimeout(2000) { stream.close() }
                 } finally { stream.close() }
@@ -133,6 +160,66 @@ class PcmPrototypeTest {
         val engine = SharedClockPcmPrototype(InstrumentationRegistry.getInstrumentation().targetContext, host)
         try { assertFalse(engine.start(emptyList(), "none")); assertFalse(acquired) }
         finally { engine.release() }
+    }
+
+    @Test fun eightVoicesStayContinuousAtNative48kAnd192k(): Unit = runBlocking {
+        assumeTrue("Requires explicit debug prototype build", BuildConfig.STACK_PCM_PROTOTYPE)
+        val instrumentation = InstrumentationRegistry.getInstrumentation()
+        val context = instrumentation.targetContext
+        val preferences = com.local.listentomusic.data.AppPreferences(context)
+        val original = preferences.current()
+        preferences.setResumePlayback(false)
+        preferences.setFloatingWindowMode(com.local.listentomusic.data.FloatingWindowMode.NONE)
+        val foreground = androidx.test.core.app.ActivityScenario.launch(com.local.listentomusic.MainActivity::class.java)
+        val connection = withContext(Dispatchers.Main) { PlaybackConnection.acquire(context) }
+        var engine: SharedClockPcmPrototype? = null
+        val files = mutableListOf<File>()
+        try {
+            val controller = withContext(Dispatchers.IO) { connection.value.get(10, TimeUnit.SECONDS) }
+            val volume = withContext(Dispatchers.Main) { controller.volume }
+            val host = object : PcmPrototypeHost {
+                override suspend fun acquireExclusiveAudio(): Boolean = withContext(Dispatchers.Main) {
+                    StackPlayback.stop(); ParallelPlayback.stopAll(); controller.stop(); controller.volume = 0f
+                    true
+                }
+                override suspend fun restoreLegacy(positionMs: Long, resume: Boolean, reason: String?) {
+                    withContext(Dispatchers.Main) { controller.volume = volume }
+                }
+                override fun onClock(positionMs: Long, playing: Boolean) = Unit
+            }
+            val candidate = SharedClockPcmPrototype(context, host)
+            engine = candidate
+            for (rate in listOf(48_000, 192_000)) {
+                val source = withContext(Dispatchers.IO) { fixture(rate, 2, 32).also(files::add) }
+                val file = MediaFile(source.canonicalPath, source.name, 32_000, source.length(), source.lastModified(), MediaKind.AUDIO)
+                val fractional = InstrumentationRegistry.getArguments().getString("fractionalOffsets") == "true"
+                val tracks = List(8) { StackSlot(file.copy(path = "${source.canonicalPath}#$it"),
+                    alignmentOffsetUs = if (fractional) it * .37 * 1_000_000 / rate else null) }
+                assertTrue(candidate.start(tracks, tracks[0].file.path))
+                candidate.setLoop(false)
+                repeat(20) { second ->
+                    delay(1000)
+                    val stats = candidate.stats.value
+                    assertNull(stats.error)
+                    assertEquals(rate, stats.outputRate)
+                    assertEquals("rate=$rate second=$second stats=$stats", 0, stats.underruns)
+                    if (second % 5 == 0) android.util.Log.i("PcmPrototypeTest", "sustained rate=$rate second=${second + 1} $stats")
+                }
+                assertTrue("Shared clock stalled: ${candidate.stats.value}", candidate.stats.value.frame >= rate * 18L)
+                android.util.Log.i("PcmPrototypeTest", "sustained final rate=$rate ${candidate.stats.value}")
+                withTimeout(2000) { candidate.stop() }
+            }
+        } finally {
+            engine?.release()
+            withContext(Dispatchers.Main) { connection.close() }
+            foreground.close()
+            context.stopService(android.content.Intent(context, PlaybackService::class.java))
+            instrumentation.waitForIdleSync()
+            preferences.setResumePlayback(original.resumePlayback)
+            preferences.setFloatingWindowMode(original.floatingWindowMode)
+            preferences.savePlayback(original.lastPath, original.lastPositionMs, original.playbackSpeed, original.repeatMode)
+            files.forEach { it.delete() }
+        }
     }
 
     @Test fun explicitPrototypeRunsEightVoicesPauseSeekLoopAndSolo() = runBlocking<Unit> {
