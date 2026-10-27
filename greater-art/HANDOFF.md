@@ -3,7 +3,7 @@
 This file describes the **current repository state only**. Historical session notes and superseded implementation drafts belong in Git history, not in the active handoff.
 
 **Project:** `greater-art/` in the repository checkout
-**Current source:** `1.21.78 (code 301)` — VERIFIED local branch sideload; not merged to main
+**Current source:** `1.21.79 (code 302)` — SOURCE_ONLY Nodes integration under verification
 **Current version:** `1.21.78 (code 301)`
 **Latest APK:** `releases/GreaterArt-1.21.78.apk` (`28,085,150 bytes`; SHA-256 `e3bbb103108a5d607c2f33f340d56f282694ac0bec298007e96d8268dface740`)
 **Application ID:** `com.local.listentomusic`
@@ -13,6 +13,14 @@ This file describes the **current repository state only**. Historical session no
 **Verification boundary:** Exact source `e52f6e0`; 440 JVM tests passed, lint 0 errors/46 warnings/4 hints, debug app/test assembly passed after commit. API36 emulator upgrade installed successfully; FullscreenToolbarTest passed 4/4 cases in 28.333s, covering visible left-side speed, menu selection/callback, narrow and ultra-narrow essential actions. Certificate unchanged; package/version, ZIP CRC, 16KiB alignment and SHA-256 checked. Component functional verification is not full fullscreen rotation, physical-device visual/acoustic/performance acceptance, production signing or universal bug-free proof. Existing Library physical trace/profile acceptance and the prior full rotation failure remain unresolved.
 
 ## Repository state
+
+### October 27 — Finish Hermes Android Nodes physics port (1.21.79/code302)
+
+- Preserve and complete all four existing uncommitted graph files; desktop unchanged. Connect Nodes drag to GraphMotion on Dispatchers.Default; generation filtering prevents obsolete graphs replacing current points. Direct dragged point follows the finger; connected nodes settle after release. Finally releases the pin on gesture cancellation/pinch/navigation. Fit and Playing use current simulated positions.
+- Cached settled graphs start asleep, with strong-link distance, weighted hub and bounded Barnes-Hut layout matching the desktop approach. Cache fingerprint changes to layout2. Add physics/worker regression tests adapted from desktop GraphMotionTests.
+- Preserve thumbnail scheduler and 80ms background surface settle behavior: the supplied audits did not demonstrate a performance benefit from keeping another video surface active through scroll. No claimed frame-time improvement.
+- Claude Library suggestions are design proposals, not verified defects. Current row already uses squared geometry, selection HashSet and RAM seed. Broad header/chips/action-sheet/deletion redesign deferred; do not silently remove explicit triple-confirm deletion policy.
+- Build, runtime and integration evidence pending. Latest verified artifact remains 1.21.78 above until exact-source verification completes.
 
 ### October 25 — Restore fullscreen speed control (1.21.78/code301)
 

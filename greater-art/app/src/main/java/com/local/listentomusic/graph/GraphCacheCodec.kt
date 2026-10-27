@@ -8,7 +8,7 @@ import java.security.MessageDigest
 object GraphCacheCodec {
     fun fingerprint(nodes: List<GraphInput>): String {
         val hash = MessageDigest.getInstance("SHA-256")
-        hash.update("graph-v1-k6-layout1".toByteArray())
+        hash.update("graph-v1-k6-layout2".toByteArray())
         nodes.sortedBy { it.id }.forEach {
             hash.update(it.id.toByteArray()); hash.update(0.toByte())
             hash.update(it.filename.toByteArray()); hash.update(0.toByte())
