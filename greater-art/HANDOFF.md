@@ -3,7 +3,7 @@
 This file describes the **current repository state only**. Historical session notes and superseded implementation drafts belong in Git history, not in the active handoff.
 
 **Project:** `greater-art/` in the repository checkout
-**Current source:** `1.21.88 (code 311)` — SOURCE_ONLY; final privacy review correction under verification; shared output disabled
+**Current source:** `1.21.89 (code 312)` — SOURCE_ONLY; final CI wiring repair under verification; shared output disabled
 **Current version:** `1.21.80 (code 303)`
 **Latest APK:** `releases/GreaterArt-1.21.80.apk` (`27,025,073 bytes`; SHA-256 `76791737701736a45b9b441851212f2c8cacf83542991b5c0e58ffbbfc3d29b4`)
 **Application ID:** `com.local.listentomusic`
@@ -13,6 +13,12 @@ This file describes the **current repository state only**. Historical session no
 **Verification boundary:** Exact source `3b49022`; Gradle9.8.2/Java21 unit/lint/debug app/test build passed. 446 JVM tests, zero failures/errors; lint 0 errors/46 warnings/4 hints. Final API36 upgrade passed 15/15 focused cases in 37.285s: Nodes tap/drag/controls/graph replacement, fullscreen speed/narrow toolbar, Library row semantics/RAM seeding, actual cache/disk-during-scroll regressions. Nine disposable Git sync-safety tests passed outside sandbox. Certificate unchanged; package/version, ZIP CRC, 16KiB alignment and SHA-256 checked. This is not full fullscreen rotation, physical-device visual/acoustic/performance acceptance, production signing or universal bug-free proof. Existing Library physical trace/profile acceptance and the prior full rotation failure remain unresolved.
 
 ## Repository state
+
+### October28 — Correct preserved build wiring (1.21.89/code312)
+
+- PR210's desktop CI built the native app and passed core tests, then correctly refused the WinUI preview because COPYRIGHT.txt was absent. Existing prepare-codec-package.ps1 generates all four required files in build/CodecDocs; CI had not called it yet, and build-native.ps1 looked in build/codecs.
+- Reuse the existing preparation step before WinUI. Read its canonical CodecDocs output. Keep missing-evidence failures and the existing source/license checks. No desktop UI/playback implementation or local desktop build is added. Advance its independent build identity to0.1.20/code21. Preserve verified0.1.16 artifacts.
+- The Android88 build reached late release packaging before a daemon termination. An unchanged serial retry passed all tasks in28s. No source defect was reported. Version89 is required for this workflow repair; its final build/device/CI checks must pass before merge. Shared output remains disabled, and the192kHz adoption blocker remains open.
 
 ### October 28 — Review repair (1.21.88/code311)
 

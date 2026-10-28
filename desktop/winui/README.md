@@ -24,8 +24,11 @@ It does not modify your media files.
 
 The build requires .NET 10, Visual Studio C++ tools and the Windows SDK.
 Build the approved codec libraries with the existing native build instructions first.
+Prepare their existing redistribution evidence before the WinUI build. Pass the
+pinned vcpkg registry path when the port was built directly from that checkout.
 
 ```powershell
+./desktop/native/prepare-codec-package.ps1 -VcpkgRegistry '<pinned-registry>'
 ./desktop/winui/build.ps1 -Publish
 ./desktop/winui/verify.ps1 -Executable '<published-folder>/GreaterArt.WinUI.exe' -Media @('<local-video>') -OutputDirectory '<new-evidence-folder>'
 ```

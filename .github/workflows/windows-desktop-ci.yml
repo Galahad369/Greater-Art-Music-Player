@@ -72,6 +72,9 @@ jobs:
           }
           Get-Content (Join-Path $out 'unit-tests.txt')
           if ($test.ExitCode -ne 0) { throw 'Native tests failed' }
+      - name: Prepare existing codec redistribution evidence
+        shell: pwsh
+        run: ./desktop/native/prepare-codec-package.ps1 -VcpkgRegistry '${{ steps.codecs.outputs.registry }}'
       - name: Set up the pinned WinUI build SDK
         uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6
         with:

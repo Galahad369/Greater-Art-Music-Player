@@ -1,6 +1,6 @@
 # Greater Art Desktop version policy
 
-Current desktop: **0.1.19 (code 20)**
+Current desktop: **0.1.20 (code 21)**
 Release state: **SOURCE_ONLY candidate — WinUI 3 playback prototype; verification and distributable pending**
 Android versions remain independent. This desktop stage does not change Android source or artifacts. Refer to the Android ledger for its current identity.
 
@@ -28,6 +28,7 @@ Every committed desktop executable/build/workflow change increments PATCH and co
 | 0.1.17 / 18 | Consumed historical identity; preserved artifacts | Previously used identity, not reused by the rebuild. Current checkout returned to the 0.1.16 source baseline; no verification is inferred from a versioned filename. |
 | 0.1.18 / 19 | Consumed historical identity; preserved artifacts | Recorded by historical ledger commit `c2d4c4e819afad5a77092bf1640dc0c481b86ee3`. Existing artifacts remain untouched; this record does not establish their provenance or verification status. |
 | 0.1.19 / 20 | SOURCE_ONLY candidate; verification pending | User-approved WinUI 3-first desktop shell with the existing native Media Foundation/Stack services behind a C ABI. Real playback, transfers, DPI and offline deployment are acceptance gates; Android is unchanged. |
+| 0.1.20 / 21 | SOURCE_ONLY build repair | CI must prepare the existing codec redistribution evidence before WinUI checks it. Read the canonical build/CodecDocs folder, not build/codecs. Keep missing-evidence failure and all license/source checks. No desktop playback or UI implementation changes. Verified0.1.16 artifacts are unchanged. |
 
 The one-time source-baseline transition from 0.1.16/code17 to 0.1.19/code20 skips the two consumed identities above. The version guard permits only this exact transition; subsequent executable/build changes still require PATCH/code +1. This does not relabel or overwrite a historical release.
 

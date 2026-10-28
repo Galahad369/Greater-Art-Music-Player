@@ -40,7 +40,7 @@ try {
     $notices = Join-Path $OutputDirectory 'Codecs'
     New-Item -ItemType Directory -Path $notices -Force | Out-Null
     foreach ($name in @('COPYRIGHT.txt', 'NOTICE.md', 'CodecSource.zip', 'BUILD-RECEIPT.json')) {
-        $source = Join-Path $nativeRoot ('build/codecs/' + $name)
+        $source = Join-Path $nativeRoot ('build/CodecDocs/' + $name)
         if (-not (Test-Path -LiteralPath $source)) { throw ('Codec redistribution evidence missing: ' + $name) }
         Copy-Item -LiteralPath $source -Destination $notices
     }
