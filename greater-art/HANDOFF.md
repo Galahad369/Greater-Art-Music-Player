@@ -3,7 +3,7 @@
 This file describes the **current repository state only**. Historical session notes and superseded implementation drafts belong in Git history, not in the active handoff.
 
 **Project:** `greater-art/` in the repository checkout
-**Current source:** `1.21.89 (code 312)` — SOURCE_ONLY; final CI wiring repair under verification; shared output disabled
+**Current source:** `1.21.89 (code 312)` — SOURCE_ONLY; bounded local/CI integration checks passed; shared output disabled
 **Current version:** `1.21.80 (code 303)`
 **Latest APK:** `releases/GreaterArt-1.21.80.apk` (`27,025,073 bytes`; SHA-256 `76791737701736a45b9b441851212f2c8cacf83542991b5c0e58ffbbfc3d29b4`)
 **Application ID:** `com.local.listentomusic`
@@ -19,6 +19,11 @@ This file describes the **current repository state only**. Historical session no
 - PR210's desktop CI built the native app and passed core tests, then correctly refused the WinUI preview because COPYRIGHT.txt was absent. Existing prepare-codec-package.ps1 generates all four required files in build/CodecDocs; CI had not called it yet, and build-native.ps1 looked in build/codecs.
 - Reuse the existing preparation step before WinUI. Read its canonical CodecDocs output. Keep missing-evidence failures and the existing source/license checks. No desktop UI/playback implementation or local desktop build is added. Advance its independent build identity to0.1.20/code21. Preserve verified0.1.16 artifacts.
 - The Android88 build reached late release packaging before a daemon termination. An unchanged serial retry passed all tasks in28s. No source defect was reported. Version89 is required for this workflow repair; its final build/device/CI checks must pass before merge. Shared output remains disabled, and the192kHz adoption blocker remains open.
+- Final89 source `402b976`:471 JVM tests pass. Lint has zero errors,47 warnings and4 hints. Debug app/test build passes in3m35s; separate optimized assembly passes in3m22s. The optimized output is not a signed-release acceptance result. All required PR210 checks pass; its Windows job also builds the native app/WinUI preview, runs core/bridge checks and prepares codec evidence successfully. Desktop remains a SOURCE_ONLY preview, not locally tested or promoted here.
+- Exact internal APK: sibling workspace `output/library-ux-20261028/GreaterArt-1.21.89-internal-test.apk`,27,055,861 bytes; SHA-256 `6a9f56944d4fe49cc19958552639b4bbd01682261e92633b9f259eea65539460`. Package1.21.89/code312, pinned certificate, ZIP CRC and16KiB ZIP alignment pass. Generated debug BuildConfig confirms STACK_PCM_PROTOTYPE=false. Verified Android1.21.80 bytes remain unchanged.
+- Final API36 functional run passes23/23 in92.738s: native WAV/URI alignment precision, actual Library IME playback/surface continuity, marker geometry/languages/actions/themes, existing rows, Nodes, disk-cache behavior and fullscreen toolbar. First89 run passed21/23: System UI and Gboard had startup ANRs before the app, and a system dialog blocked IME focus. A later instrumentation startup ANR was traced to ART inflating the test APK during initInstrumentation, before app code. Windows also failed to start one command with0xC0000142 under low free memory. Keep these failed logs.
+- After the user freed resources, the owned emulator restarted without system ANRs. Precompile only com.local.listentomusic.test with the standard ART speed command, then repeat the identical tests with unchanged APK, timeouts and assertions. All23 pass. This is functional evidence, not normal cold-install startup, physical-device performance, acoustic acceptance or universal crash-free proof. See Android's CompilationMode.Full reference.
+- Prevention: keep build/license checks intact and generate evidence before consumers. Check emulator system ANRs/focus and instrumentation loader traces before classifying a UI timeout. Keep large Gradle packaging separate under host pressure. Do not mask test failure, weaken assertions or lower media quality.
 
 ### October 28 — Review repair (1.21.88/code311)
 
