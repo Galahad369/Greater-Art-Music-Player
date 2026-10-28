@@ -6,6 +6,8 @@ The existing required security workflow and scanner remain unchanged. The
 separate manual historical audit detects workstation paths in all commits
 reachable from the refs in its checkout. It prints counts, not matched values.
 It is not a full secret, filename, author, tag, fork or cache assessment.
+Filesystem/process errors from the rehearsal use fixed messages. Raw OS
+exception text must not expose a supplied private mirror path or account name.
 
 ## Run the safe checks
 

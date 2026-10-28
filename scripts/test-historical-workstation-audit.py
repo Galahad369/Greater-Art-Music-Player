@@ -11,6 +11,21 @@ AUDIT = Path(__file__).with_name('audit-historical-workstation-paths.py')
 
 
 class HistoricalAuditTests(unittest.TestCase):
+    def test_rehearsal_os_error_is_private_and_creates_no_output(self):
+        with tempfile.TemporaryDirectory(prefix='ga-rehearsal-private-test-') as temporary:
+            root = Path(temporary)
+            missing = root / 'synthetic-private-account' / 'missing.git'
+            output = root / 'must-not-be-created.git'
+            result = subprocess.run([sys.executable, str(AUDIT.with_name('pr24-rehearse-history.py')),
+                                     '--mirror', str(missing), '--output', str(output),
+                                     '--expected-main', '0' * 40, '--confirm-disposable-rehearsal'],
+                                    capture_output=True, text=True, encoding='utf-8')
+            self.assertEqual(1, result.returncode)
+            self.assertIn('Filesystem or process access failed', result.stderr)
+            self.assertNotIn(str(root), result.stdout + result.stderr)
+            self.assertNotIn('synthetic-private-account', result.stdout + result.stderr)
+            self.assertFalse(output.exists())
+
     def test_clean_deleted_paths_and_non_repository(self):
         with tempfile.TemporaryDirectory(prefix='ga-history-audit-test-') as temporary:
             root = Path(temporary)

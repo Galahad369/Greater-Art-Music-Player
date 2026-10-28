@@ -133,6 +133,10 @@ def main():
 if __name__ == '__main__':
     try:
         main()
-    except (RuntimeError, OSError) as error:
+    except RuntimeError as error:
         print('[BLOCKED] ' + str(error), file=sys.stderr)
+        sys.exit(1)
+    except OSError:
+        # OS exception text can contain the mirror path or private account name.
+        print('[BLOCKED] Filesystem or process access failed; nothing published.', file=sys.stderr)
         sys.exit(1)
