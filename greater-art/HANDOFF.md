@@ -3,7 +3,7 @@
 This file describes the **current repository state only**. Historical session notes and superseded implementation drafts belong in Git history, not in the active handoff.
 
 **Project:** `greater-art/` in the repository checkout
-**Current source:** `1.21.89 (code 312)` — SOURCE_ONLY; bounded local/CI integration checks passed; shared output disabled
+**Current source:** `1.21.90 (code 313)` — SOURCE_ONLY corrective branch; local build and API36 visual checks pass; do not merge without explicit authorization
 **Current version:** `1.21.80 (code 303)`
 **Latest APK:** `releases/GreaterArt-1.21.80.apk` (`27,025,073 bytes`; SHA-256 `76791737701736a45b9b441851212f2c8cacf83542991b5c0e58ffbbfc3d29b4`)
 **Application ID:** `com.local.listentomusic`
@@ -13,6 +13,17 @@ This file describes the **current repository state only**. Historical session no
 **Verification boundary:** Exact source `3b49022`; Gradle9.8.2/Java21 unit/lint/debug app/test build passed. 446 JVM tests, zero failures/errors; lint 0 errors/46 warnings/4 hints. Final API36 upgrade passed 15/15 focused cases in 37.285s: Nodes tap/drag/controls/graph replacement, fullscreen speed/narrow toolbar, Library row semantics/RAM seeding, actual cache/disk-during-scroll regressions. Nine disposable Git sync-safety tests passed outside sandbox. Certificate unchanged; package/version, ZIP CRC, 16KiB alignment and SHA-256 checked. This is not full fullscreen rotation, physical-device visual/acoustic/performance acceptance, production signing or universal bug-free proof. Existing Library physical trace/profile acceptance and the prior full rotation failure remain unresolved.
 
 ## Repository state
+
+### Library dot correction —1.21.90/code313
+
+- The previous24dp arrow badge misunderstood the intended design, despite earlier geometry tests passing. Remove it, not reposition it.
+- Use4dp leading space with artwork and reserve8dp at the end of the artwork slot. Ordinary artwork moves8dp left; only current artwork moves8dp right relative to that new baseline. Text/details/actions retain their measured positions. A separate6dp dot has2dp clearance from active artwork. Paused state uses a muted dot. Thumbnail-off rows retain a small dot before the unchanged title position.
+- Preserve row interaction/highlight/reorder and translated playing/paused state. Do not change the keyboard-safe dock implementation or unrelated screens/engines/tooling.
+- Replace the incorrect stationary-artwork test with compact-baseline/active-offset assertions. Add full Activity captures with discovered local media across light/dark, all three row sizes, thumbnails on/off and playing/paused.
+- Java21/Gradle9.8.2:471 JVM tests pass, zero failures; lint has zero errors,47 warnings and4 hints. Debug app/test assembly passes. API36:12/12 focused cases pass in132.598s, including current-song switching, all row/Mini sizes, translated playing/paused states, row actions/reorder, and actual audio/video IME-safe dock regression with CURRENT_VIDEO wallpaper.
+- Visual check: inspect all24 full-Activity captures (light/dark, small/medium/large, thumbnails on/off, playing/paused). The current row sits between ordinary rows in the real Library of413 discovered files; solid-colour QA videos make alignment clear. Also inspect two captures with actual cover songs and CURRENT_VIDEO wallpaper. The6dp dot does not overlap artwork, the8dp current indentation is visible, and title/action columns remain aligned. This is emulator acceptance, not physical-phone or performance acceptance.
+- Local-only evidence and internal APK: sibling workspace `output/library-dot-20261028/`; APK `GreaterArt-1.21.90-internal-test.apk`,27,055,861 bytes, SHA-256 `3165ce7bc855f6c50781ead4997ce180a553ebb34b9420e2ae5dcbaec0abbfd2`. Package/code,16KiB alignment and unchanged pinned certificate pass. Do not replace the verified1.21.80 release.
+- Prevention: do not encode the opposite design requirement in a test. Verify compact ordinary artwork and only-current indentation separately, then inspect the actual Library. Round dp offsets to physical pixels in geometry tests. Test-only ART precompilation avoids emulator instrumentation-startup overhead; it is not a production performance measurement. See [the focused verification record](docs/LIBRARY_DOT_CORRECTION_2026-10-28.md). Do not merge without explicit user authorization.
 
 ### October28 — Correct preserved build wiring (1.21.89/code312)
 

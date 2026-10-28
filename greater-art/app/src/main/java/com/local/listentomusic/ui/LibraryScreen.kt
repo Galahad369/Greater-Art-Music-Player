@@ -101,7 +101,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
@@ -842,15 +841,17 @@ internal fun MediaFileRow(
                 .padding(horizontal = 14.dp, vertical = rowSize.verticalPadding),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            // Keep the measured gutter unchanged. Badges use this gutter and the
-            // existing row padding instead of moving artwork, text or actions.
-            Spacer(Modifier.width(12.dp))
+            // Compact ordinary artwork by 8dp, but reserve that space at the
+            // slot's end so titles/actions stay put when the current song changes.
+            Spacer(Modifier.width(if (showThumbnails) 4.dp else 12.dp))
             if (showThumbnails) {
-                Box {
-                    MediaThumbnail(file, thumbnail, rowSize, miniSize, thumbnailBrush)
+                Box(Modifier.padding(end = 8.dp)) {
+                    Box(Modifier.offset(x = if (isCurrent) 8.dp else 0.dp)) {
+                        MediaThumbnail(file, thumbnail, rowSize, miniSize, thumbnailBrush)
+                    }
                     if (isCurrent) {
                         LibraryCurrentIndicator(isPlaying,
-                            Modifier.align(Alignment.CenterStart).offset(x = -8.dp))
+                            Modifier.align(Alignment.CenterStart))
                     }
                 }
                 Spacer(Modifier.width(rowSize.textSpacing))
@@ -885,10 +886,8 @@ internal fun MediaFileRow(
                     }
                 }
                 if (!showThumbnails && isCurrent) {
-                    // The 20dp badge ends 2dp before the title and stays within the
-                    // original 14dp row padding + 12dp gutter. It measures no artwork gap.
                     LibraryCurrentIndicator(isPlaying,
-                        Modifier.align(Alignment.CenterStart).offset(x = -22.dp), size = 20.dp)
+                        Modifier.align(Alignment.CenterStart).offset(x = -10.dp))
                 }
             }
             if (dragEnabled) Icon(Icons.Rounded.DragHandle, "Reorder", tint = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -904,17 +903,11 @@ internal fun MediaFileRow(
 
 /** A status mark, not another control. The enclosing row announces playback state. */
 @Composable
-private fun LibraryCurrentIndicator(isPlaying: Boolean, modifier: Modifier = Modifier, size: Dp = 24.dp) {
-    Box(modifier.size(size).background(MaterialTheme.colorScheme.primary, CircleShape)
-        .testTag("LIBRARY_CURRENT_INDICATOR"), contentAlignment = Alignment.Center) {
-        if (isPlaying) {
-            Icon(Icons.Rounded.PlayArrow, null,
-                Modifier.size(16.dp).testTag("LIBRARY_CURRENT_PLAY_SYMBOL"),
-                tint = MaterialTheme.colorScheme.onPrimary)
-        } else {
-            Box(Modifier.size(8.dp).background(MaterialTheme.colorScheme.onPrimary, CircleShape)
-                .testTag("LIBRARY_CURRENT_PAUSED_SYMBOL"))
-        }
+private fun LibraryCurrentIndicator(isPlaying: Boolean, modifier: Modifier = Modifier) {
+    Box(modifier.size(6.dp).testTag("LIBRARY_CURRENT_INDICATOR")) {
+        Box(Modifier.fillMaxSize()
+            .background(MaterialTheme.colorScheme.primary.copy(alpha = if (isPlaying) 1f else .45f), CircleShape)
+            .testTag(if (isPlaying) "LIBRARY_CURRENT_PLAY_DOT" else "LIBRARY_CURRENT_PAUSED_DOT"))
     }
 }
 
