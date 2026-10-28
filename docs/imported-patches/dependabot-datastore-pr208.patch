@@ -1,0 +1,39 @@
+From 20efd0ad88769fcf6342ef7b335ce357ca6fe734 Mon Sep 17 00:00:00 2001
+From: "dependabot[bot]" <49699333+dependabot[bot]@users.noreply.github.com>
+Date: Tue, 27 Oct 2026 11:31:57 +0000
+Subject: [PATCH] Bump androidx.datastore:datastore-preferences
+
+Bumps the android-gradle-dependencies group with 1 update in the /greater-art directory: androidx.datastore:datastore-preferences.
+
+
+Updates `androidx.datastore:datastore-preferences` from 1.2.1 to 1.3.0
+
+---
+updated-dependencies:
+- dependency-name: androidx.datastore:datastore-preferences
+  dependency-version: 1.3.0
+  dependency-type: direct:production
+  update-type: version-update:semver-minor
+  dependency-group: android-gradle-dependencies
+...
+
+Signed-off-by: dependabot[bot] <support@github.com>
+---
+ greater-art/app/build.gradle.kts | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/greater-art/app/build.gradle.kts b/greater-art/app/build.gradle.kts
+index 9bfaf79..d1d304e 100644
+--- a/greater-art/app/build.gradle.kts
++++ b/greater-art/app/build.gradle.kts
+@@ -94,7 +94,7 @@ dependencies {
+     implementation("androidx.lifecycle:lifecycle-runtime-compose:2.11.0")
+     implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.11.0")
+     implementation("androidx.lifecycle:lifecycle-viewmodel-ktx:2.11.0")
+-    implementation("androidx.datastore:datastore-preferences:1.2.1")
++    implementation("androidx.datastore:datastore-preferences:1.3.0")
+ 
+     implementation("androidx.compose.ui:ui")
+     implementation("androidx.compose.ui:ui-tooling-preview")
+-- 
+2.54.0.windows.1

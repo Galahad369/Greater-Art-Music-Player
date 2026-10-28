@@ -3,7 +3,7 @@
 This file describes the **current repository state only**. Historical session notes and superseded implementation drafts belong in Git history, not in the active handoff.
 
 **Project:** `greater-art/` in the repository checkout
-**Current source:** `1.21.86 (code 309)` — SOURCE_ONLY; source preservation integration under test; shared output disabled
+**Current source:** `1.21.87 (code 310)` — SOURCE_ONLY; safe-tools and dependency integration under test; shared output disabled
 **Current version:** `1.21.80 (code 303)`
 **Latest APK:** `releases/GreaterArt-1.21.80.apk` (`27,025,073 bytes`; SHA-256 `76791737701736a45b9b441851212f2c8cacf83542991b5c0e58ffbbfc3d29b4`)
 **Application ID:** `com.local.listentomusic`
@@ -13,6 +13,15 @@ This file describes the **current repository state only**. Historical session no
 **Verification boundary:** Exact source `3b49022`; Gradle9.8.2/Java21 unit/lint/debug app/test build passed. 446 JVM tests, zero failures/errors; lint 0 errors/46 warnings/4 hints. Final API36 upgrade passed 15/15 focused cases in 37.285s: Nodes tap/drag/controls/graph replacement, fullscreen speed/narrow toolbar, Library row semantics/RAM seeding, actual cache/disk-during-scroll regressions. Nine disposable Git sync-safety tests passed outside sandbox. Certificate unchanged; package/version, ZIP CRC, 16KiB alignment and SHA-256 checked. This is not full fullscreen rotation, physical-device visual/acoustic/performance acceptance, production signing or universal bug-free proof. Existing Library physical trace/profile acceptance and the prior full rotation failure remain unresolved.
 
 ## Repository state
+
+### October 28 — Safe privacy tools and DataStore integration (1.21.87/code310)
+
+- User approved safe tools only. Retain PR174 history and its preparation plan, but keep the existing required security workflow/scanner unchanged. Do not import its stale Android metadata or setup-java downgrade.
+- Repair Python replacement patterns so they cannot consume another line. Use separate Git ERE patterns that do not mistake the letters r/n for control characters. Preserve Unicode and spaced-account detection. Manual dispatch now actually runs tests and the read-only audit. A disposable rewrite is false by default and requires an explicit input and confirmation; it has no publish permission or step. No rehearsal or public-history rewrite was run in this task.
+- Synthetic matching passed23 subcases. The replacement deleted-history test passed clean-history, four deleted path variants, identity-safe output and operational-error checks. The live read-only audit reported761 reachable commits and19 affected paths before integration. It correctly returned failure. Issue24 is not resolved.
+- Adopt only the one-line DataStore1.2.1 to1.3.0 update from PR208. Its original unversioned commit cannot pass the guard. Preserve its exact mail patch in docs/imported-patches and its original commit under a local archive ref before branch cleanup. Credit Dependabot; do not waive versioning or change the signing identity.
+- Final local build passes with DataStore1.3.0:471 JVM tests, zero lint errors (47 warnings/4 hints), debug app/test and optimized release assembly. API36 final upgrade passes19/19 native precision/URI, Library IME/marker/actions, Nodes and real-cache cases in70.684s, plus4/4 fullscreen toolbar cases in8.672s. The generated BuildConfig confirms STACK_PCM_PROTOTYPE=false. The unchanged required security audit passes. PR checks are pending. Desktop source remains the other agent's preserved0.1.19 preview, not a new verified delivery. Shared output remains disabled and its192kHz underrun is still an adoption blocker.
+- Internal-only candidate: sibling workspace `output/library-ux-20261028/GreaterArt-1.21.87-internal-test.apk`,27,055,861 bytes; SHA-256 `46362a0484481be672a2c159aa85113d94181427f8fe6cbe6adfefbee26f44db`. Package1.21.87/code310, ZIP CRC,16KiB alignment and the pinned certificate pass. This is not a promoted release.
 
 ### October 28 — Preserve source without enabling failed output (1.21.86/code309)
 
