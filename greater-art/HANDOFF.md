@@ -3,7 +3,7 @@
 This file describes the **current repository state only**. Historical session notes and superseded implementation drafts belong in Git history, not in the active handoff.
 
 **Project:** `greater-art/` in the repository checkout
-**Current source:** `1.21.85 (code 308)` — SOURCE_ONLY; focused Library checks passed locally; PR checks pending
+**Current source:** `1.21.86 (code 309)` — SOURCE_ONLY; source preservation integration under test; shared output disabled
 **Current version:** `1.21.80 (code 303)`
 **Latest APK:** `releases/GreaterArt-1.21.80.apk` (`27,025,073 bytes`; SHA-256 `76791737701736a45b9b441851212f2c8cacf83542991b5c0e58ffbbfc3d29b4`)
 **Application ID:** `com.local.listentomusic`
@@ -13,6 +13,16 @@ This file describes the **current repository state only**. Historical session no
 **Verification boundary:** Exact source `3b49022`; Gradle9.8.2/Java21 unit/lint/debug app/test build passed. 446 JVM tests, zero failures/errors; lint 0 errors/46 warnings/4 hints. Final API36 upgrade passed 15/15 focused cases in 37.285s: Nodes tap/drag/controls/graph replacement, fullscreen speed/narrow toolbar, Library row semantics/RAM seeding, actual cache/disk-during-scroll regressions. Nine disposable Git sync-safety tests passed outside sandbox. Certificate unchanged; package/version, ZIP CRC, 16KiB alignment and SHA-256 checked. This is not full fullscreen rotation, physical-device visual/acoustic/performance acceptance, production signing or universal bug-free proof. Existing Library physical trace/profile acceptance and the prior full rotation failure remain unresolved.
 
 ## Repository state
+
+### October 28 — Preserve source without enabling failed output (1.21.86/code309)
+
+- Retain the three original versioned experiment commits as merge ancestry. Restore the saved 1.21.84 transport source and its five new helper/test files. Keep all Library 1.21.85 source and evidence. Resolve only stale metadata to this new identity.
+- The shared-output start gate remains DEBUG plus the explicit stackPcmPrototype property. Production service routing does not instantiate it. Native WAV precision in alignment windows and cache revision2 are production analysis changes; they require their own regression checks.
+- The saved enabled transport candidate passed the slow 8kHz survivor/seek/pause/tempo case. Its eight-lane 192kHz stereo tempo/pitch case failed with one underrun: maximum mix178302us, prepare300224us and render456367us. Do not weaken the test or call full parity complete. See the refinement report.
+- Preserve the other agent's completed desktop source exactly: 0.1.19/code20 SOURCE_ONLY WinUI preview, its native bridge, docs and CI. No local desktop build, UI control or new feature work is performed in this mobile task. Keep verified desktop0.1.16 and Android1.21.80 artifacts unchanged.
+- Restore only inventoried source paths from the named checkpoint. All17 tracked source paths and32 new source paths match the saved blobs. Generated bin/obj/native-build/artifacts files remain on disk and ignored. Keep the checkpoint until main integration has been verified.
+- Integration checks:471 JVM tests pass; lint has zero errors,47 warnings and4 hints. Debug app/test and optimized release builds pass. API36 default-off native WAV/SAF alignment-window precision plus Library IME/marker tests pass8/8 in83.746s. Desktop version tests pass9/9; no local desktop build is claimed. These are not shared-output adoption or physical-device acceptance.
+- Library PR209 merged as `0b65732`; all Android, desktop, version and security checks passed. The integration preserves its exact source and tests.
 
 ### October 28 — Focused Library UX fixes (1.21.85/code308)
 

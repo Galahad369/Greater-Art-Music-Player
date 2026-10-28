@@ -72,6 +72,16 @@ jobs:
           }
           Get-Content (Join-Path $out 'unit-tests.txt')
           if ($test.ExitCode -ne 0) { throw 'Native tests failed' }
+      - name: Set up the pinned WinUI build SDK
+        uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6
+        with:
+          dotnet-version: '10.0.300'
+      - name: Build the self-contained WinUI preview
+        shell: pwsh
+        run: ./desktop/winui/build.ps1 -Publish
+      - name: Verify the native graph bridge
+        shell: pwsh
+        run: ./desktop/winui/test-graph.ps1
       - name: Package offline installer if build tools are available
         shell: pwsh
         run: |

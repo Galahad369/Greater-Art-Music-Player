@@ -1,0 +1,111 @@
+<Window
+    x:Class="GreaterArt.Desktop.MainWindow"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="using:GreaterArt.Desktop"
+    Title="Greater Art">
+    <Grid x:Name="Root" Background="#10171B" RequestedTheme="Dark" Loaded="OnLoaded" SizeChanged="OnRootSizeChanged">
+        <Grid.Resources>
+            <DataTemplate x:Key="TrackTemplate" x:DataType="local:LibraryTrack">
+                <Grid Padding="8,10" ColumnSpacing="12" MinHeight="64">
+                    <Grid.ColumnDefinitions><ColumnDefinition Width="8"/><ColumnDefinition Width="42"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                    <TextBlock Text="{x:Bind Marker, Mode=OneWay}" Foreground="{StaticResource GaAccent}" VerticalAlignment="Center" />
+                    <Border Grid.Column="1" Background="#233137" CornerRadius="3" Width="42" Height="42">
+                        <FontIcon Glyph="&#xE8D6;" FontSize="20" Foreground="{StaticResource GaAccent}" />
+                    </Border>
+                    <StackPanel Grid.Column="2" VerticalAlignment="Center" Spacing="4">
+                        <TextBlock Text="{x:Bind Title}" FontSize="15" TextTrimming="CharacterEllipsis" />
+                        <TextBlock Text="{x:Bind Detail}" Foreground="{StaticResource GaMuted}" FontSize="12" />
+                    </StackPanel>
+                </Grid>
+            </DataTemplate>
+        </Grid.Resources>
+        <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+        <Grid x:Name="BrandHeader" Padding="24,18" ColumnSpacing="16" Background="#141E23">
+            <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+            <StackPanel Orientation="Horizontal" Spacing="12">
+                <Button x:Name="CompactNavigation" Visibility="Collapsed" Style="{StaticResource GaIconButton}" AutomationProperties.Name="Navigation">
+                    <FontIcon Glyph="&#xE700;" FontSize="23"/>
+                    <Button.Flyout><MenuFlyout><MenuFlyoutItem Text="Library" Click="ShowLibrary"/><MenuFlyoutItem Text="Nodes" Click="ShowNodes"/><MenuFlyoutItem Text="Now Playing" Click="ShowNowPlaying"/><MenuFlyoutItem Text="Settings" Click="ShowSettings"/></MenuFlyout></Button.Flyout>
+                </Button>
+                <Viewbox Width="32" Height="32"><Path Data="M 1,14 L 7,14 L 10,7 L 14,23 L 18,2 L 22,18 L 25,10 L 28,14 L 33,14" Stroke="{StaticResource GaAccent}" StrokeThickness="2.4" StrokeLineJoin="Round" Width="34" Height="26"/></Viewbox>
+            </StackPanel>
+            <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="12" VerticalAlignment="Center">
+                <TextBlock Text="Greater Art" FontSize="23" FontWeight="SemiBold" />
+            </StackPanel>
+            <Button Grid.Column="2" Click="ChooseFolder" AutomationProperties.Name="Add media folder"><StackPanel Orientation="Horizontal" Spacing="8"><FontIcon Glyph="&#xE8B7;" FontSize="18"/><TextBlock Text="Add folder"/></StackPanel></Button>
+        </Grid>
+        <Grid Grid.Row="1">
+            <Grid.ColumnDefinitions><ColumnDefinition x:Name="NavigationWidth" Width="172"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+            <StackPanel x:Name="Navigation" Padding="12,24" Spacing="8" Background="#121B20">
+                <Button x:Name="LibraryNav" Click="ShowLibrary" HorizontalAlignment="Stretch" HorizontalContentAlignment="Left" Background="#263D3B" BorderThickness="0" Padding="14" AutomationProperties.Name="Library"><StackPanel Orientation="Horizontal" Spacing="12"><FontIcon Glyph="&#xE8F1;" FontSize="20"/><TextBlock Text="Library"/></StackPanel></Button>
+                <Button x:Name="NodesNav" Click="ShowNodes" HorizontalAlignment="Stretch" HorizontalContentAlignment="Left" Background="Transparent" BorderThickness="0" Padding="14" AutomationProperties.Name="Nodes"><StackPanel Orientation="Horizontal" Spacing="12"><FontIcon Glyph="&#xE774;" FontSize="20"/><TextBlock Text="Nodes"/></StackPanel></Button>
+                <Button x:Name="PlayingNav" Click="ShowNowPlaying" HorizontalAlignment="Stretch" HorizontalContentAlignment="Left" Background="Transparent" BorderThickness="0" Padding="14" AutomationProperties.Name="Now Playing"><StackPanel Orientation="Horizontal" Spacing="12"><FontIcon Glyph="&#xE768;" FontSize="20"/><TextBlock Text="Now Playing"/></StackPanel></Button>
+                <Button x:Name="SettingsNav" Click="ShowSettings" HorizontalAlignment="Stretch" HorizontalContentAlignment="Left" Background="Transparent" BorderThickness="0" Padding="14" AutomationProperties.Name="Settings"><StackPanel Orientation="Horizontal" Spacing="12"><FontIcon Glyph="&#xE713;" FontSize="20"/><TextBlock Text="Settings"/></StackPanel></Button>
+            </StackPanel>
+            <Grid Grid.Column="1" Padding="28,24,28,16" x:Name="LibraryView">
+                <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
+                <Grid Margin="0,0,0,20"><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                    <StackPanel Spacing="6"><TextBlock Text="Your library" FontSize="32" FontWeight="SemiBold"/><TextBlock x:Name="LibraryInfo" Text="Choose a folder to begin. Nothing leaves this computer." Foreground="{StaticResource GaMuted}"/></StackPanel>
+                    <Button Grid.Column="1" Style="{StaticResource GaIconButton}" Click="RefreshLibrary" AutomationProperties.Name="Refresh library"><FontIcon Glyph="&#xE72C;" FontSize="22"/></Button>
+                </Grid>
+                <TextBox x:Name="Search" Grid.Row="1" PlaceholderText="Find a track" TextChanged="FilterChanged" Margin="0,0,0,16" AutomationProperties.Name="Filter library" />
+                <ListView x:Name="LibraryList" Grid.Row="2" ItemTemplate="{StaticResource TrackTemplate}" SelectionMode="None" IsItemClickEnabled="True" ItemClick="TrackClicked" Background="Transparent" BorderThickness="0" />
+            </Grid>
+            <local:GraphPage x:Name="GraphView" Grid.Column="1" Visibility="Collapsed"/>
+            <Grid x:Name="PlayerView" Grid.Column="1" Padding="24,16" Visibility="Collapsed" RowSpacing="12" SizeChanged="PlayerLayoutChanged">
+                <Grid.ColumnDefinitions><ColumnDefinition x:Name="MediaWidth" Width="*"/><ColumnDefinition x:Name="QueueWidth" Width="0"/></Grid.ColumnDefinitions>
+                <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition x:Name="PlayerMediaRow" Height="2*" MinHeight="100"/><RowDefinition Height="Auto"/><RowDefinition x:Name="PlayerQueueRow" Height="*" MinHeight="48"/></Grid.RowDefinitions>
+                <Grid Grid.ColumnSpan="2"><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                    <TextBlock Text="Now Playing" FontSize="24" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                    <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="4">
+                        <Button x:Name="MiniButton" Style="{StaticResource GaIconButton}" Click="Detach" AutomationProperties.Name="Mini player"><FontIcon Glyph="&#xE8A7;" FontSize="23"/></Button>
+                        <Button x:Name="FullscreenButton" Style="{StaticResource GaIconButton}" Click="ToggleFullscreen" AutomationProperties.Name="Fullscreen"><FontIcon Glyph="&#xE740;" FontSize="23"/></Button>
+                    </StackPanel>
+                </Grid>
+                <Border x:Name="PlayerStage" Grid.Row="1" Background="Black" SizeChanged="OnStageSizeChanged" CornerRadius="0">
+                    <FontIcon Glyph="&#xE8D6;" Foreground="#45615F" FontSize="56"/>
+                </Border>
+                <Grid x:Name="PlayerIdentity" Grid.Row="2"><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                    <StackPanel Spacing="5"><TextBlock x:Name="PlayerTitle" Text="Choose something to play" FontSize="21" FontWeight="SemiBold" MaxLines="2" TextWrapping="Wrap" TextTrimming="CharacterEllipsis"/><TextBlock x:Name="PlayerDetail" Foreground="{StaticResource GaMuted}" FontSize="12"/></StackPanel>
+                    <Button Grid.Column="1" Style="{StaticResource GaIconButton}" Click="FocusQueue" AutomationProperties.Name="Search queue"><FontIcon Glyph="&#xE721;" FontSize="23"/></Button>
+                </Grid>
+                <Grid x:Name="PlayerQueue" Grid.Row="3"><Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
+                    <TextBox x:Name="QueueSearch" PlaceholderText="Search this queue" Visibility="Collapsed" TextChanged="QueueFilterChanged" Margin="0,0,0,8" AutomationProperties.Name="Search queue tracks"/>
+                    <ListView x:Name="QueueList" Grid.Row="1" ItemTemplate="{StaticResource TrackTemplate}" SelectionMode="None" IsItemClickEnabled="True" ItemClick="TrackClicked" Background="Transparent"/>
+                </Grid>
+            </Grid>
+            <ScrollViewer x:Name="SettingsView" Grid.Column="1" Visibility="Collapsed" Padding="32,24">
+                <StackPanel Spacing="24" MaxWidth="680" HorizontalAlignment="Stretch">
+                    <TextBlock Text="Settings" FontSize="32" FontWeight="SemiBold"/>
+                    <TextBlock Text="Playback" FontSize="20" FontWeight="SemiBold"/>
+                    <Slider x:Name="Volume" Header="Output volume" Minimum="0" Maximum="100" Value="100" ValueChanged="VolumeChanged" AutomationProperties.Name="Output volume"/>
+                    <ToggleSwitch x:Name="Ambient" Header="Dynamic Ambient" OnContent="Video colors" OffContent="Plain dark" Toggled="AmbientChanged" AutomationProperties.Name="Dynamic Ambient video colors"/>
+                    <TextBlock Text="A subtle background gradient sampled from the playing video. This changes the interface only, never the source quality." TextWrapping="Wrap" Foreground="{StaticResource GaMuted}"/>
+                    <TextBlock Text="Source resolution, bitrate and frame rate are never reduced to make the interface smoother." TextWrapping="Wrap" Foreground="{StaticResource GaMuted}"/>
+                    <TextBlock Text="Privacy &amp; files" FontSize="20" FontWeight="SemiBold"/>
+                    <TextBlock Text="This desktop prototype reads only folders you choose. It does not change your existing desktop settings or Android files. No accounts, telemetry or network playback." TextWrapping="Wrap" Foreground="{StaticResource GaMuted}"/>
+                    <TextBlock x:Name="FolderInfo" Text="No media folder selected." TextWrapping="Wrap"/>
+                    <Button Click="ChooseFolder" HorizontalAlignment="Left">Choose media folder</Button>
+                </StackPanel>
+            </ScrollViewer>
+        </Grid>
+        <Grid x:Name="Transport" Grid.Row="2" Background="#1A2A2D" Padding="16,10" ColumnSpacing="16" RowSpacing="5">
+            <Grid.ColumnDefinitions><ColumnDefinition x:Name="DockWidth" Width="128"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+            <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+            <Border x:Name="DockStage" Grid.RowSpan="2" Background="Black" Width="128" Height="72" SizeChanged="OnStageSizeChanged" PointerPressed="OpenFromDock"><FontIcon Glyph="&#xE8D6;" FontSize="25" Foreground="{StaticResource GaAccent}"/></Border>
+            <Button x:Name="DockOpenButton" Grid.Column="1" Click="ShowNowPlaying" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" VerticalAlignment="Stretch" Background="Transparent" BorderThickness="0" Padding="0,8" AutomationProperties.Name="Open Now Playing">
+                <StackPanel VerticalAlignment="Center" Spacing="4"><TextBlock x:Name="DockTitle" Text="Nothing playing" FontSize="15" FontWeight="SemiBold" TextTrimming="CharacterEllipsis"/><TextBlock x:Name="Status" Text="Offline · ready" FontSize="12" Foreground="{StaticResource GaMuted}" TextTrimming="CharacterEllipsis"/></StackPanel>
+            </Button>
+            <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
+                <Button x:Name="RepeatButton" Style="{StaticResource GaIconButton}" Click="ToggleRepeat" AutomationProperties.Name="Repeat"><FontIcon x:Name="RepeatIcon" Glyph="&#xE8EE;" FontSize="22"/></Button>
+                <Button x:Name="PreviousButton" Style="{StaticResource GaIconButton}" Click="Previous" AutomationProperties.Name="Previous"><FontIcon Glyph="&#xE892;" FontSize="24"/></Button>
+                <Button x:Name="PlayButton" Click="PlayPause" Width="52" Height="48" Background="{StaticResource GaAccent}" Foreground="#101C1A" AutomationProperties.Name="Play or pause"><FontIcon x:Name="PlayIcon" Glyph="&#xE768;" FontSize="26"/></Button>
+                <Button x:Name="NextButton" Style="{StaticResource GaIconButton}" Click="Next" AutomationProperties.Name="Next"><FontIcon Glyph="&#xE893;" FontSize="24"/></Button>
+                <Button x:Name="SpeedButton" Content="1.0×" Width="66" Height="44" AutomationProperties.Name="Playback speed"><Button.Flyout><MenuFlyout><MenuFlyoutItem Text="0.5×" Tag="0.5" Click="SetSpeed"/><MenuFlyoutItem Text="0.75×" Tag="0.75" Click="SetSpeed"/><MenuFlyoutItem Text="1.0×" Tag="1" Click="SetSpeed"/><MenuFlyoutItem Text="1.25×" Tag="1.25" Click="SetSpeed"/><MenuFlyoutItem Text="1.5×" Tag="1.5" Click="SetSpeed"/><MenuFlyoutItem Text="2.0×" Tag="2" Click="SetSpeed"/></MenuFlyout></Button.Flyout></Button>
+                <Button Style="{StaticResource GaIconButton}" Click="ShowNowPlaying" AutomationProperties.Name="Open player"><FontIcon Glyph="&#xE70E;" FontSize="20"/></Button>
+            </StackPanel>
+            <Grid Grid.Row="1" Grid.Column="1" Grid.ColumnSpan="2" ColumnSpacing="12"><Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions><TextBlock x:Name="Elapsed" Text="0:00" FontSize="12" VerticalAlignment="Center"/><Slider x:Name="Timeline" Grid.Column="1" Minimum="0" Maximum="1" ValueChanged="SeekChanged" AutomationProperties.Name="Playback timeline"/><TextBlock x:Name="Duration" Grid.Column="2" Text="—:—" FontSize="12" VerticalAlignment="Center"/></Grid>
+        </Grid>
+    </Grid>
+</Window>

@@ -34,7 +34,7 @@ internal class StackInstrumentAlign(private val context: Context) {
                     return "${com.local.listentomusic.data.mediaFingerprint(file)}|${file.durationMs}"
                 }
                 val key = MessageDigest.getInstance("SHA-256").digest(
-                    "8|${identity(primary)}\u0000${identity(companion)}".toByteArray())
+                    "8|pcm$STACK_PCM_WINDOW_REVISION|${identity(primary)}\u0000${identity(companion)}".toByteArray())
                     .joinToString("") { "%02x".format(it) }
                 maps.mkdirs()
                 File(maps, "$key.bin")
@@ -66,7 +66,7 @@ internal class StackInstrumentAlign(private val context: Context) {
         mutex.withLock {
             val source = File(file.sourcePath)
             require(com.local.listentomusic.data.mediaReadable(context, file))
-            val identity = "7|${com.local.listentomusic.data.mediaFingerprint(file)}|$start|$length"
+            val identity = "7|pcm$STACK_PCM_WINDOW_REVISION|${com.local.listentomusic.data.mediaFingerprint(file)}|$start|$length"
             val key = MessageDigest.getInstance("SHA-256").digest(identity.toByteArray()).joinToString("") { "%02x".format(it) }
             cache.mkdirs()
             val target = File(cache, "$key.bin")

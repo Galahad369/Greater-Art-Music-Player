@@ -6,6 +6,9 @@ import android.media.MediaCodec
 import android.media.MediaExtractor
 import android.media.MediaFormat
 import android.os.SystemClock
+import androidx.media3.common.C
+import androidx.media3.common.MimeTypes
+import androidx.media3.common.ParserException
 import com.local.listentomusic.data.MediaScanner
 import com.local.listentomusic.model.MediaFile
 import kotlinx.coroutines.ensureActive
@@ -13,6 +16,9 @@ import java.io.File
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
 import kotlin.coroutines.coroutineContext
+import kotlin.math.roundToLong
+
+internal const val STACK_PCM_WINDOW_REVISION = 2
 
 internal data class StackPcmWindow(val mono: FloatArray, val side: FloatArray, val sampleRate: Int, val stereo: Boolean)
 
@@ -24,21 +30,18 @@ internal suspend fun decodeStackPcmWindow(file: MediaFile, startMs: Long, length
     val source = File(file.sourcePath)
     require(if (context != null) com.local.listentomusic.data.mediaReadable(context, file)
         else source.isFile && source.canRead() && MediaScanner.isInsideTarget(source))
-    val extractor = MediaExtractor()
-    var codec: MediaCodec? = null
     val startUs = (file.clipStartMs + startMs) * 1000
     val endUs = minOf(startUs + lengthMs * 1000, file.clipEndMs?.times(1000) ?: Long.MAX_VALUE)
     var rate = 0; var channels = 0; var encoding = AudioFormat.ENCODING_PCM_16BIT
     var analysisRate = 0
     var mono = FloatArray(0); var side = FloatArray(0); var counts = IntArray(0)
     var last = -1
-    fun format(value: MediaFormat) {
-        rate = value.getInteger(MediaFormat.KEY_SAMPLE_RATE)
-        channels = value.getInteger(MediaFormat.KEY_CHANNEL_COUNT)
-        encoding = if (value.containsKey(MediaFormat.KEY_PCM_ENCODING)) value.getInteger(MediaFormat.KEY_PCM_ENCODING)
-            else AudioFormat.ENCODING_PCM_16BIT
+    fun configure(sampleRate: Int, channelCount: Int, pcmEncoding: Int) {
+        rate = sampleRate; channels = channelCount; encoding = pcmEncoding
         require(rate in 8000..192000 && channels in 1..8)
-        require(encoding == AudioFormat.ENCODING_PCM_16BIT || encoding == AudioFormat.ENCODING_PCM_FLOAT)
+        // Analysis fingerprints are float, unlike the audible-output precision contract.
+        // Retain legacy PCM32 analysis without pretending float playback is lossless PCM32.
+        if (encoding != C.ENCODING_PCM_32BIT) nativePcmBytes(encoding)
         val nextRate = requestedRate ?: rate
         require(last < 0 || analysisRate == nextRate) { "Decoder changed sample rate mid-window" }
         if (analysisRate != nextRate) {
@@ -48,14 +51,19 @@ internal suspend fun decodeStackPcmWindow(file: MediaFile, startMs: Long, length
             mono = FloatArray(n); side = FloatArray(n); counts = IntArray(n)
         }
     }
+    fun format(value: MediaFormat) = configure(value.getInteger(MediaFormat.KEY_SAMPLE_RATE),
+        value.getInteger(MediaFormat.KEY_CHANNEL_COUNT),
+        if (value.containsKey(MediaFormat.KEY_PCM_ENCODING)) value.getInteger(MediaFormat.KEY_PCM_ENCODING)
+        else AudioFormat.ENCODING_PCM_16BIT)
     fun accept(buffer: ByteBuffer, pts: Long) {
         buffer.order(ByteOrder.LITTLE_ENDIAN)
-        val bytes = if (encoding == AudioFormat.ENCODING_PCM_FLOAT) 4 else 2
+        val bytes = if (encoding == C.ENCODING_PCM_32BIT) 4 else nativePcmBytes(encoding)
         var frame = 0L
         while (buffer.remaining() >= channels * bytes) {
             var sum = 0.0; var left = 0.0; var right = 0.0
             repeat(channels) { channel ->
-                val sample = if (bytes == 4) buffer.float.toDouble() else buffer.short / 32768.0
+                val sample = if (encoding == C.ENCODING_PCM_32BIT) buffer.int / 2147483648.0
+                    else nativePcmSample(buffer, encoding).toDouble()
                 val value = sample.takeIf { it.isFinite() } ?: 0.0
                 sum += value
                 if (channel == 0) left = value
@@ -72,6 +80,46 @@ internal suspend fun decodeStackPcmWindow(file: MediaFile, startMs: Long, length
             }
         }
     }
+    fun result(): StackPcmWindow {
+        require(last >= 0) { "No samples in clipped window" }
+        for (i in 0..last) if (counts[i] > 0) { mono[i] /= counts[i]; side[i] /= counts[i] }
+        // Fingerprint-only interpolation; the audible source is never changed.
+        if (requestedRate != null && rate < analysisRate) {
+            var previous = -1
+            for (i in 0..last) if (counts[i] > 0) {
+                if (previous >= 0) for (j in previous + 1 until i) {
+                    val weight = (j - previous).toFloat() / (i - previous)
+                    mono[j] = mono[previous] * (1 - weight) + mono[i] * weight
+                    side[j] = side[previous] * (1 - weight) + side[i] * weight
+                }
+                previous = i
+            }
+        }
+        return StackPcmWindow(mono.copyOf(last + 1), side.copyOf(last + 1), analysisRate, channels >= 2)
+    }
+    val native = try { NativeWavPcm.openOrNull(file, context) }
+    catch (unsupported: ParserException) {
+        if (unsupported.contentIsMalformed) throw unsupported
+        // Keep legacy codec analysis for WAV types not supported by this extractor.
+        null
+    }
+    if (native != null) native.use { reader ->
+        if (reader.format.sampleMimeType == MimeTypes.AUDIO_RAW) {
+            configure(reader.format.sampleRate, reader.format.channelCount, reader.format.pcmEncoding)
+            reader.seekTo((startUs * rate / 1_000_000.0).roundToLong())
+            val deadline = SystemClock.elapsedRealtime() + 45_000
+            while (true) {
+                coroutineContext.ensureActive()
+                check(SystemClock.elapsedRealtime() < deadline) { "Native analysis timeout" }
+                val packet = reader.next() ?: break
+                if (packet.timeUs >= endUs) break
+                accept(requireNotNull(packet.data), packet.timeUs)
+            }
+            return result()
+        }
+    }
+    val extractor = MediaExtractor()
+    var codec: MediaCodec? = null
     try {
         extractor.openMedia(context, file.sourcePath)
         val track = (0 until extractor.trackCount).firstOrNull {
@@ -128,22 +176,7 @@ internal suspend fun decodeStackPcmWindow(file: MediaFile, startMs: Long, length
                 } finally { decoder.releaseOutputBuffer(index, false) }
             }
         }
-        require(last >= 0) { "No samples in clipped window" }
-        for (i in 0..last) if (counts[i] > 0) { mono[i] /= counts[i]; side[i] /= counts[i] }
-        // Low-rate sources leave empty analysis bins. Interpolate only this fingerprint,
-        // never the real playback source. Native-rate refinement needs no upsampling.
-        if (requestedRate != null && rate < analysisRate) {
-            var previous = -1
-            for (i in 0..last) if (counts[i] > 0) {
-                if (previous >= 0) for (j in previous + 1 until i) {
-                    val weight = (j - previous).toFloat() / (i - previous)
-                    mono[j] = mono[previous] * (1 - weight) + mono[i] * weight
-                    side[j] = side[previous] * (1 - weight) + side[i] * weight
-                }
-                previous = i
-            }
-        }
-        return StackPcmWindow(mono.copyOf(last + 1), side.copyOf(last + 1), analysisRate, channels >= 2)
+        return result()
     } finally {
         codec?.let { runCatching { it.stop() }; runCatching { it.release() } }
         extractor.release()

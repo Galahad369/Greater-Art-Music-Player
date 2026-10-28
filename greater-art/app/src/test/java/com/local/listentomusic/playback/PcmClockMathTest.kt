@@ -64,7 +64,7 @@ class PcmClockMathTest {
                 val source = pcmSourceFrame(300L + frame, 48000, voices[i])
                 if (source >= 0) sum += pcmInterpolated(source) { at -> pcm(i, at, channel) } * voices[i].gain
             }
-            assertEquals("frame=$frame channel=$channel", (sum / 1.4).toFloat(),
+            assertEquals("frame=$frame channel=$channel", (sum / 2.0).toFloat(),
                 mixed[frame * 2 + channel], .000002f)
         }
     }

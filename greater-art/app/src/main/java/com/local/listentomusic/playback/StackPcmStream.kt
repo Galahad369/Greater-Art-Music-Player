@@ -14,15 +14,40 @@ import java.nio.ByteBuffer
 import java.nio.ByteOrder
 import kotlin.math.roundToLong
 
-internal data class PcmSpec(val rate: Int, val channels: Int, val durationFrames: Long)
+internal data class PcmSpec(val rate: Int, val channels: Int, val durationFrames: Long, val nativeWav: Boolean = false)
 internal data class NativePcmBlock(val start: Long, val samples: FloatArray, val channels: Int) {
     val end: Long get() = start + samples.size / channels
+}
+
+/** App-UID MediaExtractor can report native 24/32-bit WAV as already truncated PCM16. */
+internal fun pcmPrecisionAdmissible(mime: String, sourceBits: Int?, outputEncoding: Int,
+    sourceFloat: Boolean = false): Boolean =
+    outputEncoding == AudioFormat.ENCODING_PCM_FLOAT &&
+        (if (mime == "audio/raw" && sourceFloat) sourceBits == null || sourceBits in 1..32
+        else sourceBits in 1..24 || sourceBits == null && mime != "audio/raw") ||
+        outputEncoding == AudioFormat.ENCODING_PCM_16BIT && when (mime) {
+            "audio/raw" -> sourceBits != null && sourceBits in 1..16
+            "audio/mp4a-latm", "audio/mpeg" -> true
+            else -> false
+        }
+
+private fun MediaFormat.sourceBits(): Int? =
+    if (containsKey("bits-per-sample")) getInteger("bits-per-sample").takeIf { it > 0 } else null
+
+private fun requirePcmPrecision(mime: String, source: MediaFormat, outputEncoding: Int) {
+    val sourceBits = source.sourceBits()
+    val sourceFloat = mime == "audio/raw" && source.containsKey(MediaFormat.KEY_PCM_ENCODING) &&
+        source.getInteger(MediaFormat.KEY_PCM_ENCODING) == AudioFormat.ENCODING_PCM_FLOAT
+    require(pcmPrecisionAdmissible(mime, sourceBits, outputEncoding, sourceFloat)) {
+        "Unsupported PCM precision: native bits=$sourceBits, output=$outputEncoding; legacy output retained"
+    }
 }
 
 internal fun pcmSpec(file: MediaFile, context: android.content.Context? = null): PcmSpec {
     val source = File(file.sourcePath)
     require(if (context != null) com.local.listentomusic.data.mediaReadable(context, file)
         else source.isFile && source.canRead() && MediaScanner.isInsideTarget(source))
+    NativeWavPcm.openOrNull(file, context)?.use { return it.spec(file) }
     val extractor = MediaExtractor()
     try {
         extractor.openMedia(context, file.sourcePath)
@@ -30,6 +55,11 @@ internal fun pcmSpec(file: MediaFile, context: android.content.Context? = null):
             extractor.getTrackFormat(it).getString(MediaFormat.KEY_MIME)?.startsWith("audio/") == true
         } ?: error("No audio track")
         val format = extractor.getTrackFormat(index)
+        if (format.getString(MediaFormat.KEY_MIME) == "audio/raw") {
+            val encoding = if (format.containsKey(MediaFormat.KEY_PCM_ENCODING))
+                format.getInteger(MediaFormat.KEY_PCM_ENCODING) else AudioFormat.ENCODING_PCM_16BIT
+            requirePcmPrecision("audio/raw", format, encoding)
+        }
         val rate = format.getInteger(MediaFormat.KEY_SAMPLE_RATE)
         val channels = format.getInteger(MediaFormat.KEY_CHANNEL_COUNT)
         require(rate in 8000..192000 && channels in 1..2) { "Prototype requires mono/stereo native PCM" }
@@ -40,11 +70,45 @@ internal fun pcmSpec(file: MediaFile, context: android.content.Context? = null):
     } finally { extractor.release() }
 }
 
-/** Four queued blocks per lane; send suspends the decoder instead of accumulating a recording. */
+/** About 250ms native decode-ahead per lane, bounded independently of file length.
+ * Four chunks at 192kHz are only 21ms: that cannot cover output prefill or IO scheduling. */
 internal class StackPcmStream(scope: CoroutineScope, private val file: MediaFile,
     val spec: PcmSpec, startFrame: Long, context: android.content.Context? = null) {
-    val blocks = Channel<NativePcmBlock>(4)
+    val blocks = Channel<NativePcmBlock>(maxOf(4, (spec.rate + 4095) / 4096))
     private val job = scope.launch(Dispatchers.IO) {
+        if (spec.nativeWav) {
+            try {
+                requireNotNull(NativeWavPcm.openOrNull(file, context)).use { reader ->
+                    check(reader.spec(file) == spec) { "Native WAV changed after preflight" }
+                    val encoding = reader.format.pcmEncoding
+                    val bytes = nativePcmBytes(encoding)
+                    val firstSource = (file.clipStartMs * spec.rate / 1000.0).roundToLong()
+                    val seekFrame = (startFrame - PCM_SINC_RADIUS * 2).coerceAtLeast(0)
+                    reader.seekTo(firstSource + seekFrame)
+                    while (true) {
+                        ensureActive()
+                        val packet = reader.next() ?: break
+                        val buffer = requireNotNull(packet.data).order(ByteOrder.LITTLE_ENDIAN)
+                        val base = (packet.timeUs * spec.rate / 1_000_000.0).roundToLong() - firstSource
+                        var consumed = 0
+                        while (buffer.remaining() >= spec.channels * bytes) {
+                            ensureActive()
+                            val count = minOf(1024, buffer.remaining() / (spec.channels * bytes))
+                            val values = FloatArray(count * spec.channels) { nativePcmSample(buffer, encoding) }
+                            val begin = base + consumed
+                            consumed += count
+                            val first = maxOf(0L, seekFrame - begin).coerceAtMost(count.toLong()).toInt()
+                            val last = minOf(count.toLong(), spec.durationFrames - begin).coerceAtLeast(0).toInt()
+                            if (last > first) blocks.send(NativePcmBlock(begin + first,
+                                if (first == 0 && last == count) values else values.copyOfRange(first * spec.channels, last * spec.channels), spec.channels))
+                        }
+                        if (base + consumed >= spec.durationFrames) break
+                    }
+                }
+                blocks.close()
+            } catch (failure: Exception) { blocks.close(failure) }
+            return@launch
+        }
         val extractor = MediaExtractor()
         var codec: MediaCodec? = null
         try {
@@ -58,17 +122,13 @@ internal class StackPcmStream(scope: CoroutineScope, private val file: MediaFile
             // PCM16 when it ignores a float request, then convert losslessly to
             // mixer float. Never request a lower precision, cap source rate, or
             // accept PCM16 as a substitute for high-bit-depth lossless material.
-            val nativeLossy16 = mime == "audio/mp4a-latm" || mime == "audio/mpeg"
             var encoding = AudioFormat.ENCODING_PCM_16BIT
             fun setFormat(output: MediaFormat) {
                 require(output.getInteger(MediaFormat.KEY_SAMPLE_RATE) == spec.rate &&
                     output.getInteger(MediaFormat.KEY_CHANNEL_COUNT) == spec.channels) { "PCM format changed" }
                 encoding = if (output.containsKey(MediaFormat.KEY_PCM_ENCODING)) output.getInteger(MediaFormat.KEY_PCM_ENCODING)
                     else AudioFormat.ENCODING_PCM_16BIT
-                require(encoding == AudioFormat.ENCODING_PCM_FLOAT ||
-                    encoding == AudioFormat.ENCODING_PCM_16BIT && (mime == "audio/raw" || nativeLossy16)) {
-                    "Unsupported PCM precision: legacy output retained"
-                }
+                requirePcmPrecision(mime, format, encoding)
             }
             if (mime == "audio/raw") setFormat(format)
             extractor.selectTrack(index)
@@ -91,7 +151,7 @@ internal class StackPcmStream(scope: CoroutineScope, private val file: MediaFile
                     val first = maxOf(0L, seekFrame - begin).coerceAtMost(count.toLong()).toInt()
                     val last = minOf(count.toLong(), spec.durationFrames - begin).coerceAtLeast(0).toInt()
                     if (last > first) blocks.send(NativePcmBlock(begin + first,
-                        values.copyOfRange(first * spec.channels, last * spec.channels), spec.channels))
+                        if (first == 0 && last == count) values else values.copyOfRange(first * spec.channels, last * spec.channels), spec.channels))
                 }
             }
             val endUs = clipUs + spec.durationFrames * 1_000_000 / spec.rate
@@ -153,9 +213,12 @@ internal class StackPcmStream(scope: CoroutineScope, private val file: MediaFile
 
 internal class PcmLane(private val stream: StackPcmStream, private val onWait: () -> Unit) {
     private val held = ArrayDeque<NativePcmBlock>()
+    private var current: NativePcmBlock? = null
     private var ended = false
     suspend fun prepare(first: Long, last: Long) {
-        while (held.size > 1 && held.first().end < first) held.removeFirst()
+        while (held.size > 1 && held.first().end < first) {
+            if (current === held.removeFirst()) current = null
+        }
         if (last < 0 || first >= stream.spec.durationFrames) return
         while (!ended && (held.lastOrNull()?.end ?: Long.MIN_VALUE) <= last) {
             val next = withTimeoutOrNull(200) { stream.blocks.receiveCatching() }
@@ -165,14 +228,23 @@ internal class PcmLane(private val stream: StackPcmStream, private val onWait: (
             if (block == null) ended = true else {
                 require(held.lastOrNull()?.let { block.start <= it.end + 2 } != false) { "Discontinuous PCM timeline" }
                 held.addLast(block)
-                // Output block is 256 frames at >= every lane's rate; at most a few chunks.
+                // The output rate is >= every lane's rate; a render block plus halo holds only a few chunks.
                 require(held.size <= 6) { "PCM lane memory bound exceeded" }
             }
         }
     }
     fun sample(frame: Long, channel: Int): Float {
         if (frame < 0 || frame >= stream.spec.durationFrames) return 0f
-        val block = held.firstOrNull { frame >= it.start && frame < it.end } ?: return 0f
+        var block = current
+        if (block == null || frame < block.start || frame >= block.end) {
+            block = null
+            for (index in 0 until held.size) {
+                val candidate = held[index]
+                if (frame >= candidate.start && frame < candidate.end) { block = candidate; break }
+            }
+            current = block
+        }
+        block ?: return 0f
         return block.samples[(frame - block.start).toInt() * block.channels + if (block.channels == 1) 0 else channel]
     }
 }

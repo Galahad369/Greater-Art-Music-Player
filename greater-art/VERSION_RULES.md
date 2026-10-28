@@ -16,7 +16,7 @@ This file is the authoritative version policy for Greater Art. If any handoff no
 ## Machine-checkable state
 
 
-Current source: **1.21.85 (code 308)**
+Current source: **1.21.86 (code 309)**
 Allowed consumed transition: **1.21.80 (code 303) -> 1.21.85 (code 308)**
 
 The separate local shared-output branch consumed1.21.81/code304 through
@@ -452,3 +452,4 @@ Previous baseline: 1.13.26 (code 115).
 - 1.21.83 (code 306): consumed on the preserved local Android parity checkpoint; not imported by the focused Library change.
 - 1.21.84 (code 307): consumed by the built, unfinished local transport candidate in the named preservation checkpoint. Native192k stress fails; no release promotion.
 - 1.21.85 (code 308): hide only the docked Library player while actual IME insets report visibility, retain its surface reservation, remove duplicate dock/IME spacing, and attach a larger themed current-song badge without shifting rows. Add state and Android regressions. SOURCE_ONLY until the separate verification gates pass.
+- 1.21.86 (code 309): preserve all three versioned shared-output experiment commits and the saved transport candidate alongside the tested Library fixes. Native WAV alignment precision is integrated; shared output still requires the explicit debug-only flag and is not routed by production. Preserve the completed desktop 0.1.19 source-only preview independently. Record the failing 192kHz transport stress gate; no release promotion or artifact replacement.
