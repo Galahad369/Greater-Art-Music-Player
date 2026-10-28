@@ -97,6 +97,50 @@ hashes match their device originals. Failed earlier candidates remain retained.
   Version1.21.82/code305 and pinned certificate verified. This is **not a release**;
   the user explicitly requires complete parity first. Do not put it in releases.
 
+## Android parity checkpoint — 1.21.83/code306
+
+Scope is mobile only. Do not control, change or package the desktop app. Existing
+compiled-reference numbers are used only by Android JVM tests.
+
+- Partial gain, mute and solo now match the actual production normalization,
+  including an unmuted zero-gain lane. Canonical slot level state is updated too.
+- The existing Media3 float Sonic processor passes component tests at48/96/192kHz:
+  stereo/native rates, quiet1e-7 signals, independent pitch and0.999/1.001 tempo.
+  It is **not integrated into shared playback** yet; real-time cost, dynamic
+  transport and source/master mapping are not certified by these tests.
+- Native WAV analysis reuses the same extractor as playback, with no platform
+  float/PCM24 truncation. Decoder revision2 invalidates only generated descriptor
+  and alignment-decision cache keys, not saved offsets. The Android quiet-float
+  window/coarse-analysis test passes1/1 in0.522s.
+- Default-off unit/lint/app/test build passes in2m26s. Final unit rerun including
+  Android graph checks against captured compiled-reference values passes457 tests,
+  zero failures/errors in1m33s. No new release or production-route switch.
+
+### Actual local backing corpus
+
+Twelve original files were found in the user's existing local media library and
+copied to the owned API36 emulator, not uploaded. Originals were unchanged. The
+existing four-family audit completed in301.321s; every persisted warm result was
+equal to the cold decision (19–61ms warm lookup). Neither instrumentation success
+nor a confident map proves audible synchronization.
+
+| Pair / companion | Decision | Offset ms | Scale | Anchors / maximum fit residual ms |
+|---|---|---:|---:|---|
+| Bitter Choco: self cover → 宮下遊 | confident |283.436883|0.9999940703|3 /0.740397|
+| Baka: self cover → Ado | abstain |—|—|0 /—|
+| Gambling: syudou → YuNi | abstain |—|—|0 /—|
+| 孤独毒毒: Miku → モリスレイ | confident |18.952560|1.0000337521|5 /1.511745|
+| 孤独毒毒: Miku → uncあんく | confident |83.215981|0.9999995224|6 /0.731348|
+| 孤独毒毒: Miku → ふぉるて | abstain |—|—|0 /—|
+| 孤独毒毒: Miku → 響咲リオナ | confident |0.650085|1.0000031311|6 /0.816009|
+| 孤独毒毒: Miku → 吉乃 | confident |16.184925|0.9999897646|4 /0.745373|
+
+These are decoder-derived affine fits, not human annotations or acoustic output
+measurements. Do not silently treat an abstention as aligned at zero. Retain the
+confidence gates and investigate the missing correspondence evidence first.
+Private local logs: `App/output/stack-refinement-20261028/real-corpus-analysis-device.log`
+and `real-corpus-analysis-results.log`; do not commit original recordings or local paths.
+
 ## Remaining full-parity gates
 
 1. Sustained 6–8-lane compressed/high-resolution output, cadence and underruns;
@@ -112,8 +156,9 @@ hashes match their device originals. Failed earlier candidates remain retained.
    identical physics constants. Baseline Nodes device interaction passed 1/1;
    desktop staggered reveal is absent from the phone toolbar and needs review.
 
-The current emulator has no top-level MP4 corpus takes. Generated PCM fixtures
-must not be relabeled as real-singer, compressed-take or acoustic validation.
+Original MP4 takes are now available on the owned emulator. Earlier generated
+PCM captures must still not be relabeled as real-singer, compressed-take or
+physical acoustic validation. Native WAV stress is not compressed playback proof.
 
 ## Existing components researched
 

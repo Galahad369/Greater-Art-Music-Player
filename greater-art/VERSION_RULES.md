@@ -16,7 +16,7 @@ This file is the authoritative version policy for Greater Art. If any handoff no
 ## Machine-checkable state
 
 
-Current source: **1.21.82 (code 305)**
+Current source: **1.21.83 (code 306)**
 Allowed consumed transition: **1.21.68 (code 291) -> 1.21.70 (code 293)**
 
 An earlier side-branch 1.21.69/code292 introduced the staged-cache policy but
@@ -442,3 +442,4 @@ Previous baseline: 1.13.26 (code 115).
 - 1.21.80 (code 303): integrate Dependabot PR206 Gradle 9.8.2 update under a valid fresh build identity, pin its official distribution SHA-256 and preserve the original PR history separately. No Android runtime or desktop changes beyond the version identity.
 - 1.21.81 (code 304): isolate calibrated Stack output experiments: actual production service route, matched foreground/quiet-start setup and capture-start acknowledgement. Add a default-off prototype precision guard after API36 demonstrated float WAV truncation inside MediaExtractor; refuse before output lease instead of silently accepting PCM16. Production engine/routing remain unchanged; no release or performance/quality acceptance implied.
 - 1.21.82 (code 305): refine isolated shared output with existing Media3 native WAV extraction, exact PCM24/float decoding, dedicated audio-priority worker and reusable render/sample lookup buffers. Preserve source rate/channels and refuse unrepresentable precision; production route remains unchanged. Full parity and release remain gated on tests and evidence.
+- 1.21.83 (code 306): shared-output function-parity follow-up: match production partial-gain/mute/solo normalization and canonical level state, qualify existing float tempo/pitch processing before integration, reuse native WAV precision for alignment windows with generated-cache invalidation, and compare Android graph results against a compiled desktop reference. Further alignment/transport parity work remains under verification; no production-engine switch or release.

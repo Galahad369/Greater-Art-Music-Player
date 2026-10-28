@@ -129,6 +129,7 @@ internal class SharedClockPcmPrototype(context: Context, private val host: PcmPr
     fun setLoop(enabled: Boolean) { loop = enabled }
     suspend fun levels(tracks: List<StackSlot>) = mutex.withLock {
         require(tracks.map { it.file.path } == slots.map { it.file.path })
+        slots = tracks
         updateLevelsLocked(tracks)
     }
     private fun updateLevelsLocked(tracks: List<StackSlot>) {

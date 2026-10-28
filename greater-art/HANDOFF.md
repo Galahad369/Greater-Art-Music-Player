@@ -3,7 +3,7 @@
 This file describes the **current repository state only**. Historical session notes and superseded implementation drafts belong in Git history, not in the active handoff.
 
 **Project:** `greater-art/` in the repository checkout
-**Current source:** `1.21.82 (code 305)` — SOURCE_ONLY; shared-output refinement under verification, production engine unchanged
+**Current source:** `1.21.83 (code 306)` — SOURCE_ONLY; shared-output function parity under verification, production engine unchanged
 **Current version:** `1.21.80 (code 303)`
 **Latest APK:** `releases/GreaterArt-1.21.80.apk` (`27,025,073 bytes`; SHA-256 `76791737701736a45b9b441851212f2c8cacf83542991b5c0e58ffbbfc3d29b4`)
 **Application ID:** `com.local.listentomusic`
@@ -13,6 +13,15 @@ This file describes the **current repository state only**. Historical session no
 **Verification boundary:** Exact source `3b49022`; Gradle9.8.2/Java21 unit/lint/debug app/test build passed. 446 JVM tests, zero failures/errors; lint 0 errors/46 warnings/4 hints. Final API36 upgrade passed 15/15 focused cases in 37.285s: Nodes tap/drag/controls/graph replacement, fullscreen speed/narrow toolbar, Library row semantics/RAM seeding, actual cache/disk-during-scroll regressions. Nine disposable Git sync-safety tests passed outside sandbox. Certificate unchanged; package/version, ZIP CRC, 16KiB alignment and SHA-256 checked. This is not full fullscreen rotation, physical-device visual/acoustic/performance acceptance, production signing or universal bug-free proof. Existing Library physical trace/profile acceptance and the prior full rotation failure remain unresolved.
 
 ## Repository state
+
+### October 28 — Android parity checkpoint (1.21.83/code306)
+
+- Mobile-only scope. No desktop application control, changes, packaging or release work. Android graph golden checks compare against previously captured reference values; all work remains in Android sources/tests/docs.
+- Match production partial-gain/mute/solo normalization, including zero-gain audible slots, and keep canonical slot levels current. Existing Media3 float tempo/pitch component tests preserve native stereo rates (48/96/192kHz), quiet sub-PCM16 signals, independent pitch and tiny tempo changes. This is component qualification, not live-engine integration.
+- Alignment windows reuse the existing native WAV reader without truncating float/PCM24 through the platform WAV converter. Generated descriptor/map keys include decoder revision2; saved/manual Stack settings are untouched. Native-window Android test passes 1/1 (0.522s).
+- Located the user's original takes locally and copied twelve files only to the owned API36 emulator. Real-corpus audit completes in301.321s with persistent warm decisions unchanged. Bitter Choco pair and4/5 孤独毒毒 companions receive confident maps; Baka, Gambling and one 孤独毒毒 companion abstain. Confidence rules were not weakened. This is analysis evidence, not an audible-lock acceptance pass.
+- Full default-off unit/lint/debug app/test build passes (2m26s); the final added Android graph golden check passes with457 JVM tests,0 failures/errors (1m33s unit rerun). The ordinary candidate remains default-off. No release APK is promoted until full shared-output parity and the remaining acceptance gates pass.
+- Evidence and unresolved failures are recorded in [the refinement report](docs/STACK_SHARED_OUTPUT_REFINEMENT_2026-10-28.md). The existing1.21.80 verified APK/signature is unchanged. Next: unequal-length survivor/EOF and tempo/pitch/transport parity, then native video and lifecycle integration; investigate real-corpus abstentions without inventing offsets.
 
 ### October 28 — Native precision and bounded shared-output refinement (1.21.82/code305)
 

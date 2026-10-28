@@ -68,13 +68,15 @@ internal inline fun mixPcmBlockInto(frame: Long, outputRate: Int, voices: List<P
     require(mixed.size >= frames * 2 && gains.size >= voices.size)
     var solo = false
     for (i in voices.indices) if (voices[i].solo && !voices[i].muted) solo = true
-    var gainSum = 0f
+    var audibleCount = 0
     for (i in voices.indices) {
         val voice = voices[i]
         gains[i] = if (voice.muted || (solo && !voice.solo)) 0f else voice.gain
-        gainSum += gains[i]
+        if (!voice.muted && (!solo || voice.solo)) audibleCount++
     }
-    val headroom = max(1f, gainSum)
+    // Match production stackAudibleVolume: lowering all sliders must lower the
+    // mix, not be normalized back to full level. Zero-gain slots still count.
+    val headroom = audibleCount.coerceAtLeast(1).toFloat()
     for (frameIndex in 0 until frames) {
         val outputFrame = frame + frameIndex
         var left = 0.0
