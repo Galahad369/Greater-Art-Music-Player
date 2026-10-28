@@ -4,7 +4,7 @@ Greater Art is a native Kotlin/Jetpack Compose player for local music and video.
 
 ## Current release
 
-Current source and sideload: **1.21.80 / code303 — bounded functional verification; physical performance acceptance pending**. Includes Library RAM seeding/shell isolation, a left-side fullscreen speed selector, completed Android Nodes physics and checksum-pinned Gradle 9.8.2. Scheduling, row actions and primary playback quality are preserved. See [audit evidence and unfinished physical measurements](../docs/LIBRARY_AUDIT_2026-10-24.md). The independent [safe sync workflow](../docs/SAFE_SYNC.md) remains available. Fullscreen rotation acceptance is still unresolved. Adaptive Dynamic combines
+Current source: **1.21.85 / code308 — SOURCE_ONLY**. Library keyboard visibility and a clearer current-song marker passed local unit, lint, build and bounded API36 checks. PR checks are pending. The latest verified sideload remains **1.21.80 / code303**. Primary playback quality and row actions are preserved. See [audit evidence and unfinished physical measurements](../docs/LIBRARY_AUDIT_2026-10-24.md). The independent [safe sync workflow](../docs/SAFE_SYNC.md) remains available. Fullscreen rotation and shared-output acceptance remain unresolved. Adaptive Dynamic combines
 Classic/Aurora/Bloom/Flow; Classic remains available. See
 [implementation/evidence](docs/ADAPTIVE_AMBIENT_2.md). Sideload: [GreaterArt-1.21.80.apk](releases/GreaterArt-1.21.80.apk). Read [HANDOFF](HANDOFF.md) for the exact verification limits.
 

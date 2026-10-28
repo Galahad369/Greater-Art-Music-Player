@@ -54,6 +54,7 @@
         <activity
             android:name=".MainActivity"
             android:configChanges="screenSize|smallestScreenSize|screenLayout|orientation"
+            android:windowSoftInputMode="adjustResize"
             android:exported="false"
             android:resizeableActivity="true"
             android:supportsPictureInPicture="true"
