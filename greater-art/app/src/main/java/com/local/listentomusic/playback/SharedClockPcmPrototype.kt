@@ -11,6 +11,8 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlin.math.*
+import java.util.concurrent.Executors
+import java.nio.ByteBuffer
 
 /** Host must silence ALL legacy voices before granting this exclusive lease.
  * Video may remain native quality and follow onClock; ownership is never replaced here. */
@@ -22,13 +24,19 @@ internal interface PcmPrototypeHost {
 
 internal data class PcmPrototypeStats(val active: Boolean = false, val playing: Boolean = false,
     val outputRate: Int = 0, val frame: Long = 0, val submittedFrame: Long = 0,
-    val underruns: Int = 0, val decoderWaits: Int = 0, val maxMixUs: Long = 0, val error: String? = null)
+    val underruns: Int = 0, val decoderWaits: Int = 0, val maxMixUs: Long = 0, val error: String? = null,
+    val maxPrepareUs: Long = 0, val maxRenderUs: Long = 0, val bufferFrames: Int = 0,
+    val speed: Float = 1f, val pitch: Float = 1f, val durationFrames: Long = 0)
 
 /** Default-off, debug-build prototype. No routing changes to production PlaybackService.
  * Explicit host lease + ONE output; unsupported cases restore legacy only after release. */
 internal class SharedClockPcmPrototype(context: Context, private val host: PcmPrototypeHost) {
     private val context = context.applicationContext
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
+    private val renderDispatcher = Executors.newSingleThreadExecutor { work ->
+        Thread({ android.os.Process.setThreadPriority(android.os.Process.THREAD_PRIORITY_AUDIO); work.run() },
+            "ga-stack-output").apply { isDaemon = true }
+    }.asCoroutineDispatcher()
     private val mutex = Mutex()
     private val audio = this.context.getSystemService(AudioManager::class.java)
     private val state = MutableStateFlow(PcmPrototypeStats())
@@ -42,6 +50,8 @@ internal class SharedClockPcmPrototype(context: Context, private val host: PcmPr
     private var frame = 0L
     @Volatile private var runClock = PcmFrameClock(0)
     private var duration = 0L
+    private var speed = 1f
+    private var pitch = 1f
     private var lease = false
     private var generation = 0L
     private var receiverRegistered = false
@@ -69,6 +79,11 @@ internal class SharedClockPcmPrototype(context: Context, private val host: PcmPr
             catch (cancelled: CancellationException) { throw cancelled }
             catch (_: Exception) { return@withLock false }
         val outputRate = formats.maxOf { it.rate }
+        val preparedVoices = try { voiceLevels(tracks, formats) }
+            catch (_: IllegalArgumentException) { return@withLock false }
+        val sessionEnd = pcmSessionEndFrames(tracks, formats, outputRate)
+        // A wholly trimmed-away Stack must not acquire audio or spin a zero-length loop.
+        if (sessionEnd <= 0) return@withLock false
         if (AudioTrack.getMinBufferSize(outputRate, AudioFormat.CHANNEL_OUT_STEREO, AudioFormat.ENCODING_PCM_FLOAT) <= 0)
             return@withLock false
         stopLocked(false, null)
@@ -77,10 +92,9 @@ internal class SharedClockPcmPrototype(context: Context, private val host: PcmPr
         if (audio.requestAudioFocus(focus) != AudioManager.AUDIOFOCUS_REQUEST_GRANTED) {
             stopLocked(true, "Audio focus denied"); return@withLock false
         }
-        slots = tracks; specs = formats; rate = outputRate
-        val primary = tracks.indexOfFirst { it.file.path == primaryPath }
-        duration = formats[primary].durationFrames * rate / formats[primary].rate
-        frame = 0; updateLevelsLocked(tracks); loop = true
+        slots = tracks.toList(); specs = formats; rate = outputRate
+        duration = sessionEnd
+        frame = 0; voices = preparedVoices; loop = true
         try {
             ContextCompat.registerReceiver(context, noisy, IntentFilter(AudioManager.ACTION_AUDIO_BECOMING_NOISY), ContextCompat.RECEIVER_NOT_EXPORTED)
             receiverRegistered = true
@@ -121,28 +135,51 @@ internal class SharedClockPcmPrototype(context: Context, private val host: PcmPr
     }
 
     fun setLoop(enabled: Boolean) { loop = enabled }
+    suspend fun parameters(speed: Float, pitch: Float) = mutex.withLock {
+        require(speed.isFinite() && speed > 0 && pitch.isFinite() && pitch > 0)
+        if (this.speed == speed && this.pitch == pitch) return@withLock
+        val playing = lease && job?.isActive == true
+        if (lease) {
+            frame = clockFrame()
+            generation++
+            output?.pause()
+            job?.cancelAndJoin(); job = null
+        }
+        this.speed = speed; this.pitch = pitch
+        state.value = state.value.copy(frame = frame, submittedFrame = frame, speed = speed, pitch = pitch)
+        if (playing) launchRun()
+    }
     suspend fun levels(tracks: List<StackSlot>) = mutex.withLock {
         require(tracks.map { it.file.path } == slots.map { it.file.path })
-        updateLevelsLocked(tracks)
+        require(tracks.indices.all { index ->
+            tracks[index].alignmentScale == slots[index].alignmentScale &&
+                tracks[index].offsetMs == slots[index].offsetMs &&
+                tracks[index].alignmentOffsetUs == slots[index].alignmentOffsetUs && tracks[index].error == null
+        }) { "Levels cannot silently replace timing maps" }
+        val prepared = voiceLevels(tracks, specs)
+        slots = tracks.toList()
+        voices = prepared
     }
-    private fun updateLevelsLocked(tracks: List<StackSlot>) {
-        voices = tracks.mapIndexed { i, slot -> PcmVoice(specs[i].rate,
+    private fun voiceLevels(tracks: List<StackSlot>, formats: List<PcmSpec>): List<PcmVoice> =
+        tracks.mapIndexed { i, slot -> PcmVoice(formats[i].rate,
             slot.alignmentOffsetUs ?: slot.offsetMs * 1000.0, slot.volume, slot.muted, slot.solo) }
-    }
     private fun clockFrame(): Long = output?.let {
-        runClock.position(it.playbackHeadPosition)
+        runClock.position(it.playbackHeadPosition).coerceAtMost(duration)
     } ?: frame
 
     private fun launchRun() {
         val run = ++generation
         runClock = PcmFrameClock(frame)
-        job = scope.launch {
+        job = scope.launch(renderDispatcher) {
             var failure: String? = null
             var completed = false
             var sink: AudioTrack? = null
+            var tempo: FloatPcmTempo? = null
             var streams = emptyList<StackPcmStream>()
             try {
                 coroutineScope {
+                    val processor = FloatPcmTempo(rate, speed, pitch).also { tempo = it }
+                    runClock = PcmFrameClock(frame, processor.clockSpeed)
                     streams = slots.mapIndexed { i, slot -> StackPcmStream(this, slot.file, specs[i],
                         floor(pcmSourceFrame(frame, rate, voices[i])).toLong().coerceAtLeast(0), context) }
                     val lanes = streams.map { stream -> PcmLane(stream) {
@@ -153,55 +190,110 @@ internal class SharedClockPcmPrototype(context: Context, private val host: PcmPr
                     val track = AudioTrack.Builder().setAudioAttributes(attributes).setAudioFormat(
                         AudioFormat.Builder().setSampleRate(rate).setChannelMask(AudioFormat.CHANNEL_OUT_STEREO)
                             .setEncoding(AudioFormat.ENCODING_PCM_FLOAT).build())
-                        .setBufferSizeInBytes(maxOf(minimum, PCM_BLOCK_FRAMES * 2 * 4 * 4))
+                        // 100ms scheduling headroom, not a source-rate/quality reduction.
+                        .setBufferSizeInBytes(maxOf(minimum, rate * 2 * 4 / 10))
                         .setTransferMode(AudioTrack.MODE_STREAM).build()
                     require(track.state == AudioTrack.STATE_INITIALIZED)
                     sink = track; output = track
                     var next = frame
                     var lastReport = 0L
                     var peakMixUs = 0L
+                    var peakPrepareUs = 0L
+                    var peakRenderUs = 0L
                     var started = false
-                    val prefillFrames = minOf(track.bufferSizeInFrames / 2, 4096).coerceAtLeast(PCM_BLOCK_FRAMES)
-                    state.value = PcmPrototypeStats(true, true, rate, frame, frame)
+                    var submittedOutputFrames = 0L
+                    val outputClock = PcmFrameClock(0)
+                    val prefillFrames = minOf(track.bufferSizeInFrames, rate / 12).coerceAtLeast(1)
+                    val mixed = FloatArray(PCM_BLOCK_FRAMES * 2)
+                    val gains = FloatArray(slots.size)
+                    val windows = Array(slots.size) { FloatArray((PCM_BLOCK_FRAMES + PCM_SINC_RADIUS * 2 + 2) * 2) }
+                    val windowStarts = LongArray(slots.size)
+                    fun startOutput(force: Boolean = false) {
+                        if (!started && (submittedOutputFrames >= prefillFrames || force && submittedOutputFrames > 0)) {
+                            track.play(); started = true
+                        } else if (started && track.playState != AudioTrack.PLAYSTATE_PLAYING) track.play()
+                    }
+                    // Sonic can emit more than one hardware buffer at slow speeds.
+                    // Start after bounded prefill INSIDE each write, not after writing
+                    // a whole processor buffer into a paused, possibly full AudioTrack.
+                    suspend fun submitFloats(samples: Int) {
+                        var written = 0
+                        while (written < samples) {
+                            ensureActive()
+                            startOutput()
+                            val limit = if (started) samples - written else
+                                minOf((prefillFrames - submittedOutputFrames).toInt() * 2, samples - written)
+                            val count = track.write(mixed, written, limit, AudioTrack.WRITE_BLOCKING)
+                            check(count >= 0 && count % 2 == 0) { "AudioTrack float write failed: $count" }
+                            if (count == 0) { delay(1); continue }
+                            written += count; submittedOutputFrames += count / 2
+                        }
+                        startOutput()
+                    }
+                    suspend fun submitBytes(buffer: ByteBuffer) {
+                        while (buffer.hasRemaining()) {
+                            ensureActive()
+                            startOutput()
+                            val limit = if (started) buffer.remaining() else
+                                minOf((prefillFrames - submittedOutputFrames).toInt() * 8, buffer.remaining())
+                            val count = track.write(buffer, limit, AudioTrack.WRITE_BLOCKING)
+                            check(count >= 0 && count % 8 == 0) { "AudioTrack float-buffer write failed: $count" }
+                            if (count == 0) { delay(1); continue }
+                            submittedOutputFrames += count / 8
+                        }
+                        startOutput()
+                    }
+                    state.value = PcmPrototypeStats(true, true, rate, frame, frame, bufferFrames = track.bufferSizeInFrames,
+                        speed = speed, pitch = pitch, durationFrames = duration)
                     try { while (isActive) {
                         if (next >= duration) {
-                            // Drain the final output instead of cutting the primary early.
-                            while (isActive && clockFrame() < next) delay(5)
+                            if (processor.active) {
+                                processor.end()
+                                while (!processor.ended) submitBytes(processor.drain())
+                            }
+                            startOutput(force = true)
+                            // Hardware frames, not a rounded tempo-scaled media value:
+                            // otherwise a two-sample Sonic tail difference can hang EOF.
+                            while (isActive && outputClock.position(track.playbackHeadPosition) < submittedOutputFrames) delay(5)
                             completed = true
                             break
                         }
                         val blockFrames = minOf(PCM_BLOCK_FRAMES.toLong(), duration - next).toInt()
                         val levels = voices
+                        val prepareStart = System.nanoTime()
                         levels.forEachIndexed { i, voice ->
                             val first = floor(pcmSourceFrame(next, rate, voice)).toLong() - PCM_SINC_RADIUS
                             val last = ceil(pcmSourceFrame(next + blockFrames - 1, rate, voice)).toLong() + PCM_SINC_RADIUS
                             lanes[i].prepare(first, last)
+                            val window = windows[i]
+                            check((last - first + 1) * 2 <= window.size) { "PCM window exceeds native-rate bound" }
+                            windowStarts[i] = first
+                            // Gather once, rather than doing deque/cache lookup for
+                            // both channels of all 32 taps of every output frame.
+                            var index = 0
+                            for (sourceFrame in first..last) {
+                                window[index++] = lanes[i].sample(sourceFrame, 0)
+                                window[index++] = lanes[i].sample(sourceFrame, 1)
+                            }
                         }
                         ensureActive()
                         val mixStart = System.nanoTime()
-                        val mixed = mixPcmBlock(next, rate, levels, blockFrames) { i, sample, channel -> lanes[i].sample(sample, channel) }
+                        peakPrepareUs = maxOf(peakPrepareUs, (mixStart - prepareStart) / 1000)
+                        mixPcmBlockInto(next, rate, levels, blockFrames, mixed, gains) { i, sample, channel ->
+                            windows[i][((sample - windowStarts[i]) * 2 + channel).toInt()]
+                        }
                         val mixUs = (System.nanoTime() - mixStart) / 1000
                         peakMixUs = maxOf(peakMixUs, mixUs)
-                        if (started && track.playState != AudioTrack.PLAYSTATE_PLAYING) track.play()
-                        var written = 0
-                        while (written < mixed.size) {
-                            ensureActive()
-                            val count = track.write(mixed, written, mixed.size - written, AudioTrack.WRITE_BLOCKING)
-                            check(count >= 0) { "AudioTrack write failed: $count" }
-                            if (count == 0) { delay(1); continue }
-                            written += count
-                        }
+                        val processed = if (processor.active) processor.queue(mixed, blockFrames) else null
+                        peakRenderUs = maxOf(peakRenderUs, (System.nanoTime() - prepareStart) / 1000)
+                        if (processed != null) submitBytes(processed) else submitFloats(blockFrames * 2)
                         next += blockFrames
-                        // Fill a bounded part of the native output buffer before the
-                        // first audible frame; cold decoder/JIT work cannot starve it.
-                        if (!started && (next - frame >= prefillFrames || next >= duration)) {
-                            track.play(); started = true
-                        }
                         val now = android.os.SystemClock.elapsedRealtime()
                         if (now - lastReport >= 100) {
                             lastReport = now
                             state.value = state.value.copy(frame = clockFrame(), submittedFrame = next,
-                                underruns = track.underrunCount, maxMixUs = peakMixUs)
+                                underruns = track.underrunCount, maxMixUs = peakMixUs,
+                                maxPrepareUs = peakPrepareUs, maxRenderUs = peakRenderUs)
                             host.onClock(state.value.frame * 1000 / rate, true)
                         }
                     } } finally { withContext(NonCancellable) { streams.forEach { it.close() } } }
@@ -214,8 +306,9 @@ internal class SharedClockPcmPrototype(context: Context, private val host: PcmPr
             finally {
                 // Cancelled decoders finish before legacy playback can become audible again.
                 withContext(NonCancellable) { streams.forEach { it.close() } }
-                frame = clockFrame().coerceAtMost(duration)
+                frame = if (completed) duration else clockFrame().coerceAtMost(duration)
                 output = null
+                tempo?.close()
                 sink?.let { runCatching { it.pause() }; runCatching { it.flush() }; it.release() }
                 state.value = state.value.copy(playing = false, frame = frame, error = failure)
             }
@@ -241,5 +334,5 @@ internal class SharedClockPcmPrototype(context: Context, private val host: PcmPr
         }
         state.value = state.value.copy(active = false, playing = false, error = reason)
     }
-    suspend fun release() { stop(); scope.cancel() }
+    suspend fun release() { stop(); scope.cancel(); renderDispatcher.close() }
 }

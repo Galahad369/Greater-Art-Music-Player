@@ -63,6 +63,8 @@ public final class StackOutputCaptureService extends Service {
                     long end = SystemClock.elapsedRealtime() + 70000;
                     audio.startRecording();
                     Log.i("GreaterArtOutputCapture", "START uid=" + target + " file=" + destination);
+                    sendBroadcast(new Intent("com.local.listentomusic.test.STACK_CAPTURE_STARTED")
+                        .setPackage("com.local.listentomusic").putExtra("name", name));
                     if (callback != null) callback.send(0, new Bundle());
                     while (active.get() && count < rate * 70 && SystemClock.elapsedRealtime() < end) {
                         int read = audio.read(samples, 0, Math.min(samples.length, rate * 70 - count));

@@ -1,0 +1,46 @@
+<UserControl
+    x:Class="GreaterArt.Desktop.GraphPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <Grid x:Name="PageRoot" Padding="28,24,28,16" RowSpacing="12" SizeChanged="PageSizeChanged">
+        <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+        <Grid ColumnSpacing="12">
+            <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+            <StackPanel Spacing="6"><TextBlock Text="Nodes" FontSize="32" FontWeight="SemiBold"/><TextBlock x:Name="GraphInfo" Text="Your library, connected by filenames." Foreground="{StaticResource GaMuted}" TextTrimming="CharacterEllipsis"/></StackPanel>
+            <Button Grid.Column="1" Click="WandClicked" Style="{StaticResource GaIconButton}" AutomationProperties.Name="Reawaken the graph" ToolTipService.ToolTip="Reawaken the graph"><FontIcon Glyph="&#xE735;" FontSize="23"/></Button>
+        </Grid>
+        <Grid Grid.Row="1" ColumnSpacing="8">
+            <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+            <ComboBox x:Name="FindTrack" PlaceholderText="Find a track" DisplayMemberPath="Title" IsEditable="True" IsTextSearchEnabled="True" HorizontalAlignment="Stretch" SelectionChanged="FindSelectionChanged" AutomationProperties.Name="Find a graph track"/>
+            <Button Grid.Column="1" Click="FitClicked" Content="Fit" MinWidth="52" Height="40" AutomationProperties.Name="Fit all nodes"/>
+            <Button Grid.Column="2" Click="PlayingClicked" Content="Playing" MinWidth="72" Height="40" AutomationProperties.Name="Center the playing track"/>
+        </Grid>
+        <Grid x:Name="Viewport" Grid.Row="2" Background="Transparent"
+              SizeChanged="ViewportSizeChanged" PointerPressed="GraphPointerPressed" PointerMoved="GraphPointerMoved"
+              PointerReleased="GraphPointerReleased" PointerCanceled="GraphPointerCanceled" PointerCaptureLost="GraphPointerCanceled"
+              PointerExited="GraphPointerExited" PointerWheelChanged="GraphWheelChanged"
+              ManipulationMode="Scale" ManipulationStarted="GraphManipulationStarted" ManipulationDelta="GraphManipulationDelta" ManipulationCompleted="GraphManipulationCompleted">
+            <Path x:Name="SoftEdges" Stroke="#28485A61" StrokeThickness="1" IsHitTestVisible="False"/>
+            <Path x:Name="MediumEdges" Stroke="#445A7075" StrokeThickness="1" IsHitTestVisible="False"/>
+            <Path x:Name="StrongEdges" Stroke="#79718D8C" StrokeThickness="1.1" IsHitTestVisible="False"/>
+            <Path x:Name="HoverEdges" Stroke="#9BE0CA" StrokeThickness="1.3" Opacity="0.66" IsHitTestVisible="False"/>
+            <Path x:Name="QuietNodes" Fill="#87969B" IsHitTestVisible="False"/>
+            <Path x:Name="MiddleNodes" Fill="#BDCDCB" IsHitTestVisible="False"/>
+            <Path x:Name="HubNodes" Fill="#DFEAE4" IsHitTestVisible="False"/>
+            <Path x:Name="PlayingRing" Stroke="{StaticResource GaAccent}" StrokeThickness="2" IsHitTestVisible="False"/>
+            <TextBlock x:Name="EmptyLabel" Text="Choose a media folder to explore its connections." TextWrapping="Wrap" MaxWidth="320" HorizontalAlignment="Center" VerticalAlignment="Center" Foreground="{StaticResource GaMuted}" IsHitTestVisible="False"/>
+            <Canvas IsHitTestVisible="False"><Border x:Name="HoverLabel" Visibility="Collapsed" Background="#EE18272B" BorderBrush="#4D829A94" BorderThickness="1" CornerRadius="6" Padding="10,6" MaxWidth="280"><TextBlock x:Name="HoverTitle" FontSize="13" TextWrapping="Wrap" MaxLines="2" TextTrimming="CharacterEllipsis"/></Border></Canvas>
+            <TextBlock Text="Scroll to zoom · Drag a node or the canvas · Tap to play" FontSize="11" Foreground="{StaticResource GaMuted}" HorizontalAlignment="Center" VerticalAlignment="Bottom" Margin="8" IsHitTestVisible="False"/>
+        </Grid>
+        <Expander Grid.Row="3" Header="Graph controls" HorizontalAlignment="Stretch" IsExpanded="False" HorizontalContentAlignment="Stretch">
+            <ScrollViewer x:Name="ControlsScroll" MaxHeight="180" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+            <StackPanel Spacing="8">
+                <TextBlock Text="Stronger filename matches sit closer. Larger nodes have more weighted connections." FontSize="12" Foreground="{StaticResource GaMuted}" TextWrapping="Wrap"/>
+                <Grid ColumnSpacing="16"><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions><Slider x:Name="CenterForce" Header="Center" Minimum="25" Maximum="200" Value="100" StepFrequency="5" ValueChanged="ForcesChanged" AutomationProperties.Name="Graph center force"/><Slider x:Name="RepelForce" Grid.Column="1" Header="Repulsion" Minimum="25" Maximum="200" Value="100" StepFrequency="5" ValueChanged="ForcesChanged" AutomationProperties.Name="Graph repulsion"/></Grid>
+                <Grid ColumnSpacing="16"><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions><Slider x:Name="LinkForce" Header="Link strength" Minimum="25" Maximum="200" Value="100" StepFrequency="5" ValueChanged="ForcesChanged" AutomationProperties.Name="Graph link strength"/><Slider x:Name="LinkDistance" Grid.Column="1" Header="Link distance" Minimum="25" Maximum="200" Value="100" StepFrequency="5" ValueChanged="ForcesChanged" AutomationProperties.Name="Graph link distance"/></Grid>
+                <Button Content="Reset forces" Click="ResetForcesClicked" HorizontalAlignment="Left"/>
+            </StackPanel>
+            </ScrollViewer>
+        </Expander>
+    </Grid>
+</UserControl>

@@ -472,13 +472,20 @@ HRESULT mediaAttach(void *handle, HWND host)
                 fit(p);
                 return S_OK;
             }
+            const auto previousStyle = GetWindowLongPtr(p->video, GWL_STYLE);
+            SetWindowLongPtr(p->video, GWL_STYLE, WS_CHILD | WS_VISIBLE | WS_CLIPSIBLINGS);
+            SetLastError(0);
+            const auto previousParent = SetParent(p->video, host);
+            // A successful transfer returns the old HWND. Synchronous renderer
+            // messages can change last-error even when parenting succeeded.
+            const auto error = previousParent ? ERROR_SUCCESS : GetLastError();
+            if (error != ERROR_SUCCESS && GetParent(p->video) != host)
+            {
+                SetWindowLongPtr(p->video, GWL_STYLE, previousStyle);
+                return HRESULT_FROM_WIN32(error);
+            }
             p->host = host;
             p->width = 0;
-            SetLastError(0);
-            SetParent(p->video, host);
-            if (GetLastError())
-                return HRESULT_FROM_WIN32(GetLastError());
-            SetWindowLongPtr(p->video, GWL_STYLE, WS_CHILD | WS_VISIBLE | WS_CLIPSIBLINGS);
             fit(p);
             return S_OK;
         },

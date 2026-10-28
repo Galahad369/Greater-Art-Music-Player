@@ -16,7 +16,13 @@ This file is the authoritative version policy for Greater Art. If any handoff no
 ## Machine-checkable state
 
 
-Current source: **1.21.85 (code 308)**
+Current source: **1.21.89 (code 312)**
+Allowed consumed transition: **1.21.38 (code 261) -> 1.21.40 (code 263)**
+
+Retain PR174's original declared transition for eeb06d9. Its initial1.21.40
+audit commit skipped1.21.39/code262 already consumed by separate main work.
+This record is copied from the original reviewed privacy-branch policy. It is
+required for retained ancestry, not permission for future version skips.
 Allowed consumed transition: **1.21.80 (code 303) -> 1.21.85 (code 308)**
 
 The separate local shared-output branch consumed1.21.81/code304 through
@@ -452,3 +458,7 @@ Previous baseline: 1.13.26 (code 115).
 - 1.21.83 (code 306): consumed on the preserved local Android parity checkpoint; not imported by the focused Library change.
 - 1.21.84 (code 307): consumed by the built, unfinished local transport candidate in the named preservation checkpoint. Native192k stress fails; no release promotion.
 - 1.21.85 (code 308): hide only the docked Library player while actual IME insets report visibility, retain its surface reservation, remove duplicate dock/IME spacing, and attach a larger themed current-song badge without shifting rows. Add state and Android regressions. SOURCE_ONLY until the separate verification gates pass.
+- 1.21.86 (code 309): preserve all three versioned shared-output experiment commits and the saved transport candidate alongside the tested Library fixes. Native WAV alignment precision is integrated; shared output still requires the explicit debug-only flag and is not routed by production. Preserve the completed desktop 0.1.19 source-only preview independently. Record the failing 192kHz transport stress gate; no release promotion or artifact replacement.
+- 1.21.87 (code 310): integrate PR174 audit/rehearsal tools with newline-safe matching, separate Python/Git patterns, explicit opt-in disposable rehearsal and honest manual historical detection. Preserve the current required security gate; no history rewrite or publish. Replace the old deleted-history test with portable equivalent coverage. Adopt the exact DataStore1.3.0 update from PR208 with a valid version, original-patch preservation and unchanged production quality. SOURCE_ONLY; existing verified artifacts unchanged.
+- 1.21.88 (code 311): fix the independent privacy review finding: suppress raw OSError text from the disposable rehearsal tool so missing/private input paths cannot reach logs. Retain controlled RuntimeError messages and add a missing-input/no-output/no-identity regression. No Android runtime change beyond the required identity; shared output remains disabled. SOURCE_ONLY, no release promotion.
+- 1.21.89 (code 312): repair the preserved WinUI preview's failed CI wiring: run existing codec evidence preparation before its build and read the existing canonical CodecDocs output. Preserve all evidence/license guards. Desktop build identity advances independently to0.1.20/code21; no desktop runtime/UI change. Android identity advances for executable workflow changes. SOURCE_ONLY; no release promotion or shared-output adoption.

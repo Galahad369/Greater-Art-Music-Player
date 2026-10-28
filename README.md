@@ -11,8 +11,8 @@ Greater Art is a local-first Android audio and video player. This repository con
 - [App documentation](greater-art/README.md) · [Handoff and verification](greater-art/HANDOFF.md)
 - [User demonstration](greater-art-user-demo.html) · [Technical demonstration](greater-art-technical-demo.html)
 
-Current source: **1.21.85 / code308 — SOURCE_ONLY**. The focused Library patch hides the dock during keyboard display and improves the current-song marker. Local unit, lint, build and bounded API36 checks passed; PR checks are pending. The latest verified sideload remains **1.21.80 / code303**. [Physical trace/profile acceptance](docs/LIBRARY_AUDIT_2026-10-24.md), the prior full rotation regression and shared-output adoption remain unfinished. No universal performance or crash-free claim.
-Windows Desktop is independently versioned at **0.1.16 / code17 — locally verified development delivery**, with interactive Nodes physics and middle-mouse/Space+drag pan.
+Current source: **1.21.89 / code312 — SOURCE_ONLY**. Preserve the tested Library keyboard/marker fixes and the saved Stack experiment. Local build and bounded API36 checks pass. Shared output is disabled and has a known high-resolution stress failure; see the [refinement gates](greater-art/docs/STACK_SHARED_OUTPUT_REFINEMENT_2026-10-28.md). The latest verified sideload remains **1.21.80 / code303**. [Physical trace/profile acceptance](docs/LIBRARY_AUDIT_2026-10-24.md), fullscreen rotation acceptance and full Stack adoption remain unfinished. No universal performance or crash-free claim.
+Windows Desktop source is independently versioned at **0.1.20 / code21 — SOURCE_ONLY WinUI preview**. Its latest verified development delivery remains **0.1.16 / code17**, with interactive Nodes physics and middle-mouse/Space+drag pan.
 The [installed/portable receipt](desktop/RELEASE_0.1.16.md) records exact hashes and remaining gates. It is an original
 native C++ IDE-style workspace with offline EXE setup and desktop shortcuts.
 No VLC/Java/Electron runtime. Approved codecs are built from pinned source and bundled

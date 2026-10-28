@@ -1,6 +1,8 @@
 # Greater Art Desktop — native Windows edition
 
-Current **0.1.16/code17**, locally verified interactive Nodes delivery. Original C++/Win32 application: activity rail, resizable Stack / Library / Nodes panes, collapsed Settings, fixed dock. Expanded Now Playing and detached Mini transfer the same primary renderer without reloading media. Older frozen artifacts are preserved.
+Current source: **0.1.20/code21**, WinUI 3 rebuild candidate. See [the WinUI preview](winui/README.md), [research and design decisions](docs/WINUI_REBUILD.md) and [migration status](docs/WINUI_PARITY.md). This preview uses the existing C++ playback and graph services. It does not replace the complete native edition yet. Android is unchanged.
+
+The last recorded native delivery in this checkout is **0.1.16/code17**. Its original C++/Win32 application has an activity rail, resizable Stack / Library / Nodes panes, collapsed Settings and a fixed dock. Older frozen artifacts are preserved, including consumed 0.1.17 and 0.1.18 identities.
 
 ## Install and run
 

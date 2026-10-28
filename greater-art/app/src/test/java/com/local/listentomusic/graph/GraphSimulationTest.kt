@@ -34,6 +34,21 @@ class GraphSimulationTest {
         assertEquals(slow.x(0), fast.x(0), 1e-7)
     }
 
+    @Test fun settledPairsMatchCompiledDesktopReference() {
+        // Captured from unchanged desktop/native/GraphMotion.h, compiled with MSVC
+        // /O2, after 480 steps at 60 Hz. Float edge inputs explain the 1e-5 tolerance.
+        for ((strength, expected) in listOf(.95f to 32.250051864214988,
+            .15f to 67.257285526093668, .7f to 43.215851023266374)) {
+            val sim = simulation(strength)
+            run(sim, 8)
+            assertEquals(-expected, sim.x(0), 1e-5)
+            assertEquals(expected, sim.x(1), 1e-5)
+            assertEquals(0.0, sim.y(0), 1e-9)
+            assertEquals(0.0, sim.y(1), 1e-9)
+            assertFalse(sim.awake)
+        }
+    }
+
     @Test fun dragPinsNodeNeighborsFollowThenSleepAndReheat() {
         val sim = simulation(.95f)
         run(sim, 8)

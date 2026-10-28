@@ -48,6 +48,23 @@ service from a visible button, keep that Activity until the service acknowledges
 startup, and use unique `.wav` names. Do not restart instrumentation midway through
 playback; it terminates the target process. Capture duration and useful bursts,
 not a nominal test sleep, determine the evidence window.
+Match completion and filename on the same log line, not a space-joined log array;
+verify the finalized container and byte count before analysis or the next run.
+
+Shared-output qualification lesson: zero inter-voice spread can hide a pause of
+the entire mix. Check complete-burst counts, reference cadence and underruns as
+well as relative offsets. Retain failed setup attempts under distinct names.
+Validate actual extractor precision before acquiring experimental audio output:
+source bit depth and decoder output encoding can disagree. Safe refusal is not
+a fidelity-support pass; restore the ordinary default-off build after experiments.
+
+Native-audio lesson: express decode-ahead in time/native rate, not a fixed number
+of chunks (four 1,024-frame chunks are only 21ms at 192kHz). Profile preparation
+as well as mixing. Preserve filter/precision contracts while removing repeated
+lookups; qualify fractional alignment, not only zero-offset tones. A successful
+short eight-lane or mono capture run is not high-resolution stereo, compressed
+corpus or thermal acceptance. Respect a user gate requiring full parity before
+release instead of promoting a default-off experiment as completion.
 
 Before editing:
 
@@ -221,3 +238,18 @@ Preserve versioned source commits. Use a checked merge commit with an expected-h
 - **Locale/semantics evidence:** dictionary coverage does not prove the screen uses it; pass the selected language into secondary dialogs and accessibility instructions, and test actual rendered states. Share duration/size formatting while distinguishing unknown metadata from elapsed zero. Put toggle state/action on the labelled row and make its child switch an indicator, preventing duplicate callbacks; verify disabled rows too.
 - **Interaction truth:** displayed selection and action inputs must use the same scope; reset result-scoped selections and their dialogs together. Confirm persisted document grants rather than treating a provider call's return as proof. Preserve shared grants and do not clear a revoke control while its grant remains. Await cache/export completion, propagate deletion/write errors, and test exact numeric entry plus Cancel. Freeze executable edits before the final build so evidence describes the final tree.
 - **Documentation gate:** update root/app READMEs, active HANDOFF state, VERSION_RULES, landing-page APK link and both films together. Label films as illustrative, not device captures; remove outdated preload and simultaneous-surface claims. Keep source-only failures in history and explain the actual cause/prevention in the handoff.
+
+## Test environment recovery
+
+If an IME test fails, check the real focused window and system ANR events.
+A System UI dialog can block keyboard input before app code is involved.
+Keep the failed run. Do not extend timeouts or relax assertions to hide it.
+
+If instrumentation fails before tests start, inspect its actual ANR trace.
+The October28 trace stopped in ART ZIP/dex loading during initInstrumentation.
+After host resources and the owned emulator recovered, precompiling only the
+test package allowed the unchanged23 functional cases to pass. This did not
+change the app APK or playback quality. It does not prove normal cold-start
+performance. Record the preparation with the result.
+
+Reference: [Android CompilationMode.Full](https://developer.android.com/reference/androidx/benchmark/macro/CompilationMode.Full).

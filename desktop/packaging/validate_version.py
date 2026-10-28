@@ -4,8 +4,10 @@ import json
 import pathlib
 import re
 import subprocess
+import xml.etree.ElementTree as ET
 
 ROOT = pathlib.Path(__file__).resolve().parents[2]
+WINUI_PROJECT = "desktop/winui/GreaterArt.WinUI.csproj"
 PRE_LEDGER_VENDOR_COMMITS = {
     "517e260955169c415828e1819e5eacbc8919294a",
     "86baa3d53a2ccfe6ce84a50eadcdb4b2f4ba0010",
@@ -39,10 +41,32 @@ def desktop_code(path):
         return True
     if path == "desktop/native/.clang-format":
         return True
-    return path.startswith("desktop/") and pathlib.Path(path).suffix in {".kt", ".kts", ".properties", ".py", ".ps1", ".yml", ".yaml", ".xml", ".java", ".ico", ".svg", ".png", ".cpp", ".h", ".inl", ".rc", ".manifest", ".wxs", ".json", ".cmake"}
+    return path.startswith("desktop/") and pathlib.Path(path).suffix in {".kt", ".kts", ".properties", ".py", ".ps1", ".yml", ".yaml", ".xml", ".java", ".ico", ".svg", ".png", ".cpp", ".h", ".inl", ".rc", ".manifest", ".wxs", ".json", ".cmake", ".cs", ".xaml", ".csproj"}
 
 
-def check_package(version, code, reader, native):
+def require_patch_increment(previous, current):
+    # The source checkout returned to 0.1.16 after 0.1.17 and 0.1.18 had
+    # consumed their identities. Historical ledger c2d4c4e819afad5a77092bf1640dc0c481b86ee3
+    # records 0.1.18/code19. Only this exact recovery may skip consumed versions.
+    if previous == ("0.1.16", 17) and current == ("0.1.19", 20):
+        return
+    old_version, old_code = previous
+    a, b, patch = map(int, old_version.split("."))
+    if current != (f"{a}.{b}.{patch + 1}", old_code + 1):
+        raise ValueError("Desktop code changed without PATCH/code +1")
+
+
+def check_package(version, code, reader, native, winui=False):
+    if winui:
+        try:
+            project = ET.fromstring(reader(WINUI_PROJECT))
+        except ET.ParseError as error:
+            raise ValueError("WinUI project is not valid XML") from error
+        for field, expected in (("Version", version), ("AssemblyVersion", f"{version}.0"),
+                                ("FileVersion", f"{version}.0")):
+            values = [element.text for element in project.iter() if element.tag.rsplit("}", 1)[-1] == field]
+            if not values or any(value != expected for value in values):
+                raise ValueError(f"WinUI {field} differs from ledger")
     if not native:
         # Preserve validation of the historical 0.1.0 Compose checkpoint.
         if f'packageVersion = "{version}"' not in reader("desktop/app/build.gradle.kts"):
@@ -83,7 +107,7 @@ def main():
         raise ValueError("Desktop implementation requires its version ledger")
     version, code = identity(rules.read_text(encoding="utf-8"))
     check_package(version, code, lambda path: (ROOT / path).read_text(encoding="utf-8"),
-                  (ROOT / "desktop/native/Core.h").exists())
+                  (ROOT / "desktop/native/Core.h").exists(), (ROOT / WINUI_PROJECT).exists())
     if options.base:
         for commit in git("rev-list", "--reverse", f"{options.base}..{options.head}").splitlines():
             parent = git("rev-parse", f"{commit}^").strip()
@@ -94,7 +118,8 @@ def main():
                 continue
             current = identity(git("show", f"{commit}:desktop/VERSION_DESKTOP.md"))
             check_package(*current, lambda path: git("show", f"{commit}:{path}"),
-                          bool(git("ls-tree", "--name-only", commit, "desktop/native/Core.h").strip()))
+                          bool(git("ls-tree", "--name-only", commit, "desktop/native/Core.h").strip()),
+                          bool(git("ls-tree", "--name-only", commit, WINUI_PROJECT).strip()))
             # A pure integration adds no executable behavior of its own.
             parents = git("rev-list", "--parents", "-n", "1", commit).split()[1:]
             tree = git("rev-parse", f"{commit}^{{tree}}").strip()
@@ -119,10 +144,11 @@ def main():
                 if current != ("0.1.0", 1):
                     raise ValueError("First desktop implementation must start at 0.1.0/code1")
             else:
-                old_version, old_code = identity(git("show", f"{parent}:desktop/VERSION_DESKTOP.md"))
-                a, b, patch = map(int, old_version.split("."))
-                if current != (f"{a}.{b}.{patch + 1}", old_code + 1):
-                    raise ValueError(f"{commit[:12]} desktop code changed without PATCH/code +1")
+                previous = identity(git("show", f"{parent}:desktop/VERSION_DESKTOP.md"))
+                try:
+                    require_patch_increment(previous, current)
+                except ValueError as error:
+                    raise ValueError(f"{commit[:12]} desktop code changed without PATCH/code +1") from error
     print(f"Desktop version guard OK: {version} (code {code})")
     return 0
 

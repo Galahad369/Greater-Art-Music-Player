@@ -1,8 +1,8 @@
 # Greater Art Desktop version policy
 
-Current desktop: **0.1.16 (code 17)**
-Release state: **Locally verified development delivery — immutable 0.1.16 installer/ZIP; older artifacts preserved**
-Android remains independent: 1.21.39/code262 VERIFIED debug sideload; no Android source or artifact changes in this stage.
+Current desktop: **0.1.20 (code 21)**
+Release state: **SOURCE_ONLY candidate — WinUI 3 playback prototype; verification and distributable pending**
+Android versions remain independent. This desktop stage does not change Android source or artifacts. Refer to the Android ledger for its current identity.
 
 Every committed desktop executable/build/workflow change increments PATCH and code together. Documentation and verified-artifact finalization do not consume another version. Never overwrite a versioned artifact. Full-parity 1.0.0 is reserved until all parity gates pass.
 
@@ -25,5 +25,11 @@ Every committed desktop executable/build/workflow change increments PATCH and co
 | 0.1.14 / 15 | Installed checkpoint; no frozen delivery | Corrected pan probe; installed 73/73 and real 1080p gestures passed. Presentation profiling exposed unrelated clipped text and redundant background work. |
 | 0.1.15 / 16 | Installed/portable checkpoint; no frozen delivery | Removed redundant painting. Both core copies 73/73; installed real 1080p/4K graph and transfers pass. General transfer report still printed its old hardcoded version. |
 | 0.1.16 / 17 | Locally verified development delivery | Installed/portable 73/73, real-library 4K graph interaction and 1080p fullscreen/Mini/MSAA transfer pass. Diagnostics report actual build identity. Immutable hashes and limits in RELEASE_0.1.16.md. |
+| 0.1.17 / 18 | Consumed historical identity; preserved artifacts | Previously used identity, not reused by the rebuild. Current checkout returned to the 0.1.16 source baseline; no verification is inferred from a versioned filename. |
+| 0.1.18 / 19 | Consumed historical identity; preserved artifacts | Recorded by historical ledger commit `c2d4c4e819afad5a77092bf1640dc0c481b86ee3`. Existing artifacts remain untouched; this record does not establish their provenance or verification status. |
+| 0.1.19 / 20 | SOURCE_ONLY candidate; verification pending | User-approved WinUI 3-first desktop shell with the existing native Media Foundation/Stack services behind a C ABI. Real playback, transfers, DPI and offline deployment are acceptance gates; Android is unchanged. |
+| 0.1.20 / 21 | SOURCE_ONLY build repair | CI must prepare the existing codec redistribution evidence before WinUI checks it. Read the canonical build/CodecDocs folder, not build/codecs. Keep missing-evidence failure and all license/source checks. No desktop playback or UI implementation changes. Verified0.1.16 artifacts are unchanged. |
 
-The native source/resource/MSI/artifact identities are checked by packaging/validate_version.py. The guard also validates the historical Compose checkpoint. Installer signing, clean-machine testing, full accessibility and full mobile feature parity remain open gates. No APK is rebuilt or relabelled for desktop work.
+The one-time source-baseline transition from 0.1.16/code17 to 0.1.19/code20 skips the two consumed identities above. The version guard permits only this exact transition; subsequent executable/build changes still require PATCH/code +1. This does not relabel or overwrite a historical release.
+
+The native source/resource/MSI/artifact identities and the WinUI project identity (when present) are checked by packaging/validate_version.py. The guard also validates the historical Compose checkpoint. Installer signing, clean-machine testing, full accessibility and full mobile feature parity remain open gates. No APK is rebuilt or relabelled for desktop work.

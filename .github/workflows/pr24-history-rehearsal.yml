@@ -1,0 +1,76 @@
+name: PR24 Historical Privacy Tools
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - scripts/pr24-path-patterns.py
+      - scripts/pr24-rehearse-history.py
+      - scripts/audit-historical-workstation-paths.py
+      - scripts/test-pr24-patterns.py
+      - scripts/test-historical-workstation-audit.py
+      - .github/workflows/pr24-history-rehearsal.yml
+  workflow_dispatch:
+    inputs:
+      confirm_disposable_rehearsal:
+        description: Also rewrite a NEW disposable runner copy; never publish it
+        type: boolean
+        required: true
+        default: false
+
+permissions:
+  contents: read
+
+jobs:
+  synthetic-tests:
+    # No PR-only condition: a manual dispatch must actually run the tests.
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Test Python bytes/strings and Git ERE without Git mutations
+        run: python3 scripts/test-pr24-patterns.py
+      - name: Test clean and deleted historical paths in an owned temporary repository
+        run: python3 scripts/test-historical-workstation-audit.py
+
+  historical-audit:
+    if: github.event_name == 'workflow_dispatch'
+    needs: synthetic-tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 55
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Detect historical exposure; fail honestly if it remains
+        run: python3 scripts/audit-historical-workstation-paths.py --repository .
+      # This manual issue-24 audit does not replace the required security gate.
+      # Do not upload history, raw identities, matched contents or ref maps.
+
+  disposable-rehearsal:
+    if: github.event_name == 'workflow_dispatch' && inputs.confirm_disposable_rehearsal
+    needs: synthetic-tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 55
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Install the pinned disposable-rewrite dependency
+        run: python3 -m pip install --disable-pip-version-check 'git-filter-repo==2.47.0'
+      - name: Create a disposable public mirror and rehearse; NEVER PUSH
+        shell: bash
+        run: |
+          git clone --quiet --mirror --no-local \
+            https://github.com/Galahad369/Greater-Art-Music-Player.git \
+            "$RUNNER_TEMP/pr24-original.git"
+          expected_main="$(git -C "$RUNNER_TEMP/pr24-original.git" rev-parse refs/heads/main)"
+          python3 scripts/pr24-rehearse-history.py \
+            --mirror "$RUNNER_TEMP/pr24-original.git" \
+            --output "$RUNNER_TEMP/pr24-rewritten.git" \
+            --expected-main "$expected_main" \
+            --confirm-disposable-rehearsal
+      # No artifact upload, repository write permission, force push or retag.

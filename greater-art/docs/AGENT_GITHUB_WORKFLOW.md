@@ -86,6 +86,12 @@ Expected gates normally include:
 
 A green unrelated job does not compensate for a failed compile, version guard, or CodeQL build.
 
+In PowerShell, ErrorActionPreference does not reliably stop on a failed native
+command. Check LASTEXITCODE explicitly after validators and before push/merge.
+Keep declared historical consumed transitions when retaining branch ancestry.
+Do not replace them with a broad exemption. Preserved mail patches can contain
+required context/footer whitespace; check ordinary changed source separately.
+
 Do not merge while required checks are pending or failed unless the user explicitly directs an emergency exception and the repository rules allow it.
 
 ## 7. Merge strategy
@@ -107,6 +113,16 @@ When the user's policy requires branch convergence:
 5. Delete only reviewed exact branches after proving their tips are ancestors of final main. If deletion is unavailable, report the permission blocker; do not force-align a divergent branch as a substitute.
 
 Never force-align an unreviewed divergent branch; doing so could erase unique work.
+
+If a user explicitly requests single-branch convergence and a bot branch has an
+invalid unversioned dependency commit, do not import it or waive the guard merely
+to make its tip an ancestor. Recreate the exact reviewed functional update under
+a valid version. Before removing that superseded branch, require passing
+replacement CI, preserve the original commit under a local refs/archive ref and
+its exact mail patch in docs/imported-patches, compare the complete original
+diff, and record the replacement PR and original SHA. Recheck the remote head
+immediately before deletion. Any other unique change prevents this exception.
+Do not use an ancestry-only merge or force-align the branch as a substitute.
 
 ## 9. Release-state boundary
 
