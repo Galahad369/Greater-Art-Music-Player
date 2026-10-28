@@ -21,6 +21,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.WindowInsets
@@ -100,8 +101,12 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
 import com.local.listentomusic.LibraryStatus
 import com.local.listentomusic.LibraryUiState
 import com.local.listentomusic.data.AppLanguage
@@ -444,7 +449,8 @@ fun LibraryScreen(
                         modifier = Modifier.fillMaxSize().inspectElement("LIBRARY_LIST", "Virtualized ordered media rows"),
                         contentPadding = PaddingValues(
                             top = 4.dp,
-                            bottom = if (currentPath == null) 4.dp else 60.dp,
+                            // The parent Scaffold owns the dock/IME reservation.
+                            bottom = 4.dp,
                         ),
                         verticalArrangement = Arrangement.spacedBy(2.dp),
                     ) {
@@ -778,6 +784,9 @@ internal fun MediaFileRow(
     } else {
         MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.16f)
     }
+    val playbackState = if (isCurrent) {
+        if (isPlaying) uiText(language, "Now playing", "正在播放") else uiText(language, "Paused", "已暫停")
+    } else null
     Box(
         Modifier.fillMaxWidth()
             .padding(horizontal = 8.dp, vertical = 2.dp)
@@ -826,64 +835,60 @@ internal fun MediaFileRow(
                     indication = androidx.compose.material3.ripple(),
                     onClick = { if (actionsOpen) onToggleActions() else onPlay() },
                 )
+                .testTag("LIBRARY_MEDIA_FOREGROUND")
+                .semantics { playbackState?.let { stateDescription = it } }
                 .then(if (!actionsOpen) dragModifier else Modifier)
                 .then(if (rowSize == LibraryRowSize.SMALL) Modifier.heightIn(min = com.local.listentomusic.model.CompactPlayerMetrics.HEIGHT_DP.dp) else Modifier)
                 .padding(horizontal = 14.dp, vertical = rowSize.verticalPadding),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            // Reserve the same 12 dp for every row so artwork and titles never jump
-            // sideways when the active song changes.
-            Box(Modifier.width(12.dp), contentAlignment = Alignment.CenterStart) {
-                if (isCurrent) {
-                    if (isPlaying) Icon(
-                        Icons.Rounded.PlayArrow,
-                        contentDescription = uiText(language, "Now playing", "正在播放"),
-                        modifier = Modifier.size(12.dp),
-                        tint = MaterialTheme.colorScheme.secondary,
-                    ) else Box(
-                        Modifier.size(6.dp).background(MaterialTheme.colorScheme.secondary, CircleShape)
-                    )
-                }
-            }
+            // Keep the measured gutter unchanged. Badges use this gutter and the
+            // existing row padding instead of moving artwork, text or actions.
+            Spacer(Modifier.width(12.dp))
             if (showThumbnails) {
-                // Visual translation only: retain the original measured image slot,
-                // song title, details, trailing action placement, and row height.
-                if (isCurrent) {
-                    // Only the active row needs a graphics layer for the 4dp
-                    // visual shift. Ordinary rows avoid this layer entirely.
-                    Box(Modifier.graphicsLayer { translationX = 4.dp.toPx() }) {
-                        MediaThumbnail(file, thumbnail, rowSize, miniSize, thumbnailBrush)
-                    }
-                } else {
+                Box {
                     MediaThumbnail(file, thumbnail, rowSize, miniSize, thumbnailBrush)
+                    if (isCurrent) {
+                        LibraryCurrentIndicator(isPlaying,
+                            Modifier.align(Alignment.CenterStart).offset(x = -8.dp))
+                    }
                 }
                 Spacer(Modifier.width(rowSize.textSpacing))
             }
-            Column(Modifier.weight(1f), verticalArrangement = Arrangement.Center) {
-                Text(
-                    file.name.substringBeforeLast('.', file.name),
-                    style = when (rowSize) {
-                        LibraryRowSize.SMALL -> MaterialTheme.typography.bodyLarge
-                        LibraryRowSize.MEDIUM -> MaterialTheme.typography.titleMedium
-                        LibraryRowSize.LARGE -> MaterialTheme.typography.titleLarge
-                    },
-                    fontWeight = FontWeight.SemiBold,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis,
-                )
-                if (showFileDetails) {
-                    Spacer(Modifier.height(if (rowSize == LibraryRowSize.SMALL) 2.dp else 4.dp))
+            Box(Modifier.weight(1f)) {
+                Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.Center) {
                     Text(
-                        remember(file.name, file.sizeBytes, file.durationMs) { buildString {
-                            append(file.name.substringAfterLast('.', "media").uppercase())
-                            append("  •  ${formatBytes(file.sizeBytes)}")
-                            if (file.durationMs > 0) append("  •  ${formatDuration(file.durationMs)}")
-                        } },
-                        style = if (rowSize == LibraryRowSize.LARGE) MaterialTheme.typography.bodyMedium else MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        maxLines = 1,
+                        file.name.substringBeforeLast('.', file.name),
+                        style = when (rowSize) {
+                            LibraryRowSize.SMALL -> MaterialTheme.typography.bodyLarge
+                            LibraryRowSize.MEDIUM -> MaterialTheme.typography.titleMedium
+                            LibraryRowSize.LARGE -> MaterialTheme.typography.titleLarge
+                        },
+                        fontWeight = FontWeight.SemiBold,
+                        maxLines = 2,
                         overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.testTag("LIBRARY_MEDIA_TITLE"),
                     )
+                    if (showFileDetails) {
+                        Spacer(Modifier.height(if (rowSize == LibraryRowSize.SMALL) 2.dp else 4.dp))
+                        Text(
+                            remember(file.name, file.sizeBytes, file.durationMs) { buildString {
+                                append(file.name.substringAfterLast('.', "media").uppercase())
+                                append("  •  ${formatBytes(file.sizeBytes)}")
+                                if (file.durationMs > 0) append("  •  ${formatDuration(file.durationMs)}")
+                            } },
+                            style = if (rowSize == LibraryRowSize.LARGE) MaterialTheme.typography.bodyMedium else MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                    }
+                }
+                if (!showThumbnails && isCurrent) {
+                    // The 20dp badge ends 2dp before the title and stays within the
+                    // original 14dp row padding + 12dp gutter. It measures no artwork gap.
+                    LibraryCurrentIndicator(isPlaying,
+                        Modifier.align(Alignment.CenterStart).offset(x = -22.dp), size = 20.dp)
                 }
             }
             if (dragEnabled) Icon(Icons.Rounded.DragHandle, "Reorder", tint = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -893,6 +898,22 @@ internal fun MediaFileRow(
             ) {
                 Icon(Icons.Rounded.MoreVert, moreDescription)
             }
+        }
+    }
+}
+
+/** A status mark, not another control. The enclosing row announces playback state. */
+@Composable
+private fun LibraryCurrentIndicator(isPlaying: Boolean, modifier: Modifier = Modifier, size: Dp = 24.dp) {
+    Box(modifier.size(size).background(MaterialTheme.colorScheme.primary, CircleShape)
+        .testTag("LIBRARY_CURRENT_INDICATOR"), contentAlignment = Alignment.Center) {
+        if (isPlaying) {
+            Icon(Icons.Rounded.PlayArrow, null,
+                Modifier.size(16.dp).testTag("LIBRARY_CURRENT_PLAY_SYMBOL"),
+                tint = MaterialTheme.colorScheme.onPrimary)
+        } else {
+            Box(Modifier.size(8.dp).background(MaterialTheme.colorScheme.onPrimary, CircleShape)
+                .testTag("LIBRARY_CURRENT_PAUSED_SYMBOL"))
         }
     }
 }
@@ -923,12 +944,12 @@ private fun MediaThumbnail(file: MediaFile, bitmap: Bitmap?, rowSize: LibraryRow
     val image = remember(bitmap) { bitmap?.asImageBitmap() }
     val (widthDp, heightDp) = libraryThumbnailSizeDp(rowSize, miniSize)
     Box(
-        Modifier.size(widthDp.dp, heightDp.dp).clip(shape).background(brush),
+        Modifier.size(widthDp.dp, heightDp.dp).clip(shape).background(brush).testTag("LIBRARY_THUMBNAIL"),
         contentAlignment = Alignment.Center,
     ) {
         if (image != null) {
             Image(image, null, Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
-            // The row itself is tappable to play; do not paint a play button on the thumbnail.
+            // Artwork is decorative. The enclosing row draws its playback status badge.
         } else {
             Icon(
                 if (file.kind == MediaKind.VIDEO) Icons.Rounded.SmartDisplay else Icons.Rounded.MusicNote,

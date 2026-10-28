@@ -10,6 +10,7 @@ import android.os.Build
 import android.os.Bundle
 import android.provider.Settings
 import android.util.Rational
+import android.view.View
 import android.view.WindowManager
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -26,6 +27,10 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalContext
 import androidx.core.view.WindowCompat
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.WindowInsetsAnimationCompat
+import androidx.core.view.OneShotPreDrawListener
 import androidx.core.net.toUri
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.Lifecycle
@@ -38,6 +43,7 @@ import com.local.listentomusic.ui.theme.GreaterArtTheme
 import com.local.listentomusic.data.FloatingWindowMode
 import com.local.listentomusic.playback.MiniWindowOverlayService
 import com.local.listentomusic.playback.FullscreenVideoActivity
+import com.local.listentomusic.playback.PlayerWindowVisibility
 import com.local.listentomusic.data.usesAndroidPip
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.combine
@@ -62,6 +68,7 @@ class MainActivity : ComponentActivity() {
     private var returnScan: kotlinx.coroutines.Job? = null
     private var miniWindowReturnJob: kotlinx.coroutines.Job? = null
     private var returningFromMiniWindow = false
+    private var imeInsetsRoot: View? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -69,6 +76,14 @@ class MainActivity : ComponentActivity() {
             ContextCompat.RECEIVER_NOT_EXPORTED)
         onBackPressedDispatcher.addCallback(this, object : androidx.activity.OnBackPressedCallback(true) {
             override fun handleOnBackPressed() {
+                if (imeInsetsRoot?.let(ViewCompat::getRootWindowInsets)
+                        ?.isVisible(WindowInsetsCompat.Type.ime()) == true) {
+                    // On older Android versions this callback can receive Back
+                    // before the IME. Dismiss input instead of minimizing playback.
+                    WindowCompat.getInsetsController(window, window.decorView)
+                        .hide(WindowInsetsCompat.Type.ime())
+                    return
+                }
                 if (viewModel.playback.value.hasMedia) {
                     when (viewModel.settings.value.floatingWindowMode) {
                         FloatingWindowMode.MINI_WINDOW ->
@@ -147,10 +162,66 @@ class MainActivity : ComponentActivity() {
                 onEnterPictureInPicture = ::enterVideoPictureInPicture,
             )
         }
+        val root = findViewById<View>(android.R.id.content)
+        imeInsetsRoot = root
+        ViewCompat.setOnApplyWindowInsetsListener(root) { _, insets ->
+            if (lifecycle.currentState.isAtLeast(Lifecycle.State.STARTED)) {
+                PlayerWindowVisibility.ime(insets.isVisible(WindowInsetsCompat.Type.ime()))
+            }
+            // Compose still needs the original insets for its IME layout.
+            insets
+        }
+        ViewCompat.setWindowInsetsAnimationCallback(root, object : WindowInsetsAnimationCompat.Callback(
+            WindowInsetsAnimationCompat.Callback.DISPATCH_MODE_CONTINUE_ON_SUBTREE,
+        ) {
+            override fun onPrepare(animation: WindowInsetsAnimationCompat) {
+                if ((animation.typeMask and WindowInsetsCompat.Type.ime()) != 0 &&
+                    lifecycle.currentState.isAtLeast(Lifecycle.State.STARTED)) {
+                    PlayerWindowVisibility.imeAnimationPrepared(animation)
+                    // onStart occurs before drawing the new layout. Check after that
+                    // traversal, because Android 11 omits onEnd for pre-start cancellation.
+                    OneShotPreDrawListener.add(root) {
+                        root.post {
+                            if (lifecycle.currentState.isAtLeast(Lifecycle.State.STARTED)) syncImeVisibility()
+                            PlayerWindowVisibility.discardPreparedImeAnimation(animation)
+                        }
+                    }
+                }
+            }
+
+            override fun onStart(animation: WindowInsetsAnimationCompat,
+                bounds: WindowInsetsAnimationCompat.BoundsCompat): WindowInsetsAnimationCompat.BoundsCompat {
+                if ((animation.typeMask and WindowInsetsCompat.Type.ime()) != 0 &&
+                    lifecycle.currentState.isAtLeast(Lifecycle.State.STARTED)) {
+                    PlayerWindowVisibility.imeAnimationStarted(animation)
+                }
+                return bounds
+            }
+
+            override fun onProgress(insets: WindowInsetsCompat,
+                runningAnimations: MutableList<WindowInsetsAnimationCompat>): WindowInsetsCompat = insets
+
+            override fun onEnd(animation: WindowInsetsAnimationCompat) {
+                if ((animation.typeMask and WindowInsetsCompat.Type.ime()) != 0) {
+                    if (lifecycle.currentState.isAtLeast(Lifecycle.State.STARTED)) syncImeVisibility()
+                    PlayerWindowVisibility.imeAnimationFinished(animation)
+                }
+            }
+        })
+        syncImeVisibility()
+    }
+
+    private fun syncImeVisibility() {
+        val root = imeInsetsRoot ?: return
+        ViewCompat.getRootWindowInsets(root)?.let {
+            PlayerWindowVisibility.ime(it.isVisible(WindowInsetsCompat.Type.ime()))
+        }
+        ViewCompat.requestApplyInsets(root)
     }
 
     override fun onWindowFocusChanged(hasFocus: Boolean) {
         super.onWindowFocusChanged(hasFocus)
+        if (hasFocus) syncImeVisibility()
         com.local.listentomusic.playback.PlayerWindowVisibility.windowFocus(hasFocus)
     }
 
@@ -189,6 +260,7 @@ class MainActivity : ComponentActivity() {
 
     override fun onStart() {
         super.onStart()
+        syncImeVisibility()
         com.local.listentomusic.playback.PlayerWindowVisibility.app(true)
         com.local.listentomusic.playback.PlayerWindowVisibility.library(libraryScreenVisible)
     }
@@ -196,6 +268,7 @@ class MainActivity : ComponentActivity() {
     override fun onStop() {
         com.local.listentomusic.playback.PlayerWindowVisibility.library(false)
         com.local.listentomusic.playback.PlayerWindowVisibility.app(false)
+        PlayerWindowVisibility.resetIme()
         super.onStop()
         // Background-only mode has no overlay-service notification/window.
         // Keep the independent MediaSession/PlaybackService running.
@@ -207,6 +280,11 @@ class MainActivity : ComponentActivity() {
     }
 
     override fun onDestroy() {
+        imeInsetsRoot?.let {
+            ViewCompat.setWindowInsetsAnimationCallback(it, null)
+            ViewCompat.setOnApplyWindowInsetsListener(it, null)
+        }
+        imeInsetsRoot = null
         runCatching { unregisterReceiver(backgroundPlayer) }
         super.onDestroy()
     }

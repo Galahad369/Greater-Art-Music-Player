@@ -16,7 +16,14 @@ This file is the authoritative version policy for Greater Art. If any handoff no
 ## Machine-checkable state
 
 
-Current source: **1.21.80 (code 303)**
+Current source: **1.21.85 (code 308)**
+Allowed consumed transition: **1.21.80 (code 303) -> 1.21.85 (code 308)**
+
+The separate local shared-output branch consumed1.21.81/code304 through
+1.21.83/code306. Its uncommitted1.21.84/code307 candidate was also built and tested.
+All source remains preserved on that branch and in the named local checkpoint.
+The focused Library patch starts from main and uses the next unused identity.
+It does not import or enable the unfinished shared-output engine.
 Allowed consumed transition: **1.21.68 (code 291) -> 1.21.70 (code 293)**
 
 An earlier side-branch 1.21.69/code292 introduced the staged-cache policy but
@@ -75,7 +82,7 @@ Allowed consumed transition: **1.21.22 (code 245) -> 1.21.24 (code 247)**
 1.21.23/code246 is consumed by the separate PR #153 PCM prototype (`881f39c`).
 Claude's supplied adaptive-sync patch proposed that identity too; integration
 used 1.21.24/code247 in its preserved history. Adaptive sync is model-backed, not acoustically verified.
-Current release state: **VERIFIED**
+Current release state: **SOURCE_ONLY**
 Latest verified APK: **1.21.80 (code 303)**
 Allowed series transition: **1.14.15 -> 1.15.1**
 Allowed series transition: **1.15.89 -> 1.20.2**
@@ -440,3 +447,8 @@ Previous baseline: 1.13.26 (code 115).
 - 1.21.78 (code 301): restore a directly visible left-side fullscreen speed selector using existing playback choices and command callback; reserve its touch target before optional actions and wrap on narrow layouts. No player/surface or quality changes.
 - 1.21.79 (code 302): finish Hermes desktop-physics port for Android Nodes with bounded off-main live simulation, generation-safe results, cache layout revision and cancellation-safe drag release. Preserve existing navigation, playback and video quality; add physics regressions. No unmeasured scroll/surface policy change.
 - 1.21.80 (code 303): integrate Dependabot PR206 Gradle 9.8.2 update under a valid fresh build identity, pin its official distribution SHA-256 and preserve the original PR history separately. No Android runtime or desktop changes beyond the version identity.
+- 1.21.81 (code 304): consumed on the preserved local shared-output experiment branch; not imported by the focused Library change.
+- 1.21.82 (code 305): consumed on the preserved local native-precision experiment branch; not imported by the focused Library change.
+- 1.21.83 (code 306): consumed on the preserved local Android parity checkpoint; not imported by the focused Library change.
+- 1.21.84 (code 307): consumed by the built, unfinished local transport candidate in the named preservation checkpoint. Native192k stress fails; no release promotion.
+- 1.21.85 (code 308): hide only the docked Library player while actual IME insets report visibility, retain its surface reservation, remove duplicate dock/IME spacing, and attach a larger themed current-song badge without shifting rows. Add state and Android regressions. SOURCE_ONLY until the separate verification gates pass.

@@ -3,6 +3,7 @@ package com.local.listentomusic.ui
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.statusBarsPadding
 
 import android.content.Intent
@@ -260,7 +261,9 @@ fun GreaterArtApp(
 
     val appName = if (settings.silianRail) "PIERCE&PIERCE" else "Greater Art"
     val stackPage = screen == Screen.LIBRARY && libraryPager.currentPage == 0
-    val dockedPlayerVisible by com.local.listentomusic.playback.PlayerWindowVisibility.dockedVisible
+    val dockSurfaceReserved by com.local.listentomusic.playback.PlayerWindowVisibility.dockSurfaceReserved
+        .collectAsStateWithLifecycle()
+    val keyboardVisible by com.local.listentomusic.playback.PlayerWindowVisibility.keyboardShowing
         .collectAsStateWithLifecycle()
     val libraryRevealActive =
         screen == Screen.LIBRARY && libraryBackgroundReveal.fraction > 0.001f
@@ -317,7 +320,8 @@ fun GreaterArtApp(
                 // The Library dock is a user-facing playback surface. When it is visible,
                 // give it the single primary video surface and let CURRENT_VIDEO wallpaper
                 // fall back to ambient instead of forcing the dock to artwork.
-                allowPrimaryVideoBackground = !dockedPlayerVisible,
+                // IME occlusion hides the dock window, not its video owner.
+                allowPrimaryVideoBackground = !dockSurfaceReserved,
                 listScrolling = listScrolling,
                 horizontalPosition = backgroundHorizontalPosition,
                 // Library reveal must expose the raw wallpaper. Its normal dim is
@@ -364,10 +368,11 @@ fun GreaterArtApp(
             ) { scr ->
                 when (scr) {
                 Screen.LIBRARY -> Scaffold(
+                    modifier = Modifier.imePadding(),
                     containerColor = Color.Transparent,
                     contentColor = MaterialTheme.colorScheme.onBackground,
                     bottomBar = {
-                        if (playback.hasMedia && !stackPage) {
+                        if (playback.hasMedia && !stackPage && !keyboardVisible) {
                             Spacer(Modifier.fillMaxWidth().height((com.local.listentomusic.model.MiniWindowMetrics.HEIGHT_DP * com.local.listentomusic.model.MiniWindowMetrics.scale(settings.miniWindowSize)).dp))
                         }
                     },

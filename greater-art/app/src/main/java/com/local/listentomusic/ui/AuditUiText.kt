@@ -33,6 +33,7 @@ private val auditMessages = mapOf(
     "Clearing cache…" to listOf("正在清除快取…", "清緊快取…", "キャッシュを削除中…", "Cache wird geleert…", "Suppression du cache…"),
     "Could not clear cache. Please retry." to listOf("無法清除快取，請重試。", "清唔到快取，請再試。", "キャッシュを削除できません。再試行してください。", "Cache konnte nicht geleert werden. Bitte erneut versuchen.", "Impossible de vider le cache. Réessayez."),
     "Paused" to listOf("已暫停", "暫停咗", "一時停止", "Pausiert", "En pause"),
+    "Now playing" to listOf("正在播放", "播放緊", "再生中", "Wiedergabe läuft", "Lecture en cours"),
     "Could not read playlist" to listOf("無法讀取播放清單", "讀唔到歌單", "プレイリストを読み込めません", "Playlist konnte nicht gelesen werden", "Impossible de lire la liste"),
     "No matching files in playlist" to listOf("播放清單沒有相符的檔案", "歌單冇相符檔案", "プレイリストに一致するファイルがありません", "Keine passenden Dateien in der Playlist", "Aucun fichier correspondant dans la liste"),
     "Playlist imported" to listOf("播放清單已匯入", "歌單匯入咗", "プレイリストをインポートしました", "Playlist importiert", "Liste importée"),

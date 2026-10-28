@@ -11,7 +11,7 @@ Greater Art is a local-first Android audio and video player. This repository con
 - [App documentation](greater-art/README.md) · [Handoff and verification](greater-art/HANDOFF.md)
 - [User demonstration](greater-art-user-demo.html) · [Technical demonstration](greater-art-technical-demo.html)
 
-Current source and matching sideload: **1.21.80 / code 303**. Includes RAM-seeded Library rows, clock-isolated shell state, directly visible fullscreen speed control, completed Android Nodes physics port and checksum-pinned Gradle 9.8.2. Functional tests passed; [physical trace/profile acceptance](docs/LIBRARY_AUDIT_2026-10-24.md) and the prior full rotation regression remain unfinished. No measured speedup or universal crash-free claim.
+Current source: **1.21.85 / code308 — SOURCE_ONLY**. The focused Library patch hides the dock during keyboard display and improves the current-song marker. Local unit, lint, build and bounded API36 checks passed; PR checks are pending. The latest verified sideload remains **1.21.80 / code303**. [Physical trace/profile acceptance](docs/LIBRARY_AUDIT_2026-10-24.md), the prior full rotation regression and shared-output adoption remain unfinished. No universal performance or crash-free claim.
 Windows Desktop is independently versioned at **0.1.16 / code17 — locally verified development delivery**, with interactive Nodes physics and middle-mouse/Space+drag pan.
 The [installed/portable receipt](desktop/RELEASE_0.1.16.md) records exact hashes and remaining gates. It is an original
 native C++ IDE-style workspace with offline EXE setup and desktop shortcuts.

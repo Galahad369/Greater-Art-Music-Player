@@ -3,7 +3,7 @@
 This file describes the **current repository state only**. Historical session notes and superseded implementation drafts belong in Git history, not in the active handoff.
 
 **Project:** `greater-art/` in the repository checkout
-**Current source:** `1.21.80 (code 303)` — VERIFIED bounded functional sideload; PR207 integration
+**Current source:** `1.21.85 (code 308)` — SOURCE_ONLY; focused Library checks passed locally; PR checks pending
 **Current version:** `1.21.80 (code 303)`
 **Latest APK:** `releases/GreaterArt-1.21.80.apk` (`27,025,073 bytes`; SHA-256 `76791737701736a45b9b441851212f2c8cacf83542991b5c0e58ffbbfc3d29b4`)
 **Application ID:** `com.local.listentomusic`
@@ -13,6 +13,18 @@ This file describes the **current repository state only**. Historical session no
 **Verification boundary:** Exact source `3b49022`; Gradle9.8.2/Java21 unit/lint/debug app/test build passed. 446 JVM tests, zero failures/errors; lint 0 errors/46 warnings/4 hints. Final API36 upgrade passed 15/15 focused cases in 37.285s: Nodes tap/drag/controls/graph replacement, fullscreen speed/narrow toolbar, Library row semantics/RAM seeding, actual cache/disk-during-scroll regressions. Nine disposable Git sync-safety tests passed outside sandbox. Certificate unchanged; package/version, ZIP CRC, 16KiB alignment and SHA-256 checked. This is not full fullscreen rotation, physical-device visual/acoustic/performance acceptance, production signing or universal bug-free proof. Existing Library physical trace/profile acceptance and the prior full rotation failure remain unresolved.
 
 ## Repository state
+
+### October 28 — Focused Library UX fixes (1.21.85/code308)
+
+- This patch starts from main `84db4e2`. Earlier local versions 81–84 remain preserved. They are not part of this Library diff. Desktop work and generated evidence are also preserved.
+- Cause: the dock policy did not check IME visibility. The Scaffold reserved dock height, and the list added another 60dp. Actual IME insets now hide the existing window without stopping playback. Animation tokens prevent early restoration while the keyboard closes. The surface reservation remains in place. The Scaffold owns the remaining spacing.
+- The old current-song marker was 12dp. Only the active thumbnail moved 4dp. The new themed badge attaches to the artwork. It distinguishes play from pause. Thumbnail and title positions remain fixed. The thumbnail-off mode does not reserve artwork space.
+- Java 21 / Gradle 9.8.2: 455 JVM tests passed, zero failures/errors. Lint: zero errors, 46 warnings and 4 hints. Debug app/test and optimized release assembly passed. The optimized APK is not a signed release.
+- API36 emulator: four marker cases passed in 35.677s, including 36 size/display configurations, six languages, row actions and theme contrast. Light, dark, OLED and high-contrast captures were inspected. Real audio/video IME tests passed with gesture navigation (40.643s), three-button navigation and CURRENT_VIDEO wallpaper (46.664s), and forced landscape (37.095s). These checks retain the controller, window, PlayerView and video-surface generation through search/Clear/dismiss. They do not establish physical-device or OEM keyboard acceptance.
+- Existing LibraryRowWorkTest passed 5/5 in 9.974s: RAM seeding, hidden action removal, full touch targets, metadata refresh and inspector regions. The current required public security audit passed. An initial test invocation used a non-existent class; only the corrected class run is counted.
+- Internal test artifact: sibling workspace `output/library-ux-20261028/GreaterArt-1.21.85-library-test.apk`, 27,041,481 bytes; SHA-256 `713aaedf77bdaf1c647aa09d9b5cab96d7010fcd6df241299f3b5fb699af11e6`. Package/code, pinned certificate and 16KiB alignment passed. This is not a promoted release. Keep the 1.21.80 verified APK unchanged.
+- Prevention: track actual IME visibility and prepared/started animations separately. Preserve original inset dispatch. Android 11 can omit onEnd for a cancelled pre-start animation; cleanup must occur after traversal. Tests must use the app storage context and the Library content-color provider for valid screenshots. Initial host daemon failure, invalid test import and screenshot-harness faults were corrected before the passing runs.
+- The shared-output engine remains disabled. Its separate 192kHz stress failure is not fixed by these Library changes. Privacy-history cleanup and physical-device acceptance also remain open.
 
 ### October 27 — Dependency integration (1.21.80/code303)
 
