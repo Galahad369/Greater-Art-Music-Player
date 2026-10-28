@@ -86,6 +86,12 @@ Expected gates normally include:
 
 A green unrelated job does not compensate for a failed compile, version guard, or CodeQL build.
 
+In PowerShell, ErrorActionPreference does not reliably stop on a failed native
+command. Check LASTEXITCODE explicitly after validators and before push/merge.
+Keep declared historical consumed transitions when retaining branch ancestry.
+Do not replace them with a broad exemption. Preserved mail patches can contain
+required context/footer whitespace; check ordinary changed source separately.
+
 Do not merge while required checks are pending or failed unless the user explicitly directs an emergency exception and the repository rules allow it.
 
 ## 7. Merge strategy

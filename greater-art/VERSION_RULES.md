@@ -17,6 +17,12 @@ This file is the authoritative version policy for Greater Art. If any handoff no
 
 
 Current source: **1.21.87 (code 310)**
+Allowed consumed transition: **1.21.38 (code 261) -> 1.21.40 (code 263)**
+
+Retain PR174's original declared transition for eeb06d9. Its initial1.21.40
+audit commit skipped1.21.39/code262 already consumed by separate main work.
+This record is copied from the original reviewed privacy-branch policy. It is
+required for retained ancestry, not permission for future version skips.
 Allowed consumed transition: **1.21.80 (code 303) -> 1.21.85 (code 308)**
 
 The separate local shared-output branch consumed1.21.81/code304 through
