@@ -1,46 +1,90 @@
-<UserControl
-    x:Class="GreaterArt.Desktop.GraphPage"
+<UserControl x:Class="GreaterArt.Desktop.GraphPage"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
-    <Grid x:Name="PageRoot" Padding="28,24,28,16" RowSpacing="12" SizeChanged="PageSizeChanged">
-        <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+    <Grid x:Name="PageRoot" Padding="20,16" RowSpacing="12" SizeChanged="PageSizeChanged" KeyDown="PageKeyDown">
+        <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
         <Grid ColumnSpacing="12">
             <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
-            <StackPanel Spacing="6"><TextBlock Text="Nodes" FontSize="32" FontWeight="SemiBold"/><TextBlock x:Name="GraphInfo" Text="Your library, connected by filenames." Foreground="{StaticResource GaMuted}" TextTrimming="CharacterEllipsis"/></StackPanel>
-            <Button Grid.Column="1" Click="WandClicked" Style="{StaticResource GaIconButton}" AutomationProperties.Name="Reawaken the graph" ToolTipService.ToolTip="Reawaken the graph"><FontIcon Glyph="&#xE735;" FontSize="23"/></Button>
-        </Grid>
-        <Grid Grid.Row="1" ColumnSpacing="8">
-            <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
-            <ComboBox x:Name="FindTrack" PlaceholderText="Find a track" DisplayMemberPath="Title" IsEditable="True" IsTextSearchEnabled="True" HorizontalAlignment="Stretch" SelectionChanged="FindSelectionChanged" AutomationProperties.Name="Find a graph track"/>
-            <Button Grid.Column="1" Click="FitClicked" Content="Fit" MinWidth="52" Height="40" AutomationProperties.Name="Fit all nodes"/>
-            <Button Grid.Column="2" Click="PlayingClicked" Content="Playing" MinWidth="72" Height="40" AutomationProperties.Name="Center the playing track"/>
-        </Grid>
-        <Grid x:Name="Viewport" Grid.Row="2" Background="Transparent"
-              SizeChanged="ViewportSizeChanged" PointerPressed="GraphPointerPressed" PointerMoved="GraphPointerMoved"
-              PointerReleased="GraphPointerReleased" PointerCanceled="GraphPointerCanceled" PointerCaptureLost="GraphPointerCanceled"
-              PointerExited="GraphPointerExited" PointerWheelChanged="GraphWheelChanged"
-              ManipulationMode="Scale" ManipulationStarted="GraphManipulationStarted" ManipulationDelta="GraphManipulationDelta" ManipulationCompleted="GraphManipulationCompleted">
-            <Path x:Name="SoftEdges" Stroke="#28485A61" StrokeThickness="1" IsHitTestVisible="False"/>
-            <Path x:Name="MediumEdges" Stroke="#445A7075" StrokeThickness="1" IsHitTestVisible="False"/>
-            <Path x:Name="StrongEdges" Stroke="#79718D8C" StrokeThickness="1.1" IsHitTestVisible="False"/>
-            <Path x:Name="HoverEdges" Stroke="#9BE0CA" StrokeThickness="1.3" Opacity="0.66" IsHitTestVisible="False"/>
-            <Path x:Name="QuietNodes" Fill="#87969B" IsHitTestVisible="False"/>
-            <Path x:Name="MiddleNodes" Fill="#BDCDCB" IsHitTestVisible="False"/>
-            <Path x:Name="HubNodes" Fill="#DFEAE4" IsHitTestVisible="False"/>
-            <Path x:Name="PlayingRing" Stroke="{StaticResource GaAccent}" StrokeThickness="2" IsHitTestVisible="False"/>
-            <TextBlock x:Name="EmptyLabel" Text="Choose a media folder to explore its connections." TextWrapping="Wrap" MaxWidth="320" HorizontalAlignment="Center" VerticalAlignment="Center" Foreground="{StaticResource GaMuted}" IsHitTestVisible="False"/>
-            <Canvas IsHitTestVisible="False"><Border x:Name="HoverLabel" Visibility="Collapsed" Background="#EE18272B" BorderBrush="#4D829A94" BorderThickness="1" CornerRadius="6" Padding="10,6" MaxWidth="280"><TextBlock x:Name="HoverTitle" FontSize="13" TextWrapping="Wrap" MaxLines="2" TextTrimming="CharacterEllipsis"/></Border></Canvas>
-            <TextBlock Text="Scroll to zoom · Drag a node or the canvas · Tap to play" FontSize="11" Foreground="{StaticResource GaMuted}" HorizontalAlignment="Center" VerticalAlignment="Bottom" Margin="8" IsHitTestVisible="False"/>
-        </Grid>
-        <Expander Grid.Row="3" Header="Graph controls" HorizontalAlignment="Stretch" IsExpanded="False" HorizontalContentAlignment="Stretch">
-            <ScrollViewer x:Name="ControlsScroll" MaxHeight="180" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
-            <StackPanel Spacing="8">
-                <TextBlock Text="Stronger filename matches sit closer. Larger nodes have more weighted connections." FontSize="12" Foreground="{StaticResource GaMuted}" TextWrapping="Wrap"/>
-                <Grid ColumnSpacing="16"><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions><Slider x:Name="CenterForce" Header="Center" Minimum="25" Maximum="200" Value="100" StepFrequency="5" ValueChanged="ForcesChanged" AutomationProperties.Name="Graph center force"/><Slider x:Name="RepelForce" Grid.Column="1" Header="Repulsion" Minimum="25" Maximum="200" Value="100" StepFrequency="5" ValueChanged="ForcesChanged" AutomationProperties.Name="Graph repulsion"/></Grid>
-                <Grid ColumnSpacing="16"><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions><Slider x:Name="LinkForce" Header="Link strength" Minimum="25" Maximum="200" Value="100" StepFrequency="5" ValueChanged="ForcesChanged" AutomationProperties.Name="Graph link strength"/><Slider x:Name="LinkDistance" Grid.Column="1" Header="Link distance" Minimum="25" Maximum="200" Value="100" StepFrequency="5" ValueChanged="ForcesChanged" AutomationProperties.Name="Graph link distance"/></Grid>
-                <Button Content="Reset forces" Click="ResetForcesClicked" HorizontalAlignment="Left"/>
+            <StackPanel Spacing="3"><TextBlock Text="Nodes" FontSize="24" FontWeight="SemiBold"/>
+                <TextBlock x:Name="GraphInfo" Text="Your library, connected by filenames." FontSize="12" Foreground="{StaticResource GaMuted}" TextTrimming="CharacterEllipsis"/>
             </StackPanel>
-            </ScrollViewer>
-        </Expander>
+            <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="4">
+                <Button x:Name="FitButton" Click="FitClicked" Style="{StaticResource GaIconButton}" AutomationProperties.Name="Fit visible nodes" ToolTipService.ToolTip="Fit visible nodes (Home)"><FontIcon Glyph="&#xE9A6;" FontSize="21"/></Button>
+                <Button Click="PlayingClicked" Style="{StaticResource GaIconButton}" AutomationProperties.Name="Find the playing track" ToolTipService.ToolTip="Find playing track"><FontIcon Glyph="&#xE768;" FontSize="21"/></Button>
+                <Button x:Name="WandButton" Click="WandClicked" Style="{StaticResource GaIconButton}" AutomationProperties.Name="Reheat the layout" ToolTipService.ToolTip="Reheat the layout">
+                    <Viewbox Width="22" Height="22"><Path Width="24" Height="24" Data="M 4,21 L 18,7 M 14,7 L 18,11 M 5,3 L 5,7 M 3,5 L 7,5 M 19,1 L 19,5 M 17,3 L 21,3" Stroke="{StaticResource GaAccent}" StrokeThickness="1.8" StrokeStartLineCap="Round" StrokeEndLineCap="Round"/></Viewbox>
+                </Button>
+                <ToggleButton x:Name="SettingsButton" Click="SettingsClicked" Width="44" Height="44" Background="Transparent" BorderThickness="0" AutomationProperties.Name="Graph settings" ToolTipService.ToolTip="Graph settings"><FontIcon Glyph="&#xE713;" FontSize="21"/></ToggleButton>
+            </StackPanel>
+        </Grid>
+        <Grid Grid.Row="1" x:Name="GraphBody" SizeChanged="BodySizeChanged">
+            <Grid x:Name="Viewport" Background="Transparent" IsTabStop="True"
+                AutomationProperties.Name="Music graph. Arrow keys pan. Plus and minus zoom. Home fits. Enter plays the selected track."
+                KeyDown="GraphKeyDown" KeyUp="GraphKeyUp" LostFocus="GraphLostFocus"
+                SizeChanged="ViewportSizeChanged" PointerPressed="GraphPointerPressed" PointerMoved="GraphPointerMoved"
+                PointerReleased="GraphPointerReleased" PointerCanceled="GraphPointerCanceled" PointerCaptureLost="GraphPointerCanceled"
+                PointerExited="GraphPointerExited" PointerWheelChanged="GraphWheelChanged"
+                ManipulationMode="Scale" ManipulationStarted="GraphManipulationStarted" ManipulationDelta="GraphManipulationDelta" ManipulationCompleted="GraphManipulationCompleted">
+                <!-- World geometry needs unconstrained layout before its camera transform.
+                     Only the outer viewport clips the translated graph. -->
+                <Canvas IsHitTestVisible="False">
+                <Path x:Name="SoftEdges" Stroke="#28485A61" StrokeThickness="1" IsHitTestVisible="False"/>
+                <Path x:Name="MediumEdges" Stroke="#445A7075" StrokeThickness="1" IsHitTestVisible="False"/>
+                <Path x:Name="StrongEdges" Stroke="#79718D8C" StrokeThickness="1.1" IsHitTestVisible="False"/>
+                <Path x:Name="HoverEdges" Stroke="{StaticResource GaAccent}" StrokeThickness="1.3" Opacity="0.75" IsHitTestVisible="False"/>
+                <Path x:Name="QuietNodes" Fill="#87969B" IsHitTestVisible="False"/>
+                <Path x:Name="MiddleNodes" Fill="#BDCDCB" IsHitTestVisible="False"/>
+                <Path x:Name="HubNodes" Fill="#DFEAE4" IsHitTestVisible="False"/>
+                <Canvas x:Name="ColorLayers" IsHitTestVisible="False"/>
+                <Path x:Name="SelectionRing" Stroke="#E2ECE9" StrokeThickness="1" IsHitTestVisible="False"/>
+                <Path x:Name="PlayingRing" Stroke="{StaticResource GaAccent}" StrokeThickness="2" IsHitTestVisible="False"/>
+                </Canvas>
+                <Canvas x:Name="LabelLayer" IsHitTestVisible="False"/>
+                <TextBlock x:Name="EmptyLabel" Text="Choose a media folder to explore its connections." TextWrapping="Wrap" MaxWidth="320" HorizontalAlignment="Center" VerticalAlignment="Center" Foreground="{StaticResource GaMuted}" IsHitTestVisible="False"/>
+                <Canvas IsHitTestVisible="False"><Border x:Name="HoverLabel" Visibility="Collapsed" Background="#F018272B" BorderBrush="#4D829A94" BorderThickness="1" CornerRadius="5" Padding="10,6" MaxWidth="280"><TextBlock x:Name="HoverTitle" FontSize="13" TextWrapping="Wrap" MaxLines="2" TextTrimming="CharacterEllipsis"/></Border></Canvas>
+                <TextBlock Text="Drag to explore · Scroll to zoom · Enter to play" FontSize="11" Foreground="{StaticResource GaMuted}" HorizontalAlignment="Center" VerticalAlignment="Bottom" Margin="8" IsHitTestVisible="False"/>
+            </Grid>
+            <Border x:Name="SettingsPanel" Visibility="Collapsed" Width="300" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="12,4,4,12" Background="#F5182429" BorderBrush="#42586C6A" BorderThickness="1" CornerRadius="8">
+                <ScrollViewer x:Name="ControlsScroll" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                    <StackPanel Spacing="8" Padding="12">
+                        <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                            <TextBlock Text="Graph settings" FontSize="16" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                            <Button Grid.Column="1" Click="ResetAllClicked" Style="{StaticResource GaIconButton}" AutomationProperties.Name="Restore graph defaults" ToolTipService.ToolTip="Restore defaults"><FontIcon Glyph="&#xE777;" FontSize="18"/></Button>
+                        </Grid>
+                        <Expander Header="Filters" IsExpanded="True" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch">
+                            <StackPanel Spacing="12">
+                                <TextBox x:Name="FilterQuery" PlaceholderText="Filter filenames" TextChanged="FilterChanged" AutomationProperties.Name="Filter graph filenames"/>
+                                <CheckBox x:Name="ShowOrphans" Content="Show unconnected files" IsChecked="True" Click="FilterOptionChanged"/>
+                                <Slider x:Name="MinimumLink" Header="Minimum similarity" Minimum="0" Maximum="1" Value="0" StepFrequency="0.01" ValueChanged="FilterValueChanged" AutomationProperties.Name="Minimum graph similarity"/>
+                                <ComboBox x:Name="FindTrack" Header="Select a track" PlaceholderText="Find a visible track" DisplayMemberPath="Title" IsEditable="True" IsTextSearchEnabled="True" HorizontalAlignment="Stretch" SelectionChanged="FindSelectionChanged" AutomationProperties.Name="Select a visible graph track"/>
+                                <Button x:Name="PlaySelectedButton" Content="Play selected" Click="PlaySelectedClicked" HorizontalAlignment="Stretch" IsEnabled="False"/>
+                                <CheckBox x:Name="LocalMode" Content="Only this neighborhood" Click="LocalModeChanged"/>
+                                <Slider x:Name="LocalDepth" Header="Neighbor depth" Minimum="1" Maximum="3" Value="1" StepFrequency="1" ValueChanged="FilterValueChanged" AutomationProperties.Name="Local graph neighbor depth"/>
+                            </StackPanel>
+                        </Expander>
+                        <Expander Header="Groups" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch">
+                            <StackPanel Spacing="10"><TextBlock Text="Color files by filename. The first match wins." TextWrapping="Wrap" FontSize="12" Foreground="{StaticResource GaMuted}"/><StackPanel x:Name="GroupRows" Spacing="8"/><Button Content="Add group" Click="AddGroupClicked" HorizontalAlignment="Stretch"/></StackPanel>
+                        </Expander>
+                        <Expander Header="Display" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch">
+                            <StackPanel Spacing="12">
+                                <Slider x:Name="NodeSize" Header="Node size" Minimum="0.5" Maximum="2" Value="1" StepFrequency="0.1" ValueChanged="DisplayChanged" AutomationProperties.Name="Graph node size"/>
+                                <Slider x:Name="LinkWidth" Header="Link thickness" Minimum="0.5" Maximum="3" Value="1" StepFrequency="0.1" ValueChanged="DisplayChanged" AutomationProperties.Name="Graph link thickness"/>
+                                <Slider x:Name="LabelThreshold" Header="Show names at zoom" Minimum="0.1" Maximum="2" Value="0.7" StepFrequency="0.1" ValueChanged="DisplayChanged" AutomationProperties.Name="Graph name zoom threshold"/>
+                                <TextBlock Text="Nearby names appear as you zoom in. Hover shows a track and its connections." TextWrapping="Wrap" FontSize="12" Foreground="{StaticResource GaMuted}"/>
+                            </StackPanel>
+                        </Expander>
+                        <Expander Header="Forces" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch">
+                            <StackPanel Spacing="12">
+                                <Slider x:Name="CenterForce" Header="Center" Minimum="25" Maximum="200" Value="100" StepFrequency="5" ValueChanged="ForcesChanged" AutomationProperties.Name="Graph center force"/>
+                                <Slider x:Name="RepelForce" Header="Repulsion" Minimum="25" Maximum="200" Value="100" StepFrequency="5" ValueChanged="ForcesChanged" AutomationProperties.Name="Graph repulsion"/>
+                                <Slider x:Name="LinkForce" Header="Link strength" Minimum="25" Maximum="200" Value="100" StepFrequency="5" ValueChanged="ForcesChanged" AutomationProperties.Name="Graph link strength"/>
+                                <Slider x:Name="LinkDistance" Header="Link distance" Minimum="25" Maximum="200" Value="100" StepFrequency="5" ValueChanged="ForcesChanged" AutomationProperties.Name="Graph link distance"/>
+                                <Button Content="Reset forces" Click="ResetForcesClicked" HorizontalAlignment="Stretch"/>
+                            </StackPanel>
+                        </Expander>
+                    </StackPanel>
+                </ScrollViewer>
+            </Border>
+        </Grid>
     </Grid>
 </UserControl>

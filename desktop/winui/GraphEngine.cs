@@ -66,6 +66,9 @@ internal sealed class GraphEngine : IDisposable
             throw new InvalidOperationException("The graph worker is unavailable.");
     }
 
+    public void ReleasePin(int index, GraphPoint point) =>
+        Engine.Check(GA_GraphReleasePin(handle, index, point.X, point.Y));
+
     public bool Take(GraphPoint[] points, out bool awake)
     {
         int count = GA_GraphTake(handle, points, points.Length, out int moving);
@@ -94,6 +97,7 @@ internal sealed class GraphEngine : IDisposable
     [DllImport(Library, CallingConvention = CallingConvention.Cdecl)] private static extern int GA_GraphCopyWeights(nint graph, [Out] double[] output, int capacity);
     [DllImport(Library, CallingConvention = CallingConvention.Cdecl)] private static extern int GA_GraphReset(nint graph, int center, int repel, int link, int distance, int settle);
     [DllImport(Library, CallingConvention = CallingConvention.Cdecl)] private static extern int GA_GraphRequest(nint graph, double seconds, int pin, double x, double y);
+    [DllImport(Library, CallingConvention = CallingConvention.Cdecl)] private static extern int GA_GraphReleasePin(nint graph, int pin, double x, double y);
     [DllImport(Library, CallingConvention = CallingConvention.Cdecl)] private static extern int GA_GraphTake(nint graph, [Out] GraphPoint[] output, int capacity, out int awake);
 }
 

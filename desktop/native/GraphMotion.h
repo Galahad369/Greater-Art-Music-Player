@@ -2,7 +2,6 @@
 #include "Core.h"
 #include <array>
 #include <atomic>
-#include <condition_variable>
 #include <memory>
 #include <mutex>
 #include <numeric>
@@ -238,6 +237,18 @@ class GraphSimulation
             }
         }
     }
+    void release(std::size_t index, Point point)
+    {
+        if (index >= graph.points.size())
+            return;
+        // Commit the last pointer position and clear its momentum before unpinning.
+        graph.points[index] = point;
+        velocity[index] = {};
+        if (lastPin == int(index))
+            lastPin = -1;
+        elapsed = quiet = 0;
+        awake = graph.points.size() > 1;
+    }
 };
 
 struct GraphFrame
@@ -248,12 +259,12 @@ struct GraphFrame
     double age = 0;
 };
 
-// One coalesced request and one replaceable result. The UI never waits for
-// physics, and hiding the pane stops requests entirely.
+// One coalesced request, bounded final drops and one replaceable result. The UI
+// never waits for physics, and hiding the pane stops requests entirely.
 class GraphMotion
 {
     std::mutex mutex;
-    std::condition_variable wake;
+    std::atomic<std::uint64_t> workRevision{0};
     std::thread worker;
     bool quitting = false, pending = false, resetting = false, finish = false;
     std::atomic<unsigned> requestedGeneration{0};
@@ -263,6 +274,20 @@ class GraphMotion
     double seconds = 0;
     int pin = -1;
     Point pinned{};
+    std::uint64_t pinSequence = 0;
+    struct Release
+    {
+        Point point;
+        std::uint64_t sequence;
+    };
+    // Only enqueue/swap/publication use this lock, never physics or graph copies.
+    // Coalescing by node bounds storage even when the worker is still settling.
+    std::mutex releaseMutex;
+    std::unordered_map<std::size_t, Release> releases;
+    std::size_t nodeCount = 0;
+    std::atomic<std::uint64_t> commandSequence{0};
+    std::atomic<bool> releasePending{false};
+    std::uint64_t releaseRevision = 0;
     std::atomic<std::shared_ptr<const GraphFrame>> output;
 
   public:
@@ -275,10 +300,18 @@ class GraphMotion
         worker = std::thread([this] {
             SetThreadPriority(GetCurrentThread(), THREAD_PRIORITY_BELOW_NORMAL);
             GraphSimulation simulation;
+            std::vector<std::uint64_t> lastReleased;
             std::unique_lock lock(mutex);
             while (!quitting)
             {
-                wake.wait(lock, [&] { return quitting || pending; });
+                auto work = workRevision.load();
+                if (!pending && !releasePending.load())
+                {
+                    lock.unlock();
+                    workRevision.wait(work);
+                    lock.lock();
+                    continue;
+                }
                 if (quitting)
                     break;
                 bool reset = resetting;
@@ -291,36 +324,72 @@ class GraphMotion
                 auto dt = seconds;
                 auto held = pin;
                 auto point = pinned;
+                auto heldSequence = pinSequence;
                 pending = resetting = finish = false;
                 seconds = 0;
                 lock.unlock();
                 if (reset)
+                {
                     simulation.reset(std::move(value), settings);
+                    lastReleased.assign(simulation.graph.points.size(), 0);
+                }
+                std::unordered_map<std::size_t, Release> dropped;
+                std::uint64_t revision;
+                {
+                    std::lock_guard releaseLock(releaseMutex);
+                    // A reset cancels all commands and results for the previous graph.
+                    if (epoch == requestedGeneration.load())
+                        dropped.swap(releases);
+                    revision = releaseRevision;
+                    releasePending = !releases.empty();
+                }
+                for (const auto &[index, released] : dropped)
+                    if (index < lastReleased.size())
+                    {
+                        simulation.release(index, released.point);
+                        lastReleased[index] = released.sequence;
+                    }
+                if (held >= 0 && std::size_t(held) < lastReleased.size() &&
+                    heldSequence <= lastReleased[held])
+                    held = -1;
                 simulation.advance(dt, held, point);
-                if (settle)
-                    for (int i = 0; i < 730 && simulation.awake && requestedGeneration == epoch; ++i)
+                if (settle && dropped.empty())
+                    for (int i = 0; i < 730 && simulation.awake && requestedGeneration == epoch &&
+                                    !releasePending.load(); ++i)
                         simulation.advance(1.0 / 60);
                 auto frame = std::make_shared<GraphFrame>(
                     GraphFrame{simulation.graph.points, simulation.awake, epoch, simulation.age()});
                 lock.lock();
-                if (!quitting && epoch == generation)
-                    output.store(std::move(frame));
+                {
+                    std::lock_guard releaseLock(releaseMutex);
+                    if (!quitting && epoch == generation && revision == releaseRevision)
+                        output.store(std::move(frame));
+                }
             }
         });
     }
     unsigned reset(const Graph &graph, GraphForces settings, bool settle = false)
     {
+        Graph value = graph;
         std::lock_guard lock(mutex);
-        seed = graph;
+        seed = std::move(value);
         options = settings;
         ++generation;
-        requestedGeneration = generation;
+        {
+            std::lock_guard releaseLock(releaseMutex);
+            requestedGeneration = generation;
+            nodeCount = graph.points.size();
+            releases.clear();
+            releasePending = false;
+            ++releaseRevision;
+            output.store(nullptr);
+        }
         finish = settle;
         resetting = pending = true;
         seconds = 0;
         pin = -1;
-        output.store(nullptr);
-        wake.notify_one();
+        ++workRevision;
+        workRevision.notify_one();
         return generation;
     }
     bool request(double dt, int held, Point point)
@@ -331,8 +400,25 @@ class GraphMotion
         seconds = std::min(.25, seconds + std::max(0.0, dt));
         pin = held;
         pinned = point;
+        pinSequence = ++commandSequence;
         pending = true;
-        wake.notify_one();
+        ++workRevision;
+        workRevision.notify_one();
+        return true;
+    }
+    bool release(int index, Point point)
+    {
+        if (index < 0 || !std::isfinite(point.x) || !std::isfinite(point.y))
+            return false;
+        std::lock_guard releaseLock(releaseMutex);
+        if (std::size_t(index) >= nodeCount)
+            return false;
+        releases.insert_or_assign(std::size_t(index), Release{point, ++commandSequence});
+        ++releaseRevision;
+        releasePending = true;
+        output.store(nullptr);
+        ++workRevision;
+        workRevision.notify_one();
         return true;
     }
     std::shared_ptr<const GraphFrame> take()
@@ -345,7 +431,8 @@ class GraphMotion
             std::lock_guard lock(mutex);
             quitting = true;
             ++requestedGeneration;
-            wake.notify_one();
+            ++workRevision;
+            workRevision.notify_one();
         }
         if (worker.joinable())
             worker.join();

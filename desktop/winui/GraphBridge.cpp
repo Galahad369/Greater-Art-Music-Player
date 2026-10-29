@@ -148,6 +148,22 @@ int GA_GraphRequest(void *handle, double dt, int pin, double x, double y) noexce
         return bridge->motion.request(dt, pin, {x, y}) ? 1 : 0;
     });
 }
+HRESULT GA_GraphReleasePin(void *handle, int pin, double x, double y) noexcept
+{
+    try
+    {
+        auto bridge = findGraph(handle);
+        if (!bridge) return E_HANDLE;
+        std::lock_guard lock(bridge->stateMutex);
+        if (!bridge->motion.release(pin, {x, y})) return E_INVALIDARG;
+        // Reset may arrive before Take acknowledges the worker's final drop.
+        // Keep its seed current under the same lock used by Reset and Take.
+        bridge->graph.points[pin] = {x, y};
+        return S_OK;
+    }
+    catch (const std::bad_alloc &) { return E_OUTOFMEMORY; }
+    catch (...) { return E_FAIL; }
+}
 int GA_GraphTake(void *handle, GA_GraphPoint *points, int capacity, int *awake) noexcept
 {
     return graphResult([&] {

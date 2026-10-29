@@ -1238,6 +1238,18 @@ LRESULT CALLBACK WindowProc(HWND window, UINT message, WPARAM w, LPARAM l)
             bool clickNode = slot == 200 && node >= 0 && !app.graphMoved &&
                              std::hypot(double(x - app.dragStartX), double(y - app.dragStartY)) < 3 &&
                              node < int(app.songs.size());
+            if (slot == 200 && node >= 0)
+            {
+                // The button-up may contain a last movement not sent as WM_MOUSEMOVE.
+                Point pointer{GET_X_LPARAM(l) * 96.0 / app.dpi, GET_Y_LPARAM(l) * 96.0 / app.dpi};
+                double scale = graphScale();
+                if (scale > 0)
+                {
+                    app.graphPinned.x += (pointer.x - app.graphPointer.x) / scale;
+                    app.graphPinned.y += (pointer.y - app.graphPointer.y) / scale;
+                    app.graph.points[node] = app.graphPinned;
+                }
+            }
             ReleaseCapture();
             if (slot == 101 || slot == 102)
                 persist();
@@ -1259,11 +1271,11 @@ LRESULT CALLBACK WindowProc(HWND window, UINT message, WPARAM w, LPARAM l)
             ReleaseCapture();
         if (app.dragSlot == 200 && app.graphDrag >= 0)
         {
+            app.graphMotion.release(app.graphDrag, app.graphPinned);
             if (!app.motionEnabled)
                 restartGraph();
             else
             {
-                app.graphMotion.request(0, -1, {});
                 app.graphAwake = true;
             }
         }

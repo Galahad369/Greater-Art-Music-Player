@@ -25,5 +25,8 @@ GA_GRAPH_EXPORT int GA_GraphCopyWeights(void *graph, double *weights, int capaci
 GA_GRAPH_EXPORT HRESULT GA_GraphReset(void *graph, int center, int repel, int link, int distance, int settle) noexcept;
 // Request is nonblocking: 1 accepted, 0 worker mutex busy, -1 invalid input.
 GA_GRAPH_EXPORT int GA_GraphRequest(void *graph, double dt, int pin, double x, double y) noexcept;
+// Losslessly commits a final drag position, then unpins it on the worker.
+// Success invalidates older frames; the next frame acknowledges every queued drop.
+GA_GRAPH_EXPORT HRESULT GA_GraphReleasePin(void *graph, int pin, double x, double y) noexcept;
 // Take returns 0 when there is no new frame; otherwise the complete point count.
 GA_GRAPH_EXPORT int GA_GraphTake(void *graph, GA_GraphPoint *points, int capacity, int *awake) noexcept;

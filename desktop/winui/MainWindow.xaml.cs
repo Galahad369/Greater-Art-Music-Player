@@ -277,6 +277,7 @@ public sealed partial class MainWindow : Window
         nodesPage = true;
         SelectNavigation(NodesNav);
         UpdateGraphActivity();
+        GraphView.FocusCanvas();
     }
     private void OpenFromDock(object sender, PointerRoutedEventArgs args) => SetPage(true, false);
     private void SetPage(bool nowPlaying, bool settings)
@@ -556,7 +557,7 @@ public sealed partial class MainWindow : Window
             Invoke(MiniButton); await Task.Delay(700);
             var small = Read();
             Check(attachedHost == miniHost && miniHost != 0, "Mini owns the active native video host");
-            Check(small.Identity == initial.Identity && small.Width == initial.Width && small.Height == initial.Height && small.Frames > expanded.Frames, "mini retains player and original video");
+            Check(small.Identity == initial.Identity && small.Width == initial.Width && small.Height == initial.Height && small.Frames > resumed.Frames, "mini retains player and original video");
             checks.Add(new { check = "mini", state = Snapshot(small) }); Capture(directory, "mini");
             RestoreFromMini(); await Task.Delay(400);
             Invoke(FullscreenButton); await Task.Delay(700);
@@ -567,16 +568,19 @@ public sealed partial class MainWindow : Window
             var returned = Read();
             Check(returned.Identity == initial.Identity && returned.Width == initial.Width && returned.Height == initial.Height, "return to dock retains source resolution");
             Engine.Check(Engine.GA_Rate(player, 1.25));
-            await Task.Delay(400);
+            double rateRequestedAt = Read().Position;
+            var rateWarmup = System.Diagnostics.Stopwatch.StartNew();
+            await WaitFor(() => Read().State == 3 && Read().Position > rateRequestedAt + .6, "rate-change pipeline resumes media progress");
+            double rateWarmupMs = rateWarmup.Elapsed.TotalMilliseconds;
             double rateStart = Read().Position;
             var rateClock = System.Diagnostics.Stopwatch.StartNew();
-            await Task.Delay(1600);
+            await Task.Delay(2400);
             double measuredRate = (Read().Position - rateStart) / rateClock.Elapsed.TotalSeconds;
-            Check(measuredRate > 1.08 && measuredRate < 1.42, "1.25× speed changes actual media-time progress");
+            Check(measuredRate > 1.08 && measuredRate < 1.42, $"1.25× speed changes actual media-time progress (measured {measuredRate:0.000}×)");
             Engine.Check(Engine.GA_Rate(player, 1));
             Engine.Check(Engine.GA_Seek(player, 1));
             await WaitFor(() => Read().State == 3 && Read().Position >= .8 && Read().Position < 2, "backward seek reaches requested media time");
-            checks.Add(new { check = "dock-return-speed", measuredRate, state = Snapshot(Read()) });
+            checks.Add(new { check = "dock-return-speed", measuredRate, rateWarmupMs, state = Snapshot(Read()) });
             ResizeEffective(800, 600); SetPage(true, false);
             await Task.Delay(600);
             foreach (var control in new FrameworkElement[] { RepeatButton, PreviousButton, PlayButton, NextButton, SpeedButton, Timeline })
@@ -607,13 +611,24 @@ public sealed partial class MainWindow : Window
             await Task.Delay(1000);
             var graphChecks = GraphPage.Verify();
             Check(graphChecks.All(result => result.Value), "Nodes transform and ABI checks pass");
+            var explorationChecks = await GraphView.VerifyExplorationControls();
+            checks.Add(new { check = "nodes-controls", results = explorationChecks });
+            await Task.Delay(200);
+            Capture(directory, "nodes-controls");
+            Check(explorationChecks.All(result => result.Value), "Nodes exploration controls pass: " + string.Join(", ", explorationChecks.Where(result => !result.Value).Select(result => result.Key)));
+            var preferenceChecks = GraphView.VerifyPreferenceStorage(directory);
+            Check(preferenceChecks.All(result => result.Value), "Nodes preferences persist in isolated storage");
             var afterGraph = Read();
             Check(afterGraph.Identity == initial.Identity && afterGraph.Frames > beforeGraph.Frames, "Nodes keeps the original player advancing");
-            checks.Add(new { check = "real-library-nodes", files = library.Count, nodes = GraphView.NodeCount, edges = GraphView.EdgeCount, mathAndAbi = graphChecks,
+            checks.Add(new { check = "real-library-nodes", files = library.Count, nodes = GraphView.NodeCount, edges = GraphView.EdgeCount, mathAndAbi = graphChecks, exploration = explorationChecks, preferences = preferenceChecks,
                 renderCallbacks = GraphView.RenderCallbackCount, snapshots = GraphView.SnapshotCount,
                 callbackAverageMs = GraphView.RenderAverageMilliseconds, callbackWorstMs = GraphView.RenderWorstMilliseconds,
                 state = Snapshot(afterGraph) });
+            File.WriteAllText(Path.Combine(directory, "nodes-geometry.json"), JsonSerializer.Serialize(GraphView.VerificationGeometry(), new JsonSerializerOptions { IncludeFields = true, WriteIndented = true }));
+            await Task.Delay(200);
             Capture(directory, "nodes");
+            GraphView.SetSettingsOpen(true); await Task.Delay(200); Capture(directory, "nodes-settings");
+            GraphView.SetSettingsOpen(false);
             SetPage(false, false);
             await Task.Delay(200);
             Check(!GraphView.IsMotionActive, "hidden Nodes unsubscribes rendering");
