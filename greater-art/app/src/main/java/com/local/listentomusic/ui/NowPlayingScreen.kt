@@ -447,11 +447,14 @@ fun NowPlayingScreen(
 
         var playerRootBounds by remember { mutableStateOf<androidx.compose.ui.geometry.Rect?>(null) }
 
-        val backdrop = if (ambientPreferences?.backgroundMode == com.local.listentomusic.data.AppBackgroundMode.ADAPTIVE_DYNAMIC)
+        val backdrop = if (ambientPreferences != null && ambientPreferences.backgroundMode in listOf(
+                com.local.listentomusic.data.AppBackgroundMode.AMBIENT,
+                com.local.listentomusic.data.AppBackgroundMode.ADAPTIVE_DYNAMIC))
             Modifier.adaptiveAmbientBackdrop(artwork, playback.currentPath, ambientPreferences,
                 visible = !fullscreen,
                 extraDim = ambientPreferences.backgroundDim,
-                scrolling = queueListState.isScrollInProgress) else Modifier.ambientBackdrop(
+                scrolling = queueListState.isScrollInProgress,
+                steady = ambientPreferences.backgroundMode == com.local.listentomusic.data.AppBackgroundMode.AMBIENT) else Modifier.ambientBackdrop(
         artwork,
         MaterialTheme.colorScheme.background.luminance() > .5f,
         playback.currentPath,

@@ -3,7 +3,7 @@
 This file describes the **current repository state only**. Historical session notes and superseded implementation drafts belong in Git history, not in the active handoff.
 
 **Project:** `greater-art/` in the repository checkout
-**Current source:** `1.21.91 (code 314)` — SOURCE_ONLY compact Now Playing; local component and overlay checks recorded below. Preserve unmerged PR211 and unrelated work.
+**Current source:** `1.21.92 (code 315)` — SOURCE_ONLY local reflected Ambient work; 472 JVM tests, zero lint errors and 21 focused API36 cases pass after correcting the walkthrough's test clock. Screenshots inspected. Internal working-tree candidate only; preserve compact Now Playing and unmerged PR211. No merge without authorization.
 **Current version:** `1.21.80 (code 303)`
 **Latest APK:** `releases/GreaterArt-1.21.80.apk` (`27,025,073 bytes`; SHA-256 `76791737701736a45b9b441851212f2c8cacf83542991b5c0e58ffbbfc3d29b4`)
 **Application ID:** `com.local.listentomusic`
@@ -13,6 +13,19 @@ This file describes the **current repository state only**. Historical session no
 **Verification boundary:** Exact source `3b49022`; Gradle9.8.2/Java21 unit/lint/debug app/test build passed. 446 JVM tests, zero failures/errors; lint 0 errors/46 warnings/4 hints. Final API36 upgrade passed 15/15 focused cases in 37.285s: Nodes tap/drag/controls/graph replacement, fullscreen speed/narrow toolbar, Library row semantics/RAM seeding, actual cache/disk-during-scroll regressions. Nine disposable Git sync-safety tests passed outside sandbox. Certificate unchanged; package/version, ZIP CRC, 16KiB alignment and SHA-256 checked. This is not full fullscreen rotation, physical-device visual/acoustic/performance acceptance, production signing or universal bug-free proof. Existing Library physical trace/profile acceptance and the prior full rotation failure remain unresolved.
 
 ## Repository state
+
+### October30 — Strong reflected Ambient, approved across mobile surfaces
+
+- User approved rich media-colour glow, reflected-light ribbons and luminous edges across Now Playing, Library, Nodes and Stack. These are simulated colour-driven light reflections, not mirrored copies of live video.
+- Reuse the existing shared sparse24x24 compositor samples, worker artwork sampling and cache. Classic Ambient now receives the already-loaded artwork instead of dropping it; it uses a steady light arrangement. Adaptive retains its intensity, scene-response and motion controls. Add no decoder, bitmap readback, surface, primary quality cap or dependency.
+- Draw reflections behind the fixed contrast veil. Light-theme Ambient dimming fades toward white so dark text remains readable. Preserve lifecycle, scroll, reduced-motion and power-saving motion gates; non-Ambient fallbacks stay quiet. Localize the new Settings descriptions in all six supported languages.
+- Review caught two integration defects before final verification: Library's translated dim layer also needed the light-theme veil, and a hidden fullscreen backdrop needed an early draw guard. Both are corrected without changing player or surface ownership.
+- Java21/Gradle9.8.2:472 JVM tests pass with zero failures/errors/skips; lint0 errors,47 warnings and4 hints; debug app/test assembly passes. Final production source build completed in3m32s. The later rebuild changes only the screenshot-test clock handling.
+- API36:20 of21 cases passed initially; the new walkthrough stalled because wall-clock delays did not advance Compose's controlled pager/theme animation clock. Preserve that failed log and its four mislabeled captures as rejected evidence. Explicitly settle the Compose clock, retaining every playback/dock/first-frame assertion and its original timeout. The corrected walkthrough then passes1/1 in66.441s. Together, the21 focused cases cover reflected rendering, steady/motion-off geometry, zero intensity, cached red/blue artwork, narrow compact controls/callbacks, real audio/video IME dock continuity, fullscreen toolbar and actual-video colour sampling with two Stack voices.
+- Visually inspect all14 component captures and all10 corrected real-screen captures: Classic/Adaptive Library in light/dark, Nodes, Stack and the actual expanded system player. The reflected background is visible beneath readable controls and the rendered graph. The muted cover-song palette correctly produces subdued warm/silver light; synthetic red/blue artwork demonstrates saturated colours. The real-page Stack captures are empty-page background acceptance, not eight-voice sync acceptance. No physical-phone frame-time, GPU, battery, acoustic or universal crash-free claim.
+- Internal working-tree APK: sibling workspace `output/reflected-ambient-20261030/GreaterArt-1.21.92-internal-test.apk`,28,156,033 bytes; SHA-256 `86b7c55acafcff7f386682df511d18146a8ae73ac0b526a58424999115ca1717`. Package1.21.92/code315, pinned certificate, ZIP CRC and16KiB ZIP alignment pass. This includes the pre-existing uncommitted Android graph work, not an isolated committed release. Verified1.21.80 bytes remain unchanged.
+- Preserve all preceding compact-player work and unrelated desktop/graph changes. Version92 is local source only; no commit, push, merge or release promotion. See [the focused verification record](docs/REFLECTED_AMBIENT_2026-10-30.md).
+- Prevention: use the same theme-aware dim veil in both background hosts; do not draw a hidden decorative backdrop. Keep reflections in the existing draw path, with no extra sample/decoder or per-frame Compose state reads. Real wall-clock waiting is not a substitute for advancing Compose's test animation clock. Reject mislabeled captures and inspect actual pages before recording visual acceptance.
 
 ### October29 — Compact Now Playing, approved reference sizes
 

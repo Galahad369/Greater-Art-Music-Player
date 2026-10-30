@@ -348,7 +348,13 @@ fun SettingsScreen(
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                         AppBackgroundMode.AMBIENT -> Text(
-                            uiText(language, "A soft gradient from the playing video. No extra decoder or audio stream; neutral when no video colours are available.", "使用播放中影片色彩的柔和漸層，不增加解碼器或聲音。沒有影片色彩時使用中性色。"),
+                            adaptiveText(language,
+                                "Rich glow and reflected light from video or artwork colours. Steady geometry, no extra decoder or audio stream.",
+                                "影片或封面色彩形成豐富光暈及反射光。光效形狀固定，不增加解碼器或聲音。",
+                                "映像やアートワークの色から豊かな光彩と反射光を描きます。形状は固定で、追加のデコーダや音声は使いません。",
+                                "Kräftiges Leuchten und Lichtreflexe aus Video- oder Coverfarben. Feste Formen, kein zusätzlicher Decoder oder Audiostream.",
+                                "Halo intense et reflets issus des couleurs de la vidéo ou de la pochette. Formes fixes, sans décodeur ni flux audio supplémentaire.",
+                                "影片或封面色彩會形成豐富光暈同反光。光效形狀固定，唔會加解碼器或者聲音。"),
                             Modifier.padding(horizontal = GaSpacing.lg, vertical = GaSpacing.sm),
                             color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.bodySmall,
                         )

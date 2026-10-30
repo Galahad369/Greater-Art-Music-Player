@@ -59,6 +59,7 @@ import androidx.core.content.ContextCompat
 import com.local.listentomusic.playback.MiniWindowOverlayService
 import com.local.listentomusic.MainViewModel
 import com.local.listentomusic.ui.components.AppBackground
+import com.local.listentomusic.ui.components.appBackgroundVeil
 import com.local.listentomusic.data.AppBackgroundMode
 import com.local.listentomusic.data.BackgroundScaleMode
 import com.local.listentomusic.data.FloatingWindowMode
@@ -298,8 +299,7 @@ fun GreaterArtApp(
         UiInspectorHost(enabled = settings.developerMode, state = inspector) {
         val libraryWallpaperDimAlpha =
             if (settings.backgroundMode == AppBackgroundMode.DEFAULT) 0.08f else settings.backgroundDim
-        val libraryWallpaperDimColor =
-            if (settings.backgroundMode == AppBackgroundMode.DEFAULT && lightPalette) Color.White else Color.Black
+        val libraryWallpaperDimColor = appBackgroundVeil(settings.backgroundMode, lightPalette)
         Box(modifier = Modifier.fillMaxSize().inspectElement("APP_VIEWPORT", "Greater Art root viewport")) {
             // The expanded player fully covers MainActivity. Do not leave the independent
             // CURRENT_VIDEO/CUSTOM_VIDEO wallpaper decoder running underneath it: fast queue

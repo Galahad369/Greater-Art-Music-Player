@@ -43,12 +43,12 @@ internal fun AdaptiveAmbientSettings(preferences: UserPreferences, onIntensity: 
     }
     Column(Modifier.fillMaxWidth().padding(horizontal = GaSpacing.lg, vertical = GaSpacing.sm)) {
         Text(adaptiveText(language,
-            "Gradient, Aurora, Bloom and Flow blend together from media colours. No extra video decoder.",
-            "漸層、極光、柔光及流動同時融合媒體色彩，不增加影片解碼器。",
-            "グラデーション・オーロラ・光彩・流れをメディアの色で融合。追加の動画デコーダは使いません。",
-            "Verlauf, Aurora, Lichtschein und Fluss kombinieren Medienfarben. Kein zusätzlicher Videodecoder.",
-            "Dégradé, aurore, halo et flux fusionnent les couleurs du média, sans décodeur vidéo supplémentaire.",
-            "漸層、極光、柔光同流動一齊融合媒體色彩，唔會加影片解碼器。"),
+            "Media colours create deep glow, flowing reflections and luminous edges. No extra video decoder.",
+            "媒體色彩形成深邃光暈、流動反光及發光邊緣，不增加影片解碼器。",
+            "メディアの色で深い光彩、流れる反射光、輝く縁を描きます。追加の動画デコーダは使いません。",
+            "Medienfarben erzeugen tiefes Leuchten, fließende Lichtreflexe und leuchtende Ränder. Kein zusätzlicher Videodecoder.",
+            "Les couleurs du média créent un halo profond, des reflets fluides et des bords lumineux, sans décodeur vidéo supplémentaire.",
+            "媒體色彩會形成深層光暈、流動反光同發光邊緣，唔會加影片解碼器。"),
             style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         Row(Modifier.fillMaxWidth().padding(top = GaSpacing.md), horizontalArrangement = Arrangement.SpaceBetween) {
             Text(adaptiveIntensityLabel(language))

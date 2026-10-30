@@ -16,7 +16,7 @@ This file is the authoritative version policy for Greater Art. If any handoff no
 ## Machine-checkable state
 
 
-Current source: **1.21.91 (code 314)**
+Current source: **1.21.92 (code 315)**
 Allowed consumed transition: **1.21.38 (code 261) -> 1.21.40 (code 263)**
 
 Retain PR174's original declared transition for eeb06d9. Its initial1.21.40
@@ -464,3 +464,4 @@ Previous baseline: 1.13.26 (code 115).
 - 1.21.89 (code 312): repair the preserved WinUI preview's failed CI wiring: run existing codec evidence preparation before its build and read the existing canonical CodecDocs output. Preserve all evidence/license guards. Desktop build identity advances independently to0.1.20/code21; no desktop runtime/UI change. Android identity advances for executable workflow changes. SOURCE_ONLY; no release promotion or shared-output adoption.
 - 1.21.90 (code 313): correct the misunderstood Library indicator. Compact ordinary artwork by8dp, reserve8dp in its slot, indent only current artwork8dp, and draw a separate6dp dot with2dp clearance. No PlayArrow/badge. Keep text/actions and IME-safe dock behavior unchanged. Update geometry/state tests and add real-Library screenshot matrix. SOURCE_ONLY; visual acceptance requires emulator inspection and explicit authorization is required before merge.
 - 1.21.91 (code 314): compact Now Playing typography and controls per the user-approved reference. Use16sp medium title,22dp action/transport glyphs and48dp Play/Pause; keep48dp touch targets, first-class speed, flexible queue, video size/quality and existing functions. SOURCE_ONLY local work;470 JVM tests, zero lint errors, debug app/test assembly and18 focused API36 cases pass. Actual floating-player screenshot inspected. Unrelated desktop/graph work is not part of this UI change; the internal working-tree APK is not a promoted release. No push/merge.
+- 1.21.92 (code 315): user-approved reflected-light Ambient and Adaptive Dynamic across the mobile app. Reuse cached artwork and existing sparse compositor colours; add stronger glow, specular ribbons and edge reflections with a fixed readability veil. Classic uses steady geometry; Adaptive retains intensity/motion controls and lifecycle/scroll/reduced-motion/power gates. Keep quiet non-Ambient fallbacks, source quality, decoder/surface ownership and compact Now Playing. SOURCE_ONLY local work;472 JVM tests, zero lint errors, debug app/test assembly and21 focused API36 cases pass after a test-clock correction. All24 accepted captures inspected; internal working-tree APK only, no release promotion or physical-performance claim.
