@@ -3,7 +3,7 @@
 This file describes the **current repository state only**. Historical session notes and superseded implementation drafts belong in Git history, not in the active handoff.
 
 **Project:** `greater-art/` in the repository checkout
-**Current source:** `1.21.90 (code 313)` — SOURCE_ONLY corrective branch; local build and API36 visual checks pass; do not merge without explicit authorization
+**Current source:** `1.21.91 (code 314)` — SOURCE_ONLY compact Now Playing; local component and overlay checks recorded below. Preserve unmerged PR211 and unrelated work.
 **Current version:** `1.21.80 (code 303)`
 **Latest APK:** `releases/GreaterArt-1.21.80.apk` (`27,025,073 bytes`; SHA-256 `76791737701736a45b9b441851212f2c8cacf83542991b5c0e58ffbbfc3d29b4`)
 **Application ID:** `com.local.listentomusic`
@@ -13,6 +13,17 @@ This file describes the **current repository state only**. Historical session no
 **Verification boundary:** Exact source `3b49022`; Gradle9.8.2/Java21 unit/lint/debug app/test build passed. 446 JVM tests, zero failures/errors; lint 0 errors/46 warnings/4 hints. Final API36 upgrade passed 15/15 focused cases in 37.285s: Nodes tap/drag/controls/graph replacement, fullscreen speed/narrow toolbar, Library row semantics/RAM seeding, actual cache/disk-during-scroll regressions. Nine disposable Git sync-safety tests passed outside sandbox. Certificate unchanged; package/version, ZIP CRC, 16KiB alignment and SHA-256 checked. This is not full fullscreen rotation, physical-device visual/acoustic/performance acceptance, production signing or universal bug-free proof. Existing Library physical trace/profile acceptance and the prior full rotation failure remain unresolved.
 
 ## Repository state
+
+### October29 — Compact Now Playing, approved reference sizes
+
+- User approved16sp medium-weight current title,22dp action icons and48dp Play/Pause. Keep every function, current video size/quality, first-class speed and a queue that scrolls above fixed transport controls.
+- Reuse existing theme typography/control tokens. Do not shrink the app-wide tokens or actual48dp hit targets. Reduce only Now Playing's title weight, glyphs, play circle and excess header padding. Keep single-line title marquee, metadata, favourite, search, both share options and secondary functions.
+- This checkout also contains unrelated uncommitted desktop and Android graph changes from another task. Preserve them; do not stage, revert or claim them as this UI work. Do not change branches or merge PR211 during this work. Any APK from the current working tree is an internal test candidate, not an isolated committed release.
+- Java21/Gradle9.8.2:470 JVM tests pass with zero failures/errors; lint0 errors,47 warnings and4 hints. Debug app assembly passes. The first test-APK compilation failed on a missing ForcedSize extension import in the new test; that import was corrected and test assembly then passed in40s. No production code changed after the app build.
+- API36 emulator:14/14 cases pass in86.995s (four compact audio/video cases at320x640 and384x760, eight existing audio/artwork/lock cases, two real audio/video IME dock regressions with CURRENT_VIDEO). The corrected FullscreenToolbarTest invocation passes4/4 in12.21s. An initial invocation named the wrong class for those four methods and did not execute them; do not count that as coverage.
+- Inspect all four component captures and the actual system-overlay capture `now-playing-real-video.png`, with Baka playing at native aspect ratio. The real overlay stays below the status bar and above navigation, its48dp play/22dp icons and16sp title fit, speed stays visible, and the queue occupies only the flexible middle. The component-only video fixture starts at its test Activity's top edge; its screenshot is not proof of system-overlay insets. The real overlay supplies that separate evidence. Callback tests cover favourite, both share options, search/queue playback, speed, repeat, previous/next, play/pause and seek. No physical-phone or performance claim.
+- Internal working-tree APK: sibling workspace `output/compact-now-playing-20261029/GreaterArt-1.21.91-internal-test.apk`,27,055,861 bytes; SHA-256 `e334988243956096c15189e420e8eda0b741ae6b9085b08d365630b0da75fd48`. Package/version, pinned signing certificate and16KiB ZIP alignment pass (final artifact check October30). This APK includes the pre-existing uncommitted Android graph work; it is not an isolated committed release. Keep the verified1.21.80 release unchanged. Source/docs/HTML status records are local only; no commit, push, new PR, merge or branch switch was performed for this change.
+- Prevention: use existing theme tokens instead of shrinking global controls. Assert glyph size and hit-target size separately. Verify fixed controls during queue scrolling, test action callbacks, then inspect a real WindowManager overlay instead of relying only on composable captures. Keep unrelated work and its ownership explicit.
 
 ### Library dot correction —1.21.90/code313
 

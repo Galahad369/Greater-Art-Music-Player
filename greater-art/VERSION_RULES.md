@@ -16,7 +16,7 @@ This file is the authoritative version policy for Greater Art. If any handoff no
 ## Machine-checkable state
 
 
-Current source: **1.21.90 (code 313)**
+Current source: **1.21.91 (code 314)**
 Allowed consumed transition: **1.21.38 (code 261) -> 1.21.40 (code 263)**
 
 Retain PR174's original declared transition for eeb06d9. Its initial1.21.40
@@ -463,3 +463,4 @@ Previous baseline: 1.13.26 (code 115).
 - 1.21.88 (code 311): fix the independent privacy review finding: suppress raw OSError text from the disposable rehearsal tool so missing/private input paths cannot reach logs. Retain controlled RuntimeError messages and add a missing-input/no-output/no-identity regression. No Android runtime change beyond the required identity; shared output remains disabled. SOURCE_ONLY, no release promotion.
 - 1.21.89 (code 312): repair the preserved WinUI preview's failed CI wiring: run existing codec evidence preparation before its build and read the existing canonical CodecDocs output. Preserve all evidence/license guards. Desktop build identity advances independently to0.1.20/code21; no desktop runtime/UI change. Android identity advances for executable workflow changes. SOURCE_ONLY; no release promotion or shared-output adoption.
 - 1.21.90 (code 313): correct the misunderstood Library indicator. Compact ordinary artwork by8dp, reserve8dp in its slot, indent only current artwork8dp, and draw a separate6dp dot with2dp clearance. No PlayArrow/badge. Keep text/actions and IME-safe dock behavior unchanged. Update geometry/state tests and add real-Library screenshot matrix. SOURCE_ONLY; visual acceptance requires emulator inspection and explicit authorization is required before merge.
+- 1.21.91 (code 314): compact Now Playing typography and controls per the user-approved reference. Use16sp medium title,22dp action/transport glyphs and48dp Play/Pause; keep48dp touch targets, first-class speed, flexible queue, video size/quality and existing functions. SOURCE_ONLY local work;470 JVM tests, zero lint errors, debug app/test assembly and18 focused API36 cases pass. Actual floating-player screenshot inspected. Unrelated desktop/graph work is not part of this UI change; the internal working-tree APK is not a promoted release. No push/merge.

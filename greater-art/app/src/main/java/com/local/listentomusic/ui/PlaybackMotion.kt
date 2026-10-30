@@ -79,11 +79,11 @@ internal fun AnimatedWaveformBars(peaks: FloatArray?, fraction: Float, active: C
 }
 
 @Composable
-internal fun SpeedDialIcon(speed: Float, tint: Color) {
+internal fun SpeedDialIcon(speed: Float, tint: Color, modifier: Modifier = Modifier) {
     val angle = animateFloatAsState(150f + ((speed - .25f) / 2.75f).coerceIn(0f,1f) * 240f, tween(GaMotion.standardMs), label = "speed-needle")
     // The owning button supplies its localized label and current speed. A second
     // English label on this decorative needle would be duplicate TalkBack speech.
-    Canvas(Modifier.size(27.dp)) {
+    Canvas(modifier.size(27.dp)) {
         val c = Offset(size.width/2, size.height*.55f)
         val r = size.width*.39f
         drawArc(tint.copy(alpha=.5f), 150f, 240f, false, Offset(c.x-r,c.y-r), androidx.compose.ui.geometry.Size(r*2,r*2), style=Stroke(1.6.dp.toPx(), cap=StrokeCap.Round))
