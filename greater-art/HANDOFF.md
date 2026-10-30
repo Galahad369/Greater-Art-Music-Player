@@ -3,14 +3,14 @@
 This file describes the **current repository state only**. Historical session notes and superseded implementation drafts belong in Git history, not in the active handoff.
 
 **Project:** `greater-art/` in the repository checkout
-**Current source:** `1.21.93 (code 316)` — SOURCE_ONLY maintenance consolidation and transparent Now Playing title; exact-commit optimized build and release checks pending. User now authorizes reviewed consolidation and a maintenance sideload with shared output disabled.
-**Current version:** `1.21.80 (code 303)`
-**Latest APK:** `releases/GreaterArt-1.21.80.apk` (`27,025,073 bytes`; SHA-256 `76791737701736a45b9b441851212f2c8cacf83542991b5c0e58ffbbfc3d29b4`)
+**Current source:** `1.21.93 (code 316)` — VERIFIED local optimized maintenance sideload. Shared output remains disabled; this release does not complete its separate quality/function-parity gate.
+**Current version:** `1.21.93 (code 316)`
+**Latest APK:** `releases/GreaterArt-1.21.93.apk` (`5,478,717 bytes`; SHA-256 `cee3f50632cdf186a1b58304c195378c1917284f20ce04d354c3549ab180f6cc`)
 **Application ID:** `com.local.listentomusic`
 **Signing certificate SHA-256:** `9e28eb45b3b171c3ea47d7da942d28d88b16538885e392a6971a80906d612fbf`
-**Build date:** `2026-10-27`
+**Build date:** `2026-10-30`
 **Test device:** `GreaterArt_Scroll_QA36 (API36 emulator, Android 16)`
-**Verification boundary:** Exact source `3b49022`; Gradle9.8.2/Java21 unit/lint/debug app/test build passed. 446 JVM tests, zero failures/errors; lint 0 errors/46 warnings/4 hints. Final API36 upgrade passed 15/15 focused cases in 37.285s: Nodes tap/drag/controls/graph replacement, fullscreen speed/narrow toolbar, Library row semantics/RAM seeding, actual cache/disk-during-scroll regressions. Nine disposable Git sync-safety tests passed outside sandbox. Certificate unchanged; package/version, ZIP CRC, 16KiB alignment and SHA-256 checked. This is not full fullscreen rotation, physical-device visual/acoustic/performance acceptance, production signing or universal bug-free proof. Existing Library physical trace/profile acceptance and the prior full rotation failure remain unresolved.
+**Verification boundary:** Exact runtime source `58048b54e4119c3aad50ca99d4595afe479653c3`; Java21/Gradle9.8.2 unit/lint/debug app/test and optimized R8 assembly passed. 473 JVM tests, zero failures/errors/skips; lint0 errors/47 warnings/4 hints. API36 debug instrumentation23/23 in520.008s covers reflected Ambient, compact audio/video controls/title transparency, real audio/video IME dock continuity, real-page navigation/video sampling and fullscreen toolbar. Separate same-certificate optimized upgrade and native Library/video/dock/expanded-player smoke passed; actual screenshots inspected. Package/version, non-debuggable state, ZIP CRC,16KiB alignment and SHA-256 checked. The APK does not embed a usable VCS SHA; this receipt records it externally. Full rotation, physical-device visual/acoustic/performance acceptance, production signing and universal crash freedom remain unverified. See [the exact release receipt](docs/RELEASE_1.21.93.md).
 
 ## Repository state
 
@@ -21,7 +21,9 @@ This file describes the **current repository state only**. Historical session no
 - Independent review rejects a pending graph anchor because it bypasses zero-centering and differs from desktop physics, while deleting a parity test. Preserve the original three-file diff in the local integration backup, then retain main's tested source/test unchanged.
 - Remove only the video title holder's fill, outline and clipping. Audio already has no painted card. Preserve title/actions/padding, source video geometry, transport panels and all playback commands. Add screenshot-pixel checks for the transparent holder alongside existing compact-player action/layout checks.
 - Archive21 ignored loose screenshots/logs under existing Android screenshots/logs folders. Hash-verify each moved file and record its old/new path in the sibling output's retained-artifacts cleanup manifest. Repair the old inspection note's references. No source, key, historical APK, fixture or unique recovery backup is deleted. Existing dated QA directories stay stable.
-- Build a fresh optimized, non-debuggable sideload using the existing pinned certificate and current wrapper, not the stale unsigned output or legacy debug helper. Final artifact/source SHA, tests, upgrade/smoke results and PR review are pending. Preserve verified1.21.80 unchanged.
+- Built a fresh optimized, non-debuggable sideload using the existing pinned certificate and current wrapper, not the stale unsigned output or legacy debug helper. Exact source58048b5 passes473 JVM tests, zero lint errors and23 debug device cases. Separate optimized upgrade/native smoke and inspected real-player captures pass. Final artifact/hash/certificate and limits are in the [release receipt](docs/RELEASE_1.21.93.md). Verified1.21.80 remains byte-for-byte unchanged.
+- Preserve the later emulator System UI startup ANR as rejected system-startup evidence, not an app pass or a new app crash. App exit records and crash buffer show no new app crash/ANR during the tested restart. Older failures remain recorded. Test-only ART precompilation is not a performance benchmark.
+- Update the active README/download/demo status pointers; explicitly label older artifacts as historical rather than replacing their recorded hashes. Keep the tag-release workflow unused until its separate GitHub signing key is proven update-compatible. Release finalization changes documentation/APK only, not runtime source or version identity.
 
 ### October30 — Strong reflected Ambient, approved across mobile surfaces
 

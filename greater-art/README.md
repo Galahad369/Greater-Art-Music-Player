@@ -4,9 +4,9 @@ Greater Art is a native Kotlin/Jetpack Compose player for local music and video.
 
 ## Current release
 
-Current source: **1.21.93 / code316 — SOURCE_ONLY**. The Library keyboard fix, subtle dot correction and saved Stack experiment remain intact. Compact Now Playing retains its tested layout. Strong reflected Ambient is preserved. Transparent title and maintenance-release consolidation are awaiting final release checks. Shared output remains disabled; its high-resolution stress failure and remaining parity gates are recorded in the [refinement report](docs/STACK_SHARED_OUTPUT_REFINEMENT_2026-10-28.md). The latest verified sideload remains **1.21.80 / code303**. Primary playback quality and row actions are preserved. See [audit evidence and unfinished physical measurements](../docs/LIBRARY_AUDIT_2026-10-24.md). The independent [safe sync workflow](../docs/SAFE_SYNC.md) remains available. Fullscreen rotation and shared-output acceptance remain unresolved. Adaptive Dynamic combines
+Current source and verified local maintenance APK: **1.21.93 / code316**. Now Playing has a transparent title area, compact controls and reflected Ambient. The subtle Library current-track dot, keyboard-safe dock, primary playback quality and row actions are preserved. See the [release receipt](docs/RELEASE_1.21.93.md) for exact source, signing, artifact and emulator evidence. Shared output remains disabled; this maintenance release does not complete its high-resolution and function-parity gates in the [refinement report](docs/STACK_SHARED_OUTPUT_REFINEMENT_2026-10-28.md). [Physical measurements](../docs/LIBRARY_AUDIT_2026-10-24.md), complete fullscreen-rotation acceptance and acoustic Stack validation remain unresolved. The independent [safe sync workflow](../docs/SAFE_SYNC.md) remains available. Adaptive Dynamic combines
 Classic/Aurora/Bloom/Flow; Classic remains available. See
-[implementation/evidence](docs/ADAPTIVE_AMBIENT_2.md). Sideload: [GreaterArt-1.21.80.apk](releases/GreaterArt-1.21.80.apk). Read [HANDOFF](HANDOFF.md) for the exact verification limits.
+[implementation/evidence](docs/ADAPTIVE_AMBIENT_2.md). Sideload: [GreaterArt-1.21.93.apk](releases/GreaterArt-1.21.93.apk). Read [HANDOFF](HANDOFF.md) for the exact verification limits.
 
 This release also integrates Mini/Android PiP/No Floating, queue Locate, bounded
 PiP startup readiness and an independent High Contrast palette. Complete evidence
@@ -18,7 +18,7 @@ optional video-colour gradient, with no extra decoder. See the
 [branch/issue review](docs/BRANCH_AND_ISSUE_REVIEW_2026-10-10.md) for integration,
 historical APK dispositions and unresolved physical/admin acceptance gates.
 
-The verified **1.21.39 / code262 sideload APK** is [available here](releases/GreaterArt-1.21.39.apk). Emulator/build evidence is in [HANDOFF.md](HANDOFF.md); physical-phone and production signing acceptance remain pending. A selected SAF folder can supply Library playback, metadata, embedded artwork, waveforms and Stack readers. Clearing the folder returns to recursive Download discovery. URI sidecar reading, sharing/deletion and the final storage-permission migration are not complete. Adaptive Stack drift control
+The historical **1.21.39 / code262 sideload APK** remains [preserved here](releases/GreaterArt-1.21.39.apk), not the current download. Physical-phone and production signing acceptance remain pending. A selected SAF folder can supply Library playback, metadata, embedded artwork, waveforms and Stack readers. Clearing the folder returns to recursive Download discovery. URI sidecar reading, sharing/deletion and the final storage-permission migration are not complete. Adaptive Stack drift control
 is model-backed; audible improvement still requires physical listening.
 Calibrated internal-output probes now demonstrate remaining independent-player
 drift on the emulator; shared-clock output fixes the generated probe only in the
@@ -32,7 +32,7 @@ with pitch preserved. Nonuniform tempo/ambiguous arrangements abstain.
 Main's fullscreen-lock and Void OLED changes are preserved. The foreground
 Library/Settings, expanded Now Playing overlay and landscape fullscreen keep the
 display awake whether or not audio/video is playing. Detached Mini Window and PiP
-do not keep the display awake. This is a source-only change, not a verified APK.
+do not keep the display awake. These existing behaviors are retained in the current maintenance build; the release receipt defines the tested scope.
 
 The previous **1.21.18 / code 241** stage introduced the shared thumbnail scheduler and cache-pressure improvements:
 immediate RAM hits during fling; bounded, deduplicated viewport-priority misses;
@@ -47,11 +47,11 @@ Bounded HPSS-weighted analysis and linear timing maps are implemented in source;
 HPSS is not vocal removal. Shared-clock output is implemented only as a separate
 debug/test prototype; physical output performance and production adoption are pending.
 
-Latest emulator-verified sideload APK: **1.21.37/code260** (see HANDOFF for bounded QA, artifact hash and provenance limitations). Last owner-confirmed physical release remains 1.21.18/code241.
+Latest verified local maintenance sideload: **1.21.93/code316** (see the [receipt](docs/RELEASE_1.21.93.md) for bounded emulator QA, artifact hash and provenance limits). Historical 1.21.37/code260 and 1.21.39/code262 artifacts remain immutable. Last owner-confirmed physical release remains 1.21.18/code241.
 
 Earlier verified build: **1.15.77/code207**, exact app source `bc1c645a3be77a0b64c4c0c523b85ccd242e292d`. It preserves the reviewed Stack alignment/readiness work and adds guarded decoder-pressure recovery so stale recovery coroutines cannot pause or publish into a replacement Stack. The API 36 verification boundary in HANDOFF covers build/lint/tests, package/version/signature checks, local media playback, Stack transitions, Mini/fullscreen/return flows and zero fatal exceptions in the tested session. This is not real-phone acoustic synchronization proof, and fixed offsets do not time-warp different arrangements or tempos.
 
-- Verified build: **1.15.77**, code **207**.
+- Historical verified build: **1.15.77**, code **207**; not the current download.
 - Application ID: `com.local.listentomusic`
 - APK: `releases/GreaterArt-1.15.77.apk`
 - APK SHA-256: `2d1d5edb67013a1ecc39daa3f83903ac1a9d127ef0d69a2db414f500d841024f`
@@ -225,17 +225,18 @@ From `greater-art/`:
 $env:JAVA_HOME = 'C:\Program Files\Android\openjdk\jdk-21.0.8'
 $env:ANDROID_HOME = "$env:LOCALAPPDATA\Android\Sdk"
 $env:GRADLE_USER_HOME = Join-Path $env:USERPROFILE '.gradle'
-& "$env:JAVA_HOME\bin\java.exe" -jar gradle\wrapper\gradle-wrapper.jar testDebugUnitTest lintDebug assembleDebug
+& "$env:JAVA_HOME\bin\java.exe" -classpath gradle\wrapper\gradle-wrapper.jar org.gradle.wrapper.GradleWrapperMain testDebugUnitTest lintDebug assembleDebug --no-daemon
 ```
 
 Current release artifact:
 
 ```text
-releases/GreaterArt-1.15.77.apk
+releases/GreaterArt-1.21.93.apk
 ```
 
-Versioned APKs are never overwritten. Builds remain signed by the pinned personal
-debug keystore so a newer APK can update the existing installation.
+Versioned APKs are never overwritten. The optimized 1.21.93 sideload uses the
+existing pinned personal certificate to preserve update compatibility. Release
+builds require explicit signing configuration; see the [receipt](docs/RELEASE_1.21.93.md).
 
 The repository does not contain the personal release keystore.
 
@@ -282,6 +283,17 @@ app/src/main/java/com/local/listentomusic/
 - No network, account, analytics, or telemetry dependency should be introduced casually.
 
 ## Verification boundary
+
+For **1.21.93/code316**, exact source
+`58048b54e4119c3aad50ca99d4595afe479653c3` passed 473 JVM tests,
+lint with 0 errors/47 warnings/4 hints, and 23 focused debug-instrumentation cases.
+The optimized, non-debuggable APK is a separate artifact; its signing, manifest,
+hash, alignment and native emulator smoke evidence are recorded in the
+[release receipt](docs/RELEASE_1.21.93.md). Debug instrumentation is not proof
+of R8 behavior, physical frame pacing, acoustic synchronization or universal
+crash freedom. Complete fullscreen-rotation acceptance remains open.
+
+### Historical 1.12.7 record — not the current release
 
 For 1.12.7 (code 88): 105 unit tests passed; lint reports 0 errors, 18 warnings and 1 hint;
 the debug build, APK v2 signature and 16 KiB alignment checks passed. The application
