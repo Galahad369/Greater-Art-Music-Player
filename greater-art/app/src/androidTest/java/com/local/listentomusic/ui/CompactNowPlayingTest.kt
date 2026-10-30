@@ -10,6 +10,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.asAndroidBitmap
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.DeviceConfigurationOverride
@@ -47,14 +48,18 @@ import androidx.test.platform.app.InstrumentationRegistry
 import com.local.listentomusic.PlaybackUiState
 import com.local.listentomusic.SleepTimerState
 import com.local.listentomusic.data.AppLanguage
+import com.local.listentomusic.data.AmbientMotion
+import com.local.listentomusic.data.AppBackgroundMode
 import com.local.listentomusic.data.FloatingWindowMode
 import com.local.listentomusic.data.ThemeMode
+import com.local.listentomusic.data.UserPreferences
 import com.local.listentomusic.model.MediaFile
 import com.local.listentomusic.model.MediaKind
 import com.local.listentomusic.playback.StackPlayback
 import com.local.listentomusic.ui.theme.GreaterArtTheme
 import java.io.File
 import java.util.UUID
+import kotlin.math.roundToInt
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -69,8 +74,10 @@ class CompactNowPlayingTest {
     @Test fun audioAt384KeepsCompactControlsAndActions() = exercise(DpSize(384.dp, 760.dp), false)
     @Test fun videoAt320KeepsCompactControlsAndActions() = exercise(DpSize(320.dp, 640.dp), true)
     @Test fun videoAt384KeepsCompactControlsAndActions() = exercise(DpSize(384.dp, 760.dp), true)
+    @Test fun audioLightHeaderStaysTransparent() = exercise(DpSize(320.dp, 640.dp), false, ThemeMode.LIGHT)
+    @Test fun videoLightHeaderStaysTransparent() = exercise(DpSize(320.dp, 640.dp), true, ThemeMode.LIGHT)
 
-    private fun exercise(size: DpSize, video: Boolean) {
+    private fun exercise(size: DpSize, video: Boolean, theme: ThemeMode = ThemeMode.DARK) {
         assertFalse("The isolated compact-player fixture requires no active Stack", StackPlayback.state.value.active)
         val extension = if (video) "mp4" else "mp3"
         val files = List(20) { index ->
@@ -95,10 +102,12 @@ class CompactNowPlayingTest {
         val speeds = mutableListOf<Float>()
         val seeks = mutableListOf<Long>()
         val playedQueueIndices = mutableListOf<Int>()
+        var density = 0f
 
         compose.setContent {
             DeviceConfigurationOverride(DeviceConfigurationOverride.ForcedSize(size)) {
-                GreaterArtTheme(ThemeMode.DARK) {
+                GreaterArtTheme(theme) {
+                    density = LocalDensity.current.density
                     CompositionLocalProvider(LocalContentColor provides MaterialTheme.colorScheme.onBackground) {
                         NowPlayingScreen(
                             floatingWindowMode = FloatingWindowMode.MINI_WINDOW,
@@ -121,12 +130,18 @@ class CompactNowPlayingTest {
                             onToggleFavourite = { favouriteCalls++; favourite.value = !favourite.value },
                             onShareCurrentMedia = { shareFileCalls++ }, onShareQueue = { shareQueueCalls++ },
                             systemOverlay = true,
+                            ambientPreferences = UserPreferences(backgroundMode = AppBackgroundMode.ADAPTIVE_DYNAMIC,
+                                adaptiveIntensity = 0f, adaptiveMotion = AmbientMotion.OFF, backgroundDim = 0f),
                         )
                     }
                 }
             }
         }
 
+        compose.waitForIdle()
+        compose.mainClock.advanceTimeBy(2_200)
+        compose.waitForIdle()
+        assertHeaderIsTransparent(density)
         val title = compose.onNodeWithTag("CURRENT_MEDIA_TITLE", useUnmergedTree = true).assertIsDisplayed()
         val textLayouts = mutableListOf<TextLayoutResult>()
         title.performSemanticsAction(SemanticsActions.GetTextLayoutResult) { it(textLayouts) }
@@ -159,7 +174,7 @@ class CompactNowPlayingTest {
         assertEquals("List scrolling must not move transport", transportBefore, bounds("TRANSPORT_CONTROLS"))
         assertEquals("List scrolling must not move seeking", seekBefore, slider.fetchSemanticsNode().boundsInRoot)
         list.performScrollToIndex(0)
-        capture("${if (video) "video" else "audio"}-${size.width.value.toInt()}-portrait")
+        capture("${if (video) "video" else "audio"}-${size.width.value.toInt()}-$theme-portrait")
 
         compose.onNodeWithContentDescription("Add to Favorites").performClick()
         compose.onNodeWithContentDescription("Remove from Favorites").assertIsDisplayed()
@@ -197,6 +212,30 @@ class CompactNowPlayingTest {
 
     private fun bounds(tag: String): Rect =
         compose.onNodeWithTag(tag, useUnmergedTree = true).fetchSemanticsNode().boundsInRoot
+
+    private fun assertHeaderIsTransparent(density: Float) {
+        compose.onNodeWithTag("CURRENT_MEDIA_HEADER_CONTAINER", useUnmergedTree = true).assertIsDisplayed()
+        val header = bounds("CURRENT_MEDIA_HEADER_CONTAINER")
+        val root = compose.onRoot()
+        val rootBounds = root.fetchSemanticsNode().boundsInRoot
+        val image = root.captureToImage().asAndroidBitmap()
+        try {
+            val inset = 2f * density
+            assertTrue("The fixture needs backdrop outside the title holder", header.left - inset >= rootBounds.left)
+            // Both fixtures use a 48dp identity row. Its top 2dp is blank above the
+            // centered text/icons; audio intentionally has no horizontal gutter.
+            // Zero ambient intensity makes the backdrop uniform, so compare one
+            // blank interior pixel with the same frame immediately outside it.
+            val y = ((header.top + inset - rootBounds.top) * image.height / rootBounds.height)
+                .roundToInt().coerceIn(0, image.height - 1)
+            val insideX = ((header.center.x - rootBounds.left) * image.width / rootBounds.width)
+                .roundToInt().coerceIn(0, image.width - 1)
+            val outsideX = ((header.left - inset - rootBounds.left) * image.width / rootBounds.width)
+                .roundToInt().coerceIn(0, image.width - 1)
+            assertEquals("Blank title-holder padding must reveal the unchanged backdrop",
+                image.getPixel(outsideX, y), image.getPixel(insideX, y))
+        } finally { image.recycle() }
+    }
 
     private fun capture(label: String) {
         if (InstrumentationRegistry.getArguments().getString("compactPlayerScreenshots") != "true") return

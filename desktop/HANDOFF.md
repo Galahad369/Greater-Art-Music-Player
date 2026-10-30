@@ -1,5 +1,25 @@
 # Greater Art Desktop handoff
 
+## Locally verified WinUI Nodes preview — October 29, 2026
+
+Current source **0.1.21/code22 — LOCALLY VERIFIED PREVIEW**. The compact Nodes panel now provides filters, groups, display and force controls, zoom-aware labels, local-neighborhood focus, keyboard/pan access and preferences separate from the previous native app. This is not full parity or a production release. The last frozen native delivery remains **0.1.16/code17** below; do not overwrite or relabel its artifacts. This desktop work does not edit Android. Concurrent Android edits belong to the other chat and must be preserved; this is not a claim that the entire checkout is unchanged.
+
+Fixes: release/reset sequencing retains the final dragged position and clears gesture state. For libraries above 1,200 songs, a coprime stride checks 384 distinct other songs per node instead of repeating a short cycle; every song remains a node. Graph cache v3 prevents stale graph reuse. Local focus uses a visible fallback when the old anchor is hidden; selector rebinding retains valid state. Empty filters show an explicit no-match state, Escape handles settings/navigation, and labels respond to zoom. The radius floor preserves visibly larger hubs at fit zoom.
+
+Completed local checks: native full-app build and **81/81** self-tests; bridge **15,378 assertions**; pure model **85/85**; version guard and **9/9** version tests. The published WinUI preview launches after explicitly including its compiled **XBF and PRI** resources. Final real **1080p and 4K** runs used **209 nodes / 895 edges** and passed all **16** exploration-control checks, **6** transform/ABI checks and **4** isolated preference checks each, with no failed checks. Captures were visually inspected after the Canvas and weighted-radius fixes. The tested bundle remained unchanged throughout both runs. Mini/fullscreen/repeat transfers retained the original playback identity without quality caps. The test was muted; it does not prove acoustic output. Exact binary hashes and the completed `desktop/winui/artifacts/nodes-0.1.21-delivery-check` evidence are recorded in [the 0.1.21 verification receipt](winui/VERIFICATION_0.1.21.md). Delivery is a runnable publish folder; no new frozen ZIP or installer was created.
+
+Visual acceptance caught a real bug after the numeric checks passed: all **209** nodes projected inside the viewport, but only **25** were in the positive world-coordinate quadrant. A Grid clipped negative-world Path geometry before the camera RenderTransform, so correct projection numbers did not mean visible nodes. Moving the world Paths into a Canvas preserves all quadrants; owned-window A/B and final captures confirmed that all nodes are now visible. Numeric checks alone were insufficient. Keep compositor-settled captures of the actual rendered graph as an acceptance gate.
+
+Verification limits: physical pointer feel, Narrator, broader accessibility, multiple monitors/DPI settings, signing, offline clean-machine deployment and full mobile parity remain open. These local checks do not turn the preview into the frozen native installer.
+
+Workflow mistakes and prevention:
+
+- Do not test TextBox events while the panel is collapsed or untemplated. Load the real controls and await the actual event before asserting its effect.
+- Seek resets playback counters. Compare progress within one counter epoch, not across a seek.
+- Let rate-change warmup settle before sampling. The measured warmup was about **1.3 seconds**; this is a visible limitation, not a hidden performance claim.
+- Await the compositor before capture. A published WinUI build must include compiled XBF/PRI resources; successful compilation alone does not prove it can launch.
+- Preserve failed evidence and keep personal media paths/names in ignored local artifacts. Record final binary hashes only after the final run finishes.
+
 ## Verified Windows Nodes delivery — October 17, 2026
 
 Current **0.1.16/code17**, exact native build source **044a9670992027a19b2909aa609abe12d4ad5734**. Immutable setup/portable delivery, exact hashes, installed/extracted **73/73** each, real-library 4K gestures (**469 frames**) and six-voice 1080p fullscreen/Mini/MSAA transfer (**136 frames**) are recorded in [RELEASE_0.1.16.md](RELEASE_0.1.16.md). Graph physics, middle mouse/Space+drag pan, force preferences and measured paint optimizations are complete for this scope. No new worktree or Android change. Paused Android refs/stashes below are preserved. Security #174 remains explicitly blocked. Live protected-main checks/integration are separate from this local receipt; do not guess their status.

@@ -5,6 +5,7 @@
 #include <filesystem>
 #include <fstream>
 #include <functional>
+#include <numeric>
 #include <set>
 #include <string>
 #include <unordered_map>
@@ -14,8 +15,8 @@
 
 namespace ga
 {
-inline constexpr wchar_t VERSION[] = L"0.1.20";
-inline constexpr int VERSION_CODE = 21;
+inline constexpr wchar_t VERSION[] = L"0.1.21";
+inline constexpr int VERSION_CODE = 22;
 struct Song
 {
     std::wstring path, title, format;
@@ -206,6 +207,12 @@ inline Graph buildGraph(const std::vector<Song> &songs, const std::function<bool
     names.reserve(n);
     for (const auto &song : songs)
         names.push_back(filenameFeatures(song.path));
+    // A coprime stride visits the whole library before repeating. A fixed 37
+    // cycles through only 35 nodes in a 1295-song library and repeats top picks.
+    std::size_t candidateStride = n > 1200 ? std::size_t(n * .6180339887498949) : 1;
+    while (n > 1200 && std::gcd(candidateStride, n) != 1)
+        ++candidateStride;
+    auto candidateCount = n > 1200 ? (std::min)(n - 1, std::size_t(384)) : n;
     std::set<std::pair<std::size_t, std::size_t>> seen;
     for (std::size_t i = 0; i < n; ++i)
     {
@@ -214,9 +221,10 @@ inline Graph buildGraph(const std::vector<Song> &songs, const std::function<bool
         std::vector<std::pair<double, std::size_t>> candidates;
         // Large collections retain every node; bounded candidate work keeps analysis
         // off the player's critical path. Exact all-pair scores are used up to 1200.
-        for (std::size_t k = 0; k < (n <= 1200 ? n : (std::min)(n, std::size_t(384))); ++k)
+        candidates.reserve(candidateCount);
+        for (std::size_t k = 0; k < candidateCount; ++k)
         {
-            std::size_t j = n <= 1200 ? k : (i + k * 37) % n;
+            std::size_t j = n <= 1200 ? k : (i + (k + 1) * candidateStride) % n;
             if (i == j)
                 continue;
             double score = similarity(names[i], names[j]);
@@ -315,7 +323,7 @@ inline std::uint64_t graphSignature(const std::vector<Song> &songs)
 inline bool loadGraphCache(const std::filesystem::path &directory, const std::vector<Song> &songs, Graph &graph,
                            int neighbors = 6, double minimum = .035)
 {
-    auto file = directory / L"graph-v2.bin";
+    auto file = directory / L"graph-v3.bin";
     std::error_code error;
     auto length = std::filesystem::file_size(file, error);
     if (error || length > 128 * 1024 * 1024)
@@ -328,7 +336,7 @@ inline bool loadGraphCache(const std::filesystem::path &directory, const std::ve
     stream.read(reinterpret_cast<char *>(&signature), 8);
     stream.read(reinterpret_cast<char *>(&count), 4);
     stream.read(reinterpret_cast<char *>(&edges), 4);
-    if (!stream || std::string(magic, 8) != "GAGRPH02" ||
+    if (!stream || std::string(magic, 8) != "GAGRPH03" ||
         signature != (graphSignature(songs) ^ std::uint64_t(neighbors * 100000 + int(minimum * 10000))) ||
         count != songs.size() || edges > std::uint64_t(count) * 8)
         return false;
@@ -362,11 +370,11 @@ inline bool saveGraphCache(const std::filesystem::path &directory, const std::ve
     std::filesystem::create_directories(directory, error);
     if (error)
         return false;
-    auto temp = directory / L"graph-v2.tmp", file = directory / L"graph-v2.bin";
+    auto temp = directory / L"graph-v3.tmp", file = directory / L"graph-v3.bin";
     std::ofstream stream(temp, std::ios::binary | std::ios::trunc);
     auto signature = graphSignature(songs) ^ std::uint64_t(neighbors * 100000 + int(minimum * 10000));
     std::uint32_t count = std::uint32_t(graph.points.size()), edges = std::uint32_t(graph.edges.size());
-    stream.write("GAGRPH02", 8);
+    stream.write("GAGRPH03", 8);
     stream.write(reinterpret_cast<char *>(&signature), 8);
     stream.write(reinterpret_cast<char *>(&count), 4);
     stream.write(reinterpret_cast<char *>(&edges), 4);

@@ -6,6 +6,39 @@ namespace ga
 {
 template <class Check> void graphMotionTests(Check expect)
 {
+    for (std::size_t count : {std::size_t(1295), std::size_t(1258)})
+    {
+        std::vector<Song> songs(count);
+        for (std::size_t i = 0; i < count; ++i)
+            songs[i].path = L"C:\\GraphFixture\\" + std::to_wstring(i) + L"\\shared stem.mp3";
+        const Graph graph = buildGraph(songs, [] { return false; });
+        std::set<std::pair<std::size_t, std::size_t>> edges;
+        std::vector<double> incident(count);
+        std::vector<std::size_t> neighbors(count);
+        bool valid = graph.points.size() == count && graph.weights.size() == count;
+        for (auto edge : graph.edges)
+        {
+            valid &= edge.a < edge.b && edge.b < count && edge.strength == 1 &&
+                     edges.emplace(edge.a, edge.b).second;
+            if (edge.a < count && edge.b < count)
+            {
+                ++neighbors[edge.a];
+                ++neighbors[edge.b];
+                incident[edge.a] += edge.strength;
+                incident[edge.b] += edge.strength;
+            }
+        }
+        double maximum = *std::max_element(incident.begin(), incident.end());
+        for (std::size_t i = 0; i < count && valid; ++i)
+        {
+            const Point point = graph.points[i];
+            double weight = graph.weights[i];
+            valid &= neighbors[i] >= 6 && std::isfinite(point.x) && std::isfinite(point.y) &&
+                     std::abs(weight - incident[i] / maximum) < 1e-12;
+        }
+        expect(valid, count == 1295 ? "1295-song sampling retains six unique neighbors and accurate hub weights"
+                                    : "1258-song sampling retains six unique neighbors and accurate hub weights");
+    }
     auto pair = [](double strength) { return Graph{{{-100, 0}, {100, 0}}, {{0, 1, strength}}, {1, 1}}; };
     auto run = [](GraphSimulation &sim, double seconds, int rate) {
         for (int i = 0; i < int(seconds * rate); ++i)
@@ -94,5 +127,64 @@ template <class Check> void graphMotionTests(Check expect)
     }
     expect(result && result->points.size() == 2, "graph worker discards results from an obsolete library");
     worker.stop();
+
+    auto frame = [](GraphMotion &motion) {
+        for (int i = 0; i < 1000; ++i)
+        {
+            if (auto next = motion.take())
+                return next;
+            Sleep(2);
+        }
+        return std::shared_ptr<const GraphFrame>{};
+    };
+    auto submit = [](GraphMotion &motion, int pin, Point point) {
+        for (int i = 0; i < 1000; ++i)
+        {
+            if (motion.request(0, pin, point))
+                return;
+            Sleep(2);
+        }
+    };
+    GraphMotion drops;
+    drops.reset(pair(.8), {}, true);
+    drops.request(0, 0, {-210, 75});
+    drops.release(0, {-245, 86});
+    drops.release(1, {222, -64});
+    drops.release(0, {-280, 103});
+    drops.start();
+    auto dropped = frame(drops);
+    expect(dropped && dropped->points[0].x == -280 && dropped->points[0].y == 103 &&
+               dropped->points[1].x == 222 && dropped->points[1].y == -64,
+           "coalesced releases commit the latest drop for every node before unpinning");
+    submit(drops, -1, {});
+    auto unpinned = frame(drops);
+    expect(unpinned && unpinned->points[0].x == -280 && unpinned->points[1].x == 222,
+           "an old coalesced pin cannot overwrite the final drop");
+    submit(drops, 0, {-310, 120});
+    auto repinned = frame(drops);
+    expect(repinned && repinned->points[0].x == -310 && repinned->points[0].y == 120,
+           "a newer drag can pin a previously released node");
+    drops.reset(large, {}, true);
+    Sleep(2);
+    drops.release(0, {8765, -4321});
+    auto interrupted = frame(drops);
+    expect(interrupted && interrupted->points.size() == large.points.size() &&
+               interrupted->points[0].x == 8765 && interrupted->points[0].y == -4321,
+           "release interrupts settling and suppresses an older in-flight frame");
+    drops.stop();
+
+    GraphMotion canceled;
+    canceled.reset(pair(.8), {});
+    canceled.release(0, {9999, 9999});
+    auto newEpoch = canceled.reset(pair(.8), {});
+    canceled.start();
+    auto fresh = frame(canceled);
+    expect(fresh && fresh->generation == newEpoch && fresh->points[0].x == -100 &&
+               fresh->points[0].y == 0,
+           "library reset cancels pending drops from the previous generation");
+    expect(!canceled.release(-1, {}) && !canceled.release(2, {}) &&
+               !canceled.release(0, {INFINITY, 0}),
+           "release validates the node and final position");
+    canceled.stop();
 }
 } // namespace ga

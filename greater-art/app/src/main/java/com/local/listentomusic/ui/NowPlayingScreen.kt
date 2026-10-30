@@ -1289,6 +1289,7 @@ private fun AudioPlayer(
                 .padding(start = 16.dp, end = 16.dp, top = 6.dp, bottom = 0.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
+            Box(Modifier.fillMaxWidth().testTag("CURRENT_MEDIA_HEADER_CONTAINER")) {
             CurrentMediaHeader(
                 playback = playback,
                 mediaFile = queue.getOrNull(playback.currentQueueIndex)
@@ -1302,6 +1303,7 @@ private fun AudioPlayer(
                 headline = true,
                 onSearch = { searchOpen = !searchOpen },
             )
+            }
             if (playback.showAbRepeat || playback.showSleepControl) {
                 Spacer(Modifier.height(4.dp))
                 SecondaryControlRow(playback, onSleepTimer, sleepTimer)
@@ -1449,13 +1451,7 @@ private fun SecondaryControls(
         val chromeShape = RoundedCornerShape(GaRadius.chrome)
         Box(
             Modifier.fillMaxWidth()
-                .clip(chromeShape)
-                .background(MaterialTheme.colorScheme.surface.copy(alpha = NOW_PLAYING_AMBIENT_PANEL_ALPHA))
-                .border(
-                    1.dp,
-                    MaterialTheme.colorScheme.outlineVariant.copy(alpha = NOW_PLAYING_AMBIENT_OUTLINE_ALPHA),
-                    chromeShape,
-                )
+                .testTag("CURRENT_MEDIA_HEADER_CONTAINER")
                 .padding(horizontal = 8.dp, vertical = 4.dp),
         ) {
         CurrentMediaHeader(

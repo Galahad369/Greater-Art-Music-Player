@@ -3,7 +3,7 @@
 This file describes the **current repository state only**. Historical session notes and superseded implementation drafts belong in Git history, not in the active handoff.
 
 **Project:** `greater-art/` in the repository checkout
-**Current source:** `1.21.92 (code 315)` — SOURCE_ONLY local reflected Ambient work; 472 JVM tests, zero lint errors and 21 focused API36 cases pass after correcting the walkthrough's test clock. Screenshots inspected. Internal working-tree candidate only; preserve compact Now Playing and unmerged PR211. No merge without authorization.
+**Current source:** `1.21.93 (code 316)` — SOURCE_ONLY maintenance consolidation and transparent Now Playing title; exact-commit optimized build and release checks pending. User now authorizes reviewed consolidation and a maintenance sideload with shared output disabled.
 **Current version:** `1.21.80 (code 303)`
 **Latest APK:** `releases/GreaterArt-1.21.80.apk` (`27,025,073 bytes`; SHA-256 `76791737701736a45b9b441851212f2c8cacf83542991b5c0e58ffbbfc3d29b4`)
 **Application ID:** `com.local.listentomusic`
@@ -13,6 +13,15 @@ This file describes the **current repository state only**. Historical session no
 **Verification boundary:** Exact source `3b49022`; Gradle9.8.2/Java21 unit/lint/debug app/test build passed. 446 JVM tests, zero failures/errors; lint 0 errors/46 warnings/4 hints. Final API36 upgrade passed 15/15 focused cases in 37.285s: Nodes tap/drag/controls/graph replacement, fullscreen speed/narrow toolbar, Library row semantics/RAM seeding, actual cache/disk-during-scroll regressions. Nine disposable Git sync-safety tests passed outside sandbox. Certificate unchanged; package/version, ZIP CRC, 16KiB alignment and SHA-256 checked. This is not full fullscreen rotation, physical-device visual/acoustic/performance acceptance, production signing or universal bug-free proof. Existing Library physical trace/profile acceptance and the prior full rotation failure remain unresolved.
 
 ## Repository state
+
+### October30 — Maintenance release and workspace consolidation
+
+- User approved a maintenance release while the unfinished shared-output engine remains disabled. This is an explicit exception to the earlier hold on all releases, not approval to enable that engine or claim full Stack parity. Keep its192kHz failure and physical/acoustic gates open.
+- Preserve compact-player91 and Ambient92 as separate sequential source commits before integrating main. Desktop files previously shown as dirty, including six new files, exactly match merged PR212; retain that history instead of recommitting desktop work as Android work.
+- Independent review rejects a pending graph anchor because it bypasses zero-centering and differs from desktop physics, while deleting a parity test. Preserve the original three-file diff in the local integration backup, then retain main's tested source/test unchanged.
+- Remove only the video title holder's fill, outline and clipping. Audio already has no painted card. Preserve title/actions/padding, source video geometry, transport panels and all playback commands. Add screenshot-pixel checks for the transparent holder alongside existing compact-player action/layout checks.
+- Archive21 ignored loose screenshots/logs under existing Android screenshots/logs folders. Hash-verify each moved file and record its old/new path in the sibling output's retained-artifacts cleanup manifest. Repair the old inspection note's references. No source, key, historical APK, fixture or unique recovery backup is deleted. Existing dated QA directories stay stable.
+- Build a fresh optimized, non-debuggable sideload using the existing pinned certificate and current wrapper, not the stale unsigned output or legacy debug helper. Final artifact/source SHA, tests, upgrade/smoke results and PR review are pending. Preserve verified1.21.80 unchanged.
 
 ### October30 — Strong reflected Ambient, approved across mobile surfaces
 
