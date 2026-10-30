@@ -1,7 +1,7 @@
 # Greater Art Desktop version policy
 
-Current desktop: **0.1.20 (code 21)**
-Release state: **SOURCE_ONLY candidate — WinUI 3 playback prototype; verification and distributable pending**
+Current desktop: **0.1.21 (code 22)**
+Release state: **LOCALLY VERIFIED PREVIEW — WinUI Nodes interaction and controls; runnable publish folder with completed binary/capture receipt**
 Android versions remain independent. This desktop stage does not change Android source or artifacts. Refer to the Android ledger for its current identity.
 
 Every committed desktop executable/build/workflow change increments PATCH and code together. Documentation and verified-artifact finalization do not consume another version. Never overwrite a versioned artifact. Full-parity 1.0.0 is reserved until all parity gates pass.
@@ -29,6 +29,7 @@ Every committed desktop executable/build/workflow change increments PATCH and co
 | 0.1.18 / 19 | Consumed historical identity; preserved artifacts | Recorded by historical ledger commit `c2d4c4e819afad5a77092bf1640dc0c481b86ee3`. Existing artifacts remain untouched; this record does not establish their provenance or verification status. |
 | 0.1.19 / 20 | SOURCE_ONLY candidate; verification pending | User-approved WinUI 3-first desktop shell with the existing native Media Foundation/Stack services behind a C ABI. Real playback, transfers, DPI and offline deployment are acceptance gates; Android is unchanged. |
 | 0.1.20 / 21 | SOURCE_ONLY build repair | CI must prepare the existing codec redistribution evidence before WinUI checks it. Read the canonical build/CodecDocs folder, not build/codecs. Keep missing-evidence failure and all license/source checks. No desktop playback or UI implementation changes. Verified0.1.16 artifacts are unchanged. |
+| 0.1.21 / 22 | LOCALLY VERIFIED PREVIEW | WinUI Nodes final drag position, coprime large-library sampling/cache v3, compact controls, zoom-aware labels, local focus, keyboard/pan access and separate preferences. Canvas-hosted world Paths fix negative-coordinate clipping found by visual A/B captures after numeric passes; hub radius floor preserves fit-zoom hierarchy. Native 81/81, bridge 15,378 assertions, model 85/85 and version 9/9 passed. Final real 1080p/4K runs passed all 16 exploration, 6 transform/ABI and 4 preference checks each; transfers and inspected captures passed with the bundle unchanged. [Completed receipt and exact hashes](winui/VERIFICATION_0.1.21.md). Runnable publish folder only; no new frozen ZIP/installer. Physical pointer, Narrator, signing and clean-machine gates remain open. Frozen 0.1.16 is preserved; desktop work excludes concurrent Android edits. |
 
 The one-time source-baseline transition from 0.1.16/code17 to 0.1.19/code20 skips the two consumed identities above. The version guard permits only this exact transition; subsequent executable/build changes still require PATCH/code +1. This does not relabel or overwrite a historical release.
 

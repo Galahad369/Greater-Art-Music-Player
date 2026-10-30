@@ -25,7 +25,12 @@ foreach ($file in $Media) {
         $report = Get-Content -LiteralPath (Join-Path $caseDirectory 'flow-result.json') -Raw | ConvertFrom-Json
         $captures = @()
         foreach ($name in @('library', 'expanded', 'mini', 'fullscreen')) {
-            $bitmap = [Drawing.Bitmap]::new((Join-Path $caseDirectory ($name + '-video.bmp')))
+            $capturePath = Join-Path $caseDirectory ($name + '-video.bmp')
+            if (-not (Test-Path -LiteralPath $capturePath)) {
+                $captures += [pscustomobject]@{presentation=$name; width=0; height=0; sampledColors=0; nonUniform=$false; error='Capture absent; read the failed flow check.'}
+                continue
+            }
+            $bitmap = [Drawing.Bitmap]::new($capturePath)
             try {
                 $colors = [Collections.Generic.HashSet[int]]::new()
                 for ($y = 0; $y -lt $bitmap.Height; $y += [Math]::Max(1, [int]($bitmap.Height / 45))) {

@@ -28,6 +28,14 @@ public sealed partial class GraphPage : UserControl, IDisposable
     private readonly UISettings systemUi = new();
     private readonly List<MatrixTransform> transforms = new();
     private readonly EllipseGeometry playing = new();
+    private readonly EllipseGeometry selection = new();
+    private GraphExploration? exploration;
+    private GraphExplorationResult? filtered;
+    private int selected = -1;
+    private bool spacePan, panGesture;
+    private readonly List<TextBlock> labels = new();
+    private readonly HashSet<(int, int)> labelCells = new();
+    private int[] labelOrder = Array.Empty<int>();
     private bool active, disposed, building, rendering, awake = true, needsFit, hasFrame, dragging, moved, pinching, revealing, changingForces;
     private int revision, pin = -1, hover = -1;
     private GraphPoint pointer, pressed, pinned, grabOffset;
@@ -49,14 +57,20 @@ public sealed partial class GraphPage : UserControl, IDisposable
     public GraphPage()
     {
         InitializeComponent();
-        foreach (var path in new[] { SoftEdges, MediumEdges, StrongEdges, HoverEdges, QuietNodes, MiddleNodes, HubNodes, PlayingRing })
+        foreach (var path in new[] { SoftEdges, MediumEdges, StrongEdges, HoverEdges, QuietNodes, MiddleNodes, HubNodes, PlayingRing, SelectionRing })
         {
             var transform = new MatrixTransform();
             path.RenderTransform = transform;
             transforms.Add(transform);
         }
         PlayingRing.Data = playing;
+        SelectionRing.Data = selection;
         PlayingRing.Visibility = Visibility.Collapsed;
+        SelectionRing.Visibility = Visibility.Collapsed;
+        var colorTransform = new MatrixTransform();
+        ColorLayers.RenderTransform = colorTransform;
+        transforms.Add(colorTransform);
+        InitializeControls();
         Unloaded += (_, _) => SetActive(false);
     }
 
@@ -68,8 +82,9 @@ public sealed partial class GraphPage : UserControl, IDisposable
         foreach (var track in tracks) track.PropertyChanged -= TrackChanged;
         tracks = next;
         foreach (var track in tracks) track.PropertyChanged += TrackChanged;
-        FindTrack.ItemsSource = tracks;
-        if (!changed) { UpdatePlaying(); if (active && engine == null) BeginBuild(); return; }
+        if (!changed) { ApplyExploration(false); UpdatePlaying(); if (active && engine == null) BeginBuild(); return; }
+        CommitDrag();
+        selected = -1; exploration = null; filtered = null;
         ++revision;
         StopRendering();
         ReleaseEngine();
@@ -79,7 +94,8 @@ public sealed partial class GraphPage : UserControl, IDisposable
         RenderTotalMilliseconds = RenderWorstMilliseconds = 0;
         points = Array.Empty<GraphPoint>(); circles = Array.Empty<EllipseGeometry>(); segments = Array.Empty<(PathFigure, LineSegment)>();
         foreach (var path in new[] { SoftEdges, MediumEdges, StrongEdges, HoverEdges, QuietNodes, MiddleNodes, HubNodes }) path.Data = null;
-        PlayingRing.Visibility = HoverLabel.Visibility = Visibility.Collapsed;
+        ColorLayers.Children.Clear(); LabelLayer.Children.Clear(); labels.Clear();
+        PlayingRing.Visibility = SelectionRing.Visibility = HoverLabel.Visibility = Visibility.Collapsed;
         EmptyLabel.Visibility = Visibility.Visible;
         EmptyLabel.Text = tracks.Length == 0 ? "Choose a media folder to explore its connections." : "Connecting filenames…";
         if (active) BeginBuild();
@@ -91,8 +107,9 @@ public sealed partial class GraphPage : UserControl, IDisposable
         active = value;
         if (!active)
         {
+            CommitDrag();
             StopRendering();
-            dragging = pinching = false; pin = -1;
+            dragging = pinching = spacePan = false; pin = -1;
             Viewport.ReleasePointerCaptures();
             return;
         }
@@ -113,10 +130,13 @@ public sealed partial class GraphPage : UserControl, IDisposable
             if (disposed || generation != revision || !active) { _ = Task.Run(built.Dispose); return; }
             engine = built;
             points = new GraphPoint[built.Count];
-            BuildGeometry();
+            exploration = new GraphExploration(tracks.Select(track => track.Title).ToArray(),
+                built.Edges.Select(edge => new ExplorationEdge(edge.A, edge.B, edge.Strength)).ToArray());
+            selected = Array.FindIndex(tracks, track => track.IsCurrent);
+            if (selected < 0) LocalMode.IsChecked = false;
+            ApplyExploration(false);
             needsFit = true;
             EmptyLabel.Text = "Arranging connections…";
-            GraphInfo.Text = $"{built.Count:N0} files · {built.Edges.Length:N0} filename connections";
             ResetMotion();
         }
         catch (Exception error) { if (!disposed && generation == revision) Report(error); }
@@ -129,10 +149,11 @@ public sealed partial class GraphPage : UserControl, IDisposable
 
     private void BuildGeometry()
     {
-        if (engine == null) return;
+        if (engine == null || filtered == null) return;
+        ColorLayers.Children.Clear();
         var edgeGroups = new[] { new PathGeometry(), new PathGeometry(), new PathGeometry() };
         segments = new (PathFigure, LineSegment)[engine.Edges.Length];
-        for (int i = 0; i < engine.Edges.Length; ++i)
+        foreach (int i in filtered.EdgeIndices)
         {
             var figure = new PathFigure { IsClosed = false, IsFilled = false };
             var end = new LineSegment(); figure.Segments.Add(end);
@@ -141,11 +162,23 @@ public sealed partial class GraphPage : UserControl, IDisposable
         }
         SoftEdges.Data = edgeGroups[0]; MediumEdges.Data = edgeGroups[1]; StrongEdges.Data = edgeGroups[2];
         var nodeGroups = new[] { new GeometryGroup { FillRule = FillRule.Nonzero }, new GeometryGroup { FillRule = FillRule.Nonzero }, new GeometryGroup { FillRule = FillRule.Nonzero } };
+        var colors = new Dictionary<uint, GeometryGroup>();
         circles = new EllipseGeometry[engine.Count];
         for (int i = 0; i < circles.Length; ++i)
         {
             circles[i] = new EllipseGeometry();
-            nodeGroups[engine.Weights[i] >= .7 ? 2 : engine.Weights[i] >= .3 ? 1 : 0].Children.Add(circles[i]);
+            if (!filtered.Visible[i]) continue;
+            if (filtered.GroupColors[i] is uint color)
+            {
+                if (!colors.TryGetValue(color, out var geometry))
+                {
+                    geometry = new GeometryGroup { FillRule = FillRule.Nonzero }; colors.Add(color, geometry);
+                    ColorLayers.Children.Add(new Microsoft.UI.Xaml.Shapes.Path { Data = geometry,
+                        Fill = new SolidColorBrush(ArgbColor(color)), IsHitTestVisible = false });
+                }
+                geometry.Children.Add(circles[i]);
+            }
+            else nodeGroups[filtered.Weights[i] >= .7 ? 2 : filtered.Weights[i] >= .3 ? 1 : 0].Children.Add(circles[i]);
         }
         QuietNodes.Data = nodeGroups[0]; MiddleNodes.Data = nodeGroups[1]; HubNodes.Data = nodeGroups[2];
     }
@@ -176,7 +209,7 @@ public sealed partial class GraphPage : UserControl, IDisposable
             {
                 ++SnapshotCount;
                 hasFrame = true;
-                EmptyLabel.Visibility = Visibility.Collapsed;
+                UpdateEmptyState();
                 awake = moving;
                 if (pin >= 0 && pin < points.Length) points[pin] = pinned;
                 if (needsFit && Viewport.ActualWidth > 0 && Viewport.ActualHeight > 0)
@@ -199,56 +232,79 @@ public sealed partial class GraphPage : UserControl, IDisposable
 
     private void UpdateGeometry()
     {
-        if (engine == null) return;
+        if (engine == null || filtered == null) return;
         for (int i = 0; i < points.Length; ++i)
         {
+            if (!filtered.Visible[i]) continue;
             circles[i].Center = new Point(points[i].X, points[i].Y);
             double progress = revealing ? Math.Max(0, reveal.Elapsed.TotalSeconds - .6 * i / Math.Max(1, points.Length - 1)) : 10;
             double pop = revealing ? Math.Max(0, 1 - Math.Exp(-7 * progress) * Math.Cos(11 * progress)) : 1;
             circles[i].RadiusX = circles[i].RadiusY = Radius(i) * pop;
         }
-        for (int i = 0; i < segments.Length; ++i)
+        foreach (int i in filtered.EdgeIndices)
         {
             var edge = engine.Edges[i];
             segments[i].Figure.StartPoint = new Point(points[edge.A].X, points[edge.A].Y);
             segments[i].End.Point = new Point(points[edge.B].X, points[edge.B].Y);
         }
-        UpdatePlaying(); UpdateHoverEdges(); PositionLabel();
+        UpdatePlaying(); UpdateHoverEdges(); PositionLabel(); UpdateLabels();
     }
-    private double Radius(int i) => Math.Clamp((6 + 12 * Math.Pow(engine?.Weights[i] ?? 0, .72)) * view.Scale, 2, 28) / view.Scale;
+    private double Radius(int i) => Math.Clamp((6 + 12 * Math.Pow(filtered?.Weights[i] ?? 0, .72))
+        * NodeSize.Value * Math.Clamp(view.Scale, .25, 2), 2, 36) / view.Scale;
     private void UpdateTransforms()
     {
+        if (!controlsReady) return;
         var matrix = new Matrix(view.Scale, 0, 0, view.Scale, Viewport.ActualWidth / 2 + view.PanX, Viewport.ActualHeight / 2 + view.PanY);
         foreach (var transform in transforms) transform.Matrix = matrix;
         for (int i = 0; i < circles.Length; ++i) circles[i].RadiusX = circles[i].RadiusY = Radius(i);
-        SoftEdges.StrokeThickness = MediumEdges.StrokeThickness = 1 / view.Scale;
-        StrongEdges.StrokeThickness = 1.1 / view.Scale;
-        HoverEdges.StrokeThickness = 1.3 / view.Scale;
+        SoftEdges.StrokeThickness = MediumEdges.StrokeThickness = LinkWidth.Value / view.Scale;
+        StrongEdges.StrokeThickness = 1.1 * LinkWidth.Value / view.Scale;
+        HoverEdges.StrokeThickness = 1.3 * LinkWidth.Value / view.Scale;
         PlayingRing.StrokeThickness = 2 / view.Scale;
-        UpdatePlaying(); PositionLabel();
+        SelectionRing.StrokeThickness = 1 / view.Scale;
+        UpdatePlaying(); PositionLabel(); UpdateLabels();
     }
     private void TrackChanged(object? sender, PropertyChangedEventArgs args)
-    { if (args.PropertyName == nameof(LibraryTrack.IsCurrent)) UpdatePlaying(); }
+    { if (args.PropertyName == nameof(LibraryTrack.IsCurrent)) { UpdatePlaying(); UpdateLabels(); } }
     private void UpdatePlaying()
     {
         int index = Array.FindIndex(tracks, track => track.IsCurrent);
-        if (index < 0 || index >= points.Length || needsFit)
-        { PlayingRing.Visibility = Visibility.Collapsed; return; }
-        playing.Center = new Point(points[index].X, points[index].Y);
-        playing.RadiusX = playing.RadiusY = Radius(index) + 4 / view.Scale;
-        PlayingRing.Visibility = Visibility.Visible;
+        SetRing(PlayingRing, playing, index, 4);
+        SetRing(SelectionRing, selection, selected, 7);
+    }
+    private void SetRing(Microsoft.UI.Xaml.Shapes.Path path, EllipseGeometry ring, int index, double gap)
+    {
+        if (index < 0 || index >= points.Length || filtered == null || !filtered.Visible[index] || needsFit)
+        { path.Visibility = Visibility.Collapsed; return; }
+        ring.Center = new Point(points[index].X, points[index].Y);
+        ring.RadiusX = ring.RadiusY = Radius(index) + gap / view.Scale;
+        path.Visibility = Visibility.Visible;
     }
     private void Fit()
     {
-        view.Fit(points, Viewport.ActualWidth, Viewport.ActualHeight);
+        view.Fit(points.Where((point, index) => filtered?.Visible[index] == true).ToArray(), Viewport.ActualWidth, Viewport.ActualHeight);
         UpdateTransforms();
     }
     private void FitClicked(object sender, RoutedEventArgs args) => Fit();
     private void PlayingClicked(object sender, RoutedEventArgs args) => CenterTrack(Array.FindIndex(tracks, track => track.IsCurrent));
-    private void FindSelectionChanged(object sender, SelectionChangedEventArgs args) => CenterTrack(FindTrack.SelectedIndex);
+    private void FindSelectionChanged(object sender, SelectionChangedEventArgs args)
+    {
+        if (updatingControls || FindTrack.SelectedItem is not LibraryTrack track) return;
+        CenterTrack(Array.IndexOf(tracks, track));
+    }
     private void CenterTrack(int index)
     {
         if (index < 0 || index >= points.Length || needsFit) return;
+        if (LocalMode.IsChecked != true && filtered?.Visible[index] != true)
+        { GraphInfo.Text = "That track is hidden by the current graph filters."; SetHover(-1); return; }
+        selected = index;
+        if (LocalMode.IsChecked == true) ApplyExploration(false);
+        PlaySelectedButton.IsEnabled = filtered?.Visible[index] == true;
+        updatingControls = true;
+        FindTrack.SelectedItem = PlaySelectedButton.IsEnabled ? tracks[index] : null;
+        updatingControls = false;
+        if (!PlaySelectedButton.IsEnabled)
+        { GraphInfo.Text = "That track is hidden by the current graph filters."; SetHover(-1); return; }
         view.Center(points[index]); UpdateTransforms(); SetHover(index);
     }
     private void WandClicked(object sender, RoutedEventArgs args)
@@ -258,13 +314,14 @@ public sealed partial class GraphPage : UserControl, IDisposable
         reveal.Restart(); ResetMotion();
     }
     private void ForcesChanged(object sender, RangeBaseValueChangedEventArgs args)
-    { if (!changingForces && engine != null) ResetMotion(); }
+    { if (controlsReady && !changingForces && engine != null) { CommitDrag(); ResetMotion(); ScheduleSave(); } }
     private void ResetForcesClicked(object sender, RoutedEventArgs args)
     {
         changingForces = true;
         CenterForce.Value = RepelForce.Value = LinkForce.Value = LinkDistance.Value = 100;
         changingForces = false;
         ResetMotion();
+        ScheduleSave();
     }
     private void ResetMotion()
     {
@@ -288,6 +345,7 @@ public sealed partial class GraphPage : UserControl, IDisposable
         int nearest = -1; double distance = double.PositiveInfinity;
         for (int i = 0; i < points.Length; ++i)
         {
+            if (filtered?.Visible[i] != true) continue;
             var location = view.Screen(points[i], Viewport.ActualWidth, Viewport.ActualHeight);
             double dx = screen.X - location.X, dy = screen.Y - location.Y;
             double delta = Math.Sqrt(dx * dx + dy * dy);
@@ -298,10 +356,14 @@ public sealed partial class GraphPage : UserControl, IDisposable
     private void GraphPointerPressed(object sender, PointerRoutedEventArgs args)
     {
         if (engine == null || needsFit || dragging || pinching) return;
-        if (args.Pointer.PointerDeviceType == Microsoft.UI.Input.PointerDeviceType.Mouse && !args.GetCurrentPoint(Viewport).Properties.IsLeftButtonPressed) return;
+        var properties = args.GetCurrentPoint(Viewport).Properties;
+        bool mouse = args.Pointer.PointerDeviceType == Microsoft.UI.Input.PointerDeviceType.Mouse;
+        if (mouse && !properties.IsLeftButtonPressed && !properties.IsMiddleButtonPressed) return;
         if (!Viewport.CapturePointer(args.Pointer)) return;
+        Viewport.Focus(FocusState.Pointer);
         dragging = true; moved = false;
-        pressed = pointer = Position(args); pin = Hit(pointer);
+        panGesture = spacePan || (mouse && properties.IsMiddleButtonPressed);
+        pressed = pointer = Position(args); pin = panGesture ? -1 : Hit(pointer);
         var world = view.World(pointer, Viewport.ActualWidth, Viewport.ActualHeight);
         grabOffset = pin >= 0 ? new GraphPoint(points[pin].X - world.X, points[pin].Y - world.Y) : new GraphPoint();
         pinned = pin >= 0 ? points[pin] : world;
@@ -325,15 +387,25 @@ public sealed partial class GraphPage : UserControl, IDisposable
     private void GraphPointerReleased(object sender, PointerRoutedEventArgs args)
     {
         if (!dragging) return;
-        int chosen = !moved && !pinching ? pin : -1;
-        dragging = false; pin = -1;
+        GraphPointerMoved(sender, args);
+        int chosen = !moved && !pinching && !panGesture ? pin : -1;
+        CommitDrag();
         Viewport.ReleasePointerCapture(args.Pointer);
         if (awake) StartRendering();
-        if (chosen >= 0 && chosen < tracks.Length) TrackRequested?.Invoke(tracks[chosen]);
+        if (chosen >= 0 && chosen < tracks.Length) { CenterTrack(chosen); TrackRequested?.Invoke(tracks[chosen]); }
         args.Handled = true;
     }
+    private void CommitDrag()
+    {
+        if (pin >= 0 && engine != null)
+        {
+            try { engine.ReleasePin(pin, pinned); awake = true; }
+            catch (Exception error) { Report(error); }
+        }
+        dragging = false; pin = -1;
+    }
     private void GraphPointerCanceled(object sender, PointerRoutedEventArgs args)
-    { dragging = false; pin = -1; if (active && awake) StartRendering(); }
+    { CommitDrag(); if (active && awake) StartRendering(); }
     private void GraphPointerExited(object sender, PointerRoutedEventArgs args) { if (!dragging) SetHover(-1); }
     private void GraphWheelChanged(object sender, PointerRoutedEventArgs args)
     {
@@ -341,7 +413,7 @@ public sealed partial class GraphPage : UserControl, IDisposable
         UpdateTransforms(); args.Handled = true;
     }
     private void GraphManipulationStarted(object sender, ManipulationStartedRoutedEventArgs args)
-    { pinching = true; dragging = false; pin = -1; }
+    { CommitDrag(); pinching = true; }
     private void GraphManipulationDelta(object sender, ManipulationDeltaRoutedEventArgs args)
     {
         view.ZoomAt(new GraphPoint(args.Position.X, args.Position.Y), args.Delta.Scale, Viewport.ActualWidth, Viewport.ActualHeight);
@@ -357,7 +429,14 @@ public sealed partial class GraphPage : UserControl, IDisposable
     private void PageSizeChanged(object sender, SizeChangedEventArgs args)
     {
         PageRoot.Clip = new RectangleGeometry { Rect = new Rect(0, 0, Math.Max(0, args.NewSize.Width), Math.Max(0, args.NewSize.Height)) };
-        if (ControlsScroll != null) ControlsScroll.MaxHeight = Math.Clamp(args.NewSize.Height * .22, 36, 180);
+        UpdatePanelBounds();
+    }
+    private void BodySizeChanged(object sender, SizeChangedEventArgs args) => UpdatePanelBounds();
+    private void UpdatePanelBounds()
+    {
+        if (SettingsPanel == null || ControlsScroll == null) return;
+        SettingsPanel.Width = Math.Max(0, Math.Min(300, GraphBody.ActualWidth - 20));
+        ControlsScroll.MaxHeight = Math.Max(0, GraphBody.ActualHeight - 20);
     }
     private void SetHover(int index)
     {
@@ -367,8 +446,8 @@ public sealed partial class GraphPage : UserControl, IDisposable
         if (index >= 0) HoverTitle.Text = tracks[index].Title;
         hoverSegments.Clear();
         var geometry = new PathGeometry();
-        if (hover >= 0 && engine != null)
-            for (int i = 0; i < engine.Edges.Length; ++i)
+        if (hover >= 0 && engine != null && filtered != null)
+            foreach (int i in filtered.EdgeIndices)
                 if (engine.Edges[i].A == hover || engine.Edges[i].B == hover)
                 {
                     var figure = new PathFigure { IsFilled = false };
@@ -376,7 +455,7 @@ public sealed partial class GraphPage : UserControl, IDisposable
                     geometry.Figures.Add(figure); hoverSegments.Add((i, figure, end));
                 }
         HoverEdges.Data = geometry;
-        UpdateHoverEdges(); PositionLabel();
+        UpdateHoverEdges(); PositionLabel(); UpdateLabels();
     }
     private void UpdateHoverEdges()
     {
@@ -403,6 +482,7 @@ public sealed partial class GraphPage : UserControl, IDisposable
     {
         if (disposed) return;
         SetActive(false); disposed = true; ++revision;
+        SaveOnClose();
         foreach (var track in tracks) track.PropertyChanged -= TrackChanged;
         ReleaseEngine();
     }

@@ -33,7 +33,7 @@ public static class GreaterArtGraphAbiProbe
         public string Status = "PASS";
         public int Assertions, Nodes, Edges;
         public double PartialLatinScore, IdenticalStemScore, RelatedCjkScore;
-        public bool WorkerFrames, ExactPin, PreservedGeometry, SettleAndReheat, InvalidInputs;
+        public bool WorkerFrames, ExactPin, FinalDrops, LargeLibraryRegression, PreservedGeometry, SettleAndReheat, InvalidInputs;
     }
 
     private static int assertions;
@@ -59,6 +59,8 @@ public static class GreaterArtGraphAbiProbe
     private static extern int GA_GraphReset(IntPtr graph, int center, int repel, int link, int distance, int settle);
     [DllImport("GreaterArt.Engine.dll", CallingConvention = CallingConvention.Cdecl)]
     private static extern int GA_GraphRequest(IntPtr graph, double seconds, int pin, double x, double y);
+    [DllImport("GreaterArt.Engine.dll", CallingConvention = CallingConvention.Cdecl)]
+    private static extern int GA_GraphReleasePin(IntPtr graph, int pin, double x, double y);
     [DllImport("GreaterArt.Engine.dll", CallingConvention = CallingConvention.Cdecl)]
     private static extern int GA_GraphTake(IntPtr graph, [Out] Point[] output, int capacity, out int awake);
 
@@ -99,6 +101,39 @@ public static class GreaterArtGraphAbiProbe
             Thread.Sleep(1);
         }
         throw new TimeoutException("The native graph worker remained busy for 2 seconds.");
+    }
+    private static void LargeLibrary(int count)
+    {
+        var paths = Enumerable.Range(0, count)
+            .Select(i => @"C:\GreaterArtGraphFixture\" + i + @"\shared stem.mp3").ToArray();
+        IntPtr graph = GA_GraphCreate(paths, count);
+        try
+        {
+            Require(graph != IntPtr.Zero && GA_GraphNodeCount(graph) == count,
+                    count + "-song graph preserves every node");
+            var edges = new Edge[GA_GraphEdgeCount(graph)];
+            var weights = new double[count];
+            Require(GA_GraphCopyEdges(graph, edges, edges.Length) == edges.Length &&
+                    GA_GraphCopyWeights(graph, weights, count) == count,
+                    count + "-song graph returns complete edges and weights");
+            var seen = new HashSet<long>();
+            var degree = new int[count];
+            var incident = new double[count];
+            foreach (var edge in edges)
+            {
+                Require(edge.A >= 0 && edge.A < edge.B && edge.B < count && edge.Strength == 1 &&
+                        seen.Add(((long)edge.A << 32) | (uint)edge.B),
+                        count + "-song graph has unique valid connections");
+                ++degree[edge.A]; ++degree[edge.B];
+                incident[edge.A] += edge.Strength; incident[edge.B] += edge.Strength;
+            }
+            Require(degree.All(n => n >= 6), count + "-song sampling selects six distinct neighbors per node");
+            double maximum = incident.Max();
+            Require(weights.Select((weight, i) => Finite(weight) &&
+                        Math.Abs(weight - incident[i] / maximum) < 1e-12).All(value => value),
+                    count + "-song hub weights equal normalized incident strengths");
+        }
+        finally { if (graph != IntPtr.Zero) GA_GraphRelease(graph); }
     }
 
     public static Summary Run(string directory)
@@ -170,11 +205,34 @@ public static class GreaterArtGraphAbiProbe
             var pinned = Frame(graph, names.Length, out awake);
             Require(pinned[0].X == 320 && pinned[0].Y == -120, "a dragged node stays exactly at the cursor");
 
+            Require(GA_GraphReleasePin(graph, -1, 0, 0) == unchecked((int)0x80070057) &&
+                    GA_GraphReleasePin(graph, names.Length, 0, 0) == unchecked((int)0x80070057) &&
+                    GA_GraphReleasePin(graph, 0, double.NaN, 0) == unchecked((int)0x80070057),
+                    "release rejects invalid nodes and positions");
+            Request(graph, 0, 0, 345, -133);
+            Require(GA_GraphReleasePin(graph, 0, 451, -207) == 0 &&
+                    GA_GraphReleasePin(graph, 1, -221, 147) == 0 &&
+                    GA_GraphReleasePin(graph, 0, 487, -235) == 0,
+                    "multiple final drops are accepted without waiting for a worker tick");
+            Request(graph, 0, -1, 0, 0);
+            pinned = Frame(graph, names.Length, out awake);
+            Require(pinned[0].X == 487 && pinned[0].Y == -235 &&
+                    pinned[1].X == -221 && pinned[1].Y == 147,
+                    "the first post-release frame commits every latest drop, not an old pin");
+
             Require(GA_GraphReset(graph, 100, 100, 100, 100, 0) == 0, "force reset succeeds");
             var reset = Frame(graph, names.Length, out awake);
             Require(reset.Zip(pinned, (a, b) => Math.Abs(a.X - b.X) + Math.Abs(a.Y - b.Y)).Max() < 1e-10,
                     "force changes retain the latest displayed geometry");
             Require(awake == 1, "reset reheats the graph");
+            Require(GA_GraphReleasePin(graph, 0, 613, -317) == 0,
+                    "a final drop is accepted before a force reset");
+            Require(GA_GraphReset(graph, 100, 100, 100, 100, 0) == 0,
+                    "force reset immediately after release succeeds");
+            Request(graph, 0, -1, 0, 0);
+            var droppedReset = Frame(graph, names.Length, out awake);
+            Require(droppedReset[0].X == 613 && droppedReset[0].Y == -317,
+                    "force reset preserves a final drop before any intervening Take");
             Require(GA_GraphReset(graph, 100, 100, 100, 100, 1) == 0, "settle is accepted");
             Frame(graph, names.Length, out awake);
             Require(awake == 0, "the background worker settles without a UI simulation loop");
@@ -189,6 +247,8 @@ public static class GreaterArtGraphAbiProbe
             Require(GA_GraphNodeCount(graph) == -1 && GA_GraphEdgeCount(graph) == -1,
                     "released handles are rejected");
             Require(GA_GraphRequest(graph, .01, -1, 0, 0) == -1, "a released worker cannot receive requests");
+            Require(GA_GraphReleasePin(graph, 0, 0, 0) == unchecked((int)0x80070006),
+                    "release pin returns E_HANDLE after graph disposal");
             Require(GA_GraphReset(graph, 100, 100, 100, 100, 0) == unchecked((int)0x80070006),
                     "reset returns E_HANDLE after release");
             GA_GraphRelease(graph); // Idempotent release must not crash.
@@ -196,11 +256,13 @@ public static class GreaterArtGraphAbiProbe
             empty = GA_GraphCreate(new string[0], 0);
             Require(empty != IntPtr.Zero && GA_GraphNodeCount(empty) == 0 && GA_GraphEdgeCount(empty) == 0,
                     "an empty library is handled gracefully");
+            LargeLibrary(1295);
+            LargeLibrary(1258);
             return new Summary
             {
                 Assertions = assertions, Nodes = names.Length, Edges = edgeCount,
                 PartialLatinScore = partial, IdenticalStemScore = identical, RelatedCjkScore = cjk,
-                WorkerFrames = true, ExactPin = true, PreservedGeometry = true,
+                WorkerFrames = true, ExactPin = true, FinalDrops = true, LargeLibraryRegression = true, PreservedGeometry = true,
                 SettleAndReheat = true, InvalidInputs = true
             };
         }
