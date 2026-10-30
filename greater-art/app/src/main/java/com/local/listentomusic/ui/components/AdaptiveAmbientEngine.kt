@@ -101,9 +101,9 @@ internal fun ambientLayers(signal: AmbientSignal, intensity: Float, react: Boole
     val saturation = if (react) ambientUnit(signal.saturation, 0f) else .35f
     val activity = if (react) ambientUnit(signal.activity, 0f) else 0f
     return AmbientLayers(
-        aurora = amount * (.07f + saturation * .07f),
-        bloom = amount * (.025f + brightness * .13f * (.3f + saturation * .7f)),
-        flow = amount * (.04f + activity * .06f),
+        aurora = amount * (.18f + saturation * .22f),
+        bloom = amount * (.08f + brightness * .26f * (.35f + saturation * .65f)),
+        flow = amount * (.10f + activity * .20f),
         motion = when (motion) {
             AmbientMotion.OFF -> 0f
             AmbientMotion.SUBTLE -> .55f

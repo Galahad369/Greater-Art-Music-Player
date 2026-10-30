@@ -1,8 +1,8 @@
 App inspection (1.13.8 on A55 AVD, emulator-5554):
 - Installed OK (`adb install -r`). Process 4826 running (`ps -A`).
-- Screenshots: splash (`screenshot1.png`) then expanded video/player screen (`screenshot2.png`) — no crash, no black frame.
+- Screenshots: splash (`greater-art/screenshots/legacy-20261030/screenshot1.png`) then expanded video/player screen (`greater-art/screenshots/legacy-20261030/screenshot2.png`) — no crash, no black frame.
 - Overlay windows active: `Window #5` (fill bottom strip), `Window #6` (160x160, alpha=0.8) — `dumpsys window windows`; service alive via overlay windows even though `service list` omitted it.
 - `logcat -d` no `listentomusic` errors; only system init logs.
-- Build failure still present (`build-output2.log` — Gradle `No defined toolchain download url`); fix is `JAVA_HOME=jdk-21.0.8` (`HANDOFF.md:28`).
+- Build failure still present (`greater-art/logs/legacy-20261030/build-output2.log` — Gradle `No defined toolchain download url`); fix is `JAVA_HOME=jdk-21.0.8` (`HANDOFF.md:28`).
 - Not fully user-tested: only `monkey` launch; Samsung A55 real-device smoke test still required (`HANDOFF.md:27-28`).
 - No hidden bugs observed; bulk preload retired (`AppPreferences.kt:160`); thumbnail preload off by default (`FormattingTest.kt:48`).

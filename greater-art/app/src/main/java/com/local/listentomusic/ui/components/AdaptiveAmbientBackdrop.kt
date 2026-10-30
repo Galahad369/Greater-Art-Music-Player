@@ -82,12 +82,13 @@ private fun ambientSystemConstraints(): Pair<Boolean, Boolean> {
     return reduced to saving
 }
 
-/** Four bounded gradient passes. Reads frame state only in draw; no blur, Surface or decoder. */
+/** Colour-driven light and reflections. Frame state stays in draw; no blur, Surface or decoder. */
 @Composable
 internal fun Modifier.adaptiveAmbientBackdrop(
     artwork: Bitmap?, mediaId: String?, preferences: UserPreferences,
     visible: Boolean = true, scrolling: Boolean = false,
     extraDim: Float = 0f,
+    steady: Boolean = false,
 ): Modifier {
     val theme = MaterialTheme.colorScheme
     val light = theme.background.luminance() > .5f
@@ -110,7 +111,11 @@ internal fun Modifier.adaptiveAmbientBackdrop(
             runCatching { adaptiveArtworkPixels(artwork) }.getOrDefault(emptyList())
         }
     }
-    val inputActive = active && !scrolling && !saving
+    // Classic Ambient has a strong, steady light arrangement. Adaptive keeps the
+    // existing intensity/motion controls and scene-response behavior.
+    val intensity = if (steady) .8f else ambientUnit(preferences.adaptiveIntensity)
+    val motion = if (steady) com.local.listentomusic.data.AmbientMotion.OFF else preferences.adaptiveMotion
+    val inputActive = active && !scrolling && !saving && intensity > 0f
     val signal by produceState(SharedAdaptiveAmbient.cache.snapshot(mediaId.orEmpty(), fallback),
         artPixels, mediaId, inputActive, fallback) {
         value = SharedAdaptiveAmbient.cache.snapshot(mediaId.orEmpty(), fallback)
@@ -133,15 +138,15 @@ internal fun Modifier.adaptiveAmbientBackdrop(
             }
         }
     }
-    val layers = ambientLayers(signal, preferences.adaptiveIntensity,
-        preferences.adaptiveReactToVideo, preferences.adaptiveMotion)
+    val layers = ambientLayers(signal, intensity,
+        !steady && preferences.adaptiveReactToVideo, motion)
     val fade = if (reduced) snap<Color>() else tween(1600)
     val base = theme.background
     // Intensity cannot bypass contrast: layer tint is capped before drawing.
-    val tint = if (light) .10f else .38f
-    val top = animateColorAsState(lerp(base, Color(signal.colors[0]), tint * ambientUnit(preferences.adaptiveIntensity)), fade, label = "adaptive-top")
-    val middle = animateColorAsState(lerp(base, Color(signal.colors[1]), tint * .7f * ambientUnit(preferences.adaptiveIntensity)), fade, label = "adaptive-middle")
-    val bottom = animateColorAsState(lerp(base, Color(signal.colors[2]), tint * .35f * ambientUnit(preferences.adaptiveIntensity)), fade, label = "adaptive-bottom")
+    val tint = if (light) .18f else .72f
+    val top = animateColorAsState(lerp(base, Color(signal.colors[0]), tint * intensity), fade, label = "adaptive-top")
+    val middle = animateColorAsState(lerp(base, Color(signal.colors[1]), tint * .7f * intensity), fade, label = "adaptive-middle")
+    val bottom = animateColorAsState(lerp(base, Color(signal.colors[2]), tint * .5f * intensity), fade, label = "adaptive-bottom")
     val glow = animateColorAsState(Color(signal.colors[0]), fade, label = "adaptive-glow")
     val lightBand = animateColorAsState(Color(signal.colors[1]), fade, label = "adaptive-light-band")
     val flowing = animateColorAsState(Color(signal.colors[2]), fade, label = "adaptive-flow-color")
@@ -151,7 +156,7 @@ internal fun Modifier.adaptiveAmbientBackdrop(
     val flow = animateFloatAsState(layers.flow, strengthSpec, label = "adaptive-flow")
     val movement = animateFloatAsState(layers.motion, strengthSpec, label = "adaptive-motion")
     val phase = remember { mutableStateOf(SystemClock.uptimeMillis() / 45000.0) }
-    val animate = ambientShouldAnimate(visible, resumed, scrolling, reduced, saving, preferences.adaptiveMotion)
+    val animate = intensity > 0f && ambientShouldAnimate(visible, resumed, scrolling, reduced, saving, motion)
     LaunchedEffect(animate) {
         if (animate) while (isActive) withInfiniteAnimationFrameNanos {
             // Global monotonic phase keeps geometry continuous across navigation/orientation.
@@ -159,8 +164,8 @@ internal fun Modifier.adaptiveAmbientBackdrop(
         }
     }
     return drawBehind {
-        if (size.width <= 0f || size.height <= 0f) return@drawBehind
-        val p = phase.value
+        if (!visible || size.width <= 0f || size.height <= 0f) return@drawBehind
+        val p = if (motion == com.local.listentomusic.data.AmbientMotion.OFF) 0.0 else phase.value
         val m = movement.value
         val width = size.width; val height = size.height
         // Classic base is always drawn.
@@ -176,7 +181,8 @@ internal fun Modifier.adaptiveAmbientBackdrop(
         drawRect(Brush.linearGradient(listOf(Color.Transparent, flowing.value.copy(alpha = flow.value), Color.Transparent),
             Offset(-width * .25f, height * (.2f + sin(p * .43).toFloat() * .15f * m)),
             Offset(width * 1.25f, height * .88f)))
+        drawAmbientReflections(glow.value, lightBand.value, flowing.value, p, m, intensity, light)
         // Fixed contrast veil remains independent of user intensity and background dimming.
-        drawRect((if (light) Color.White else Color.Black).copy(alpha = .12f + ambientUnit(extraDim, 0f) * .88f))
+        drawRect((if (light) Color.White else Color.Black).copy(alpha = .18f + ambientUnit(extraDim, 0f) * .82f))
     }
 }

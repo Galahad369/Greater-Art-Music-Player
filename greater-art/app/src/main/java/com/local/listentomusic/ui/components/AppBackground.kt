@@ -75,6 +75,13 @@ internal fun shouldClaimCurrentVideoBackground(
     surfaceActive: Boolean,
 ): Boolean = usePrimaryVideoBackground && surfaceActive
 
+/** Library's translated dim layer and the other pages must use the same veil. */
+internal fun appBackgroundVeil(mode: AppBackgroundMode, light: Boolean): Color = when (mode) {
+    AppBackgroundMode.DEFAULT, AppBackgroundMode.AMBIENT, AppBackgroundMode.ADAPTIVE_DYNAMIC ->
+        if (light) Color.White else Color.Black
+    else -> Color.Black
+}
+
 internal fun shouldMirrorCurrentVideoBackground(
     visible: Boolean,
     allowVideoBackground: Boolean,
@@ -238,7 +245,8 @@ fun AppBackground(
         when (mode) {
             AppBackgroundMode.ADAPTIVE_DYNAMIC -> if (visible) Box(Modifier.fillMaxSize()
                 .adaptiveAmbientBackdrop(ambientArtwork, currentPath, preferences, visible, scrolling))
-            AppBackgroundMode.AMBIENT -> if (visible) AmbientBackdropBox(currentPath)
+            AppBackgroundMode.AMBIENT -> if (visible) Box(Modifier.fillMaxSize()
+                .adaptiveAmbientBackdrop(ambientArtwork, currentPath, preferences, visible, scrolling, steady = true))
             AppBackgroundMode.DEFAULT -> Unit
             AppBackgroundMode.CUSTOM_IMAGE -> preferences.customBackgroundImageUri
                 ?.let(Uri::parse)
@@ -282,7 +290,7 @@ fun AppBackground(
         val isLight = androidx.compose.material3.MaterialTheme.colorScheme.background.luminance() > 0.5f
         val dim = dimAlphaOverride?.coerceIn(0f, 1f)
             ?: if (mode == AppBackgroundMode.DEFAULT) 0.08f else preferences.backgroundDim
-        val veil = if (mode == AppBackgroundMode.DEFAULT && isLight) Color.White else Color.Black
+        val veil = appBackgroundVeil(mode, isLight)
         Box(Modifier.matchParentSize().background(veil.copy(alpha = dim)))
     }
 }

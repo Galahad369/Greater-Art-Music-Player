@@ -7,6 +7,15 @@ Do not ship a default-off maintenance build as completion of this request.
 Production remains on the existing engine until the candidate passes every gate.
 No existing verified artifact, signing identity or source-quality setting changes.
 
+### Maintenance exception — 30 October 2026
+
+The user subsequently approved consolidating reviewed mobile changes and making
+the 1.21.93/code316 maintenance sideload with shared output still disabled.
+This changes the release hold for that maintenance build only. It does not
+complete, enable or approve the shared-output engine. Preserve the failed
+192 kHz stress result and every remaining quality, function-parity, physical
+and acoustic acceptance gate below. See the [maintenance receipt](RELEASE_1.21.93.md).
+
 Baseline: `bed9c0b`, 1.21.81/code304. Current work: 1.21.82/code305, SOURCE_ONLY.
 The [previous experiment](STACK_OUTPUT_EXPERIMENT_2026-10-28.md) measured better
 relative timing but observed 28 shared-output underruns. It is not erased by a

@@ -77,6 +77,27 @@ class AdaptiveAmbientTest {
         val b = ambientLayers(AmbientSignal(fallback, 1f, 1f, 1f), .5f, false, AmbientMotion.SUBTLE)
         assertEquals(a, b)
     }
+    @Test fun reflectedLightStrengthIsVividButBoundedAndZeroStillDisablesIt() {
+        val vivid = AmbientSignal(fallback, 1f, 1f, 1f)
+        val full = ambientLayers(vivid, 1f, true, AmbientMotion.NORMAL)
+        assertEquals(.4f, full.aurora, .0001f)
+        assertEquals(.34f, full.bloom, .0001f)
+        assertEquals(.3f, full.flow, .0001f)
+        val half = ambientLayers(vivid, .5f, true, AmbientMotion.NORMAL)
+        assertEquals(full.aurora * .5f, half.aurora, .0001f)
+        assertEquals(full.bloom * .5f, half.bloom, .0001f)
+        val off = ambientLayers(vivid, 0f, true, AmbientMotion.OFF)
+        assertEquals(0f, off.aurora + off.bloom + off.flow + off.motion, 0f)
+    }
+    @Test fun ambientVeilMatchesAcrossLibraryAndOtherPagesWithoutChangingCustomMedia() {
+        for (mode in AppBackgroundMode.entries) {
+            assertEquals(androidx.compose.ui.graphics.Color.Black, appBackgroundVeil(mode, false))
+            val light = if (mode in listOf(AppBackgroundMode.DEFAULT, AppBackgroundMode.AMBIENT,
+                    AppBackgroundMode.ADAPTIVE_DYNAMIC)) androidx.compose.ui.graphics.Color.White
+                else androidx.compose.ui.graphics.Color.Black
+            assertEquals(light, appBackgroundVeil(mode, true))
+        }
+    }
     @Test fun hiddenScrollingReducedMotionAndBatterySuspendAnimation() {
         fun run(v: Boolean = true, r: Boolean = true, s: Boolean = false,
             reduced: Boolean = false, power: Boolean = false, mode: AmbientMotion = AmbientMotion.SUBTLE) =

@@ -43,6 +43,7 @@ import com.local.listentomusic.ui.theme.GreaterArtTheme
 import com.local.listentomusic.ui.theme.appColorScheme
 import java.io.File
 import java.util.UUID
+import kotlin.math.roundToInt
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Rule
@@ -91,7 +92,7 @@ class LibraryPlayingMarkerTest {
     private fun bounds(tag: String): List<Rect> =
         compose.onAllNodesWithTag(tag, useUnmergedTree = true).fetchSemanticsNodes().map { it.boundsInRoot }
 
-    @Test fun markerDoesNotMoveArtworkTitlesOrActionsAcrossAllSizesAndModes() {
+    @Test fun compactArtworkIndentsOnlyCurrentTrackAndKeepsTitlesAndActionsAligned() {
         val config = mutableStateOf(Configuration())
         val current = mutableStateOf(-1)
         compose.setContent { GreaterArtTheme(ThemeMode.DARK) { Rows(config.value, current.value) } }
@@ -112,21 +113,26 @@ class LibraryPlayingMarkerTest {
                     compose.runOnIdle { current.value = active }
                     compose.onAllNodesWithTag("LIBRARY_CURRENT_INDICATOR", useUnmergedTree = true).assertCountEquals(1)
                     val markerNode = compose.onNodeWithTag("LIBRARY_CURRENT_INDICATOR", useUnmergedTree = true)
-                    markerNode.assertWidthIsEqualTo(if (thumbnails) 24.dp else 20.dp)
-                        .assertHeightIsEqualTo(if (thumbnails) 24.dp else 20.dp)
-                    compose.onNodeWithTag("LIBRARY_CURRENT_PLAY_SYMBOL", useUnmergedTree = true)
-                        .assertWidthIsEqualTo(16.dp).assertHeightIsEqualTo(16.dp)
+                    markerNode.assertWidthIsEqualTo(6.dp).assertHeightIsEqualTo(6.dp)
+                    compose.onNodeWithTag("LIBRARY_CURRENT_PLAY_SYMBOL", useUnmergedTree = true).assertDoesNotExist()
                     assertEquals("Title bounds changed: ${config.value}", titles, bounds("LIBRARY_MEDIA_TITLE"))
-                    assertEquals("Artwork bounds changed: ${config.value}", artwork, bounds("LIBRARY_THUMBNAIL"))
+                    val density = InstrumentationRegistry.getInstrumentation().targetContext.resources.displayMetrics.density
+                    val expectedArt = artwork.mapIndexed { index, rect ->
+                        if (index == active) rect.translate(Offset((8f * density).roundToInt().toFloat(), 0f)) else rect
+                    }
+                    assertEquals("Only current artwork must indent", expectedArt, bounds("LIBRARY_THUMBNAIL"))
                     assertEquals("Row bounds changed: ${config.value}", rows, bounds("LIBRARY_MEDIA_FOREGROUND"))
                     assertEquals("Action bounds changed: ${config.value}", actions,
                         files.indices.map { compose.onNodeWithContentDescription("Actions $it").fetchSemanticsNode().boundsInRoot })
                     val marker = markerNode.fetchSemanticsNode().boundsInRoot
-                    assertTrue("Badge escaped row", marker.left >= rows[active].left)
-                    assertTrue("Badge overlaps title", marker.right < titles[active].left)
+                    assertTrue("Dot escaped row", marker.left >= rows[active].left)
+                    assertTrue("Dot overlaps title", marker.right < titles[active].left)
                     assertTrue(marker.center.y in rows[active].top..rows[active].bottom)
                     if (thumbnails) {
-                        assertTrue("Badge is not attached to artwork", marker.left < artwork[active].left && marker.right > artwork[active].left)
+                        assertEquals("Ordinary artwork baseline", rows[active].left + 18f * density, artwork[active].left, 1f)
+                        val activeArt = bounds("LIBRARY_THUMBNAIL")[active]
+                        assertTrue("Dot must not overlap artwork", marker.right < activeArt.left)
+                        assertEquals("Dot/artwork gap", 2f * density, activeArt.left - marker.right, 1f)
                     }
                 }
             }
@@ -153,17 +159,17 @@ class LibraryPlayingMarkerTest {
             assertTrue("Selection must not imply current playback", !rows[1].config.contains(SemanticsProperties.StateDescription))
             compose.onAllNodesWithTag("LIBRARY_CURRENT_INDICATOR", useUnmergedTree = true).assertCountEquals(1)
             if (running) {
-                compose.onNodeWithTag("LIBRARY_CURRENT_PLAY_SYMBOL", useUnmergedTree = true).assertIsDisplayed()
-                compose.onNodeWithTag("LIBRARY_CURRENT_PAUSED_SYMBOL", useUnmergedTree = true).assertDoesNotExist()
+                compose.onNodeWithTag("LIBRARY_CURRENT_PLAY_DOT", useUnmergedTree = true).assertIsDisplayed()
+                compose.onNodeWithTag("LIBRARY_CURRENT_PAUSED_DOT", useUnmergedTree = true).assertDoesNotExist()
             } else {
-                compose.onNodeWithTag("LIBRARY_CURRENT_PAUSED_SYMBOL", useUnmergedTree = true)
-                    .assertIsDisplayed().assertWidthIsEqualTo(8.dp).assertHeightIsEqualTo(8.dp)
-                compose.onNodeWithTag("LIBRARY_CURRENT_PLAY_SYMBOL", useUnmergedTree = true).assertDoesNotExist()
+                compose.onNodeWithTag("LIBRARY_CURRENT_PAUSED_DOT", useUnmergedTree = true)
+                    .assertIsDisplayed().assertWidthIsEqualTo(6.dp).assertHeightIsEqualTo(6.dp)
+                compose.onNodeWithTag("LIBRARY_CURRENT_PLAY_DOT", useUnmergedTree = true).assertDoesNotExist()
             }
         }
     }
 
-    @Test fun badgeTapsUseTheExistingRowActionOnceAndReorderStillWorks() {
+    @Test fun dotTapsUseTheExistingRowActionOnceAndReorderStillWorks() {
         val config = mutableStateOf(Configuration())
         var plays = 0
         val moves = mutableListOf<Pair<Int, Int>>()
@@ -187,7 +193,7 @@ class LibraryPlayingMarkerTest {
         compose.runOnIdle { assertEquals(listOf(0 to 1), moves); assertEquals(2, plays) }
     }
 
-    @Test fun badgePaletteRemainsOpaqueAndReadableInLightDarkOledAndHighContrast() {
+    @Test fun dotPaletteRemainsOpaqueAndReadableInLightDarkOledAndHighContrast() {
         val theme = mutableStateOf(ThemeMode.DARK to ColorTheme.FOREST)
         compose.setContent { GreaterArtTheme(theme.value.first, theme.value.second) { Rows(Configuration(), 0) } }
         for (palette in ColorTheme.entries) for (dark in listOf(false, true)) {

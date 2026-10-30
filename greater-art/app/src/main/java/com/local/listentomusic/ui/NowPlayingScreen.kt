@@ -59,7 +59,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.widthIn
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.drawscope.clipRect
 import androidx.compose.foundation.shape.CircleShape
@@ -448,11 +447,14 @@ fun NowPlayingScreen(
 
         var playerRootBounds by remember { mutableStateOf<androidx.compose.ui.geometry.Rect?>(null) }
 
-        val backdrop = if (ambientPreferences?.backgroundMode == com.local.listentomusic.data.AppBackgroundMode.ADAPTIVE_DYNAMIC)
+        val backdrop = if (ambientPreferences != null && ambientPreferences.backgroundMode in listOf(
+                com.local.listentomusic.data.AppBackgroundMode.AMBIENT,
+                com.local.listentomusic.data.AppBackgroundMode.ADAPTIVE_DYNAMIC))
             Modifier.adaptiveAmbientBackdrop(artwork, playback.currentPath, ambientPreferences,
                 visible = !fullscreen,
                 extraDim = ambientPreferences.backgroundDim,
-                scrolling = queueListState.isScrollInProgress) else Modifier.ambientBackdrop(
+                scrolling = queueListState.isScrollInProgress,
+                steady = ambientPreferences.backgroundMode == com.local.listentomusic.data.AppBackgroundMode.AMBIENT) else Modifier.ambientBackdrop(
         artwork,
         MaterialTheme.colorScheme.background.luminance() > .5f,
         playback.currentPath,
@@ -1284,9 +1286,10 @@ private fun AudioPlayer(
         val playbackContent: @Composable (Modifier) -> Unit = { bodyModifier ->
         Column(
             modifier = bodyModifier
-                .padding(start = 16.dp, end = 16.dp, top = 10.dp, bottom = 0.dp),
+                .padding(start = 16.dp, end = 16.dp, top = 6.dp, bottom = 0.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
+            Box(Modifier.fillMaxWidth().testTag("CURRENT_MEDIA_HEADER_CONTAINER")) {
             CurrentMediaHeader(
                 playback = playback,
                 mediaFile = queue.getOrNull(playback.currentQueueIndex)
@@ -1300,6 +1303,7 @@ private fun AudioPlayer(
                 headline = true,
                 onSearch = { searchOpen = !searchOpen },
             )
+            }
             if (playback.showAbRepeat || playback.showSleepControl) {
                 Spacer(Modifier.height(4.dp))
                 SecondaryControlRow(playback, onSleepTimer, sleepTimer)
@@ -1447,14 +1451,8 @@ private fun SecondaryControls(
         val chromeShape = RoundedCornerShape(GaRadius.chrome)
         Box(
             Modifier.fillMaxWidth()
-                .clip(chromeShape)
-                .background(MaterialTheme.colorScheme.surface.copy(alpha = NOW_PLAYING_AMBIENT_PANEL_ALPHA))
-                .border(
-                    1.dp,
-                    MaterialTheme.colorScheme.outlineVariant.copy(alpha = NOW_PLAYING_AMBIENT_OUTLINE_ALPHA),
-                    chromeShape,
-                )
-                .padding(horizontal = 8.dp, vertical = 7.dp),
+                .testTag("CURRENT_MEDIA_HEADER_CONTAINER")
+                .padding(horizontal = 8.dp, vertical = 4.dp),
         ) {
         CurrentMediaHeader(
             playback = playback,
@@ -1589,7 +1587,7 @@ private fun NowPlayingQueue(
             ListScrollBudget.set("now_playing_queue", false)
         }
     }
-    Column(modifier.inspectElement("NOW_PLAYING_QUEUE", "Ordered playback queue and optional synchronized lyrics")) {
+    Column(modifier.testTag("NOW_PLAYING_QUEUE").inspectElement("NOW_PLAYING_QUEUE", "Ordered playback queue and optional synchronized lyrics")) {
         if (searchOpen) Row(
             Modifier.fillMaxWidth().inspectElement("QUEUE_SEARCH_FIELD", "Locate | Search current queue | Clear/Close"),
             verticalAlignment = Alignment.CenterVertically,
@@ -2093,16 +2091,14 @@ private fun PlayerBottomControls(
     }
     Row(
         modifier = Modifier.fillMaxWidth().padding(top = 2.dp)
+            .testTag("TRANSPORT_CONTROLS")
             .inspectElement("TRANSPORT_CONTROLS", "Repeat/random, previous, play/pause, next, and speed"),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically,
     ) {
         IconButton(
                     onClick = onRepeat,
-                    modifier = Modifier
-                        .widthIn(min = 64.dp)
-                        .height(48.dp)
-                        .padding(horizontal = 4.dp)
+                    modifier = Modifier.size(GaControl.touchTarget)
                         .inspectElement(
                             "REPEAT_BUTTON",
                             if (playback.stackCount > 0) "Loop whole Stack: $cycleLabel" else cycleLabel,
@@ -2124,7 +2120,7 @@ private fun PlayerBottomControls(
                                 if (stackLoop) if (stackLoopOn) "Loop" else "Loop off" else "Repeat mode",
                                 if (stackLoop) if (stackLoopOn) "循環" else "不循環" else "重複模式",
                             ),
-                            Modifier.size(26.dp),
+                            Modifier.size(GaControl.icon).testTag("PLAYER_TRANSPORT_ICON"),
                             tint = if (stackLoop && !stackLoopOn) MaterialTheme.colorScheme.onSurfaceVariant else accent,
                         )
                         Text(cycleLabel, style = MaterialTheme.typography.labelSmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
@@ -2132,14 +2128,15 @@ private fun PlayerBottomControls(
                 }
         IconButton(onClick = onPrevious, enabled = playback.hasPrevious || playback.positionMs > 4_000L,
             modifier = Modifier.size(GaControl.touchTarget).inspectElement("PREVIOUS_BUTTON", "Previous media or restart current")) {
-            Icon(Icons.Rounded.SkipPrevious, uiText(playback.appLanguage, "Previous", "上一首"), modifier = Modifier.size(GaControl.prominentIcon))
+            Icon(Icons.Rounded.SkipPrevious, uiText(playback.appLanguage, "Previous", "上一首"), modifier = Modifier.size(GaControl.icon).testTag("PLAYER_TRANSPORT_ICON"))
         }
         Box(
-            modifier = Modifier.size(GaControl.hero)
+            modifier = Modifier.size(GaControl.touchTarget)
                 .clip(CircleShape)
                 .background(accent)
                 .border(1.dp, MaterialTheme.colorScheme.onSecondary.copy(alpha = 0.18f), CircleShape)
                 .inspectElement("PLAY_PAUSE_BUTTON", if (playback.isPlaying) "Pause" else "Play")
+                .testTag("PLAY_PAUSE_BUTTON")
                 .clickable(
                     indication = null,
                     interactionSource = remember { MutableInteractionSource() },
@@ -2150,17 +2147,17 @@ private fun PlayerBottomControls(
             Icon(
                 if (playback.isPlaying) Icons.Rounded.Pause else Icons.Rounded.PlayArrow,
                 if (playback.isPlaying) uiText(playback.appLanguage, "Pause", "暫停") else uiText(playback.appLanguage, "Play", "播放"),
-                modifier = Modifier.size(GaControl.heroIcon),
+                modifier = Modifier.size(GaControl.prominentIcon),
                 tint = MaterialTheme.colorScheme.onSecondary,
             )
         }
         IconButton(onClick = onNext, enabled = playback.hasNext, modifier = Modifier.size(GaControl.touchTarget).inspectElement("NEXT_BUTTON", "Next media")) {
-            Icon(Icons.Rounded.SkipNext, uiText(playback.appLanguage, "Next", "下一首"), modifier = Modifier.size(GaControl.prominentIcon))
+            Icon(Icons.Rounded.SkipNext, uiText(playback.appLanguage, "Next", "下一首"), modifier = Modifier.size(GaControl.icon).testTag("PLAYER_TRANSPORT_ICON"))
         }
         Box {
                     IconButton(onClick = { speedMenuOpen = true }, modifier = Modifier.size(48.dp).inspectElement("SPEED_BUTTON", speedLabel(playback.speed))) {
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            SpeedDialIcon(playback.speed, accent)
+                            SpeedDialIcon(playback.speed, accent, Modifier.size(GaControl.icon))
                             Text(speedLabel(playback.speed), style = MaterialTheme.typography.labelSmall, maxLines = 1)
                         }
                     }
@@ -2195,12 +2192,12 @@ private fun CurrentMediaHeader(
             Column(Modifier.weight(1f).padding(end = 4.dp)) {
                 Text(
                     com.local.listentomusic.model.mediaTitle(playback.title, playback.currentPath),
-                    style = if (headline) MaterialTheme.typography.titleLarge else MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
+                    style = MaterialTheme.typography.bodyLarge,
+                    fontWeight = FontWeight.Medium,
                     maxLines = 1,
                     overflow = TextOverflow.Clip,
                     color = MaterialTheme.colorScheme.onSurface,
-                    modifier = Modifier.fillMaxWidth().inspectElement("CURRENT_MEDIA_TITLE", playback.title)
+                    modifier = Modifier.fillMaxWidth().testTag("CURRENT_MEDIA_TITLE").inspectElement("CURRENT_MEDIA_TITLE", playback.title)
                         .padding(start = if (headline) 0.dp else 2.dp)
                         .basicMarquee(iterations = 1, initialDelayMillis = 1_200),
                 )
@@ -2219,24 +2216,24 @@ private fun CurrentMediaHeader(
             }
             IconButton(
                 onClick = onToggleFavourite,
-                modifier = Modifier.inspectElement("FAVOURITE_BUTTON", "Stores the current file in the local Favorites list"),
+                modifier = Modifier.size(GaControl.touchTarget).inspectElement("FAVOURITE_BUTTON", "Stores the current file in the local Favorites list"),
             ) {
                 Icon(
                     if (isFavourite) Icons.Rounded.Favorite else Icons.Rounded.FavoriteBorder,
                     uiText(playback.appLanguage, if (isFavourite) "Remove from Favorites" else "Add to Favorites", if (isFavourite) "從我的最愛移除" else "加入我的最愛"),
                     tint = if (isFavourite) MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.outline,
-                    modifier = Modifier.size(28.dp),
+                    modifier = Modifier.size(GaControl.icon).testTag("PLAYER_HEADER_ACTION_ICON"),
                 )
             }
-            IconButton(onClick = onSearch, modifier = Modifier.inspectElement("QUEUE_SEARCH_BUTTON", "Search the current list")) {
-                Icon(Icons.Rounded.Search, uiText(playback.appLanguage, "Search current queue", "搜尋目前播放佇列"), Modifier.size(28.dp))
+            IconButton(onClick = onSearch, modifier = Modifier.size(GaControl.touchTarget).inspectElement("QUEUE_SEARCH_BUTTON", "Search the current list")) {
+                Icon(Icons.Rounded.Search, uiText(playback.appLanguage, "Search current queue", "搜尋目前播放佇列"), Modifier.size(GaControl.icon).testTag("PLAYER_HEADER_ACTION_ICON"))
             }
             Box {
                 IconButton(
                     onClick = { shareMenuOpen = true },
-                    modifier = Modifier.inspectElement("SHARE_BUTTON", "Choose the current file or an M3U8 queue"),
+                    modifier = Modifier.size(GaControl.touchTarget).inspectElement("SHARE_BUTTON", "Choose the current file or an M3U8 queue"),
                 ) {
-                    Icon(Icons.Rounded.Share, uiText(playback.appLanguage, "Share", "分享"), Modifier.size(28.dp))
+                    Icon(Icons.Rounded.Share, uiText(playback.appLanguage, "Share", "分享"), Modifier.size(GaControl.icon).testTag("PLAYER_HEADER_ACTION_ICON"))
                 }
                 DropdownMenu(shareMenuOpen, { shareMenuOpen = false }) {
                     DropdownMenuItem(
@@ -2380,7 +2377,7 @@ private fun PlayerToolbarAction(
             .inspectElement(inspectorId, inspectorDescription),
     ) {
         Box(Modifier.size(32.dp), contentAlignment = Alignment.Center) {
-            Icon(glyph, description, modifier = Modifier.size(26.dp), tint = foreground)
+            Icon(glyph, description, modifier = Modifier.size(GaControl.icon), tint = foreground)
             if (rotationBadgeBackground != null) {
                 Icon(
                     Icons.AutoMirrored.Rounded.RotateRight, null,

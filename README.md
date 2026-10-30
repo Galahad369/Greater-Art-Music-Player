@@ -6,14 +6,14 @@ Greater Art is a local-first Android audio and video player. This repository con
 
 > **Vibe-coded disclosure:** Greater Art was built through iterative work with AI coding agents. Human direction, product decisions, device feedback, and acceptance guide the work; substantial code and documentation are AI-assisted.
 
-- Build/signature/emulator-functionally-verified APK: **1.21.80 (code 303)** — see the [verification boundary](greater-art/HANDOFF.md); physical performance acceptance remains pending.
-- APK: [GreaterArt-1.21.80.apk](greater-art/releases/GreaterArt-1.21.80.apk)
+- Verified optimized maintenance sideload: **1.21.93 (code 316)** — see the [release receipt and verification boundary](greater-art/docs/RELEASE_1.21.93.md); physical performance acceptance remains pending.
+- APK: [GreaterArt-1.21.93.apk](greater-art/releases/GreaterArt-1.21.93.apk)
 - [App documentation](greater-art/README.md) · [Handoff and verification](greater-art/HANDOFF.md)
 - [User demonstration](greater-art-user-demo.html) · [Technical demonstration](greater-art-technical-demo.html)
 
-Current source: **1.21.89 / code312 — SOURCE_ONLY**. Preserve the tested Library keyboard/marker fixes and the saved Stack experiment. Local build and bounded API36 checks pass. Shared output is disabled and has a known high-resolution stress failure; see the [refinement gates](greater-art/docs/STACK_SHARED_OUTPUT_REFINEMENT_2026-10-28.md). The latest verified sideload remains **1.21.80 / code303**. [Physical trace/profile acceptance](docs/LIBRARY_AUDIT_2026-10-24.md), fullscreen rotation acceptance and full Stack adoption remain unfinished. No universal performance or crash-free claim.
-Windows Desktop source is independently versioned at **0.1.20 / code21 — SOURCE_ONLY WinUI preview**. Its latest verified development delivery remains **0.1.16 / code17**, with interactive Nodes physics and middle-mouse/Space+drag pan.
-The [installed/portable receipt](desktop/RELEASE_0.1.16.md) records exact hashes and remaining gates. It is an original
+Current source and verified local maintenance APK: **1.21.93 / code316**. Now Playing has a transparent title area, compact controls and reflected Ambient. The Library's subtle current-track dot and keyboard-safe dock remain intact. Source `58048b54e4119c3aad50ca99d4595afe479653c3` passed 473 JVM tests, lint with zero errors, and 23 focused debug-instrumentation cases; see the [release receipt](greater-art/docs/RELEASE_1.21.93.md) for separate optimized-APK checks and exact limits. Shared output remains disabled with a known high-resolution stress failure; this maintenance release does not complete its [parity gates](greater-art/docs/STACK_SHARED_OUTPUT_REFINEMENT_2026-10-28.md). [Physical trace/profile acceptance](docs/LIBRARY_AUDIT_2026-10-24.md), complete fullscreen-rotation acceptance and acoustic Stack validation remain unfinished. No universal performance or crash-free claim.
+Windows Desktop is independently versioned at **0.1.21 / code22 — LOCALLY VERIFIED PREVIEW**; its [WinUI receipt](desktop/winui/VERIFICATION_0.1.21.md) records the runnable publish folder and remaining gates. The frozen installer/portable delivery remains **0.1.16 / code17**, unchanged.
+Its [installed/portable receipt](desktop/RELEASE_0.1.16.md) records exact hashes and remaining gates. It is an original
 native C++ IDE-style workspace with offline EXE setup and desktop shortcuts.
 No VLC/Java/Electron runtime. Approved codecs are built from pinned source and bundled
 inside the app for offline audio decoding. It remains a development build, not full mobile parity;
@@ -22,7 +22,7 @@ Integrated Mini/Android PiP/No Floating, queue Locate, readiness-gated PiP start
 and independent High Contrast. [Full engineering evidence and remaining gates](greater-art/docs/QUALITY_PASS_2026-10-12.md).
 Classic/Aurora/Bloom/Flow coexist without another video decoder; see the
 [feature evidence](greater-art/docs/ADAPTIVE_AMBIENT_2.md). Latest verified APK
-is 1.21.80. Selected-folder URI Library/playback is preserved
+is 1.21.93. Selected-folder URI Library/playback is preserved
 with distributed timing anchors, confidence-gated linear drift maps and bounded
 original-rate transient refinement. Library Performance v2
 stages 1–2. Shared viewport-priority artwork work pauses during fling; RAM hits stay
