@@ -2,9 +2,11 @@ package com.local.listentomusic.ui.components
 
 import android.view.ContextThemeWrapper
 import android.view.View
+import androidx.activity.ComponentActivity
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.ui.AspectRatioFrameLayout
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import androidx.test.core.app.ActivityScenario
 import androidx.test.platform.app.InstrumentationRegistry
 import com.local.listentomusic.R
 import java.util.concurrent.FutureTask
@@ -100,7 +102,13 @@ class AspectPreservingPlayerViewGeometryTest {
                 layout(this, 1080, 2340)
             }
         }
-        for (corruptRatio in listOf(0f, 1f, 9f / 16f)) {
+        // View.post queues callbacks until attachment. Use a real window so the
+        // listener assertion tests native restoration, not a detached fixture.
+        val activity = ActivityScenario.launch(ComponentActivity::class.java)
+        try {
+          activity.onActivity { it.setContentView(view) }
+          instrumentation.waitForIdleSync()
+          for (corruptRatio in listOf(0f, 1f, 9f / 16f)) {
             val observed = AtomicReference<Float?>(null)
             onMain {
                 val frame = contentFrame(view)
@@ -116,7 +124,8 @@ class AspectPreservingPlayerViewGeometryTest {
             assertNotNull("Native aspect restoration must be observed after measurement", observed.get())
             assertEquals("The content frame must receive the current media aspect",
                 ratio, requireNotNull(observed.get()), .00001f)
-        }
+          }
+        } finally { activity.close() }
     }
 
     @Test fun invalidAspectUpdatesKeepTheLastKnownGeometry() = onMain {

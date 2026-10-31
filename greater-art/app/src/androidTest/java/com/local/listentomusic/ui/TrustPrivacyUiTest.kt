@@ -81,11 +81,17 @@ class TrustPrivacyUiTest {
         compose.waitUntil(5000) { compose.onAllNodesWithText(denied).fetchSemanticsNodes().isNotEmpty() }
         compose.onNodeWithText("Manage Android permissions").performScrollTo().performClick()
         compose.waitUntil(5000) {
-            shell("dumpsys activity activities").lineSequence().any { it.contains("ResumedActivity") && it.contains("com.android.settings") }
+            val root = instrumentation.uiAutomation.rootInActiveWindow
+            root?.packageName == "com.android.settings" &&
+                root.findAccessibilityNodeInfosByText(instrumentation.targetContext.applicationInfo
+                    .loadLabel(instrumentation.targetContext.packageManager).toString()).isNotEmpty()
         }
         shell("appops set $packageName MANAGE_EXTERNAL_STORAGE allow")
         // Settings is a different process; send Android Back instead of looking for an Espresso app root.
         shell("input keyevent KEYCODE_BACK")
+        compose.waitUntil(5000) {
+            shell("dumpsys activity activities").lineSequence().any { it.contains("ResumedActivity") && it.contains(packageName) }
+        }
         val granted = "All Files Access is declared by this build · Granted"
         compose.waitUntil(5000) { compose.onAllNodesWithText(granted).fetchSemanticsNodes().isNotEmpty() }
         compose.onNodeWithText(granted).performScrollTo().assertIsDisplayed()

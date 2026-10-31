@@ -3,7 +3,7 @@
 This file describes the **current repository state only**. Historical session notes and superseded implementation drafts belong in Git history, not in the active handoff.
 
 **Project:** `greater-art/` in the repository checkout
-**Current source:** `1.21.96 (code 319)` — SOURCE_ONLY combined Trust & privacy and approved strict native Fit/Crop integration, preserving1.21.94 reflections. Final build/emulator acceptance pending; latest immutable verified APK remains1.21.93. Shared output remains disabled.
+**Current source:** `1.21.97 (code 320)` — SOURCE_ONLY final Trust & privacy/strict Fit/Crop integration with corrected device-test fixtures. Final build/emulator acceptance pending; latest immutable verified APK remains1.21.93. Shared output remains disabled.
 **Current version:** `1.21.93 (code 316)`
 **Latest APK:** `releases/GreaterArt-1.21.93.apk` (`5,478,717 bytes`; SHA-256 `cee3f50632cdf186a1b58304c195378c1917284f20ce04d354c3549ab180f6cc`)
 **Application ID:** `com.local.listentomusic`
@@ -13,6 +13,12 @@ This file describes the **current repository state only**. Historical session no
 **Verification boundary:** Exact runtime source `58048b54e4119c3aad50ca99d4595afe479653c3`; Java21/Gradle9.8.2 unit/lint/debug app/test and optimized R8 assembly passed. 473 JVM tests, zero failures/errors/skips; lint0 errors/47 warnings/4 hints. API36 debug instrumentation23/23 in520.008s covers reflected Ambient, compact audio/video controls/title transparency, real audio/video IME dock continuity, real-page navigation/video sampling and fullscreen toolbar. Separate same-certificate optimized upgrade and native Library/video/dock/expanded-player smoke passed; actual screenshots inspected. Package/version, non-debuggable state, ZIP CRC,16KiB alignment and SHA-256 checked. The APK does not embed a usable VCS SHA; this receipt records it externally. Full rotation, physical-device visual/acoustic/performance acceptance, production signing and universal crash freedom remain unverified. See [the exact release receipt](docs/RELEASE_1.21.93.md).
 
 ## Repository state
+
+### October31 — Real-device-test fixture corrections (1.21.97)
+
+- Exact96 source44d5281 builds successfully in3m57s:495 JVM tests pass; lint0 errors/47 warnings/4 hints; debug app/test APKs frozen under sibling `output/android-trust-20261031/v1.21.96/`. Geometry device run passes7/8 in10.946s. The stale-aspect case's detached View never delivers its posted listener callback. Attach it to a real ComponentActivity, retaining the callback and native geometry assertions. The mobile chat independently identified this same fixture issue and explicitly handed over fix/version ownership.
+- Host trust run passes6/7 in78.957s. Its last case sends Back from Android Settings, then queries Compose before the app hierarchy is resumed. Wait for actual Settings app-details content before Back and for the app's resumed Activity before querying Compose. Do not catch/discard missing-hierarchy errors or relax grant assertions. The runner correctly refuses acceptance and restores its input grant modes. Keep both96 failed logs.
+- These are test-fixture fixes; production Trust/geometry code is unchanged from96. Version97 is required because96 was already committed. Final build, full host permission matrix, Settings/playback/geometry tests and optimized same-key APK acceptance remain pending. No release/artifact is renamed or overwritten.
 
 ### October31 — Approved combined integration window (1.21.96)
 
