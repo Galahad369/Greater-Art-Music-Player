@@ -1,6 +1,6 @@
 # Least-privilege Android media access migration — plan
 
-**Current fact (main 1.21.27/code250):** `AndroidManifest.xml` declares `MANAGE_EXTERNAL_STORAGE`. `MainActivity.PermissionAwareApp` routes users to All Files Access. Existing `SafTreeReader` + picker offer bounded **preview only**; production `MediaScanner`, model identities, Media3 playback, Stack, thumbnails, playlists, export, sharing and delete still use raw paths.
+**Update 30 October 2026:** selected-folder URI Library/playback was implemented after this plan's initial 1.21.27/code250 baseline. The old statement that SAF is preview-only is no longer current. See [stage C evidence and remaining operations](../../greater-art/docs/STORAGE_MIGRATION.md). The actual 1.21.93/code316 APK and current manifest still declare `MANAGE_EXTERNAL_STORAGE`; complete feature/operation parity and permission cutover have not been verified. Do not remove broad access merely to pass the new production trust gate.
 
 **Goal:** A fresh install and an upgrade can browse, play and manage supported user-selected media **without All Files Access**. No fabricated `content://` → `File` conversion, unwanted scanning, loss of playlist identity, quality reduction or deletion without user confirmation.
 

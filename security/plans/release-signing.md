@@ -1,6 +1,6 @@
 # Release signing and artifact-provenance acceptance plan
 
-**Current:** `.github/workflows/github-release.yml` checks out the exact tag, validates versionName, builds tests/lint/`assembleRelease`, checks signature/package/version and attaches SHA-256. It uses dedicated secret references. CI Android debug builds are **not release signing proof**. No successful modern end-to-end production-tag signing run has been independently established. Current documented source 1.21.27/code250 is `SOURCE_ONLY`; last documented owner-verified APK is 1.21.18/code241. See issue #23.
+**Updated 30 October 2026:** the existing optimized 1.21.93/code316 APK has a valid signature under the established **Android Debug compatibility sideload identity**, not a new production publisher identity. Its exact SHA/certificate were rechecked; see [the receipt](../../greater-art/docs/RELEASE_1.21.93.md). Another writer owns the uncommitted 1.21.94 candidate. Do not re-label either as production signing completion. The prepared release workflow now requires an approved fingerprint, rejects the legacy key and All Files Access for production, records dependencies and attests bytes **before** publishing. These new workflow steps have not run on GitHub. No modern end-to-end production-tag signing proof is claimed. See [the trust baseline](../TRUST_BASELINE.md) and issue #23.
 
 ## Roles and prerequisites
 

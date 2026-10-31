@@ -600,6 +600,7 @@ fun GreaterArtApp(
                     onBlackDiscMode = viewModel::setBlackDiscMode,
                     onPlayHistoryEnabled = viewModel::setPlayHistoryEnabled,
                     onBackup = { backupPicker.launch("Greater-Art-settings.json") },
+                    onClearPlayHistory = viewModel::clearPlayHistory,
                     onRestore = { restoreConfirm = true },
                     onDuplicates = { showDuplicates = true },
                     onEqualizer = {

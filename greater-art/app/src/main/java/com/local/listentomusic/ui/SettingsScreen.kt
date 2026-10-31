@@ -156,6 +156,7 @@ fun SettingsScreen(
     onBackup: () -> Unit,
     onRestore: () -> Unit,
     onDuplicates: () -> Unit,
+    onClearPlayHistory: (() -> Unit)? = null,
 ) {
     val language = preferences.appLanguage
     var activeSection by rememberSaveable { mutableStateOf<SettingsSection?>(null) }
@@ -546,26 +547,8 @@ fun SettingsScreen(
             }
             if (activeSection == SettingsSection.DATA) item(key = "section_privacy_data") {
                 Column {
-                    GaChromeSurface(
-                        modifier = Modifier.fillMaxWidth().padding(horizontal = GaSpacing.lg, vertical = GaSpacing.sm),
-                        contentPadding = PaddingValues(GaSpacing.lg),
-                    ) {
-                        Row(horizontalArrangement = Arrangement.spacedBy(GaSpacing.md)) {
-                            Icon(Icons.Rounded.PrivacyTip, null, tint = MaterialTheme.colorScheme.secondary)
-                            Column {
-                                Text(
-                                    uiText(language, "Offline by design", "離線設計"),
-                                    style = MaterialTheme.typography.titleMedium,
-                                )
-                                Spacer(Modifier.height(GaSpacing.xs))
-                                Text(
-                                    uiText(language, "No Internet permission, ads, analytics, account, telemetry, or cloud library. Everything stays on this device.", "沒有網絡權限、廣告、分析、帳戶、遙測或雲端音樂庫。所有資料都留在本機。"),
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                )
-                            }
-                        }
-                    }
+                    TrustPrivacyContent(preferences, onPlayHistoryEnabled, onClearPlayHistory,
+                        onFolders = { activeSection = SettingsSection.FOLDERS })
                     Row(Modifier.fillMaxWidth().padding(horizontal = GaSpacing.lg), horizontalArrangement = Arrangement.spacedBy(GaSpacing.sm)) {
                         OutlinedButton(onClick = onBackup, modifier = Modifier.weight(1f)) { Text(uiText(language, "Back up settings", "備份設定")) }
                         OutlinedButton(onClick = onRestore, modifier = Modifier.weight(1f)) { Text(uiText(language, "Restore backup", "還原備份")) }
