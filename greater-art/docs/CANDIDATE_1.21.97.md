@@ -106,6 +106,16 @@ acoustic Stack validation and universal crash freedom remain separate gates.
   Kotlin or emulator helper to reclaim. Do not delete caches or stop unrelated
   applications. Asked the user to save work and close unused browser/ChatGPT
   windows; no emulator was launched and no new runtime result is claimed.
+- After further app closure, independent CIM and performance counters still
+  showed only 291–777 MiB available across the retry checks; the latest reading
+  was 657 MiB. Nonpaged kernel pool was 3,166 MiB and paged-pool allocation was
+  3,728 MiB. Do not sum these as resident RAM: paged pool is not wholly resident.
+  These snapshots establish physical-memory pressure, not a proven leak or an
+  identified faulty driver. Commit capacity was not exhausted. The PC had about
+  eight days of uptime. Recommended a user-controlled Windows restart after
+  saving work, followed by a fresh memory check. No restart, security-software
+  change, pagefile change or emulator launch was performed. Approximately 3 GiB
+  free is a conservative QA target, not a universal emulator requirement.
 - The optimized APK still has the exact hash recorded above. The Android source
   and build inputs are unchanged from `56ecdf6`; the current `app/src/main` Git
   tree is `3097172f031725dd475223e37181a21a7bbb2faf`. This is local source
