@@ -17,11 +17,23 @@ This file describes the **current repository state only**. Historical session no
 
 ### October31 — Current candidate and exact stopping point
 
+- Resume check after the user's "continue, remember commit": only 303 MiB free
+  RAM out of 15,658 MiB; ADB has no connected devices. The other chat released
+  the mobile verification window. Do not boot into the same known ANR conditions.
+  Requested roughly 3 GiB free memory; interactive and optimized runtime gates
+  remain pending. Source/build inputs and the candidate hash are unchanged.
+  This is a documentation-only checkpoint, not another version or a new test pass.
 - Source56ecdf6 builds:495 JVM tests, zero failures/errors/skips; lint0 errors/47 warnings/4 hints; debug app/test assembly8m02s. Native API36 geometry8/8 passes in23.999s. The mobile chat independently reviewed the fixture repair and confirmed production source unchanged from96. All writers/builds for that chat remain frozen.
 - Optimized same-key release build passes in11m14s. Actual package1.21.97/code320, non-debuggable/not-test-only, approved signature, no INTERNET and reviewed exports pass. ZIP CRC/16KiB alignment pass;144 resolved dependency records. Keep the exact R8 mapping and JSON receipts in the evidence directory. Key and immutable release93 remain unchanged.
 - Full interactive acceptance is NOT complete. Final trust run passes6/7 in122.887s; its external-Settings readiness check is blocked by an inspected System UI ANR. Attempted system recovery then exposes a Pixel Launcher ANR. Do not mask these captures or extend retries/relax assertions. Host had260MiB free during failure and870MiB after build; user asked to free roughly3GiB. At the stop check the owned emulator was already disconnected; no wipe/data deletion occurred.
 - Next step is the unchanged host trust matrix and real fullscreen/rotation/return, Settings and video/IME regressions after adequate RAM is available, using the QA AVD's normal four CPU cores. Then separately upgrade to the exact optimized candidate and perform native smoke before promotion. **Do not put97 into releases/ or mark VERIFIED yet.** See the candidate receipt for commands, paths, hashes and boundaries.
-- Cleanup is coordinated by the mobile chat under its separate direct user instruction. It reported recycling only obsolete/duplicate91/92/94 internal copies and duplicate93 staging/archive files, preserving originals/evidence. This chat created one current optimized delivery candidate; keep its97 debug/test pair until QA completes. No branch switch, push, public release, key replacement or history rewrite.
+- Cleanup is complete for nine obsolete/duplicate outputs, including inactive
+  1.21.95/1.21.96 test APKs: 153,604,909 bytes sent to the Recycle Bin and
+  recoverable. The loose legacy 1.15.75 APK is archived intact. The sibling
+  output root contains one current optimized delivery candidate, 1.21.97.
+  Preserve its matching debug/test pair, mapping, fixtures, evidence, signing
+  material and immutable releases. The sibling output index records the inventory.
+  No branch switch, push, public release, key replacement or history rewrite.
 
 ### October31 — Real-device-test fixture corrections (1.21.97)
 

@@ -91,3 +91,25 @@ Still required before promotion:
 
 Physical Samsung acceptance, complete security/storage cutover, signing migration,
 acoustic Stack validation and universal crash freedom remain separate gates.
+
+## Resume checkpoint — 31 October 2026
+
+- The user requested continuation and a commit. The other chat released the
+  exclusive mobile verification window; its uncommitted Windows work is preserved.
+- A fresh host check found only 303 MiB of free physical RAM out of 15,658 MiB.
+  ADB reported no connected devices. Do not boot the emulator under the same
+  pressure that caused the retained Android system ANRs. The user was asked to
+  free approximately 3 GiB before the unchanged interactive checks resume.
+- The optimized APK still has the exact hash recorded above. The Android source
+  and build inputs are unchanged from `56ecdf6`; the current `app/src/main` Git
+  tree is `3097172f031725dd475223e37181a21a7bbb2faf`. This is local source
+  comparison, not an independent source-to-binary attestation.
+- Cleanup is complete for nine obsolete or duplicate outputs: 153,604,909 bytes
+  were sent to the Windows Recycle Bin. The loose legacy 1.15.75 APK was archived
+  intact. The output root has one delivery candidate, `GreaterArt-1.21.97.apk`.
+  Preserve the matching 1.21.97 debug/test APK pair, mapping, fixtures, evidence,
+  signing material and immutable release history. The sibling output index
+  records the cleanup inventory and retained paths.
+- No new build, emulator test, promotion, version bump, push or publication is
+  implied by this checkpoint. Resume the existing acceptance sequence above when
+  the host has enough free RAM; do not replace it with static artifact checks.
