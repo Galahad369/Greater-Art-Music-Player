@@ -3,7 +3,7 @@
 This file describes the **current repository state only**. Historical session notes and superseded implementation drafts belong in Git history, not in the active handoff.
 
 **Project:** `greater-art/` in the repository checkout
-**Current source:** `1.21.95 (code 318)` — SOURCE_ONLY Android Trust & privacy integration, preserving1.21.94 reflections. Build/emulator acceptance pending; latest immutable verified APK remains1.21.93. Shared output remains disabled.
+**Current source:** `1.21.96 (code 319)` — SOURCE_ONLY combined Trust & privacy and approved strict native Fit/Crop integration, preserving1.21.94 reflections. Final build/emulator acceptance pending; latest immutable verified APK remains1.21.93. Shared output remains disabled.
 **Current version:** `1.21.93 (code 316)`
 **Latest APK:** `releases/GreaterArt-1.21.93.apk` (`5,478,717 bytes`; SHA-256 `cee3f50632cdf186a1b58304c195378c1917284f20ce04d354c3549ab180f6cc`)
 **Application ID:** `com.local.listentomusic`
@@ -13,6 +13,14 @@ This file describes the **current repository state only**. Historical session no
 **Verification boundary:** Exact runtime source `58048b54e4119c3aad50ca99d4595afe479653c3`; Java21/Gradle9.8.2 unit/lint/debug app/test and optimized R8 assembly passed. 473 JVM tests, zero failures/errors/skips; lint0 errors/47 warnings/4 hints. API36 debug instrumentation23/23 in520.008s covers reflected Ambient, compact audio/video controls/title transparency, real audio/video IME dock continuity, real-page navigation/video sampling and fullscreen toolbar. Separate same-certificate optimized upgrade and native Library/video/dock/expanded-player smoke passed; actual screenshots inspected. Package/version, non-debuggable state, ZIP CRC,16KiB alignment and SHA-256 checked. The APK does not embed a usable VCS SHA; this receipt records it externally. Full rotation, physical-device visual/acoustic/performance acceptance, production signing and universal crash freedom remain unverified. See [the exact release receipt](docs/RELEASE_1.21.93.md).
 
 ## Repository state
+
+### October31 — Approved combined integration window (1.21.96)
+
+- The user explicitly directed: pause the aspect-ratio writer, include and test its changes. Verified direct human permission for cross-chat coordination; notified the mobile chat to freeze source/builds and preserve this task's exclusive build window. Record focused Trust source first as9690c10 (1.21.95/code318), excluding its playback files, then integrate its approved guard under1.21.96/code319. No remote writes or branch switch.
+- Credit Greater Art mobile chat019fdcca-2d14-7e71-9257-a6995ff2136b for AspectPreservingPlayerView, VideoContentGeometry, shared XML/Now Playing wiring, same-owner geometry refresh and their JVM/native tests. Keep only Fit/Crop, the original player/decoder/surface, source quality and last valid aspect during unknown-size transitions. Exact native dimensions replace Media3's near-aspect deformation tolerance; reject unrepresentable native measured sizes.
+- Rejected the earlier changing-tree build:493/494 JVM cases passed; the only failure expected608px where the supplied Float16:9 ratio rounds to607px. Preserve the owner's corrected exact expectation and proportional-scale checks. Input hashes detected its remaining edits; those APK/test outputs are not acceptance evidence. A fresh complete build is required.
+- Trust dialog captures use the owned display while a dialog adds a second Compose root. No UI behavior or assertions are removed. Run the host-owned deny/grant/revoke matrix, then Settings, reflection/compact/video/IME/toolbar and the eight new native geometry cases. Record actual results before release finalization. Existing1.21.93/94 artifact hashes and signing key are unchanged.
+- See [the trust evidence and continuation record](docs/TRUST_BASELINE_2026-10-30.md). Earlier ownership-blocker notes below are historical and superseded by this explicit inclusion/coordination instruction.
 
 ### October31 — Coordinated Android Trust & privacy integration
 

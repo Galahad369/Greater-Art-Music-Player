@@ -51,7 +51,7 @@ class TrustPrivacyUiTest {
         compose.onNodeWithText("Preview report").performScrollTo().performClick()
         compose.onNodeWithText("No exportable local report.").assertIsDisplayed()
         compose.onNodeWithText("Open sharing").assertIsNotEnabled()
-        capture("empty-preview")
+        capture("empty-preview", dialog = true)
     }
 
     @Test fun clearingDiagnosticsRequiresConfirmationAndDoesNotClearHistory() {
@@ -92,10 +92,12 @@ class TrustPrivacyUiTest {
         capture("permission-return")
     }
 
-    private fun capture(label: String) {
+    private fun capture(label: String, dialog: Boolean = false) {
         val directory = File(InstrumentationRegistry.getInstrumentation().targetContext.getExternalFilesDir(null), "trust-privacy")
         check(directory.isDirectory || directory.mkdirs())
-        val bitmap = compose.onRoot().captureToImage().asAndroidBitmap()
+        // Dialogs add a second Compose root. Capture the owned display instead of an ambiguous root query.
+        val bitmap = if (dialog) requireNotNull(InstrumentationRegistry.getInstrumentation().uiAutomation.takeScreenshot())
+            else compose.onRoot().captureToImage().asAndroidBitmap()
         File(directory, "$label.png").outputStream().use { bitmap.compress(Bitmap.CompressFormat.PNG, 100, it) }
     }
 

@@ -2659,7 +2659,7 @@ internal fun VideoSurface(
     key(controller, sharedVideoView) {
         AndroidView(
         factory = { context ->
-            (sharedVideoView ?: PlayerView(context)).apply {
+            (sharedVideoView ?: com.local.listentomusic.ui.components.AspectPreservingPlayerView(context)).apply {
                 (parent as? ViewGroup)?.removeView(this)
                 tag = if (sharedVideoView == null) "NOW_PLAYING" else "MINI_WINDOW"
                 layoutParams = FrameLayout.LayoutParams(
