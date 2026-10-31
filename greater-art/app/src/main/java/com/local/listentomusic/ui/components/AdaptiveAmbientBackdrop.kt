@@ -39,6 +39,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
 import kotlin.math.cos
 import kotlin.math.sin
+import kotlin.math.sqrt
 
 /** Tiny cached-art sampling on a worker. Never performed by the animation draw loop. */
 internal fun adaptiveArtworkPixels(artwork: Bitmap?): List<Int> {
@@ -89,6 +90,7 @@ internal fun Modifier.adaptiveAmbientBackdrop(
     visible: Boolean = true, scrolling: Boolean = false,
     extraDim: Float = 0f,
     steady: Boolean = false,
+    playerPresentation: Boolean = false,
 ): Modifier {
     val theme = MaterialTheme.colorScheme
     val light = theme.background.luminance() > .5f
@@ -143,7 +145,7 @@ internal fun Modifier.adaptiveAmbientBackdrop(
     val fade = if (reduced) snap<Color>() else tween(1600)
     val base = theme.background
     // Intensity cannot bypass contrast: layer tint is capped before drawing.
-    val tint = if (light) .18f else .72f
+    val tint = if (light) .18f else if (playerPresentation) .82f else .72f
     val top = animateColorAsState(lerp(base, Color(signal.colors[0]), tint * intensity), fade, label = "adaptive-top")
     val middle = animateColorAsState(lerp(base, Color(signal.colors[1]), tint * .7f * intensity), fade, label = "adaptive-middle")
     val bottom = animateColorAsState(lerp(base, Color(signal.colors[2]), tint * .5f * intensity), fade, label = "adaptive-bottom")
@@ -181,7 +183,10 @@ internal fun Modifier.adaptiveAmbientBackdrop(
         drawRect(Brush.linearGradient(listOf(Color.Transparent, flowing.value.copy(alpha = flow.value), Color.Transparent),
             Offset(-width * .25f, height * (.2f + sin(p * .43).toFloat() * .15f * m)),
             Offset(width * 1.25f, height * .88f)))
-        drawAmbientReflections(glow.value, lightBand.value, flowing.value, p, m, intensity, light)
+        // Keep browsing unchanged. Player light must remain visible at the default
+        // intensity behind its translucent queue, without bypassing dim or Off.
+        drawAmbientReflections(glow.value, lightBand.value, flowing.value, p, m,
+            if (playerPresentation) sqrt(intensity) else intensity, light, playerPresentation)
         // Fixed contrast veil remains independent of user intensity and background dimming.
         drawRect((if (light) Color.White else Color.Black).copy(alpha = .18f + ambientUnit(extraDim, 0f) * .82f))
     }

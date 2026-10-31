@@ -53,9 +53,22 @@ class AmbientSurfaceJourneyTest {
     @get:Rule val compose = createEmptyComposeRule()
     private val instrumentation get() = InstrumentationRegistry.getInstrumentation()
 
-    @Test fun bothAmbientModesKeepRealVideoAcrossAllMobileSurfaces(): Unit = runBlocking {
+    @Test fun bothAmbientModesKeepRealVideoAcrossAllMobileSurfaces() {
         assumeTrue("Opt in to real fixture screenshots with reflectedAmbientJourney=true",
             InstrumentationRegistry.getArguments().getString("reflectedAmbientJourney") == "true")
+        exercise(listOf(AppBackgroundMode.AMBIENT, AppBackgroundMode.ADAPTIVE_DYNAMIC),
+            backgroundDim = .12f, intensity = .9f, allSurfaces = true)
+    }
+
+    @Test fun currentVideoDefaultDimKeepsRealExpandedReflections() {
+        assumeTrue("Opt in to the real default-player journey with playerDefaultAmbientJourney=true",
+            InstrumentationRegistry.getArguments().getString("playerDefaultAmbientJourney") == "true")
+        exercise(listOf(AppBackgroundMode.CURRENT_VIDEO), backgroundDim = .35f,
+            intensity = .5f, allSurfaces = false)
+    }
+
+    private fun exercise(modes: List<AppBackgroundMode>, backgroundDim: Float,
+        intensity: Float, allSurfaces: Boolean): Unit = runBlocking {
         val context = instrumentation.targetContext
         val fixture = File(InstrumentationRegistry.getArguments().getString("reflectedAmbientJourneyPath")
             ?: "/sdcard/Download/ビターチョコデコレーションsyudouselfcover.mp4")
@@ -78,9 +91,9 @@ class AmbientSurfaceJourneyTest {
             preferences.setColorTheme(ColorTheme.FOREST)
             preferences.setThemeMode(ThemeMode.DARK)
             preferences.setFloatingWindowMode(FloatingWindowMode.MINI_WINDOW)
-            preferences.setBackgroundMode(AppBackgroundMode.AMBIENT)
-            preferences.setBackgroundDim(.12f)
-            preferences.setAdaptiveIntensity(.9f)
+            preferences.setBackgroundMode(modes.first())
+            preferences.setBackgroundDim(backgroundDim)
+            preferences.setAdaptiveIntensity(intensity)
             preferences.setAdaptiveReactToVideo(true)
             preferences.setAdaptiveMotion(AmbientMotion.NORMAL)
             preferences.setDeveloperMode(false)
@@ -94,7 +107,8 @@ class AmbientSurfaceJourneyTest {
             await("controller and test preferences") {
                 model.controller.value != null && model.settings.value.let {
                     it.appLanguage == AppLanguage.ENGLISH && it.floatingWindowMode == FloatingWindowMode.MINI_WINDOW &&
-                        it.backgroundMode == AppBackgroundMode.AMBIENT && !it.developerMode && !it.resumePlayback
+                        it.backgroundMode == modes.first() && !it.developerMode && !it.resumePlayback &&
+                        (allSurfaces || (it.backgroundDim == backgroundDim && it.adaptiveIntensity == intensity))
                 }
             }
             val player = requireNotNull(model.controller.value)
@@ -124,32 +138,40 @@ class AmbientSurfaceJourneyTest {
                 assertEquals("Presentation reduced source height", baseline.height, player.videoSize.height)
                 assertTrue("Playback must continue across backgrounds and pages", player.isPlaying)
             }
-            for (mode in listOf(AppBackgroundMode.AMBIENT, AppBackgroundMode.ADAPTIVE_DYNAMIC)) {
+            for (mode in modes) {
                 preferences.setBackgroundMode(mode)
                 await("selected ambient mode") { model.settings.value.backgroundMode == mode }
                 navigateLibrary()
-                for (theme in listOf(ThemeMode.LIGHT, ThemeMode.DARK)) {
-                    preferences.setThemeMode(theme)
-                    await("selected theme") { model.settings.value.themeMode == theme }
+                if (allSurfaces) {
+                    for (theme in listOf(ThemeMode.LIGHT, ThemeMode.DARK)) {
+                        preferences.setThemeMode(theme)
+                        await("selected theme") { model.settings.value.themeMode == theme }
+                        settlePresentation()
+                        delay(2_200)
+                        settlePresentation()
+                        assertContinuity()
+                        capture("$mode-library-$theme")
+                    }
+                    compose.onNodeWithContentDescription("Nodes").assertIsDisplayed().performClick()
                     settlePresentation()
                     delay(2_200)
                     settlePresentation()
                     assertContinuity()
-                    capture("$mode-library-$theme")
+                    capture("$mode-nodes-DARK")
+                    compose.onNodeWithContentDescription("Stack").assertIsDisplayed().performClick()
+                    settlePresentation()
+                    delay(2_200)
+                    settlePresentation()
+                    assertContinuity()
+                    capture("$mode-stack-DARK")
+                    navigateLibrary()
+                } else {
+                    settlePresentation()
+                    delay(2_200)
+                    settlePresentation()
+                    assertContinuity()
+                    capture("$mode-library-DARK-default-player")
                 }
-                compose.onNodeWithContentDescription("Nodes").assertIsDisplayed().performClick()
-                settlePresentation()
-                delay(2_200)
-                settlePresentation()
-                assertContinuity()
-                capture("$mode-nodes-DARK")
-                compose.onNodeWithContentDescription("Stack").assertIsDisplayed().performClick()
-                settlePresentation()
-                delay(2_200)
-                settlePresentation()
-                assertContinuity()
-                capture("$mode-stack-DARK")
-                navigateLibrary()
                 await("Library dock before expansion") { PlayerWindowVisibility.dockedVisible.value }
                 onMain {
                     ContextCompat.startForegroundService(context,
@@ -162,10 +184,15 @@ class AmbientSurfaceJourneyTest {
                 delay(2_200)
                 settlePresentation()
                 assertContinuity()
-                capture("$mode-now-playing-DARK")
+                capture(if (allSurfaces) "$mode-now-playing-DARK" else "$mode-now-playing-DARK-default-player")
                 compose.onNodeWithContentDescription("Home").assertIsDisplayed().performClick()
                 await("Library restored from actual floating player") {
                     !PlayerWindowVisibility.expandedShowing.value && PlayerWindowVisibility.libraryShowing.value
+                }
+                if (!allSurfaces) {
+                    assertContinuity()
+                    settlePresentation()
+                    capture("$mode-library-return-DARK-default-player")
                 }
             }
         } finally {

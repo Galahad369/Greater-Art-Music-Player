@@ -3,7 +3,7 @@
 This file describes the **current repository state only**. Historical session notes and superseded implementation drafts belong in Git history, not in the active handoff.
 
 **Project:** `greater-art/` in the repository checkout
-**Current source:** `1.21.93 (code 316)` — VERIFIED local optimized maintenance sideload. Shared output remains disabled; this release does not complete its separate quality/function-parity gate.
+**Current source:** `1.21.94 (code 317)` — SOURCE_ONLY focused Now Playing reflection correction. Build/emulator acceptance pending; latest immutable verified APK remains1.21.93. Shared output remains disabled.
 **Current version:** `1.21.93 (code 316)`
 **Latest APK:** `releases/GreaterArt-1.21.93.apk` (`5,478,717 bytes`; SHA-256 `cee3f50632cdf186a1b58304c195378c1917284f20ce04d354c3549ab180f6cc`)
 **Application ID:** `com.local.listentomusic`
@@ -13,6 +13,17 @@ This file describes the **current repository state only**. Historical session no
 **Verification boundary:** Exact runtime source `58048b54e4119c3aad50ca99d4595afe479653c3`; Java21/Gradle9.8.2 unit/lint/debug app/test and optimized R8 assembly passed. 473 JVM tests, zero failures/errors/skips; lint0 errors/47 warnings/4 hints. API36 debug instrumentation23/23 in520.008s covers reflected Ambient, compact audio/video controls/title transparency, real audio/video IME dock continuity, real-page navigation/video sampling and fullscreen toolbar. Separate same-certificate optimized upgrade and native Library/video/dock/expanded-player smoke passed; actual screenshots inspected. Package/version, non-debuggable state, ZIP CRC,16KiB alignment and SHA-256 checked. The APK does not embed a usable VCS SHA; this receipt records it externally. Full rotation, physical-device visual/acoustic/performance acceptance, production signing and universal crash freedom remain unverified. See [the exact release receipt](docs/RELEASE_1.21.93.md).
 
 ## Repository state
+
+### October30 — Now Playing reflections missing on the default route
+
+- User reports the released player still lacks visible reflection. Source review confirms default CURRENT_VIDEO and other browsing wallpapers route Now Playing through the old vertical-gradient-only backdrop; only global AMBIENT/ADAPTIVE_DYNAMIC reach the reflected renderer. Prior tests covered those two explicit modes, not the actual default route.
+- User approved independent Now Playing reflections, stronger light below the media and more transparent chrome. Reuse the existing sparse video/artwork colours and Canvas renderer. Route every production Now Playing presentation through it regardless of browsing wallpaper. Keep Classic steady; preserve intensity Off, dimming, reduced-motion/power/lifecycle/scroll gates and fullscreen visibility.
+- Concentrate the player reflection field in the lower two-thirds and strengthen its light without changing browsing-page rendering. Lower queue/transport paint opacity; retain their geometry, touch targets, text and boundaries. The title holder stays transparent. No new decoder, sample/readback, dependency, permission or source-quality limit.
+- Java21/Gradle9.8.2 unit/lint/debug app/test build passes:473 JVM tests, zero failures/errors/skips; lint0 errors/47 warnings/4 hints. Initial API36 component run passes21/22 in97.653s. The one zero-intensity light-video capture includes a System UI ANR dialog and shadow; retain it as rejected evidence and keep the pixel assertion unchanged. New maximum-strength cases and the real default-route overlay journey compile but have not run.
+- Final verification is blocked by host memory:87MiB initially, then98MiB available with both emulators stopped despite the user's cleanup. Stop only the owned QA emulator and, after explicit user approval, CampusPlayMatch_API36/emulator-5572. Installed apps/data remain intact. Do not restart two emulators or close other user apps. Require roughly3GiB available before resuming the unchanged25-case run.
+- Internal debug test APK only: sibling `output/now-playing-reflections-20261030/GreaterArt-1.21.94-internal-test.apk`,27,072,245 bytes, SHA-256 `9538f7fd0504d74076a3315ad3038b3e2573ed72df627d19e639cd734021276a`. Package1.21.94/code317,16KiB alignment and exact copy hash checked; it upgraded the existing emulator install without clearing data. This is not an optimized or promoted release. Verified1.21.93 remains unchanged.
+- A separate task has since added Trust/privacy, workflow and desktop edits in this same checkout. The test APK predates those edits; it does not verify the current combined tree. Preserve that work. Do not stage it, change branches, overwrite source, or publish this candidate as a consolidated build. Coordinate writers/version allocation before a final build. See [focused evidence and continuation steps](docs/NOW_PLAYING_REFLECTIONS_2026-10-30.md).
+- Prevent recurrence by testing CURRENT_VIDEO with the persisted default dim rather than only opt-in Ambient at artificially low dim. Visual acceptance and the actual expanded-overlay rerun remain pending; do not call the task fully verified.
 
 ### October30 — Maintenance release and workspace consolidation
 

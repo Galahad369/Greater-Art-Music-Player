@@ -16,7 +16,7 @@ This file is the authoritative version policy for Greater Art. If any handoff no
 ## Machine-checkable state
 
 
-Current source: **1.21.93 (code 316)**
+Current source: **1.21.94 (code 317)**
 Allowed consumed transition: **1.21.38 (code 261) -> 1.21.40 (code 263)**
 
 Retain PR174's original declared transition for eeb06d9. Its initial1.21.40
@@ -88,7 +88,7 @@ Allowed consumed transition: **1.21.22 (code 245) -> 1.21.24 (code 247)**
 1.21.23/code246 is consumed by the separate PR #153 PCM prototype (`881f39c`).
 Claude's supplied adaptive-sync patch proposed that identity too; integration
 used 1.21.24/code247 in its preserved history. Adaptive sync is model-backed, not acoustically verified.
-Current release state: **VERIFIED**
+Current release state: **SOURCE_ONLY**
 Latest verified APK: **1.21.93 (code 316)**
 Allowed series transition: **1.14.15 -> 1.15.1**
 Allowed series transition: **1.15.89 -> 1.20.2**
@@ -466,3 +466,4 @@ Previous baseline: 1.13.26 (code 115).
 - 1.21.91 (code 314): compact Now Playing typography and controls per the user-approved reference. Use16sp medium title,22dp action/transport glyphs and48dp Play/Pause; keep48dp touch targets, first-class speed, flexible queue, video size/quality and existing functions. SOURCE_ONLY local work;470 JVM tests, zero lint errors, debug app/test assembly and18 focused API36 cases pass. Actual floating-player screenshot inspected. Unrelated desktop/graph work is not part of this UI change; the internal working-tree APK is not a promoted release. No push/merge.
 - 1.21.92 (code 315): user-approved reflected-light Ambient and Adaptive Dynamic across the mobile app. Reuse cached artwork and existing sparse compositor colours; add stronger glow, specular ribbons and edge reflections with a fixed readability veil. Classic uses steady geometry; Adaptive retains intensity/motion controls and lifecycle/scroll/reduced-motion/power gates. Keep quiet non-Ambient fallbacks, source quality, decoder/surface ownership and compact Now Playing. SOURCE_ONLY local work;472 JVM tests, zero lint errors, debug app/test assembly and21 focused API36 cases pass after a test-clock correction. All24 accepted captures inspected; internal working-tree APK only, no release promotion or physical-performance claim.
 - 1.21.93 (code 316): consolidate reviewed mobile91/92 source and already-merged desktop history without duplicating it. Make only the Now Playing title holder transparent; keep transport panels, actions and touch targets. Archive ignored loose QA files with hash manifests; retain immutable releases, unique source and recovery evidence. Reject the uncommitted graph anchor/test deletion and retain main's tested physics. User explicitly permits a maintenance sideload while unfinished shared output remains disabled; this does not satisfy its separate parity gate. VERIFIED in a separate documentation/artifact finalization: exact runtime58048b5,473 JVM tests, zero lint errors,23 debug API36 cases, separate optimized same-key upgrade/native smoke and inspected screenshots. R8 non-debuggable APK5478717 bytes, SHA-256cee3f50632cdf186a1b58304c195378c1917284f20ce04d354c3549ab180f6cc. Physical performance/acoustic/full-rotation and production signing gates remain open; see docs/RELEASE_1.21.93.md.
+- 1.21.94 (code 317): fix the default CURRENT_VIDEO Now Playing route bypassing reflections. Use the existing reflected renderer independently of browsing wallpaper, stronger lower-player light and more transparent queue/transport chrome. Preserve the transparent title, dim preference, Off/reduced-motion/power gates, controls, video quality and existing colour sampling/surface ownership. Browsing rendering and desktop remain unchanged. SOURCE_ONLY pending focused audio/video/default-dim/light/dark emulator and build verification; verified1.21.93 is immutable.
