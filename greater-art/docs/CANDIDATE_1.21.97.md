@@ -100,6 +100,12 @@ acoustic Stack validation and universal crash freedom remain separate gates.
   ADB reported no connected devices. Do not boot the emulator under the same
   pressure that caused the retained Android system ANRs. The user was asked to
   free approximately 3 GiB before the unchanged interactive checks resume.
+- After the user reported freeing memory, elevated checks found 777 MiB and then
+  422 MiB available, still below the owned AVD's 2 GiB guest allocation. ADB had
+  no connected devices. Independent process checks found no live Java, Gradle,
+  Kotlin or emulator helper to reclaim. Do not delete caches or stop unrelated
+  applications. Asked the user to save work and close unused browser/ChatGPT
+  windows; no emulator was launched and no new runtime result is claimed.
 - The optimized APK still has the exact hash recorded above. The Android source
   and build inputs are unchanged from `56ecdf6`; the current `app/src/main` Git
   tree is `3097172f031725dd475223e37181a21a7bbb2faf`. This is local source

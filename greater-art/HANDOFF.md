@@ -23,6 +23,12 @@ This file describes the **current repository state only**. Historical session no
   Requested roughly 3 GiB free memory; interactive and optimized runtime gates
   remain pending. Source/build inputs and the candidate hash are unchanged.
   This is a documentation-only checkpoint, not another version or a new test pass.
+- The user then reported freeing memory. Elevated rechecks found 777 MiB, then
+  422 MiB free; the owned QA AVD requires a 2 GiB guest. No Java, Gradle, Kotlin
+  or emulator processes remain to reclaim, and ADB has no devices. Do not close
+  the user's apps or delete caches. Requested that the user save work and close
+  unused browser/ChatGPT windows before the unchanged tests resume. No new
+  build, emulator run, app version or verification result is implied.
 - Source56ecdf6 builds:495 JVM tests, zero failures/errors/skips; lint0 errors/47 warnings/4 hints; debug app/test assembly8m02s. Native API36 geometry8/8 passes in23.999s. The mobile chat independently reviewed the fixture repair and confirmed production source unchanged from96. All writers/builds for that chat remain frozen.
 - Optimized same-key release build passes in11m14s. Actual package1.21.97/code320, non-debuggable/not-test-only, approved signature, no INTERNET and reviewed exports pass. ZIP CRC/16KiB alignment pass;144 resolved dependency records. Keep the exact R8 mapping and JSON receipts in the evidence directory. Key and immutable release93 remain unchanged.
 - Full interactive acceptance is NOT complete. Final trust run passes6/7 in122.887s; its external-Settings readiness check is blocked by an inspected System UI ANR. Attempted system recovery then exposes a Pixel Launcher ANR. Do not mask these captures or extend retries/relax assertions. Host had260MiB free during failure and870MiB after build; user asked to free roughly3GiB. At the stop check the owned emulator was already disconnected; no wipe/data deletion occurred.
