@@ -4,6 +4,7 @@ This file describes the **current repository state only**. Historical session no
 
 **Project:** `greater-art/` in the repository checkout
 **Current source:** `1.21.97 (code 320)` — SOURCE_ONLY final Trust & privacy/strict Fit/Crop integration with corrected device-test fixtures. Final build/emulator acceptance pending; latest immutable verified APK remains1.21.93. Shared output remains disabled.
+**Optimized candidate:** sibling `App/output/GreaterArt-1.21.97.apk` —5,495,129 bytes, SHA-256 `10ffd6525215af8522e3e577b130f56741b00488649d655338e5d7be4d772de9`; same key, non-debuggable, artifact checks passed; **interactive acceptance blocked, not promoted**. [Candidate receipt and remaining gate](docs/CANDIDATE_1.21.97.md).
 **Current version:** `1.21.93 (code 316)`
 **Latest APK:** `releases/GreaterArt-1.21.93.apk` (`5,478,717 bytes`; SHA-256 `cee3f50632cdf186a1b58304c195378c1917284f20ce04d354c3549ab180f6cc`)
 **Application ID:** `com.local.listentomusic`
@@ -13,6 +14,14 @@ This file describes the **current repository state only**. Historical session no
 **Verification boundary:** Exact runtime source `58048b54e4119c3aad50ca99d4595afe479653c3`; Java21/Gradle9.8.2 unit/lint/debug app/test and optimized R8 assembly passed. 473 JVM tests, zero failures/errors/skips; lint0 errors/47 warnings/4 hints. API36 debug instrumentation23/23 in520.008s covers reflected Ambient, compact audio/video controls/title transparency, real audio/video IME dock continuity, real-page navigation/video sampling and fullscreen toolbar. Separate same-certificate optimized upgrade and native Library/video/dock/expanded-player smoke passed; actual screenshots inspected. Package/version, non-debuggable state, ZIP CRC,16KiB alignment and SHA-256 checked. The APK does not embed a usable VCS SHA; this receipt records it externally. Full rotation, physical-device visual/acoustic/performance acceptance, production signing and universal crash freedom remain unverified. See [the exact release receipt](docs/RELEASE_1.21.93.md).
 
 ## Repository state
+
+### October31 — Current candidate and exact stopping point
+
+- Source56ecdf6 builds:495 JVM tests, zero failures/errors/skips; lint0 errors/47 warnings/4 hints; debug app/test assembly8m02s. Native API36 geometry8/8 passes in23.999s. The mobile chat independently reviewed the fixture repair and confirmed production source unchanged from96. All writers/builds for that chat remain frozen.
+- Optimized same-key release build passes in11m14s. Actual package1.21.97/code320, non-debuggable/not-test-only, approved signature, no INTERNET and reviewed exports pass. ZIP CRC/16KiB alignment pass;144 resolved dependency records. Keep the exact R8 mapping and JSON receipts in the evidence directory. Key and immutable release93 remain unchanged.
+- Full interactive acceptance is NOT complete. Final trust run passes6/7 in122.887s; its external-Settings readiness check is blocked by an inspected System UI ANR. Attempted system recovery then exposes a Pixel Launcher ANR. Do not mask these captures or extend retries/relax assertions. Host had260MiB free during failure and870MiB after build; user asked to free roughly3GiB. At the stop check the owned emulator was already disconnected; no wipe/data deletion occurred.
+- Next step is the unchanged host trust matrix and real fullscreen/rotation/return, Settings and video/IME regressions after adequate RAM is available, using the QA AVD's normal four CPU cores. Then separately upgrade to the exact optimized candidate and perform native smoke before promotion. **Do not put97 into releases/ or mark VERIFIED yet.** See the candidate receipt for commands, paths, hashes and boundaries.
+- Cleanup is coordinated by the mobile chat under its separate direct user instruction. It reported recycling only obsolete/duplicate91/92/94 internal copies and duplicate93 staging/archive files, preserving originals/evidence. This chat created one current optimized delivery candidate; keep its97 debug/test pair until QA completes. No branch switch, push, public release, key replacement or history rewrite.
 
 ### October31 — Real-device-test fixture corrections (1.21.97)
 

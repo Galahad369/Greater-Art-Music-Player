@@ -1,12 +1,15 @@
 # Android trust baseline — integration handoff
 
-Status as of31 October: **integrating1.21.95/code318; full debug build passed,
-final verification paused for renewed concurrent playback edits**. User initially confirmed the other Greater Art writer was paused. Preserve
-its1.21.94 reflection work in local commit6378014, then use the next unused
-identity for Trust & privacy. Keep the existing signing key and all old APKs.
-No branch switch, remote push or desktop rebuild is required.
+Status as of31 October: **1.21.97/code320 optimized candidate built and artifact-
+checked; complete interactive acceptance blocked by Android-system ANRs**.
+The user approved the combined integration. Record focused Trust95 as9690c10,
+aspect guard96 as44d5281 and device-fixture repairs97 as56ecdf6. The other mobile
+chat is frozen; no builds/edits are concurrent. Existing signing identity and
+immutable verified93 remain unchanged. See the [current candidate receipt](CANDIDATE_1.21.97.md)
+for exact hashes, completed checks and the RAM/interactive-test stopping point.
+The sections below retain the investigation history, not superseding current status.
 
-##31 October continuation
+## 31 October continuation
 
 - Preserved the other writer's14-file1.21.94 change in local commit6378014.
   The next integration source identity is1.21.95/code318, not yet committed or
