@@ -5,7 +5,7 @@ acceptance is blocked. This is not a promoted verified release.**
 
 ## Exact artifact
 
-- Local sibling-workspace file: `App/output/GreaterArt-1.21.97.apk`.
+- Retained sibling-workspace file: `App/output/retained-artifacts/GreaterArt-1.21.97-candidate.apk` (hash-verified move on2 November after98 was built; the original delivery path was `App/output/GreaterArt-1.21.97.apk`).
 - Package: `com.local.listentomusic`; version1.21.97, code320.
 - Size:5,495,129 bytes.
 - SHA-256: `10ffd6525215af8522e3e577b130f56741b00488649d655338e5d7be4d772de9`.

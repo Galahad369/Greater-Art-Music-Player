@@ -3,8 +3,11 @@
 This file describes the **current repository state only**. Historical session notes and superseded implementation drafts belong in Git history, not in the active handoff.
 
 **Project:** `greater-art/` in the repository checkout
-**Current source:** `1.21.98 (code 321)` — SOURCE_ONLY, user-approved device-test repairs; production playback/strict Fit/Crop/reflections are unchanged. Build and device acceptance are pending; latest immutable verified APK remains1.21.93. Shared output remains disabled.
-**Previous optimized candidate:** sibling `App/output/GreaterArt-1.21.97.apk` —5,495,129 bytes, SHA-256 `10ffd6525215af8522e3e577b130f56741b00488649d655338e5d7be4d772de9`; same key, non-debuggable, artifact checks passed; **not promoted**. [Previous candidate receipt and retained evidence](docs/CANDIDATE_1.21.97.md). A1.21.98 APK has not yet been built.
+**Current source:** `1.21.98 (code 321)` — SOURCE_ONLY. Debug/unit/lint and optimized assembly pass; full device acceptance does not. Production playback/strict Fit/Crop/reflections are unchanged. Latest immutable verified APK remains1.21.93. Shared output remains disabled.
+**Current optimized candidate:** sibling `App/output/GreaterArt-1.21.98.apk` —5,495,129 bytes, SHA-256 `36d5279c58b155f70cc7a47ca3af348e285df1e8bf5197eeca43f9a14ef8ba02`; same key, non-debuggable, artifact checks passed; **not promoted**. [Exact candidate receipt, failures and next gates](docs/CANDIDATE_1.21.98.md). The previous97 candidate is hash-verified and archived under sibling `output/retained-artifacts/`.
+
+The following release fields describe verified1.21.93, not the98 candidate:
+
 **Current version:** `1.21.93 (code 316)`
 **Latest APK:** `releases/GreaterArt-1.21.93.apk` (`5,478,717 bytes`; SHA-256 `cee3f50632cdf186a1b58304c195378c1917284f20ce04d354c3549ab180f6cc`)
 **Application ID:** `com.local.listentomusic`
@@ -17,7 +20,8 @@ This file describes the **current repository state only**. Historical session no
 
 ### November2 — Approved1.21.98 test repairs after actual device retry
 
-- Freshly fetched remote main remains1.21.93; the1.21.98/code321 identity is unused.
+- Freshly fetched remote main remains1.21.93; the1.21.98/code321 identity was unused
+  at allocation and is now committed as `85dee789c253720e2d13e0982fda245e338acb60`.
   Preserve new remote branches for separate review; do not mix them into this
   focused verification window or stage the unrelated Windows edits.
 - A detached launch reached boot-complete but disappeared before native health
@@ -25,12 +29,12 @@ This file describes the **current repository state only**. Historical session no
   emulator session then booted in42.438s. Both native hierarchy/screenshot health
   checks passed with no new ANR events. Keep its session alive during QA rather
   than relying on detached-process lifetime. No AVD profile, data or quality change.
-- Unchanged97 Settings navigation passes1/1 in20.974s. Fullscreen rotation fails
+- Unchanged97 Settings navigation passes1/1 in20.974s. Fullscreen rotation failed
   at the post-theme Rotate visibility assertion in32.19s; retain its actual portrait
   and landscape captures. The intentional2.5s auto-hide can expire during capture
   and theme work. Reveal controls with one normal side tap, assert no seek, then
   retain and strengthen the original visibility/alignment/safe-bound checks.
-- The permission suite passes6/7 in both initial and warm runs, failing the native
+- The97 permission suite passes6/7 in both initial and warm runs, failing the native
   Settings-label readiness gate without any system ANR. The visible label exists
   in the native hierarchy. Compose's provider need not implement text search;
   traverse exposed visible child nodes instead. Keep the same Settings package,
@@ -38,9 +42,54 @@ This file describes the **current repository state only**. Historical session no
 - The user explicitly approved both fixture fixes and build1.21.98. Test and
   version changes only; all production media code, timers, permissions, signing
   identity and functions are unchanged. Source remains SOURCE_ONLY until its own
-  complete build/device/optimized smoke gates pass. No build or release is implied
-  by the version allocation itself. Retain97 failures under the existing sibling
+  complete build/device/optimized smoke gates pass. Retain97 failures under the
+  existing sibling
   `output/android-trust-20261031/v1.21.97/resume-20261102/` evidence directory.
+- The 1.21.98 debug app/test build passes in 6m12s: 495 JVM tests, zero failures/errors/skips;
+  lint 0 errors/47 warnings/4 hints. Freeze the matching app/test APKs and logs under
+  sibling `output/android-trust-20261031/v1.21.98/`; the internal debug APK is not
+  a release. Fullscreen rotation now passes 1/1 in 36.652s, retaining player/surface,
+  actual source dimensions, Fit/Crop, orientation, gesture and safe-bound checks.
+- The 1.21.98 denied-permission run still passes only 6/7 in 20.414s. The unchanged
+  five-second native Settings readiness gate times out at `TrustPrivacyUiTest.kt:99`.
+  Child traversal removes the unsupported-provider search dependency but does not
+  resolve this observed failure. Do not claim the denied/granted/revoked matrix
+  complete, weaken its assertions or extend its timeout to hide the failure.
+- The mixed UI/geometry run finishes 31/32 in 1559.908s, but is rejected as clean
+  acceptance. After 21 completed passes, the Stack/ambient case blocked in
+  `Instrumentation.waitForIdleSync` via `ActivityScenario.onActivity` at
+  `AdaptiveAmbientDeviceFlowTest.kt:88`. It completed only after host media-pause
+  and foreground-launch intervention. The later
+  `currentVideoDefaultDimKeepsRealExpandedReflections` case then timed out waiting
+  for actual video/dock/colour evidence. Retain the terminal log, thread snapshot
+  and intervention boundary; do not count the batch as an unattended pass.
+- Separate unchanged-fixture reruns pass native geometry 8/8 in 4.946s and Ambient
+  surface journeys 2/2 in 129.013s without host UI interaction. These results do not
+  erase the mixed-run failure or prove the Stack case reliable. 31 actual captures
+  are retained under the 1.21.98 evidence directory; selected fullscreen, expanded,
+  compact-light audio and Adaptive-light screenshots were visually inspected.
+- Optimized same-key assembly passes in6m07s. Exact package/code, signature,
+  non-debuggable/not-test-only, no INTERNET, reviewed exports, ZIP CRC and16KiB
+  alignment pass. Quote the entire PowerShell Kotlin property argument; the first
+  unquoted attempt failed task selection, not compilation. Preserve both logs.
+- Exact optimized upgrade succeeds without clearing data. The emulator then shows
+  a System UI ANR; one Wait action restores a responsive Library and Settings.
+  Settings displays1.21.98 and the selected real cover song plays through the
+  existing MediaSession. The first expanded-stage capture is black; the later
+  fullscreen capture shows actual video in portrait Fit. The rotation request
+  reaches ROTATION_90/2340x1080, but its screenshot still shows portrait during
+  transition. Do not claim settled optimized-landscape visual acceptance.
+- Before fullscreen return/Mini testing completes, ADB disconnects and the managed
+  emulator exits1. Windows events1000/1001 at23:27–23:28 identify
+  `qemu-system-x86_64-headless.exe` with access violation `0xc0000005`, unknown
+  faulting module. This establishes an emulator host crash, not its root cause or
+  a Greater Art Java crash. No further boot, host-setting change or data wipe.
+  Native optimized acceptance remains incomplete. The temporary QA floating mode
+  was changed from No Floating to Mini Window; restore No Floating on next healthy
+  QA resume. No source media was changed.
+- Keep verified1.21.93 immutable and do not promote98 from these partial results.
+  The output root now holds only the correct98 candidate;97 is archived with its
+  original hash. No physical performance/acoustic acceptance or crash-freedom claim.
 
 ### November2 — Resume remains blocked by host memory
 
