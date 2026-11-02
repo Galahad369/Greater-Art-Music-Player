@@ -1,5 +1,13 @@
 # Greater Art Desktop handoff
 
+## Security source checkpoint — November 2, 2026
+
+Current source is **0.1.22/code23, SOURCE_ONLY**. The last verified WinUI preview remains 0.1.21; frozen installer/portable 0.1.16 and all existing artifacts remain unchanged.
+
+The local-media guard previously rejected only double-backslash network prefixes, while Windows also normalizes forward and mixed slashes into UNC/device paths. The guard now checks both leading separators before any filesystem lookup. Native self-tests cover those spellings and preserve local absolute/relative path acceptance. No network authentication or real share access is used by these regression cases.
+
+Local native compilation and all nine desktop version tests passed. The codec-free native self-test run passed 77/78 top-level checks, including every path regression; the shared-clock PCM group cannot pass because this audit checkout lacks the approved codec libraries and `CodecReader` reports that they are not bundled. This is not a verified media delivery. Full codec-enabled hosted CI, physical-device/UI/media acceptance and signing remain separate checks. Local evidence: `work/hardening-2026-11-02/windows-local-path-tests/` in the audit workspace. Do not overwrite or relabel an earlier verified release to distribute this source fix.
+
 ## Locally verified WinUI Nodes preview — October 29, 2026
 
 Current source **0.1.21/code22 — LOCALLY VERIFIED PREVIEW**. The compact Nodes panel now provides filters, groups, display and force controls, zoom-aware labels, local-neighborhood focus, keyboard/pan access and preferences separate from the previous native app. This is not full parity or a production release. The last frozen native delivery remains **0.1.16/code17** below; do not overwrite or relabel its artifacts. This desktop work does not edit Android. Concurrent Android edits belong to the other chat and must be preserved; this is not a claim that the entire checkout is unchanged.
