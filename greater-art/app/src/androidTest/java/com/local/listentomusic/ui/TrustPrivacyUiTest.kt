@@ -2,6 +2,7 @@ package com.local.listentomusic.ui
 
 import android.graphics.Bitmap
 import android.os.ParcelFileDescriptor
+import android.view.accessibility.AccessibilityNodeInfo
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.rememberScrollState
@@ -67,6 +68,7 @@ class TrustPrivacyUiTest {
         assertEquals(0, history.get())
     }
 
+    @Suppress("DEPRECATION") // Recycle obtained nodes on the supported pre-API33 test devices.
     @Test fun returningFromAndroidSettingsRefreshesPermissionState() {
         val instrumentation = InstrumentationRegistry.getInstrumentation()
         val packageName = instrumentation.targetContext.packageName
@@ -80,11 +82,29 @@ class TrustPrivacyUiTest {
         val denied = "All Files Access is declared by this build · Not granted"
         compose.waitUntil(5000) { compose.onAllNodesWithText(denied).fetchSemanticsNodes().isNotEmpty() }
         compose.onNodeWithText("Manage Android permissions").performScrollTo().performClick()
+        val appLabel = instrumentation.targetContext.applicationInfo
+            .loadLabel(instrumentation.targetContext.packageManager).toString()
+        fun hasVisibleAppLabel(node: AccessibilityNodeInfo): Boolean {
+            if (node.isVisibleToUser && node.text?.toString()?.contains(appLabel, ignoreCase = true) == true) return true
+            for (index in 0 until node.childCount) {
+                val child = node.getChild(index) ?: continue
+                try {
+                    if (hasVisibleAppLabel(child)) return true
+                } finally {
+                    child.recycle()
+                }
+            }
+            return false
+        }
         compose.waitUntil(5000) {
             val root = instrumentation.uiAutomation.rootInActiveWindow
-            root?.packageName == "com.android.settings" &&
-                root.findAccessibilityNodeInfosByText(instrumentation.targetContext.applicationInfo
-                    .loadLabel(instrumentation.targetContext.packageManager).toString()).isNotEmpty()
+            try {
+                // Compose virtual nodes need not implement provider text search.
+                // Require the same actual Settings package and visible app label.
+                root != null && root.packageName?.toString() == "com.android.settings" && hasVisibleAppLabel(root)
+            } finally {
+                root?.recycle()
+            }
         }
         shell("appops set $packageName MANAGE_EXTERNAL_STORAGE allow")
         // Settings is a different process; send Android Back instead of looking for an Espresso app root.

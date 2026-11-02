@@ -176,7 +176,18 @@ class FullscreenRotationTest {
                     assertEquals(lease.view, VideoSurfaceOwner.state.value.view)
                 }
             }
-            compose.onNodeWithContentDescription("Rotate to portrait").assertIsDisplayed().performClick()
+            // Capturing stable pixels and changing themes can outlast the real
+            // auto-hide timer. Reveal chrome as a user would, without toggling
+            // already-visible controls or weakening the visibility assertions.
+            val beforeReveal = position()
+            compose.onRoot().performTouchInput {
+                click(Offset(width * .15f, height * .5f))
+            }
+            compose.runOnIdle { assertEquals(beforeReveal, vm.controller.value!!.currentPosition) }
+            compose.onNodeWithContentDescription("Rotate to portrait").assertIsDisplayed()
+            assertFullscreenToolbarAlignment("Rotate to portrait")
+            assertToolbarInsideScreenSafeRegion(activity)
+            compose.onNodeWithContentDescription("Rotate to portrait").performClick()
             compose.waitUntil(20_000) {
                 activity.resources.configuration.orientation == Configuration.ORIENTATION_PORTRAIT
             }

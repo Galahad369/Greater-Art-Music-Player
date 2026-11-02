@@ -16,7 +16,7 @@ This file is the authoritative version policy for Greater Art. If any handoff no
 ## Machine-checkable state
 
 
-Current source: **1.21.97 (code 320)**
+Current source: **1.21.98 (code 321)**
 Allowed consumed transition: **1.21.38 (code 261) -> 1.21.40 (code 263)**
 
 Retain PR174's original declared transition for eeb06d9. Its initial1.21.40
@@ -470,3 +470,4 @@ Previous baseline: 1.13.26 (code 115).
 - 1.21.95 (code 318): integrate installed-build Trust & privacy controls, bounded redacted local diagnostic preview/confirmed clearing, opt-in history controls and exact-artifact/signature checks. Preserve the separately recorded1.21.94 reflection work and existing compatibility signing key. No network permission, playback quality constraint or shared-output adoption. SOURCE_ONLY pending complete Android build and emulator verification; existing releases remain immutable.
 - 1.21.96 (code 319): integrate the user-approved mobile chat's strict native Fit/Crop guard after focused Trust source9690c10. Preserve Media3 player/decoder/surface and source quality, repair retained native aspect on reuse, and test actual frame geometry/rotation/pixel aspect. Correct the Float16:9 rounding expectation without allowing deformation. Capture diagnostic dialogs without ambiguous Compose-root selection. SOURCE_ONLY pending combined494-test build, emulator and optimized same-key release checks; prior artifacts remain immutable.
 - 1.21.97 (code 320): repair two device-test fixtures found by real API36 execution after96 source was committed: attach the native view before waiting for View.post callbacks, and wait for native Settings/app readiness before querying Compose on return. Keep all geometry/grant assertions and timeouts. No production logic change beyond the required version identity; preserve Trust and strict Fit/Crop. SOURCE_ONLY pending final build/device and optimized same-key APK verification.
+- 1.21.98 (code 321): user-approved repairs to two device-test boundaries found by unchanged97 execution. Reveal fullscreen chrome with a single side tap after capture/theme work, retaining visibility, geometry, orientation and player/surface assertions and checking that reveal does not seek. Traverse visible native accessibility children for the actual Settings app label instead of unsupported virtual-provider text search; retain the package check, five-second gate and permission/return assertions. No production playback, quality, timer, permission or signing change beyond version identity. SOURCE_ONLY pending build, device regressions and optimized same-key verification; verified93 and all earlier evidence remain immutable.

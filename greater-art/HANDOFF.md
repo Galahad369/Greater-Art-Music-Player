@@ -3,8 +3,8 @@
 This file describes the **current repository state only**. Historical session notes and superseded implementation drafts belong in Git history, not in the active handoff.
 
 **Project:** `greater-art/` in the repository checkout
-**Current source:** `1.21.97 (code 320)` — SOURCE_ONLY final Trust & privacy/strict Fit/Crop integration with corrected device-test fixtures. Final build/emulator acceptance pending; latest immutable verified APK remains1.21.93. Shared output remains disabled.
-**Optimized candidate:** sibling `App/output/GreaterArt-1.21.97.apk` —5,495,129 bytes, SHA-256 `10ffd6525215af8522e3e577b130f56741b00488649d655338e5d7be4d772de9`; same key, non-debuggable, artifact checks passed; **interactive acceptance blocked, not promoted**. [Candidate receipt and remaining gate](docs/CANDIDATE_1.21.97.md).
+**Current source:** `1.21.98 (code 321)` — SOURCE_ONLY, user-approved device-test repairs; production playback/strict Fit/Crop/reflections are unchanged. Build and device acceptance are pending; latest immutable verified APK remains1.21.93. Shared output remains disabled.
+**Previous optimized candidate:** sibling `App/output/GreaterArt-1.21.97.apk` —5,495,129 bytes, SHA-256 `10ffd6525215af8522e3e577b130f56741b00488649d655338e5d7be4d772de9`; same key, non-debuggable, artifact checks passed; **not promoted**. [Previous candidate receipt and retained evidence](docs/CANDIDATE_1.21.97.md). A1.21.98 APK has not yet been built.
 **Current version:** `1.21.93 (code 316)`
 **Latest APK:** `releases/GreaterArt-1.21.93.apk` (`5,478,717 bytes`; SHA-256 `cee3f50632cdf186a1b58304c195378c1917284f20ce04d354c3549ab180f6cc`)
 **Application ID:** `com.local.listentomusic`
@@ -14,6 +14,33 @@ This file describes the **current repository state only**. Historical session no
 **Verification boundary:** Exact runtime source `58048b54e4119c3aad50ca99d4595afe479653c3`; Java21/Gradle9.8.2 unit/lint/debug app/test and optimized R8 assembly passed. 473 JVM tests, zero failures/errors/skips; lint0 errors/47 warnings/4 hints. API36 debug instrumentation23/23 in520.008s covers reflected Ambient, compact audio/video controls/title transparency, real audio/video IME dock continuity, real-page navigation/video sampling and fullscreen toolbar. Separate same-certificate optimized upgrade and native Library/video/dock/expanded-player smoke passed; actual screenshots inspected. Package/version, non-debuggable state, ZIP CRC,16KiB alignment and SHA-256 checked. The APK does not embed a usable VCS SHA; this receipt records it externally. Full rotation, physical-device visual/acoustic/performance acceptance, production signing and universal crash freedom remain unverified. See [the exact release receipt](docs/RELEASE_1.21.93.md).
 
 ## Repository state
+
+### November2 — Approved1.21.98 test repairs after actual device retry
+
+- Freshly fetched remote main remains1.21.93; the1.21.98/code321 identity is unused.
+  Preserve new remote branches for separate review; do not mix them into this
+  focused verification window or stage the unrelated Windows edits.
+- A detached launch reached boot-complete but disappeared before native health
+  checks, with no matching Windows crash/resource event found. A managed foreground
+  emulator session then booted in42.438s. Both native hierarchy/screenshot health
+  checks passed with no new ANR events. Keep its session alive during QA rather
+  than relying on detached-process lifetime. No AVD profile, data or quality change.
+- Unchanged97 Settings navigation passes1/1 in20.974s. Fullscreen rotation fails
+  at the post-theme Rotate visibility assertion in32.19s; retain its actual portrait
+  and landscape captures. The intentional2.5s auto-hide can expire during capture
+  and theme work. Reveal controls with one normal side tap, assert no seek, then
+  retain and strengthen the original visibility/alignment/safe-bound checks.
+- The permission suite passes6/7 in both initial and warm runs, failing the native
+  Settings-label readiness gate without any system ANR. The visible label exists
+  in the native hierarchy. Compose's provider need not implement text search;
+  traverse exposed visible child nodes instead. Keep the same Settings package,
+  actual app label, five-second timeout and denied/granted/return assertions.
+- The user explicitly approved both fixture fixes and build1.21.98. Test and
+  version changes only; all production media code, timers, permissions, signing
+  identity and functions are unchanged. Source remains SOURCE_ONLY until its own
+  complete build/device/optimized smoke gates pass. No build or release is implied
+  by the version allocation itself. Retain97 failures under the existing sibling
+  `output/android-trust-20261031/v1.21.97/resume-20261102/` evidence directory.
 
 ### November2 — Resume remains blocked by host memory
 
