@@ -15,6 +15,19 @@ This file describes the **current repository state only**. Historical session no
 
 ## Repository state
 
+### November2 — Resume remains blocked by host memory
+
+- The mobile chat handed this chat the exclusive Android verification window;
+  it remains idle. Windows now reports a November1 restart, so the earlier
+  eight-day uptime is no longer current. Elevated checks found 206 MiB free,
+  then 1,265 MiB; the independent available-memory counter reported 1,307 MiB.
+  No Java/emulator helper is running and ADB has no connected devices.
+- The candidate's SHA-256 still matches the receipt. No build, emulator boot,
+  install, runtime test, source change or promotion ran. Preserve the matching
+  QA APK pair, existing key, evidence, immutable releases and desktop edits.
+  Free approximately 3 GiB before the unchanged acceptance sequence resumes;
+  this is the conservative QA target following the retained system ANRs.
+
 ### October31 — Current candidate and exact stopping point
 
 - Resumed after the user reported freeing memory, with the other chat's mobile

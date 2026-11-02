@@ -129,3 +129,18 @@ acoustic Stack validation and universal crash freedom remain separate gates.
 - No new build, emulator test, promotion, version bump, push or publication is
   implied by this checkpoint. Resume the existing acceptance sequence above when
   the host has enough free RAM; do not replace it with static artifact checks.
+
+## Resume checkpoint — 2 November 2026
+
+- The mobile chat explicitly transferred the exclusive Android QA window to
+  this chat and remains idle. Existing desktop edits are unchanged.
+- Windows reports its last boot as 1 November 2026. Elevated checks found
+  206 MiB free initially, then 1,265 MiB; an independent Windows counter showed
+  1,307 MiB available. No Java/emulator helper is running; ADB has no devices.
+  The restart occurred, but adequate headroom has not yet been restored.
+- Rechecked the delivery APK: its SHA-256 is still
+  `10ffd6525215af8522e3e577b130f56741b00488649d655338e5d7be4d772de9`.
+  No build, emulator boot, install or runtime test ran. All acceptance gates
+  above remain open; source identity, signing key and release status are unchanged.
+  Resume only when headroom is adequate; approximately 3 GiB remains the
+  conservative target after the retained system ANRs, not a universal requirement.
