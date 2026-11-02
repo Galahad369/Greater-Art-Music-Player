@@ -3,8 +3,8 @@
 This file describes the **current repository state only**. Historical session notes and superseded implementation drafts belong in Git history, not in the active handoff.
 
 **Project:** `greater-art/` in the repository checkout
-**Current source:** `1.21.98 (code 321)` — SOURCE_ONLY. Debug/unit/lint and optimized assembly pass; full device acceptance does not. Production playback/strict Fit/Crop/reflections are unchanged. Latest immutable verified APK remains1.21.93. Shared output remains disabled.
-**Current optimized candidate:** sibling `App/output/GreaterArt-1.21.98.apk` —5,495,129 bytes, SHA-256 `36d5279c58b155f70cc7a47ca3af348e285df1e8bf5197eeca43f9a14ef8ba02`; same key, non-debuggable, artifact checks passed; **not promoted**. [Exact candidate receipt, failures and next gates](docs/CANDIDATE_1.21.98.md). The previous97 candidate is hash-verified and archived under sibling `output/retained-artifacts/`.
+**Current source:** `1.22.1 (code 322)` — SOURCE_ONLY, user-directed finalization. Fresh debug/unit/lint and42 device cases pass. Exact optimized assembly/native acceptance is pending. Production playback/strict Fit/Crop/reflections are unchanged. Latest immutable verified APK remains1.21.93. Shared output remains disabled.
+**Previous optimized candidate:** sibling `App/output/GreaterArt-1.21.98.apk` —5,495,129 bytes, SHA-256 `36d5279c58b155f70cc7a47ca3af348e285df1e8bf5197eeca43f9a14ef8ba02`; same key, non-debuggable, artifact checks passed; **not promoted**. [Retained98 evidence](docs/CANDIDATE_1.21.98.md). The97 candidate is hash-verified and archived under sibling `output/retained-artifacts/`.
 
 The following release fields describe verified1.21.93, not the98 candidate:
 
@@ -17,6 +17,39 @@ The following release fields describe verified1.21.93, not the98 candidate:
 **Verification boundary:** Exact runtime source `58048b54e4119c3aad50ca99d4595afe479653c3`; Java21/Gradle9.8.2 unit/lint/debug app/test and optimized R8 assembly passed. 473 JVM tests, zero failures/errors/skips; lint0 errors/47 warnings/4 hints. API36 debug instrumentation23/23 in520.008s covers reflected Ambient, compact audio/video controls/title transparency, real audio/video IME dock continuity, real-page navigation/video sampling and fullscreen toolbar. Separate same-certificate optimized upgrade and native Library/video/dock/expanded-player smoke passed; actual screenshots inspected. Package/version, non-debuggable state, ZIP CRC,16KiB alignment and SHA-256 checked. The APK does not embed a usable VCS SHA; this receipt records it externally. Full rotation, physical-device visual/acoustic/performance acceptance, production signing and universal crash freedom remain unverified. See [the exact release receipt](docs/RELEASE_1.21.93.md).
 
 ## Repository state
+
+### November3 — User-directed1.22.1 finalization
+
+- The user explicitly requested1.22.1. Allocate next code322 and record the exact
+  series transition; never rename98 or reuse an existing version identity.
+- Re-fetch confirms remote main advanced only through desktop PR215. Preserve its
+  changes and the uncommitted Windows work; this task remains Android-only in the
+  same checkout. The other chat released the exclusive mobile build/Git window.
+- Repair the native Settings fixture with early-connected interactive-window
+  traversal, preserving its package/visible-label/five-second and grant assertions.
+  Repair the live Stack/ambient fixture's global-idle dependency with main-thread
+  task dispatch and owned-resource cleanup. No production engine/quality change.
+- Run fresh tests before the source commit. Build the final optimized APK from
+  that exact commit, inspect version/signature, and complete native video/return/
+  Mini smoke before promotion. Keep prior failures and immutable releases intact.
+- Fresh debug build passes in4m17s:495 JVM cases, no failures/errors/skips; lint0
+  errors/47 warnings/4 hints. A further1m12s test/lint assembly verifies the cleanup
+  correction: finish the exact animated test Activity before Scenario.close, which
+  itself also waits for global idle. No production animation is disabled.
+- Permission matrix now passes9/9 and restores original grants. The combined33
+  UI/geometry cases pass in367.734s without host intervention, including fullscreen
+  rotation and the previously stalled Stack/Ambient case. Retain all failed98 logs.
+- Public Launcher/Library/filter/dock steps show actual non-black scene pixels in
+  expanded Now Playing. Native portrait and settled2340x1080 landscape Fit captures
+  show the1280x720 fixture with proportional letterboxing/pillarboxing. Initial
+  pre-transition captures remain rejected; do not substitute timestamps or ambient
+  samples for visible video evidence.
+- The emulator then crashes on landscape fullscreen return. Windows records
+  qemu-system-x86_64-headless.exe/0xc0000005/unknown module at00:59 onNovember3.
+  The user declined the temporary Vulkan-off workaround. Preserve the previous
+  renderer/profile/data and document this separate host limitation; do not call
+  it a proven app crash or claim the failed native return passed. Complete the
+  optimized build and remaining portrait return/Mini checks separately.
 
 ### November2 — Approved1.21.98 test repairs after actual device retry
 

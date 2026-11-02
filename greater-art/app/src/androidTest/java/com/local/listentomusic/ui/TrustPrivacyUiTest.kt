@@ -1,5 +1,6 @@
 package com.local.listentomusic.ui
 
+import android.accessibilityservice.AccessibilityServiceInfo
 import android.graphics.Bitmap
 import android.os.ParcelFileDescriptor
 import android.view.accessibility.AccessibilityNodeInfo
@@ -13,6 +14,7 @@ import androidx.compose.material3.darkColorScheme
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.asAndroidBitmap
+import androidx.compose.ui.test.ComposeTimeoutException
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.captureToImage
@@ -72,16 +74,17 @@ class TrustPrivacyUiTest {
     @Test fun returningFromAndroidSettingsRefreshesPermissionState() {
         val instrumentation = InstrumentationRegistry.getInstrumentation()
         val packageName = instrumentation.targetContext.packageName
-        fun shell(command: String): String = ParcelFileDescriptor.AutoCloseInputStream(
-            instrumentation.uiAutomation.executeShellCommand(command)
-        ).bufferedReader().use { it.readText() }
         assumeTrue("Host owns permission setup/restoration outside the app process",
             InstrumentationRegistry.getArguments().getString("permissionReturnFixture") == "true")
+        // Connect before leaving the app; native Settings can be a non-active interactive window.
+        val automation = instrumentation.uiAutomation
+        val serviceInfo = requireNotNull(automation.serviceInfo)
+        val originalServiceFlags = serviceInfo.flags
+        serviceInfo.flags = originalServiceFlags or AccessibilityServiceInfo.FLAG_RETRIEVE_INTERACTIVE_WINDOWS
+        fun shell(command: String): String = ParcelFileDescriptor.AutoCloseInputStream(
+            automation.executeShellCommand(command)
+        ).bufferedReader().use { it.readText() }
         assertFalse(com.local.listentomusic.diagnostics.AppTrustSnapshot.read(instrumentation.targetContext, null).broadAccessGranted)
-        show()
-        val denied = "All Files Access is declared by this build · Not granted"
-        compose.waitUntil(5000) { compose.onAllNodesWithText(denied).fetchSemanticsNodes().isNotEmpty() }
-        compose.onNodeWithText("Manage Android permissions").performScrollTo().performClick()
         val appLabel = instrumentation.targetContext.applicationInfo
             .loadLabel(instrumentation.targetContext.packageManager).toString()
         fun hasVisibleAppLabel(node: AccessibilityNodeInfo): Boolean {
@@ -96,26 +99,63 @@ class TrustPrivacyUiTest {
             }
             return false
         }
-        compose.waitUntil(5000) {
-            val root = instrumentation.uiAutomation.rootInActiveWindow
+        fun isReadySettingsRoot(root: AccessibilityNodeInfo?): Boolean =
+            root != null && root.packageName?.toString() == "com.android.settings" && hasVisibleAppLabel(root)
+        try {
+            automation.serviceInfo = serviceInfo
+            show()
+            val denied = "All Files Access is declared by this build · Not granted"
+            compose.waitUntil(5000) { compose.onAllNodesWithText(denied).fetchSemanticsNodes().isNotEmpty() }
+            compose.onNodeWithText("Manage Android permissions").performScrollTo().performClick()
+            var nativeReadiness = "No native window query completed"
             try {
-                // Compose virtual nodes need not implement provider text search.
-                // Require the same actual Settings package and visible app label.
-                root != null && root.packageName?.toString() == "com.android.settings" && hasVisibleAppLabel(root)
-            } finally {
-                root?.recycle()
+                compose.waitUntil(5000) {
+                    val activeRoot = automation.rootInActiveWindow
+                    val activeReady = try {
+                        val ready = isReadySettingsRoot(activeRoot)
+                        nativeReadiness = "activeRoot=${activeRoot != null}, activeSettings=${activeRoot?.packageName?.toString() == "com.android.settings"}, activeLabel=$ready"
+                        ready
+                    } finally {
+                        activeRoot?.recycle()
+                    }
+                    if (activeReady) return@waitUntil true
+                    // Match AndroidX UiDevice: inspect all interactive roots as well as the active one.
+                    val windows = automation.windows
+                    try {
+                        var settingsReady = false
+                        val states = windows.map { window ->
+                            val root = window.root
+                            try {
+                                val ready = isReadySettingsRoot(root)
+                                settingsReady = settingsReady || ready
+                                "id=${window.id}, active=${window.isActive}, focused=${window.isFocused}, type=${window.type}, root=${root != null}, settings=${root?.packageName?.toString() == "com.android.settings"}, label=$ready"
+                            } finally {
+                                root?.recycle()
+                            }
+                        }
+                        nativeReadiness += "; windows=[${states.joinToString("; ")}]"
+                        settingsReady
+                    } finally {
+                        windows.forEach { it.recycle() }
+                    }
+                }
+            } catch (timeout: ComposeTimeoutException) {
+                throw AssertionError("Android Settings app-label readiness failed: $nativeReadiness", timeout)
             }
+            shell("appops set $packageName MANAGE_EXTERNAL_STORAGE allow")
+            // Settings is a different process; send Android Back instead of looking for an Espresso app root.
+            shell("input keyevent KEYCODE_BACK")
+            compose.waitUntil(5000) {
+                shell("dumpsys activity activities").lineSequence().any { it.contains("ResumedActivity") && it.contains(packageName) }
+            }
+            val granted = "All Files Access is declared by this build · Granted"
+            compose.waitUntil(5000) { compose.onAllNodesWithText(granted).fetchSemanticsNodes().isNotEmpty() }
+            compose.onNodeWithText(granted).performScrollTo().assertIsDisplayed()
+            capture("permission-return")
+        } finally {
+            serviceInfo.flags = originalServiceFlags
+            automation.serviceInfo = serviceInfo
         }
-        shell("appops set $packageName MANAGE_EXTERNAL_STORAGE allow")
-        // Settings is a different process; send Android Back instead of looking for an Espresso app root.
-        shell("input keyevent KEYCODE_BACK")
-        compose.waitUntil(5000) {
-            shell("dumpsys activity activities").lineSequence().any { it.contains("ResumedActivity") && it.contains(packageName) }
-        }
-        val granted = "All Files Access is declared by this build · Granted"
-        compose.waitUntil(5000) { compose.onAllNodesWithText(granted).fetchSemanticsNodes().isNotEmpty() }
-        compose.onNodeWithText(granted).performScrollTo().assertIsDisplayed()
-        capture("permission-return")
     }
 
     private fun capture(label: String, dialog: Boolean = false) {

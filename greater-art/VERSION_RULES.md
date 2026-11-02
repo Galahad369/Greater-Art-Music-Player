@@ -16,7 +16,7 @@ This file is the authoritative version policy for Greater Art. If any handoff no
 ## Machine-checkable state
 
 
-Current source: **1.21.98 (code 321)**
+Current source: **1.22.1 (code 322)**
 Allowed consumed transition: **1.21.38 (code 261) -> 1.21.40 (code 263)**
 
 Retain PR174's original declared transition for eeb06d9. Its initial1.21.40
@@ -90,6 +90,11 @@ Claude's supplied adaptive-sync patch proposed that identity too; integration
 used 1.21.24/code247 in its preserved history. Adaptive sync is model-backed, not acoustically verified.
 Current release state: **SOURCE_ONLY**
 Latest verified APK: **1.21.93 (code 316)**
+Allowed series transition: **1.21.98 -> 1.22.1**
+
+The user explicitly requested1.22.1 for Android finalization on3 November2026.
+It consumes the next versionCode322; no older identity is reused.
+
 Allowed series transition: **1.14.15 -> 1.15.1**
 Allowed series transition: **1.15.89 -> 1.20.2**
 Allowed series transition: **1.20.5 -> 1.21.1**
@@ -471,3 +476,4 @@ Previous baseline: 1.13.26 (code 115).
 - 1.21.96 (code 319): integrate the user-approved mobile chat's strict native Fit/Crop guard after focused Trust source9690c10. Preserve Media3 player/decoder/surface and source quality, repair retained native aspect on reuse, and test actual frame geometry/rotation/pixel aspect. Correct the Float16:9 rounding expectation without allowing deformation. Capture diagnostic dialogs without ambiguous Compose-root selection. SOURCE_ONLY pending combined494-test build, emulator and optimized same-key release checks; prior artifacts remain immutable.
 - 1.21.97 (code 320): repair two device-test fixtures found by real API36 execution after96 source was committed: attach the native view before waiting for View.post callbacks, and wait for native Settings/app readiness before querying Compose on return. Keep all geometry/grant assertions and timeouts. No production logic change beyond the required version identity; preserve Trust and strict Fit/Crop. SOURCE_ONLY pending final build/device and optimized same-key APK verification.
 - 1.21.98 (code 321): user-approved repairs to two device-test boundaries found by unchanged97 execution. Reveal fullscreen chrome with a single side tap after capture/theme work, retaining visibility, geometry, orientation and player/surface assertions and checking that reveal does not seek. Traverse visible native accessibility children for the actual Settings app label instead of unsupported virtual-provider text search; retain the package check, five-second gate and permission/return assertions. No production playback, quality, timer, permission or signing change beyond version identity. Debug/unit/lint and optimized same-key assembly pass;495 JVM tests, native fullscreen1/1, isolated geometry8/8 and Ambient journeys2/2. Exact optimized candidate5495129 bytes, SHA-25636d5279c58b155f70cc7a47ca3af348e285df1e8bf5197eeca43f9a14ef8ba02; artifact checks pass. Remains SOURCE_ONLY: permission readiness6/7, mixed Stack/ambient fixture stall and incomplete optimized return/Mini smoke after emulator host access violation0xc0000005. See docs/CANDIDATE_1.21.98.md; verified93 and all earlier evidence remain immutable.
+- 1.22.1 (code 322): user-directed finalization series. Repair native Settings readiness using early-connected interactive-window traversal while preserving actual app-label/package checks and the five-second deadline. Remove global-main-idle coupling from the live Stack/ambient fixture, retain all media assertions and bounded waits, and clean up owned player/services/preferences between cases. Preserve production playback, strict Fit/Crop, reflected Ambient, source quality, signing identity and disabled shared output. SOURCE_ONLY pending fresh build, complete emulator regressions and exact optimized-APK acceptance; no earlier release or failure evidence is overwritten.
