@@ -3,7 +3,7 @@
 This file describes the **current repository state only**. Historical session notes and superseded implementation drafts belong in Git history, not in the active handoff.
 
 **Project:** `greater-art/` in the repository checkout
-**Current source:** `1.22.1 (code 322)` — SOURCE_ONLY, user-directed finalization. Fresh debug/unit/lint and42 device cases pass. Exact optimized assembly/native acceptance is pending. Production playback/strict Fit/Crop/reflections are unchanged. Latest immutable verified APK remains1.21.93. Shared output remains disabled.
+**Current source:** `1.22.1 (code 322)` — SOURCE_ONLY. Debug/unit/lint and42 device cases pass. Exact optimized assembly/artifact inspection, same-key upgrade and cold launch pass; optimized video return/Mini acceptance is incomplete after host process failure. [Frozen candidate receipt](docs/RELEASE_1.22.1.md). Latest immutable verified APK remains1.21.93. Shared output remains disabled.
 **Previous optimized candidate:** sibling `App/output/GreaterArt-1.21.98.apk` —5,495,129 bytes, SHA-256 `36d5279c58b155f70cc7a47ca3af348e285df1e8bf5197eeca43f9a14ef8ba02`; same key, non-debuggable, artifact checks passed; **not promoted**. [Retained98 evidence](docs/CANDIDATE_1.21.98.md). The97 candidate is hash-verified and archived under sibling `output/retained-artifacts/`.
 
 The following release fields describe verified1.21.93, not the98 candidate:
