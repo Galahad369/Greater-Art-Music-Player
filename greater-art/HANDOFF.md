@@ -3,7 +3,7 @@
 This file describes the **current repository state only**. Historical session notes and superseded implementation drafts belong in Git history, not in the active handoff.
 
 **Project:** `greater-art/` in the repository checkout
-**Current source:** `1.22.2 (code 323)` — SOURCE_ONLY dependency repair. Reapply reviewed AGP9.5.0 and setup-gradle6.4.1 with the mandatory version bump; preserve desktop PR215. Local/CI verification is pending. The exact1.22.1 optimized candidate remains frozen; its [receipt](docs/RELEASE_1.22.1.md) records42 passing debug device cases and incomplete optimized return/Mini acceptance. Latest immutable verified APK remains1.21.93. Shared output remains disabled.
+**Current source:** `1.22.2 (code 323)` — SOURCE_ONLY dependency repair. Reviewed AGP9.5.0/setup-gradle6.4.1 and desktop PR215 are preserved in [PR216](https://github.com/Galahad369/Greater-Art-Music-Player/pull/216). Local range/artifact-policy/privacy checks pass; local Gradle compilation is blocked by Java21's Google Maven certificate-chain validation, not waived or bypassed. See the [convergence and recovery record](docs/BRANCH_CONVERGENCE_2026-11-03.md) and final PR checks. The exact1.22.1 candidate remains frozen; optimized return/Mini acceptance is incomplete. Latest immutable verified APK remains1.21.93. Shared output remains disabled.
 **Previous optimized candidate:** sibling `App/output/GreaterArt-1.21.98.apk` —5,495,129 bytes, SHA-256 `36d5279c58b155f70cc7a47ca3af348e285df1e8bf5197eeca43f9a14ef8ba02`; same key, non-debuggable, artifact checks passed; **not promoted**. [Retained98 evidence](docs/CANDIDATE_1.21.98.md). The97 candidate is hash-verified and archived under sibling `output/retained-artifacts/`.
 
 The following release fields describe verified1.21.93, not the98 candidate:
@@ -40,8 +40,13 @@ The following release fields describe verified1.21.93, not the98 candidate:
 - Preserve the exact1.22.1 APK/hash/key. Keep the previous emulator configuration
   as requested. No emulator is currently running; incomplete optimized native
   checks are not converted to release verification by successful CI.
-- Final local checks, replacement PR, merge result and exact branch cleanup
-  will be recorded from completed operations, not assumed in advance.
+- Replacement PR216 preserves the reviewed history. The unchanged validator
+  reproduces both original bot failures and passes this range;26 artifact-policy
+  cases and the reliable fsmonitor-off local privacy audit pass. Independent
+  source review found no actionable issue at `c873d076`. Local Java21 confirms
+  a PKIX chain failure against the actual official POM. Trust settings remain
+  unchanged; no1.22.2 local APK or runtime pass is claimed. Final checked merge
+  and branch cleanup results are recorded in PR216 and the convergence record.
 
 ### November3 — User-directed1.22.1 finalization
 
