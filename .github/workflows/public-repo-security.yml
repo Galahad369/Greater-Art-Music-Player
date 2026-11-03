@@ -72,7 +72,7 @@ jobs:
         uses: gradle/actions/setup-gradle@8da46b539cd8fe6ab27ca75128919a18d757604c # v6.4.1
 
       - name: Initialize CodeQL
-        uses: github/codeql-action/init@24c7eb380a2dc368f2d129e4c65e51d172983a1e # v4
+        uses: github/codeql-action/init@093c0af4c358e174c90d33c5672595fb14c89183 # v4
         with:
           languages: java-kotlin
           build-mode: autobuild
@@ -86,6 +86,6 @@ jobs:
         run: ./gradlew assembleDebug --no-daemon
 
       - name: Analyze Kotlin and Java
-        uses: github/codeql-action/analyze@24c7eb380a2dc368f2d129e4c65e51d172983a1e # v4
+        uses: github/codeql-action/analyze@093c0af4c358e174c90d33c5672595fb14c89183 # v4
         with:
           category: /language:java-kotlin
