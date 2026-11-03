@@ -120,7 +120,10 @@ object VideoSurfaceOwner {
             state.value.owner == owner &&
             active.get() === target &&
             target.player === player
-        ) return
+        ) {
+            (target as? AspectPreservingPlayerView)?.synchronizeVideoGeometry()
+            return
+        }
         candidates[owner] = Candidate(WeakReference(target), WeakReference(player), owner)
         reconcile()
     }
@@ -135,7 +138,10 @@ object VideoSurfaceOwner {
             state.value.owner == owner &&
             active.get() === target &&
             target.player === player
-        ) return
+        ) {
+            (target as? AspectPreservingPlayerView)?.synchronizeVideoGeometry()
+            return
+        }
         if (registered?.view?.get() !== target) log("register requestedOwner=$owner expected=$expectedOwner", target)
         candidates[owner] = Candidate(WeakReference(target), WeakReference(player), owner)
         reconcile()
@@ -167,6 +173,7 @@ object VideoSurfaceOwner {
             return
         }
         if (previous === target && target.player === player) {
+            (target as? AspectPreservingPlayerView)?.synchronizeVideoGeometry()
             noOpReconciles++
             return
         }

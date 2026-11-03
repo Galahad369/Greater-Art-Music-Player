@@ -1,6 +1,8 @@
 # Greater Art security-readiness program — draft
 
-**Status: plan and initial risk assessment only; not an ISO/IEC 27001 certification, OWASP-endorsed assessment, security clearance, or release approval.** Last scoped source reviewed: `main` 1.21.27/code250 at `0078fc8` (11 October 2026); revalidate against actual PR head before relying on these observations.
+**Status: partial safeguards and acceptance evidence, not ISO/IEC 27001 certification, OWASP endorsement, security clearance or blanket release approval.** See the dated [cross-platform trust baseline](TRUST_BASELINE.md). Older assessment/ISMS drafts below retain their original scope and are not current-version acceptance receipts.
+
+On **30 October 2026**, the existing Android **1.21.93/code316** APK's identity, SHA-256 and compatibility sideload certificate were independently rechecked. It is non-debuggable and has no Internet permission, but retains All Files Access and the legacy Android Debug certificate. Windows WinUI **0.1.22/code23** is a local development candidate, not an approved publisher-signed release. GitHub's latest public release was still v1.4.0 when checked; local receipts must not be confused with a new public publication. Concurrent Android1.21.94 work and its artifacts belong to another writer; trust integration does not relabel them.
 
 ## Plain-language map
 
@@ -15,6 +17,7 @@
 
 | Track | Current state | Plan / evidence needed |
 |---|---|---|
+| Cross-platform user trust | Runtime permission/build facts and explicit privacy-safe report controls prepared; platform acceptance tracked separately | [Trust baseline and verification limits](TRUST_BASELINE.md) |
 | Minimize file permission | Selected-folder URI Library/playback works; broad permission remains until sidecar/operation parity | [Storage migration](../greater-art/docs/STORAGE_MIGRATION.md), issue #148 |
 | Signed release chain | Exact-tag workflow exists; successful private release-signing proof not established | [Release plan](plans/release-signing.md), issue #23 |
 | Old workstation paths | Reachable history remains a potential disclosure | [History plan](plans/history-remediation.md), issue #24 |

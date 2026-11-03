@@ -208,8 +208,8 @@ internal val playbackSpeeds = listOf(0.25f, 0.5f, 0.75f, 1f, 1.25f, 1.5f, 1.75f,
 internal const val HOLD_2X_ACTIVATION_MS = 700L
 internal const val HOLD_2X_LOCK_DISTANCE_DP = 72f
 internal const val NOW_PLAYING_AMBIENT_BOTTOM_BLEND = 0.62f
-internal const val NOW_PLAYING_AMBIENT_PANEL_ALPHA = 0.58f
-internal const val NOW_PLAYING_AMBIENT_ROW_ALPHA = 0.42f
+internal const val NOW_PLAYING_AMBIENT_PANEL_ALPHA = 0.32f
+internal const val NOW_PLAYING_AMBIENT_ROW_ALPHA = 0.22f
 internal const val NOW_PLAYING_AMBIENT_OUTLINE_ALPHA = 0.34f
 internal const val NOW_PLAYING_ART_STAGE_ALPHA = 0.32f
 
@@ -447,14 +447,16 @@ fun NowPlayingScreen(
 
         var playerRootBounds by remember { mutableStateOf<androidx.compose.ui.geometry.Rect?>(null) }
 
-        val backdrop = if (ambientPreferences != null && ambientPreferences.backgroundMode in listOf(
-                com.local.listentomusic.data.AppBackgroundMode.AMBIENT,
-                com.local.listentomusic.data.AppBackgroundMode.ADAPTIVE_DYNAMIC))
+        // Now Playing already has its own media-colour backdrop. Browsing wallpaper
+        // selection must not route the default CURRENT_VIDEO player to a gradient
+        // without reflections. Reuse the same sparse colours and motion preferences.
+        val backdrop = if (ambientPreferences != null)
             Modifier.adaptiveAmbientBackdrop(artwork, playback.currentPath, ambientPreferences,
                 visible = !fullscreen,
                 extraDim = ambientPreferences.backgroundDim,
                 scrolling = queueListState.isScrollInProgress,
-                steady = ambientPreferences.backgroundMode == com.local.listentomusic.data.AppBackgroundMode.AMBIENT) else Modifier.ambientBackdrop(
+                steady = ambientPreferences.backgroundMode == com.local.listentomusic.data.AppBackgroundMode.AMBIENT,
+                playerPresentation = true) else Modifier.ambientBackdrop(
         artwork,
         MaterialTheme.colorScheme.background.luminance() > .5f,
         playback.currentPath,
@@ -1729,7 +1731,7 @@ private fun NowPlayingQueue(
                             modifier = Modifier.fillMaxWidth()
                                 .graphicsLayer { translationX = -actionWidthPx * revealProgress }
                                 .background(
-                                    if (selected) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.66f)
+                                    if (selected) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.50f)
                                     else MaterialTheme.colorScheme.surface.copy(alpha = NOW_PLAYING_AMBIENT_ROW_ALPHA),
                                 )
                                 .clickable {
@@ -2657,7 +2659,7 @@ internal fun VideoSurface(
     key(controller, sharedVideoView) {
         AndroidView(
         factory = { context ->
-            (sharedVideoView ?: PlayerView(context)).apply {
+            (sharedVideoView ?: com.local.listentomusic.ui.components.AspectPreservingPlayerView(context)).apply {
                 (parent as? ViewGroup)?.removeView(this)
                 tag = if (sharedVideoView == null) "NOW_PLAYING" else "MINI_WINDOW"
                 layoutParams = FrameLayout.LayoutParams(

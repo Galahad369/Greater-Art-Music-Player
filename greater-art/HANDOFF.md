@@ -3,7 +3,11 @@
 This file describes the **current repository state only**. Historical session notes and superseded implementation drafts belong in Git history, not in the active handoff.
 
 **Project:** `greater-art/` in the repository checkout
-**Current source:** `1.21.93 (code 316)` — VERIFIED local optimized maintenance sideload. Shared output remains disabled; this release does not complete its separate quality/function-parity gate.
+**Current source:** `1.22.2 (code 323)` — SOURCE_ONLY dependency repair. Reviewed AGP9.5.0/setup-gradle6.4.1 and desktop PR215 are preserved in [PR216](https://github.com/Galahad369/Greater-Art-Music-Player/pull/216). Local range/artifact-policy/privacy checks pass; local Gradle compilation is blocked by Java21's Google Maven certificate-chain validation, not waived or bypassed. See the [convergence and recovery record](docs/BRANCH_CONVERGENCE_2026-11-03.md) and final PR checks. The exact1.22.1 candidate remains frozen; optimized return/Mini acceptance is incomplete. Latest immutable verified APK remains1.21.93. Shared output remains disabled.
+**Previous optimized candidate:** sibling `App/output/GreaterArt-1.21.98.apk` —5,495,129 bytes, SHA-256 `36d5279c58b155f70cc7a47ca3af348e285df1e8bf5197eeca43f9a14ef8ba02`; same key, non-debuggable, artifact checks passed; **not promoted**. [Retained98 evidence](docs/CANDIDATE_1.21.98.md). The97 candidate is hash-verified and archived under sibling `output/retained-artifacts/`.
+
+The following release fields describe verified1.21.93, not the98 candidate:
+
 **Current version:** `1.21.93 (code 316)`
 **Latest APK:** `releases/GreaterArt-1.21.93.apk` (`5,478,717 bytes`; SHA-256 `cee3f50632cdf186a1b58304c195378c1917284f20ce04d354c3549ab180f6cc`)
 **Application ID:** `com.local.listentomusic`
@@ -13,6 +17,217 @@ This file describes the **current repository state only**. Historical session no
 **Verification boundary:** Exact runtime source `58048b54e4119c3aad50ca99d4595afe479653c3`; Java21/Gradle9.8.2 unit/lint/debug app/test and optimized R8 assembly passed. 473 JVM tests, zero failures/errors/skips; lint0 errors/47 warnings/4 hints. API36 debug instrumentation23/23 in520.008s covers reflected Ambient, compact audio/video controls/title transparency, real audio/video IME dock continuity, real-page navigation/video sampling and fullscreen toolbar. Separate same-certificate optimized upgrade and native Library/video/dock/expanded-player smoke passed; actual screenshots inspected. Package/version, non-debuggable state, ZIP CRC,16KiB alignment and SHA-256 checked. The APK does not embed a usable VCS SHA; this receipt records it externally. Full rotation, physical-device visual/acoustic/performance acceptance, production signing and universal crash freedom remain unverified. See [the exact release receipt](docs/RELEASE_1.21.93.md).
 
 ## Repository state
+
+### November3 — Approved branch repair and convergence
+
+- User approval: “Yes—repair, verify, merge, and clean up.” Scope is the exact
+  reviewed dependency changes, preservation, CI review and branch convergence;
+  not app redesign, release promotion or historical privacy rewriting.
+- PR213 (`5668857aa95665a029e79fa322bd88ac53d9cf5e`) and PR214
+  (`de7162354daab0cb16a4f4773526b7a800e06d95`) fail the mandatory version guard.
+  Keep the guard unchanged. Their complete original mail patches are preserved
+  under `docs/imported-patches/`; local `refs/archive/dependabot-pr213-original`
+  and `refs/archive/dependabot-pr214-original` retain the exact commits.
+- Merge current main's desktop PR215 without reverting its UNC security fixes.
+  Keep Android production source identical to1.22.1; only build/version changes
+  are applied. Java21/Gradle9.8.2 satisfy AGP9.5's documented prerequisites.
+- Unfinished Windows Trust work has25 byte-verified files in sibling
+  `output/branch-convergence-20261103/windows-preservation/`. Stash/archive OID
+  `6554c055a5d138537dd53a03c25445e34012d5a9` is retained as
+  `refs/archive/windows-trust-pre-convergence-20261103`. Its proposed
+  desktop0.1.22/code23 clashes with PR215; do not apply/publish it blindly or
+  drop the recovery checkpoint. Reconciliation remains separate Windows work.
+- Preserve the exact1.22.1 APK/hash/key. Keep the previous emulator configuration
+  as requested. No emulator is currently running; incomplete optimized native
+  checks are not converted to release verification by successful CI.
+- Replacement PR216 preserves the reviewed history. The unchanged validator
+  reproduces both original bot failures and passes this range;26 artifact-policy
+  cases and the reliable fsmonitor-off local privacy audit pass. Independent
+  source review found no actionable issue at `c873d076`. Local Java21 confirms
+  a PKIX chain failure against the actual official POM. Trust settings remain
+  unchanged; no1.22.2 local APK or runtime pass is claimed. Final checked merge
+  and branch cleanup results are recorded in PR216 and the convergence record.
+
+### November3 — User-directed1.22.1 finalization
+
+- The user explicitly requested1.22.1. Allocate next code322 and record the exact
+  series transition; never rename98 or reuse an existing version identity.
+- Re-fetch confirms remote main advanced only through desktop PR215. Preserve its
+  changes and the uncommitted Windows work; this task remains Android-only in the
+  same checkout. The other chat released the exclusive mobile build/Git window.
+- Repair the native Settings fixture with early-connected interactive-window
+  traversal, preserving its package/visible-label/five-second and grant assertions.
+  Repair the live Stack/ambient fixture's global-idle dependency with main-thread
+  task dispatch and owned-resource cleanup. No production engine/quality change.
+- Run fresh tests before the source commit. Build the final optimized APK from
+  that exact commit, inspect version/signature, and complete native video/return/
+  Mini smoke before promotion. Keep prior failures and immutable releases intact.
+- Fresh debug build passes in4m17s:495 JVM cases, no failures/errors/skips; lint0
+  errors/47 warnings/4 hints. A further1m12s test/lint assembly verifies the cleanup
+  correction: finish the exact animated test Activity before Scenario.close, which
+  itself also waits for global idle. No production animation is disabled.
+- Permission matrix now passes9/9 and restores original grants. The combined33
+  UI/geometry cases pass in367.734s without host intervention, including fullscreen
+  rotation and the previously stalled Stack/Ambient case. Retain all failed98 logs.
+- Public Launcher/Library/filter/dock steps show actual non-black scene pixels in
+  expanded Now Playing. Native portrait and settled2340x1080 landscape Fit captures
+  show the1280x720 fixture with proportional letterboxing/pillarboxing. Initial
+  pre-transition captures remain rejected; do not substitute timestamps or ambient
+  samples for visible video evidence.
+- The emulator then crashes on landscape fullscreen return. Windows records
+  qemu-system-x86_64-headless.exe/0xc0000005/unknown module at00:59 onNovember3.
+  The user declined the temporary Vulkan-off workaround. Preserve the previous
+  renderer/profile/data and document this separate host limitation; do not call
+  it a proven app crash or claim the failed native return passed. Complete the
+  optimized build and remaining portrait return/Mini checks separately.
+
+### November2 — Approved1.21.98 test repairs after actual device retry
+
+- Freshly fetched remote main remains1.21.93; the1.21.98/code321 identity was unused
+  at allocation and is now committed as `85dee789c253720e2d13e0982fda245e338acb60`.
+  Preserve new remote branches for separate review; do not mix them into this
+  focused verification window or stage the unrelated Windows edits.
+- A detached launch reached boot-complete but disappeared before native health
+  checks, with no matching Windows crash/resource event found. A managed foreground
+  emulator session then booted in42.438s. Both native hierarchy/screenshot health
+  checks passed with no new ANR events. Keep its session alive during QA rather
+  than relying on detached-process lifetime. No AVD profile, data or quality change.
+- Unchanged97 Settings navigation passes1/1 in20.974s. Fullscreen rotation failed
+  at the post-theme Rotate visibility assertion in32.19s; retain its actual portrait
+  and landscape captures. The intentional2.5s auto-hide can expire during capture
+  and theme work. Reveal controls with one normal side tap, assert no seek, then
+  retain and strengthen the original visibility/alignment/safe-bound checks.
+- The97 permission suite passes6/7 in both initial and warm runs, failing the native
+  Settings-label readiness gate without any system ANR. The visible label exists
+  in the native hierarchy. Compose's provider need not implement text search;
+  traverse exposed visible child nodes instead. Keep the same Settings package,
+  actual app label, five-second timeout and denied/granted/return assertions.
+- The user explicitly approved both fixture fixes and build1.21.98. Test and
+  version changes only; all production media code, timers, permissions, signing
+  identity and functions are unchanged. Source remains SOURCE_ONLY until its own
+  complete build/device/optimized smoke gates pass. Retain97 failures under the
+  existing sibling
+  `output/android-trust-20261031/v1.21.97/resume-20261102/` evidence directory.
+- The 1.21.98 debug app/test build passes in 6m12s: 495 JVM tests, zero failures/errors/skips;
+  lint 0 errors/47 warnings/4 hints. Freeze the matching app/test APKs and logs under
+  sibling `output/android-trust-20261031/v1.21.98/`; the internal debug APK is not
+  a release. Fullscreen rotation now passes 1/1 in 36.652s, retaining player/surface,
+  actual source dimensions, Fit/Crop, orientation, gesture and safe-bound checks.
+- The 1.21.98 denied-permission run still passes only 6/7 in 20.414s. The unchanged
+  five-second native Settings readiness gate times out at `TrustPrivacyUiTest.kt:99`.
+  Child traversal removes the unsupported-provider search dependency but does not
+  resolve this observed failure. Do not claim the denied/granted/revoked matrix
+  complete, weaken its assertions or extend its timeout to hide the failure.
+- The mixed UI/geometry run finishes 31/32 in 1559.908s, but is rejected as clean
+  acceptance. After 21 completed passes, the Stack/ambient case blocked in
+  `Instrumentation.waitForIdleSync` via `ActivityScenario.onActivity` at
+  `AdaptiveAmbientDeviceFlowTest.kt:88`. It completed only after host media-pause
+  and foreground-launch intervention. The later
+  `currentVideoDefaultDimKeepsRealExpandedReflections` case then timed out waiting
+  for actual video/dock/colour evidence. Retain the terminal log, thread snapshot
+  and intervention boundary; do not count the batch as an unattended pass.
+- Separate unchanged-fixture reruns pass native geometry 8/8 in 4.946s and Ambient
+  surface journeys 2/2 in 129.013s without host UI interaction. These results do not
+  erase the mixed-run failure or prove the Stack case reliable. 31 actual captures
+  are retained under the 1.21.98 evidence directory; selected fullscreen, expanded,
+  compact-light audio and Adaptive-light screenshots were visually inspected.
+- Optimized same-key assembly passes in6m07s. Exact package/code, signature,
+  non-debuggable/not-test-only, no INTERNET, reviewed exports, ZIP CRC and16KiB
+  alignment pass. Quote the entire PowerShell Kotlin property argument; the first
+  unquoted attempt failed task selection, not compilation. Preserve both logs.
+- Exact optimized upgrade succeeds without clearing data. The emulator then shows
+  a System UI ANR; one Wait action restores a responsive Library and Settings.
+  Settings displays1.21.98 and the selected real cover song plays through the
+  existing MediaSession. The first expanded-stage capture is black; the later
+  fullscreen capture shows actual video in portrait Fit. The rotation request
+  reaches ROTATION_90/2340x1080, but its screenshot still shows portrait during
+  transition. Do not claim settled optimized-landscape visual acceptance.
+- Before fullscreen return/Mini testing completes, ADB disconnects and the managed
+  emulator exits1. Windows events1000/1001 at23:27–23:28 identify
+  `qemu-system-x86_64-headless.exe` with access violation `0xc0000005`, unknown
+  faulting module. This establishes an emulator host crash, not its root cause or
+  a Greater Art Java crash. No further boot, host-setting change or data wipe.
+  Native optimized acceptance remains incomplete. The temporary QA floating mode
+  was changed from No Floating to Mini Window; restore No Floating on next healthy
+  QA resume. No source media was changed.
+- Keep verified1.21.93 immutable and do not promote98 from these partial results.
+  The output root now holds only the correct98 candidate;97 is archived with its
+  original hash. No physical performance/acoustic acceptance or crash-freedom claim.
+
+### November2 — Resume remains blocked by host memory
+
+- The mobile chat handed this chat the exclusive Android verification window;
+  it remains idle. Windows now reports a November1 restart, so the earlier
+  eight-day uptime is no longer current. Elevated checks found 206 MiB free,
+  then 1,265 MiB; the independent available-memory counter reported 1,307 MiB.
+  No Java/emulator helper is running and ADB has no connected devices.
+- The candidate's SHA-256 still matches the receipt. No build, emulator boot,
+  install, runtime test, source change or promotion ran. Preserve the matching
+  QA APK pair, existing key, evidence, immutable releases and desktop edits.
+  Free approximately 3 GiB before the unchanged acceptance sequence resumes;
+  this is the conservative QA target following the retained system ANRs.
+
+### October31 — Current candidate and exact stopping point
+
+- Resumed after the user reported freeing memory, with the other chat's mobile
+  verification window released. Independent Windows counters still show only
+  291–777 MiB available across retries, latest 657 MiB. No Java, Gradle, Kotlin
+  or emulator helper remains to reclaim; ADB has no devices. Nonpaged kernel
+  pool is 3,166 MiB, but this snapshot does not prove a leak or identify a driver.
+  Do not sum paged-pool allocation as resident RAM. Recommended that the user
+  save work and restart Windows, then recheck before starting the configured
+  2 GiB QA guest. Roughly 3 GiB free is a conservative QA target, not a universal
+  emulator requirement. No restart or system-setting change was performed.
+  Source/build inputs and the candidate hash are unchanged. No new runtime pass,
+  emulator run, build, app version or release promotion is implied.
+- Source56ecdf6 builds:495 JVM tests, zero failures/errors/skips; lint0 errors/47 warnings/4 hints; debug app/test assembly8m02s. Native API36 geometry8/8 passes in23.999s. The mobile chat independently reviewed the fixture repair and confirmed production source unchanged from96. All writers/builds for that chat remain frozen.
+- Optimized same-key release build passes in11m14s. Actual package1.21.97/code320, non-debuggable/not-test-only, approved signature, no INTERNET and reviewed exports pass. ZIP CRC/16KiB alignment pass;144 resolved dependency records. Keep the exact R8 mapping and JSON receipts in the evidence directory. Key and immutable release93 remain unchanged.
+- Full interactive acceptance is NOT complete. Final trust run passes6/7 in122.887s; its external-Settings readiness check is blocked by an inspected System UI ANR. Attempted system recovery then exposes a Pixel Launcher ANR. Do not mask these captures or extend retries/relax assertions. Host had260MiB free during failure and870MiB after build; user asked to free roughly3GiB. At the stop check the owned emulator was already disconnected; no wipe/data deletion occurred.
+- Next step is the unchanged host trust matrix and real fullscreen/rotation/return, Settings and video/IME regressions after adequate RAM is available, using the QA AVD's normal four CPU cores. Then separately upgrade to the exact optimized candidate and perform native smoke before promotion. **Do not put97 into releases/ or mark VERIFIED yet.** See the candidate receipt for commands, paths, hashes and boundaries.
+- Cleanup is complete for nine obsolete/duplicate outputs, including inactive
+  1.21.95/1.21.96 test APKs: 153,604,909 bytes sent to the Recycle Bin and
+  recoverable. The loose legacy 1.15.75 APK is archived intact. The sibling
+  output root contains one current optimized delivery candidate, 1.21.97.
+  Preserve its matching debug/test pair, mapping, fixtures, evidence, signing
+  material and immutable releases. The sibling output index records the inventory.
+  No branch switch, push, public release, key replacement or history rewrite.
+
+### October31 — Real-device-test fixture corrections (1.21.97)
+
+- Exact96 source44d5281 builds successfully in3m57s:495 JVM tests pass; lint0 errors/47 warnings/4 hints; debug app/test APKs frozen under sibling `output/android-trust-20261031/v1.21.96/`. Geometry device run passes7/8 in10.946s. The stale-aspect case's detached View never delivers its posted listener callback. Attach it to a real ComponentActivity, retaining the callback and native geometry assertions. The mobile chat independently identified this same fixture issue and explicitly handed over fix/version ownership.
+- Host trust run passes6/7 in78.957s. Its last case sends Back from Android Settings, then queries Compose before the app hierarchy is resumed. Wait for actual Settings app-details content before Back and for the app's resumed Activity before querying Compose. Do not catch/discard missing-hierarchy errors or relax grant assertions. The runner correctly refuses acceptance and restores its input grant modes. Keep both96 failed logs.
+- These are test-fixture fixes; production Trust/geometry code is unchanged from96. Version97 is required because96 was already committed. Final build, full host permission matrix, Settings/playback/geometry tests and optimized same-key APK acceptance remain pending. No release/artifact is renamed or overwritten.
+
+### October31 — Approved combined integration window (1.21.96)
+
+- The user explicitly directed: pause the aspect-ratio writer, include and test its changes. Verified direct human permission for cross-chat coordination; notified the mobile chat to freeze source/builds and preserve this task's exclusive build window. Record focused Trust source first as9690c10 (1.21.95/code318), excluding its playback files, then integrate its approved guard under1.21.96/code319. No remote writes or branch switch.
+- Credit Greater Art mobile chat019fdcca-2d14-7e71-9257-a6995ff2136b for AspectPreservingPlayerView, VideoContentGeometry, shared XML/Now Playing wiring, same-owner geometry refresh and their JVM/native tests. Keep only Fit/Crop, the original player/decoder/surface, source quality and last valid aspect during unknown-size transitions. Exact native dimensions replace Media3's near-aspect deformation tolerance; reject unrepresentable native measured sizes.
+- Rejected the earlier changing-tree build:493/494 JVM cases passed; the only failure expected608px where the supplied Float16:9 ratio rounds to607px. Preserve the owner's corrected exact expectation and proportional-scale checks. Input hashes detected its remaining edits; those APK/test outputs are not acceptance evidence. A fresh complete build is required.
+- Trust dialog captures use the owned display while a dialog adds a second Compose root. No UI behavior or assertions are removed. Run the host-owned deny/grant/revoke matrix, then Settings, reflection/compact/video/IME/toolbar and the eight new native geometry cases. Record actual results before release finalization. Existing1.21.93/94 artifact hashes and signing key are unchanged.
+- See [the trust evidence and continuation record](docs/TRUST_BASELINE_2026-10-30.md). Earlier ownership-blocker notes below are historical and superseded by this explicit inclusion/coordination instruction.
+
+### October31 — Coordinated Android Trust & privacy integration
+
+- Continuation status: full debug app/test build passes,480 JVM tests pass with no failures/errors/skips, lint0 errors/47 existing warnings/4 hints.26 artifact-policy tests pass. Same-key API36 upgrade succeeds without clearing data. Final release APK is not built/promoted yet.
+- First device attempt died before tests in ART dex verification under severe scheduler delay; trace also contains several Android-service startup ANRs. After debug-target precompilation, installed identity passes. The next test revoked its own All Files Access, and Android deliberately killed that UID (`MANAGE_EXTERNAL_STORAGE changed`), terminating instrumentation. This is a harness error, not a Java crash. Move deny/grant/revoke setup to the host between process runs; grant-on-return can stay in the UI test because Android does not kill for that transition. Preserve both failed logs. New host runner `scripts/test-android-trust.ps1` restores prior app-ops and requires actual nine-case success; it is not yet device-verified.
+- NEW OWNERSHIP BLOCKER: at16:27 another writer edited `ui/NowPlayingScreen.kt` and `res/layout/background_video.xml`, adding `components/AspectPreservingPlayerView.kt` and `VideoContentGeometry.kt` during the test-harness build. Preserve those edits; ask that writer to pause and whether to include them. The3m19s harness build compiled the changing playback tree, so its outputs are not a verified app/test pair. Do not install them over the earlier frozen debug app, commit the other writer's changes or promote an APK until scope/ownership is agreed and a fresh complete build passes.
+- Owned QA emulator is stopped and its original storage/overlay grants are restored. Signing key,1.21.93 release and1.21.94 internal APK hashes remain unchanged. Detailed evidence and exact continuation steps are in the trust record linked below.
+- User confirmed the other Greater Art writer is paused and authorized completion, exact-version APK build and emulator testing with the existing key. Record the preserved1.21.94 reflection work separately as6378014 before advancing to1.21.95/code318. Do not modify desktop source or overwrite existing APKs.
+- Integrate installed package/version/certificate/permission facts into Settings, with localized privacy copy, opt-in listening history, bounded redacted diagnostic preview and separate confirmed history/report clearing. Keep original media, cache, playback quality and shared-output routing unchanged.
+- Shared artifact checks inspect the actual APK, its protected exported components and pinned certificate; no new signing key or production-publisher claim.23 artifact-policy tests pass. Source review replaced an unavailable Reader helper with an explicitly bounded read loop. Android build/device verification is still pending at this entry.
+- User separately approved closing CampusPlayMatch_API36/emulator-5572 and its two verified idle Java daemons. Stopped only those targets; preserve all apps/data/source/caches. Host RAM remained constrained, so use1GiB/one-worker/in-process Kotlin builds and run the emulator separately. No assertions/timeouts or primary-media quality were reduced. Do not treat the prepared debug target's functional tests as cold-start performance evidence.
+- Detailed completion record: [Android trust integration](docs/TRUST_BASELINE_2026-10-30.md). Production signing, full storage cutover, hosted new CI, physical-device/security/acoustic assessment and universal crash freedom remain separate gates.
+
+### October30 — Now Playing reflections missing on the default route
+
+- User reports the released player still lacks visible reflection. Source review confirms default CURRENT_VIDEO and other browsing wallpapers route Now Playing through the old vertical-gradient-only backdrop; only global AMBIENT/ADAPTIVE_DYNAMIC reach the reflected renderer. Prior tests covered those two explicit modes, not the actual default route.
+- User approved independent Now Playing reflections, stronger light below the media and more transparent chrome. Reuse the existing sparse video/artwork colours and Canvas renderer. Route every production Now Playing presentation through it regardless of browsing wallpaper. Keep Classic steady; preserve intensity Off, dimming, reduced-motion/power/lifecycle/scroll gates and fullscreen visibility.
+- Concentrate the player reflection field in the lower two-thirds and strengthen its light without changing browsing-page rendering. Lower queue/transport paint opacity; retain their geometry, touch targets, text and boundaries. The title holder stays transparent. No new decoder, sample/readback, dependency, permission or source-quality limit.
+- Java21/Gradle9.8.2 unit/lint/debug app/test build passes:473 JVM tests, zero failures/errors/skips; lint0 errors/47 warnings/4 hints. Initial API36 component run passes21/22 in97.653s. The one zero-intensity light-video capture includes a System UI ANR dialog and shadow; retain it as rejected evidence and keep the pixel assertion unchanged. New maximum-strength cases and the real default-route overlay journey compile but have not run.
+- Final verification is blocked by host memory:87MiB initially, then98MiB available with both emulators stopped despite the user's cleanup. Stop only the owned QA emulator and, after explicit user approval, CampusPlayMatch_API36/emulator-5572. Installed apps/data remain intact. Do not restart two emulators or close other user apps. Require roughly3GiB available before resuming the unchanged25-case run.
+- Internal debug test APK only: sibling `output/now-playing-reflections-20261030/GreaterArt-1.21.94-internal-test.apk`,27,072,245 bytes, SHA-256 `9538f7fd0504d74076a3315ad3038b3e2573ed72df627d19e639cd734021276a`. Package1.21.94/code317,16KiB alignment and exact copy hash checked; it upgraded the existing emulator install without clearing data. This is not an optimized or promoted release. Verified1.21.93 remains unchanged.
+- A separate task has since added Trust/privacy, workflow and desktop edits in this same checkout. The test APK predates those edits; it does not verify the current combined tree. Preserve that work. Do not stage it, change branches, overwrite source, or publish this candidate as a consolidated build. Coordinate writers/version allocation before a final build. See [focused evidence and continuation steps](docs/NOW_PLAYING_REFLECTIONS_2026-10-30.md).
+- Prevent recurrence by testing CURRENT_VIDEO with the persisted default dim rather than only opt-in Ambient at artificially low dim. Visual acceptance and the actual expanded-overlay rerun remain pending; do not call the task fully verified.
 
 ### October30 — Maintenance release and workspace consolidation
 

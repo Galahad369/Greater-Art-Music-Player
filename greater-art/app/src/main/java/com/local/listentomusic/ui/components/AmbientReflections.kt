@@ -21,8 +21,10 @@ internal fun DrawScope.drawAmbientReflections(
     motion: Float,
     strength: Float,
     light: Boolean,
+    playerPresentation: Boolean = false,
 ) {
-    val amount = if (strength.isFinite()) strength.coerceIn(0f, 1f) else 0f
+    val amount = (if (strength.isFinite()) strength.coerceIn(0f, 1f) else 0f) *
+        if (playerPresentation) 1.65f else 1f
     val width = size.width
     val height = size.height
     if (amount == 0f || !width.isFinite() || !height.isFinite() || width <= 0f || height <= 0f) return
@@ -36,28 +38,32 @@ internal fun DrawScope.drawAmbientReflections(
     val ripple = sin(p * 2.0 + .8).toFloat() * movement
     val span = maxOf(width, height)
     val gleam = lerp(accent, if (light) primary else Color.White, if (light) .25f else .64f)
+    // The upper third is occupied by the real video/artwork. Concentrate reflected
+    // light below it, instead of painting most of the effect behind opaque media.
+    val fieldHeight = height * if (playerPresentation) .67f else 1f
+    val fieldTop = height - fieldHeight
 
     // Wide off-screen origins produce luminous edges without a visible glow disc.
     drawRect(Brush.radialGradient(
         listOf(primary.copy(alpha = amount * if (light) .18f else .43f), Color.Transparent),
-        center = Offset(width * (-.08f + .07f * sweep), height * (.27f + .10f * drift)),
+        center = Offset(width * (-.08f + .07f * sweep), fieldTop + fieldHeight * (.27f + .10f * drift)),
         radius = span * .67f,
     ))
     drawRect(Brush.radialGradient(
         listOf(secondary.copy(alpha = amount * if (light) .16f else .38f), Color.Transparent),
-        center = Offset(width * (1.06f + .05f * drift), height * (.72f + .09f * sweep)),
+        center = Offset(width * (1.06f + .05f * drift), fieldTop + fieldHeight * (.72f + .09f * sweep)),
         radius = span * .60f,
     ))
 
-    val upper = height * (.19f + .06f * sweep)
-    val lower = height * (.74f + .05f * ripple)
+    val upper = fieldTop + fieldHeight * (.19f + .06f * sweep)
+    val lower = fieldTop + fieldHeight * (.74f + .05f * ripple)
     val broad = Path().apply {
-        moveTo(-width * .20f, upper - height * .14f)
-        cubicTo(width * .22f, upper - height * .20f,
-            width * .54f, lower - height * .10f, width * 1.20f, lower - height * .25f)
-        lineTo(width * 1.20f, lower + height * .06f)
-        cubicTo(width * .52f, lower + height * .19f,
-            width * .19f, upper + height * .12f, -width * .20f, upper + height * .12f)
+        moveTo(-width * .20f, upper - fieldHeight * .14f)
+        cubicTo(width * .22f, upper - fieldHeight * .20f,
+            width * .54f, lower - fieldHeight * .10f, width * 1.20f, lower - fieldHeight * .25f)
+        lineTo(width * 1.20f, lower + fieldHeight * .06f)
+        cubicTo(width * .52f, lower + fieldHeight * .19f,
+            width * .19f, upper + fieldHeight * .12f, -width * .20f, upper + fieldHeight * .12f)
         close()
     }
     drawPath(broad, Brush.linearGradient(
@@ -67,18 +73,18 @@ internal fun DrawScope.drawAmbientReflections(
         .58f to gleam.copy(alpha = amount * if (light) .10f else .23f),
         .78f to accent.copy(alpha = amount * if (light) .06f else .14f),
         1f to Color.Transparent,
-        start = Offset(width * .12f, upper - height * .12f),
-        end = Offset(width * .84f, lower + height * .16f),
+        start = Offset(width * .12f, upper - fieldHeight * .12f),
+        end = Offset(width * .84f, lower + fieldHeight * .16f),
     ))
 
-    val ribbonY = height * (.54f + .055f * drift)
+    val ribbonY = fieldTop + fieldHeight * (.54f + .055f * drift)
     val ribbon = Path().apply {
-        moveTo(-width * .12f, ribbonY + height * .19f)
-        cubicTo(width * .26f, ribbonY - height * .08f,
-            width * .67f, ribbonY + height * .20f, width * 1.12f, ribbonY - height * .17f)
-        lineTo(width * 1.12f, ribbonY - height * .09f)
-        cubicTo(width * .65f, ribbonY + height * .28f,
-            width * .27f, ribbonY - height * .015f, -width * .12f, ribbonY + height * .26f)
+        moveTo(-width * .12f, ribbonY + fieldHeight * .19f)
+        cubicTo(width * .26f, ribbonY - fieldHeight * .08f,
+            width * .67f, ribbonY + fieldHeight * .20f, width * 1.12f, ribbonY - fieldHeight * .17f)
+        lineTo(width * 1.12f, ribbonY - fieldHeight * .09f)
+        cubicTo(width * .65f, ribbonY + fieldHeight * .28f,
+            width * .27f, ribbonY - fieldHeight * .015f, -width * .12f, ribbonY + fieldHeight * .26f)
         close()
     }
     drawPath(ribbon, Brush.linearGradient(
@@ -87,8 +93,8 @@ internal fun DrawScope.drawAmbientReflections(
         .53f to gleam.copy(alpha = amount * if (light) .13f else .29f),
         .72f to secondary.copy(alpha = amount * if (light) .07f else .16f),
         1f to Color.Transparent,
-        start = Offset(0f, ribbonY + height * .24f),
-        end = Offset(width, ribbonY - height * .12f),
+        start = Offset(0f, ribbonY + fieldHeight * .24f),
+        end = Offset(width, ribbonY - fieldHeight * .12f),
     ))
     // Reuse the ribbon contour for a fine specular edge, not another large layer.
     drawPath(ribbon, Brush.horizontalGradient(listOf(

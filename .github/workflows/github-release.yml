@@ -11,12 +11,16 @@ on:
         required: true
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
   release:
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    permissions:
+      contents: write
+      id-token: write
+      attestations: write
     env:
       RELEASE_TAG: ${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref_name }}
     steps:
@@ -55,7 +59,7 @@ jobs:
           cache: gradle
 
       - name: Set up Gradle
-        uses: gradle/actions/setup-gradle@3f5f9adaf7d9fecd50b5935e54106014257a94e6 # v6.4.0
+        uses: gradle/actions/setup-gradle@8da46b539cd8fe6ab27ca75128919a18d757604c # v6.4.1
 
       - name: Restore release signing key
         shell: bash
@@ -83,8 +87,17 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          chmod +x gradlew
-          ./gradlew testDebugUnitTest lintDebug assembleRelease --no-daemon
+          bash ./gradlew testDebugUnitTest lintDebug assembleRelease --no-daemon
+
+      - name: Enforce production trust gate
+        shell: bash
+        env:
+          EXPECTED_CERTIFICATE: ${{ vars.ANDROID_RELEASE_CERT_SHA256 }}
+        run: |
+          set -euo pipefail
+          : "${EXPECTED_CERTIFICATE:?Owner must approve ANDROID_RELEASE_CERT_SHA256 before production publishing}"
+          code="$(sed -nE 's/^[[:space:]]*versionCode[[:space:]]*=[[:space:]]*([0-9]+).*/\1/p' greater-art/app/build.gradle.kts)"
+          python scripts/verify-trust-artifact.py --kind android --artifact greater-art/app/build/outputs/apk/release/app-release.apk --channel production --expected-version "${RELEASE_TAG#v}" --expected-code "$code" --expected-certificate "$EXPECTED_CERTIFICATE" --sdk "$ANDROID_HOME" --output GreaterArt-trust.json
 
       - name: Verify APK identity, signature, and packaged version
         shell: bash
@@ -134,6 +147,21 @@ jobs:
           echo "apk=$apk" >> "$GITHUB_OUTPUT"
           echo "checksum=$checksum" >> "$GITHUB_OUTPUT"
 
+      - name: Record resolved build dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          bash greater-art/gradlew -p greater-art :app:dependencies --configuration releaseRuntimeClasspath --console=plain --quiet > "$RUNNER_TEMP/greater-art-dependencies.txt"
+          python scripts/trust-dependency-inventory.py --kind android --gradle-report "$RUNNER_TEMP/greater-art-dependencies.txt" --output GreaterArt-dependencies.json
+
+      - name: Attest exact candidate bytes before publication
+        uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4
+        with:
+          subject-path: |
+            ${{ steps.asset.outputs.apk }}
+            GreaterArt-trust.json
+            GreaterArt-dependencies.json
+
       - name: Create release from verified signed tag build
         env:
           GH_TOKEN: ${{ github.token }}
@@ -143,6 +171,8 @@ jobs:
           gh release create "$RELEASE_TAG" \
             "${{ steps.asset.outputs.apk }}" \
             "${{ steps.asset.outputs.checksum }}" \
+            "GreaterArt-trust.json" \
+            "GreaterArt-dependencies.json" \
             --verify-tag \
             --title "Greater Art ${RELEASE_TAG}" \
             --notes "Built and release-signed in GitHub Actions from the exact tagged source. SHA-256 is attached for integrity verification."

@@ -1,0 +1,40 @@
+From 5668857aa95665a029e79fa322bd88ac53d9cf5e Mon Sep 17 00:00:00 2001
+From: "dependabot[bot]" <49699333+dependabot[bot]@users.noreply.github.com>
+Date: Sat, 31 Oct 2026 08:13:51 +0000
+Subject: [PATCH] Bump com.android.application
+
+Bumps the android-gradle-dependencies group in /greater-art with 1 update: com.android.application.
+
+
+Updates `com.android.application` from 9.4.1 to 9.5.0
+
+---
+updated-dependencies:
+- dependency-name: com.android.application
+  dependency-version: 9.5.0
+  dependency-type: direct:production
+  update-type: version-update:semver-minor
+  dependency-group: android-gradle-dependencies
+...
+
+Signed-off-by: dependabot[bot] <support@github.com>
+---
+ greater-art/build.gradle.kts | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/greater-art/build.gradle.kts b/greater-art/build.gradle.kts
+index cbc4382..6e8ddfc 100644
+--- a/greater-art/build.gradle.kts
++++ b/greater-art/build.gradle.kts
+@@ -1,7 +1,7 @@
+ plugins {
+     // Verified together for the offline build. Do not accept dependency-bot versions
+     // until Google/Maven resolution and the full device-independent gate both pass.
+-    id("com.android.application") version "9.4.1" apply false
++    id("com.android.application") version "9.5.0" apply false
+     id("org.jetbrains.kotlin.plugin.compose") version "2.4.21" apply false
+ }
+ 
+-- 
+2.54.0.windows.1
+
