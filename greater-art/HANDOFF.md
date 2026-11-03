@@ -3,7 +3,7 @@
 This file describes the **current repository state only**. Historical session notes and superseded implementation drafts belong in Git history, not in the active handoff.
 
 **Project:** `greater-art/` in the repository checkout
-**Current source:** `1.22.1 (code 322)` — SOURCE_ONLY. Debug/unit/lint and42 device cases pass. Exact optimized assembly/artifact inspection, same-key upgrade and cold launch pass; optimized video return/Mini acceptance is incomplete after host process failure. [Frozen candidate receipt](docs/RELEASE_1.22.1.md). Latest immutable verified APK remains1.21.93. Shared output remains disabled.
+**Current source:** `1.22.2 (code 323)` — SOURCE_ONLY dependency repair. Reapply reviewed AGP9.5.0 and setup-gradle6.4.1 with the mandatory version bump; preserve desktop PR215. Local/CI verification is pending. The exact1.22.1 optimized candidate remains frozen; its [receipt](docs/RELEASE_1.22.1.md) records42 passing debug device cases and incomplete optimized return/Mini acceptance. Latest immutable verified APK remains1.21.93. Shared output remains disabled.
 **Previous optimized candidate:** sibling `App/output/GreaterArt-1.21.98.apk` —5,495,129 bytes, SHA-256 `36d5279c58b155f70cc7a47ca3af348e285df1e8bf5197eeca43f9a14ef8ba02`; same key, non-debuggable, artifact checks passed; **not promoted**. [Retained98 evidence](docs/CANDIDATE_1.21.98.md). The97 candidate is hash-verified and archived under sibling `output/retained-artifacts/`.
 
 The following release fields describe verified1.21.93, not the98 candidate:
@@ -17,6 +17,31 @@ The following release fields describe verified1.21.93, not the98 candidate:
 **Verification boundary:** Exact runtime source `58048b54e4119c3aad50ca99d4595afe479653c3`; Java21/Gradle9.8.2 unit/lint/debug app/test and optimized R8 assembly passed. 473 JVM tests, zero failures/errors/skips; lint0 errors/47 warnings/4 hints. API36 debug instrumentation23/23 in520.008s covers reflected Ambient, compact audio/video controls/title transparency, real audio/video IME dock continuity, real-page navigation/video sampling and fullscreen toolbar. Separate same-certificate optimized upgrade and native Library/video/dock/expanded-player smoke passed; actual screenshots inspected. Package/version, non-debuggable state, ZIP CRC,16KiB alignment and SHA-256 checked. The APK does not embed a usable VCS SHA; this receipt records it externally. Full rotation, physical-device visual/acoustic/performance acceptance, production signing and universal crash freedom remain unverified. See [the exact release receipt](docs/RELEASE_1.21.93.md).
 
 ## Repository state
+
+### November3 — Approved branch repair and convergence
+
+- User approval: “Yes—repair, verify, merge, and clean up.” Scope is the exact
+  reviewed dependency changes, preservation, CI review and branch convergence;
+  not app redesign, release promotion or historical privacy rewriting.
+- PR213 (`5668857aa95665a029e79fa322bd88ac53d9cf5e`) and PR214
+  (`de7162354daab0cb16a4f4773526b7a800e06d95`) fail the mandatory version guard.
+  Keep the guard unchanged. Their complete original mail patches are preserved
+  under `docs/imported-patches/`; local `refs/archive/dependabot-pr213-original`
+  and `refs/archive/dependabot-pr214-original` retain the exact commits.
+- Merge current main's desktop PR215 without reverting its UNC security fixes.
+  Keep Android production source identical to1.22.1; only build/version changes
+  are applied. Java21/Gradle9.8.2 satisfy AGP9.5's documented prerequisites.
+- Unfinished Windows Trust work has25 byte-verified files in sibling
+  `output/branch-convergence-20261103/windows-preservation/`. Stash/archive OID
+  `6554c055a5d138537dd53a03c25445e34012d5a9` is retained as
+  `refs/archive/windows-trust-pre-convergence-20261103`. Its proposed
+  desktop0.1.22/code23 clashes with PR215; do not apply/publish it blindly or
+  drop the recovery checkpoint. Reconciliation remains separate Windows work.
+- Preserve the exact1.22.1 APK/hash/key. Keep the previous emulator configuration
+  as requested. No emulator is currently running; incomplete optimized native
+  checks are not converted to release verification by successful CI.
+- Final local checks, replacement PR, merge result and exact branch cleanup
+  will be recorded from completed operations, not assumed in advance.
 
 ### November3 — User-directed1.22.1 finalization
 

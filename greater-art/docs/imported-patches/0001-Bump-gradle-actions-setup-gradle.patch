@@ -1,0 +1,70 @@
+From de7162354daab0cb16a4f4773526b7a800e06d95 Mon Sep 17 00:00:00 2001
+From: "dependabot[bot]" <49699333+dependabot[bot]@users.noreply.github.com>
+Date: Sat, 31 Oct 2026 08:25:53 +0000
+Subject: [PATCH] Bump gradle/actions/setup-gradle
+
+Bumps the github-actions group with 1 update: [gradle/actions/setup-gradle](https://github.com/gradle/actions).
+
+
+Updates `gradle/actions/setup-gradle` from 6.4.0 to 6.4.1
+- [Release notes](https://github.com/gradle/actions/releases)
+- [Commits](https://github.com/gradle/actions/compare/3f5f9adaf7d9fecd50b5935e54106014257a94e6...8da46b539cd8fe6ab27ca75128919a18d757604c)
+
+---
+updated-dependencies:
+- dependency-name: gradle/actions/setup-gradle
+  dependency-version: 6.4.1
+  dependency-type: direct:production
+  update-type: version-update:semver-patch
+  dependency-group: github-actions
+...
+
+Signed-off-by: dependabot[bot] <support@github.com>
+---
+ .github/workflows/android-ci.yml           | 2 +-
+ .github/workflows/github-release.yml       | 2 +-
+ .github/workflows/public-repo-security.yml | 2 +-
+ 3 files changed, 3 insertions(+), 3 deletions(-)
+
+diff --git a/.github/workflows/android-ci.yml b/.github/workflows/android-ci.yml
+index 55e57a5..9bd7df1 100644
+--- a/.github/workflows/android-ci.yml
++++ b/.github/workflows/android-ci.yml
+@@ -32,7 +32,7 @@ jobs:
+           cache: gradle
+ 
+       - name: Set up Gradle
+-        uses: gradle/actions/setup-gradle@3f5f9adaf7d9fecd50b5935e54106014257a94e6 # v6.4.0
++        uses: gradle/actions/setup-gradle@8da46b539cd8fe6ab27ca75128919a18d757604c # v6.4.1
+ 
+       - name: Make wrapper executable
+         run: chmod +x greater-art/gradlew
+diff --git a/.github/workflows/github-release.yml b/.github/workflows/github-release.yml
+index 7a80898..23fe8d2 100644
+--- a/.github/workflows/github-release.yml
++++ b/.github/workflows/github-release.yml
+@@ -55,7 +55,7 @@ jobs:
+           cache: gradle
+ 
+       - name: Set up Gradle
+-        uses: gradle/actions/setup-gradle@3f5f9adaf7d9fecd50b5935e54106014257a94e6 # v6.4.0
++        uses: gradle/actions/setup-gradle@8da46b539cd8fe6ab27ca75128919a18d757604c # v6.4.1
+ 
+       - name: Restore release signing key
+         shell: bash
+diff --git a/.github/workflows/public-repo-security.yml b/.github/workflows/public-repo-security.yml
+index 692b7e4..666953c 100644
+--- a/.github/workflows/public-repo-security.yml
++++ b/.github/workflows/public-repo-security.yml
+@@ -69,7 +69,7 @@ jobs:
+           cache: gradle
+ 
+       - name: Set up Gradle
+-        uses: gradle/actions/setup-gradle@3f5f9adaf7d9fecd50b5935e54106014257a94e6 # v6.4.0
++        uses: gradle/actions/setup-gradle@8da46b539cd8fe6ab27ca75128919a18d757604c # v6.4.1
+ 
+       - name: Initialize CodeQL
+         uses: github/codeql-action/init@24c7eb380a2dc368f2d129e4c65e51d172983a1e # v4
+-- 
+2.54.0.windows.1
+

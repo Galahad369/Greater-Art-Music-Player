@@ -177,6 +177,15 @@ int tests(const std::filesystem::path &directory)
     expect(!localMediaPath(L"https://example.com/x.mp3") && !localMediaPath(L"\\\\server\\track.mp3") &&
                !localMediaPath(L"C:\\file.mp3:stream"),
            "network and alternate stream playlist paths rejected");
+    expect(!localMediaPath(L"//server/share/track.mp3") &&
+               !localMediaPath(L"/\\server/share/track.mp3") &&
+               !localMediaPath(L"\\/server/share/track.mp3") &&
+               !localMediaPath(L"//?/UNC/server/share/track.mp3") &&
+               !localMediaPath(L"//./C:/track.mp3"),
+           "forward and mixed slash network/device paths rejected before filesystem access");
+    expect(localMediaPath(L"C:/Music/track.mp3") && localMediaPath(L"C:\\Music\\track.mp3") &&
+               localMediaPath(L"relative/track.mp3") && localMediaPath(L"relative\\track.mp3"),
+           "local absolute and relative playlist paths remain supported");
     expect(fromUtf8(toUtf8(L"歌𠮷")) == L"歌𠮷", "UTF-8 CJK and supplementary characters roundtrip");
     auto exportPath = directory / L"roundtrip.m3u8";
     std::error_code cleanup;

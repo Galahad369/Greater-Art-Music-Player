@@ -125,7 +125,10 @@ inline void pruneWaveCache(const std::filesystem::path &directory)
 }
 inline bool localMediaPath(const std::wstring &path)
 {
-    if (path.empty() || path.rfind(L"\\\\", 0) == 0 || path.find(L"://") != std::wstring::npos)
+    // Win32 treats either slash as a separator, including mixed-slash UNC/device prefixes.
+    const auto separator = [](wchar_t value) { return value == L'\\' || value == L'/'; };
+    if (path.empty() || (path.size() >= 2 && separator(path[0]) && separator(path[1])) ||
+        path.find(L"://") != std::wstring::npos)
         return false;
     auto colon = path.find(L':');
     return colon == std::wstring::npos ||
