@@ -54,8 +54,11 @@ SHA-256 download hash detects differences, not the publisher's identity.
 
 - Preserve pinned Actions and existing branch protection. No bypass or repository
   administration change is made.
-- Windows CI runs C++/C# CodeQL manual-build analysis, the previously omitted
-  graph-model tests, private-diagnostic tests, version tests and native ABI tests.
+- Windows CI initializes C++/C# CodeQL before the existing native and WinUI builds
+  and analyzes those compilations afterward. It also runs the graph-model
+  executable, version checks and native ABI tests. Confirm both language databases
+  contain owned source before recording coverage; configuration alone is not
+  acceptance evidence.
 - Android CI inspects the **built APK**, not just source manifest text. Negative
   policy tests reject wrong versions/signers, Internet access, unknown exports,
   debug/test-only distribution and false production relabeling.
@@ -73,8 +76,9 @@ SHA-256 download hash detects differences, not the publisher's identity.
   official SHA-pinned `actions/attest` before publication. No workflow is launched
   by this task. The inventory is not a CVE/malware scan or complete standardized SBOM.
 
-New CI/source configuration is not a claim that hosted CI or production signing
-has run. No PR, tag, GitHub release, signing key or history rewrite is created here.
+CI configuration records intended checks. Completed hosted coverage must be tied
+to an exact commit and run; it does not establish production signing or interactive
+acceptance.
 
 ## Verification and remaining work
 

@@ -1,7 +1,7 @@
 # Greater Art Desktop version policy
 
-Current desktop: **0.1.22 (code 23)**
-Release state: **SOURCE_ONLY — local network-path validation fix; no new verified delivery**
+Current desktop: **0.1.23 (code 24)**
+Release state: **SOURCE_ONLY — native CodeQL and graph-model CI coverage; no new verified delivery**
 Android versions remain independent. This desktop stage does not change Android source or artifacts. Refer to the Android ledger for its current identity.
 
 Every committed desktop executable/build/workflow change increments PATCH and code together. Documentation and verified-artifact finalization do not consume another version. Never overwrite a versioned artifact. Full-parity 1.0.0 is reserved until all parity gates pass.
@@ -32,6 +32,8 @@ Every committed desktop executable/build/workflow change increments PATCH and co
 | 0.1.21 / 22 | LOCALLY VERIFIED PREVIEW | WinUI Nodes final drag position, coprime large-library sampling/cache v3, compact controls, zoom-aware labels, local focus, keyboard/pan access and separate preferences. Canvas-hosted world Paths fix negative-coordinate clipping found by visual A/B captures after numeric passes; hub radius floor preserves fit-zoom hierarchy. Native 81/81, bridge 15,378 assertions, model 85/85 and version 9/9 passed. Final real 1080p/4K runs passed all 16 exploration, 6 transform/ABI and 4 preference checks each; transfers and inspected captures passed with the bundle unchanged. [Completed receipt and exact hashes](winui/VERIFICATION_0.1.21.md). Runnable publish folder only; no new frozen ZIP/installer. Physical pointer, Narrator, signing and clean-machine gates remain open. Frozen 0.1.16 is preserved; desktop work excludes concurrent Android edits. |
 
 | 0.1.22 / 23 | SOURCE_ONLY security fix | Reject forward- and mixed-slash UNC/device prefixes before filesystem access. Keep local absolute/relative paths supported. Frozen releases and the verified 0.1.21 preview receipt are preserved; no new delivery is claimed. |
+
+| 0.1.23 / 24 | SOURCE_ONLY CI coverage | Trace the existing native and WinUI builds with C++/C# CodeQL and run the existing graph-model tests. No new frozen delivery, signing or interactive acceptance is claimed. Historical releases and the verified 0.1.21 preview are preserved. |
 
 The one-time source-baseline transition from 0.1.16/code17 to 0.1.19/code20 skips the two consumed identities above. The version guard permits only this exact transition; subsequent executable/build changes still require PATCH/code +1. This does not relabel or overwrite a historical release.
 
