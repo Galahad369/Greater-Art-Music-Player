@@ -1,7 +1,7 @@
 # Greater Art Desktop version policy
 
-Current desktop: **0.1.23 (code 24)**
-Release state: **SOURCE_ONLY — native CodeQL and graph-model CI coverage; no new verified delivery**
+Current desktop: **0.1.24 (code 25)**
+Release state: **SOURCE_ONLY — self-test output preservation**
 Android versions remain independent. This desktop stage does not change Android source or artifacts. Refer to the Android ledger for its current identity.
 
 Every committed desktop executable/build/workflow change increments PATCH and code together. Documentation and verified-artifact finalization do not consume another version. Never overwrite a versioned artifact. Full-parity 1.0.0 is reserved until all parity gates pass.
@@ -34,6 +34,8 @@ Every committed desktop executable/build/workflow change increments PATCH and co
 | 0.1.22 / 23 | SOURCE_ONLY security fix | Reject forward- and mixed-slash UNC/device prefixes before filesystem access. Keep local absolute/relative paths supported. Frozen releases and the verified 0.1.21 preview receipt are preserved; no new delivery is claimed. |
 
 | 0.1.23 / 24 | SOURCE_ONLY CI coverage | Trace the existing native and WinUI builds with C++/C# CodeQL and run the existing graph-model tests. No new frozen delivery, signing or interactive acceptance is claimed. Historical releases and the verified 0.1.21 preview are preserved. |
+
+| 0.1.24 / 25 | SOURCE_ONLY self-test preservation | Require a fresh self-test output directory and verify that the existing playlist remains intact when the directory is occupied. |
 
 The one-time source-baseline transition from 0.1.16/code17 to 0.1.19/code20 skips the two consumed identities above. The version guard permits only this exact transition; subsequent executable/build changes still require PATCH/code +1. This does not relabel or overwrite a historical release.
 

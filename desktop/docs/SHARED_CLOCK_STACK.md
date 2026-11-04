@@ -14,7 +14,7 @@ Add/remove and saved-Stack load prepare a new common source set. Saved loads bat
 
 ## Output proof, not position counters
 
-- `--self-test <directory>` includes real-codec six-voice integer offsets, half-sample interpolation, delayed entrances, endpoint-channel conversion, epoch-safe seek, primary EOF and three contiguous group loops.
+- `--self-test <new-directory>` includes real-codec six-voice integer offsets, half-sample interpolation, delayed entrances, endpoint-channel conversion, epoch-safe seek, primary EOF and three contiguous group loops.
 - `--verify-stack-audio <fixture> <directory>` exercises real WASAPI play/pause/seek/0.5×/2× and reports endpoint format and underruns.
 - `--verify-stack-output <directory>` generates six independent deterministic local signals plus a calibrated sum. Windows process-loopback captures only this test process, never the microphone or other applications. It compares the six-source output against calibration and must detect a deliberately introduced **one-sample error** in one voice. Capture latency may differ globally; relative voice errors may not.
 - Existing real-video Ambient, effect-fault and fullscreen/Mini/dock probes must still pass with the same primary source dimensions/identity. Output captures are digital Windows-path evidence, not a physical speaker/microphone measurement.

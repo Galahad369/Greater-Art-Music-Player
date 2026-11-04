@@ -52,8 +52,13 @@ void writeIcon(const std::filesystem::path &file)
 }
 int tests(const std::filesystem::path &directory)
 {
-    std::filesystem::create_directories(directory);
+    // Tests deliberately replace fixtures, so only write inside a new directory.
+    std::error_code error;
+    if (!std::filesystem::create_directory(directory, error))
+        return 2;
     std::ofstream report(directory / L"unit-tests.txt");
+    if (!report)
+        return 2;
     int passed = 0;
     int total = 0;
     auto expect = [&](bool condition, const char *name) {
@@ -188,8 +193,6 @@ int tests(const std::filesystem::path &directory)
            "local absolute and relative playlist paths remain supported");
     expect(fromUtf8(toUtf8(L"歌𠮷")) == L"歌𠮷", "UTF-8 CJK and supplementary characters roundtrip");
     auto exportPath = directory / L"roundtrip.m3u8";
-    std::error_code cleanup;
-    std::filesystem::remove(exportPath, cleanup);
     expect(exportPlaylist(exportPath, features.playlists[0]) &&
                importPlaylist(exportPath).paths == features.playlists[0].paths,
            "portable local M3U8 roundtrip");

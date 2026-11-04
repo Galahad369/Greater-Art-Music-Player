@@ -6,7 +6,7 @@ Desktop **0.1.12/code13**, October 16, 2026. Original vector paths replace every
 
 31 semantic icons share a 24-unit coordinate system, 1.8-unit rounded outline, consistent optical centers and antialiased GDI+ rasterization at physical DPI. The primary Play/Pause glyph is 30 logical units inside the existing button; navigation glyphs are 24 and row placeholders 26. Hitboxes and accessible action names are unchanged. The original waveform app mark is antialiased, with seven ICO sizes from 16 to 256 pixels. WM_GETICON selects the requested monitor-DPI resource rather than stretching one 64px image.
 
-`--self-test <owned-directory>` renders every icon at 96/144/192/288/384 DPI, checks non-empty ink, antialiased coverage and clipping, and writes contact-sheet PNGs plus vector-icons.txt. All **155** render cases passed locally. Contact sheets were visually inspected. These checks establish scalable geometry, not complete mixed-monitor or physical-display acceptance.
+`--self-test <new-directory>` renders every icon at 96/144/192/288/384 DPI, checks non-empty ink, antialiased coverage and clipping, and writes contact-sheet PNGs plus vector-icons.txt. All **155** render cases passed locally. Contact sheets were visually inspected. These checks establish scalable geometry, not complete mixed-monitor or physical-display acceptance.
 
 ## Presentation and quality
 
