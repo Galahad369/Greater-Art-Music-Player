@@ -27,6 +27,8 @@ import androidx.compose.material.icons.rounded.FolderOpen
 import androidx.compose.material.icons.rounded.Delete
 import androidx.compose.material.icons.rounded.Search
 import androidx.compose.material.icons.rounded.Star
+import androidx.compose.material.icons.rounded.Tune
+import androidx.compose.material.icons.rounded.Movie
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -42,19 +44,25 @@ import androidx.compose.ui.unit.dp
 import com.local.listentomusic.data.AppLanguage
 import com.local.listentomusic.data.PlayHistoryEntry
 import com.local.listentomusic.data.SavedStack
+import com.local.listentomusic.data.SavedStackCodec
+import com.local.listentomusic.data.SavedStackTrack
 import com.local.listentomusic.model.MediaFile
+import com.local.listentomusic.model.MediaKind
 import com.local.listentomusic.model.sourceMediaPath
 import com.local.listentomusic.playback.STACK_LOOP_DEFAULT
 import com.local.listentomusic.playback.StackPlayback
+import com.local.listentomusic.playback.StackAlignmentMethod
 import com.local.listentomusic.playback.StackRecommendation
 import com.local.listentomusic.playback.StackRecommendationReason
 import com.local.listentomusic.playback.StackSlot
 import com.local.listentomusic.playback.recommendStackTracks
+import com.local.listentomusic.playback.stackRebaseMappings
 import com.local.listentomusic.ui.components.LiquidMetalSurface
 import com.local.listentomusic.ui.theme.GaRadius
 import com.local.listentomusic.ui.theme.GaSpacing
 import com.local.listentomusic.ui.theme.gaChromeColor
 import com.local.listentomusic.ui.theme.gaDividerColor
+import kotlin.math.roundToLong
 
 /** Temporary multi-track listening, sharing Library's wallpaper and visual language. */
 @Composable
@@ -75,7 +83,11 @@ fun StackScreen(
     val alignmentState by StackAlignmentController.state.collectAsStateWithLifecycle()
     val alignment = if (alignmentState.primaryPath == session.primaryPath && alignmentState.paths == session.slots.map { it.file.path })
         alignmentState else com.local.listentomusic.playback.StackAlignmentProgress()
-    val alignProgress = if (alignment.running) "${uiText(language, "Aligning music", "正在對齊音樂")} ${alignment.completed}/${alignment.total}" else null
+    val pictureMode = alignment.method == StackAlignmentMethod.PICTURE
+    val methodLabel = if (pictureMode) uiText(language, "Align by picture", "按畫面對齊")
+        else uiText(language, "Align by sound", "按聲音對齊")
+    val alignProgress = if (alignment.running) "${if (pictureMode) uiText(language, "Aligning by picture", "正在按畫面對齊")
+        else uiText(language, "Aligning by sound", "正在按聲音對齊")} ${alignment.completed}/${alignment.total}" else null
     var stagedPaths by rememberSaveable { mutableStateOf(emptyList<String>()) }
     val staged = remember(files, stagedPaths) {
         stagedPaths.mapNotNull { path -> files.firstOrNull { it.path == path } }
@@ -91,6 +103,8 @@ fun StackScreen(
     var savePrimary by remember { mutableStateOf<String?>(null) }
     var saveLoop by remember { mutableStateOf(true) }
     var expandedPath by remember { mutableStateOf<String?>(null) }
+    var offsetPath by rememberSaveable { mutableStateOf<String?>(null) }
+    var reviewOffsets by rememberSaveable { mutableStateOf(false) }
     var error by remember { mutableStateOf<String?>(null) }
     var scrubPosition by remember { mutableStateOf<Long?>(null) }
 
@@ -109,8 +123,17 @@ fun StackScreen(
         val saved = stagedPreset?.tracks?.firstOrNull { it.path == file.path }
         StackSlot(file, saved?.volume ?: 1f, saved?.muted ?: false, saved?.solo ?: false, offsetMs = saved?.offsetMs ?: 0L,
             alignmentScale = saved?.alignmentScale ?: 1.0, alignmentOffsetUs = saved?.alignmentOffsetUs)
+    }.let { slots ->
+        if (slots.isNotEmpty() && stagedPreset != null && slots.none { it.file.path == stagedPreset.primaryPath })
+            stackRebaseMappings(slots, slots.first())
+        else slots
     }
     val displayedPaths = remember(displayed) { displayed.map { it.file.path }.toSet() }
+    val draftPrimary = stagedPreset?.primaryPath?.takeIf { it in displayedPaths } ?: staged.firstOrNull()?.path
+    val currentPrimary = if (session.active) session.primaryPath else draftPrimary
+    LaunchedEffect(session.active, session.primaryPath, displayedPaths) {
+        if (!alignmentState.belongsTo(session)) StackAlignmentController.discard()
+    }
     val nowPlayingSource = nowPlayingPath?.let(::sourceMediaPath)
     val nowPlayingFile = remember(files, nowPlayingPath, nowPlayingSource) {
         files.firstOrNull { it.path == nowPlayingPath }
@@ -164,7 +187,7 @@ fun StackScreen(
             IconButton(
                 onClick = {
                     saveSnapshot = displayed.toList()
-                    savePrimary = if (session.active) session.primaryPath else stagedPreset?.primaryPath ?: staged.firstOrNull()?.path
+                    savePrimary = currentPrimary
                     saveLoop = if (session.active) session.loopEnabled else stagedPreset?.loopEnabled ?: true
                     saveOpen = true
                 },
@@ -204,20 +227,29 @@ fun StackScreen(
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                 if (alignProgress != null) {
                     CircularProgressIndicator(Modifier.size(20.dp), strokeWidth = 2.dp)
-                    Text(alignProgress!!, Modifier.weight(1f).padding(start = 10.dp), style = MaterialTheme.typography.labelMedium)
+                    Text(alignProgress, Modifier.weight(1f).padding(start = 10.dp), style = MaterialTheme.typography.labelMedium)
                     TextButton(onClick = StackAlignmentController::cancel) { Text(uiText(language, "Cancel", "取消")) }
                 } else {
                     TextButton(
-                        modifier = Modifier.inspectElement("STACK_ALIGN_SOUND_BUTTON", "Offline backing-track alignment; vocals are de-emphasized; uncertain matches are unchanged"),
-                        onClick = { StackAlignmentController.start(context) },
+                        modifier = Modifier.weight(1f).inspectElement("STACK_ALIGN_SOUND_BUTTON", "Compare audio only"),
+                        onClick = { StackAlignmentController.start(context, StackAlignmentMethod.SOUND) },
                     ) {
                         Icon(Icons.Rounded.GraphicEq, null)
                         Spacer(Modifier.width(6.dp))
-                        Text(uiText(language, "Align music", "對齊音樂"))
+                        Text(uiText(language, "Align by sound", "按聲音對齊"))
+                    }
+                    TextButton(
+                        modifier = Modifier.weight(1f).inspectElement("STACK_ALIGN_PICTURE_BUTTON", "Compare video frames only"),
+                        enabled = session.slots.any { it.file.path == session.primaryPath && it.file.kind == MediaKind.VIDEO } &&
+                            session.slots.any { it.file.path != session.primaryPath && it.file.kind == MediaKind.VIDEO && it.error == null },
+                        onClick = { StackAlignmentController.start(context, StackAlignmentMethod.PICTURE) },
+                    ) {
+                        Icon(Icons.Rounded.Movie, null)
+                        Spacer(Modifier.width(6.dp))
+                        Text(uiText(language, "Align by picture", "按畫面對齊"))
                     }
                 }
                 if (!alignment.running) {
-                    Spacer(Modifier.weight(1f))
                     IconButton(onClick = onOpenPlayer, modifier = Modifier.inspectElement("STACK_OPEN_PLAYER", "Open the primary video without replacing the mix")) {
                         Icon(Icons.Rounded.OpenInFull, uiText(language, "Now Playing", "正在播放"), Modifier.size(26.dp))
                     }
@@ -230,11 +262,19 @@ fun StackScreen(
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
             alignment.matched?.let { matched ->
-                Text("${uiText(language, "Aligned tracks", "已對齊歌曲")}: $matched/${alignment.total}",
+                val status = if (alignment.applied) uiText(language, "Aligned tracks", "已對齊歌曲")
+                    else uiText(language, "Suggested offsets", "建議偏移")
+                Text("$methodLabel · $status: $matched/${alignment.total}",
                     Modifier.padding(horizontal = 8.dp, vertical = 4.dp), style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.primary)
                 if (matched < alignment.total) Text(uiText(language, "Uncertain matches kept unchanged", "未能確認的匹配保持不變"),
                     Modifier.padding(horizontal = 8.dp), style = MaterialTheme.typography.labelSmall)
+            }
+            if (alignment.proposal.isNotEmpty()) {
+                TextButton(onClick = { reviewOffsets = true },
+                    modifier = Modifier.inspectElement("STACK_REVIEW_ALIGNMENT", "Review only the selected analysis result")) {
+                    Text(uiText(language, "Review offsets", "檢視偏移"))
+                }
             }
             if (alignment.failed) Text(uiText(language, "Could not analyse these files", "無法分析這些檔案"),
                 Modifier.padding(horizontal = 8.dp), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.error)
@@ -269,8 +309,7 @@ fun StackScreen(
 
             items(displayed, key = { it.file.path }) { slot ->
                 val path = slot.file.path
-                val isPrimary = session.active && path == session.primaryPath ||
-                    !session.active && path == (stagedPreset?.primaryPath ?: staged.firstOrNull()?.path)
+                val isPrimary = path == currentPrimary
                 val isNowPlaying = path == nowPlayingPath
                 val reached = session.active && slot.resolvedDurationMs > 0L &&
                     session.positionMs >= slot.resolvedDurationMs
@@ -285,6 +324,7 @@ fun StackScreen(
                     onLoadThumbnail = onLoadThumbnail,
                     isScrolling = { trackListState.isScrollInProgress },
                     onToggleExpanded = { expandedPath = if (expandedPath == path) null else path },
+                    onEditOffset = if (isPrimary || alignmentState.running) null else ({ offsetPath = path }),
                     onRemove = {
                         stagedPaths = stagedPaths - path
                         if (session.active) StackPlayback.remove(path)
@@ -418,7 +458,7 @@ fun StackScreen(
                         Button(
                             enabled = staged.size >= 2,
                             onClick = {
-                                val primary = stagedPreset?.primaryPath
+                                val primary = draftPrimary
                                 val ordered = staged.sortedBy { if (it.path == primary) 0 else 1 }
                                 if (StackPlayback.start(ordered)) {
                                     displayed.forEach { slot ->
@@ -445,6 +485,60 @@ fun StackScreen(
                 Text(formatDuration(duration), style = MaterialTheme.typography.labelMedium)
             }
         }
+    }
+
+    if (reviewOffsets && alignment.proposal.isNotEmpty()) {
+        AlertDialog(
+            onDismissRequest = { reviewOffsets = false },
+            title = { Text(methodLabel) },
+            text = {
+                LazyColumn(Modifier.heightIn(max = 320.dp)) {
+                    items(displayed.filter { it.file.path in alignment.proposal }, key = { it.file.path }) { slot ->
+                        val milliseconds = alignment.proposal.getValue(slot.file.path).offsetUs / 1_000.0
+                        ListItem(
+                            headlineContent = { Text(slot.file.name, maxLines = 2, overflow = TextOverflow.Ellipsis) },
+                            supportingContent = { Text("${if (milliseconds > 0) "+" else ""}${stackOffsetText(milliseconds)} ms") },
+                        )
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = { StackAlignmentController.apply(); reviewOffsets = false }) {
+                    Text(uiText(language, "Apply alignment", "套用對齊"))
+                }
+            },
+            dismissButton = { TextButton(onClick = { reviewOffsets = false }) { Text(uiText(language, "Cancel", "取消")) } },
+        )
+    }
+
+    displayed.firstOrNull { it.file.path == offsetPath && it.file.path != currentPrimary && !alignmentState.running }?.let { slot ->
+        StackManualOffsetDialog(
+            language = language,
+            trackName = slot.file.name,
+            originalMs = (slot.alignmentOffsetUs ?: slot.offsetMs * 1_000.0) / 1_000.0,
+            onDismiss = { offsetPath = null },
+            onApply = { milliseconds, resetRate ->
+                val alignment = com.local.listentomusic.playback.StackAlignment(
+                    milliseconds.roundToLong(), 1.0, true,
+                    if (resetRate) 1.0 else slot.alignmentScale, milliseconds * 1_000.0,
+                )
+                StackAlignmentController.discard()
+                if (session.active) {
+                    StackPlayback.setAlignments(mapOf(slot.file.path to alignment))
+                } else if (draftPrimary != null) {
+                    val tracks = displayed.map {
+                        val edit = it.file.path == slot.file.path
+                        SavedStackTrack(it.file.path, it.volume, it.muted, it.solo,
+                            if (edit) alignment.offsetMs else it.offsetMs,
+                            if (edit) alignment.timeScale else it.alignmentScale,
+                            if (edit) alignment.offsetUs else it.alignmentOffsetUs)
+                    }
+                    stagedPresetRaw = SavedStackCodec.encode(listOf(SavedStack("draft", "draft", tracks,
+                        draftPrimary, stagedPreset?.loopEnabled ?: STACK_LOOP_DEFAULT)))
+                }
+                offsetPath = null
+            },
+        )
     }
 
     if (pickerOpen) {
@@ -593,6 +687,7 @@ private fun StackTrackRow(
     onLoadThumbnail: suspend (MediaFile) -> Bitmap?,
     isScrolling: () -> Boolean,
     onToggleExpanded: () -> Unit,
+    onEditOffset: (() -> Unit)?,
     onRemove: () -> Unit,
 ) {
     val path = slot.file.path
@@ -652,6 +747,12 @@ private fun StackTrackRow(
             if (isPrimary) {
                 Icon(Icons.Rounded.Star, uiText(language, "Primary visual", "主要畫面"), tint = MaterialTheme.colorScheme.primary)
             }
+            if (onEditOffset != null) {
+                IconButton(onClick = onEditOffset,
+                    modifier = Modifier.inspectElement("STACK_MANUAL_OFFSET", slot.file.name)) {
+                    Icon(Icons.Rounded.Tune, uiText(language, "Manual offset", "手動偏移"))
+                }
+            }
             IconButton(onClick = onRemove, modifier = Modifier.inspectElement("STACK_REMOVE_BUTTON", slot.file.name)) {
                 Icon(Icons.Rounded.Close, uiText(language, "Remove track", "移除歌曲"))
             }
@@ -672,14 +773,6 @@ private fun StackTrackRow(
                 }
             }
             if (sessionActive) {
-                if (!isPrimary) Row(Modifier.fillMaxWidth().padding(horizontal = GaSpacing.md), verticalAlignment = Alignment.CenterVertically) {
-                    TextButton(onClick = { StackPlayback.setAlignments(mapOf(path to com.local.listentomusic.playback.StackAlignment(
-                        slot.offsetMs - 100L, 1.0, true, slot.alignmentScale, (slot.alignmentOffsetUs ?: slot.offsetMs * 1000.0) - 100_000))) }) { Text("−0.1s") }
-                    Text(java.lang.String.format(java.util.Locale.ROOT, "%+.2fs", slot.offsetMs / 1000.0), Modifier.weight(1f), textAlign = TextAlign.Center, style = MaterialTheme.typography.labelMedium)
-                    TextButton(onClick = { StackPlayback.setAlignments(mapOf(path to com.local.listentomusic.playback.StackAlignment(
-                        slot.offsetMs + 100L, 1.0, true, slot.alignmentScale, (slot.alignmentOffsetUs ?: slot.offsetMs * 1000.0) + 100_000))) }) { Text("+0.1s") }
-                    TextButton(onClick = { StackPlayback.setOffset(path, 0L) }) { Text(uiText(language, "Reset alignment", "重設對齊")) }
-                }
                 Row(Modifier.fillMaxWidth().padding(horizontal = GaSpacing.md), verticalAlignment = Alignment.CenterVertically) {
                     Text(
                         "${(slot.volume * 100).toInt()}%",

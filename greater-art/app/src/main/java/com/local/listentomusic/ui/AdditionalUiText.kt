@@ -24,6 +24,15 @@ Tap node to play  •  Drag node  •  Pinch to zoom  •  Swipe empty space to 
 Filename similarity graph. Pinch to zoom, drag individual nodes, tap a node to play, or swipe empty space to change page. Use Find / play a node for a text list.|檔名相似度關聯圖。雙指縮放、拖曳節點、點按節點播放，或滑動空白處切換頁面。使用尋找節點開啟文字清單。|ファイル名の類似度グラフ。ピンチで拡大、ドラッグで移動、タップで再生。空白をスワイプしてページを切り替えます。検索でテキスト一覧を開けます。|Dateinamen-Graph. Zoomen, einzelne Knoten ziehen, zum Abspielen tippen oder freie Fläche zum Seitenwechsel wischen. Suchen öffnet eine Textliste.|Graphe de similarité des noms. Pincez pour zoomer, déplacez les nœuds, touchez pour lire ou balayez le vide pour changer de page. Rechercher ouvre une liste textuelle.
 No system equalizer is installed on this device.|此裝置未安裝系統等化器。|この端末にはシステムのイコライザーがありません。|Auf diesem Gerät ist kein System-Equalizer installiert.|Aucun égaliseur système n’est installé sur cet appareil.
 Align by sound|按聲音對齊|音で位置合わせ|Nach Klang ausrichten|Aligner par le son
+Align by picture|按畫面對齊|映像で位置合わせ|Nach Bild ausrichten|Aligner par l’image
+Aligning by picture|正在按畫面對齊|映像を解析中|Bilder werden analysiert|Analyse des images
+Suggested offsets|建議偏移|推奨オフセット|Vorgeschlagene Versätze|Décalages proposés
+Review offsets|檢視偏移|オフセットを確認|Versätze prüfen|Vérifier les décalages
+Apply alignment|套用對齊|位置合わせを適用|Ausrichtung anwenden|Appliquer l’alignement
+Manual offset|手動偏移|手動オフセット|Manueller Versatz|Décalage manuel
+Offset (ms)|偏移（毫秒）|オフセット（ms）|Versatz (ms)|Décalage (ms)
+Enter −30,000 to +30,000 ms|請輸入 −30,000 至 +30,000 毫秒|−30,000〜+30,000 ms を入力|−30.000 bis +30.000 ms eingeben|Saisissez −30 000 à +30 000 ms
+Positive starts this track later in its file.|正數會從此檔案中較後的位置開始。|正の値はファイルの後ろから再生します。|Ein positiver Wert startet später in der Datei.|Une valeur positive commence plus loin dans le fichier.
 Aligned tracks|已對齊歌曲|位置合わせ済み|Ausgerichtete Titel|Pistes alignées
 Playback resumes after analysis|分析後繼續播放|解析後に再生を再開|Wiedergabe nach Analyse fortsetzen|Lecture reprise après analyse
 Aligning by sound|正在按聲音對齊|音を解析中|Klang wird analysiert|Analyse du son
