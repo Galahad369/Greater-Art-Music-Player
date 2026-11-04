@@ -1,0 +1,7 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <application>
+        <!-- Explicit instrumentation only. No launcher, exported route or production adoption. -->
+        <activity android:name=".ambient.AmbientFrameProbeActivity"
+            android:exported="false" android:configChanges="orientation|screenSize|screenLayout|smallestScreenSize" />
+    </application>
+</manifest>

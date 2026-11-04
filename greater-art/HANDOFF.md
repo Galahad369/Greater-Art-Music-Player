@@ -3,7 +3,7 @@
 This file describes the **current repository state only**. Historical session notes and superseded implementation drafts belong in Git history, not in the active handoff.
 
 **Project:** `greater-art/` in the repository checkout
-**Current source:** `1.22.2 (code 323)` — SOURCE_ONLY dependency repair. Reviewed AGP9.5.0/setup-gradle6.4.1 and desktop PR215 are preserved in [PR216](https://github.com/Galahad369/Greater-Art-Music-Player/pull/216). Local range/artifact-policy/privacy checks pass; local Gradle compilation is blocked by Java21's Google Maven certificate-chain validation, not waived or bypassed. See the [convergence and recovery record](docs/BRANCH_CONVERGENCE_2026-11-03.md) and final PR checks. The exact1.22.1 candidate remains frozen; optimized return/Mini acceptance is incomplete. Latest immutable verified APK remains1.21.93. Shared output remains disabled.
+**Current source:** `1.22.3 (code 324)` — SOURCE_ONLY, approved debug-only frame-synchronous Ambient prototype. Production Ambient/playback is unchanged until qualification; no polling reduction is presented as same-frame rendering. The Java21 build block has a verified process-only Windows-root recovery: correct official POM fetched and untrusted certificate rejected; wrapper configuration succeeds. `build-personal-debug.ps1 -UseWindowsTrustedRoots -BuildOnly` propagates temporary trust options to child JVMs and restores them. Prototype build/runtime results are recorded separately below. Latest immutable verified APK remains1.21.93; the exact1.22.1 candidate is preserved. Shared output remains disabled.
 **Previous optimized candidate:** sibling `App/output/GreaterArt-1.21.98.apk` —5,495,129 bytes, SHA-256 `36d5279c58b155f70cc7a47ca3af348e285df1e8bf5197eeca43f9a14ef8ba02`; same key, non-debuggable, artifact checks passed; **not promoted**. [Retained98 evidence](docs/CANDIDATE_1.21.98.md). The97 candidate is hash-verified and archived under sibling `output/retained-artifacts/`.
 
 The following release fields describe verified1.21.93, not the98 candidate:
@@ -17,6 +17,54 @@ The following release fields describe verified1.21.93, not the98 candidate:
 **Verification boundary:** Exact runtime source `58048b54e4119c3aad50ca99d4595afe479653c3`; Java21/Gradle9.8.2 unit/lint/debug app/test and optimized R8 assembly passed. 473 JVM tests, zero failures/errors/skips; lint0 errors/47 warnings/4 hints. API36 debug instrumentation23/23 in520.008s covers reflected Ambient, compact audio/video controls/title transparency, real audio/video IME dock continuity, real-page navigation/video sampling and fullscreen toolbar. Separate same-certificate optimized upgrade and native Library/video/dock/expanded-player smoke passed; actual screenshots inspected. Package/version, non-debuggable state, ZIP CRC,16KiB alignment and SHA-256 checked. The APK does not embed a usable VCS SHA; this receipt records it externally. Full rotation, physical-device visual/acoustic/performance acceptance, production signing and universal crash freedom remain unverified. See [the exact release receipt](docs/RELEASE_1.21.93.md).
 
 ## Repository state
+
+### November3 — Frame-synchronous Ambient prototype and local build recovery
+
+- The user approved a GPU prototype before replacing production Ambient, then
+  explicitly requested continuing/fixing the local build blocker. Use the
+  existing Media3 1.11.1 external-frame pattern, not another decoder or proxy
+  playback. Production source, quality limits, windows and artwork remain intact.
+- Java21's default roots reproduce SSLHandshakeException against the official
+  AGP9.5.0 POM. Separate process-only Windows-ROOT/NONE options fetch the actual
+  correct POM and still reject self-signed.badssl.com. No certificate import,
+  trust-all verifier, global Java option, app key or emulator change occurs.
+  The pinned9.8.2 wrapper's help task succeeds after initial dependency download.
+- Reuse the personal build helper with an explicit option. Drop its stale
+  local9.5.0 Gradle fallback, preserve caller Java options, restore process
+  environment on exit, avoid unnecessary clean, and keep debug candidates out
+  of releases/. Build-only does not copy or promote an APK.
+- The non-exported Activity and shaders live only in src/debug. One latched
+  texture is sampled by one draw for both primary video and spatial lighting.
+  There is no timer, delayed palette or normal-path CPU readback. Instrumented
+  probes compare real pixels; deliberately retaining the first glow color must
+  fail that comparison despite matching timestamps. Unknown/HDR/high-bit-depth
+  inputs are refused, not tone-mapped; safe refusal is not fidelity support.
+- Own fixture: eight-second1280x720/30fps generated red/green/blue cuts and an
+  80px white square for actual native aspect verification. Test output and
+  screenshots go to owned QA paths, never user media. Keep original production
+  Ambient and immutable APKs until all relevant gates pass.
+- Executed:500 JVM tests pass; lint0 errors/50 warnings/4 hints; debug app/test
+  and optimized R8 assembly pass. Final native run3/4:80 actual video/glow samples
+  with0 mismatches; deliberately stale glow detected53 mismatches; normal path
+  collects no diagnostic pixels. Geometry/transport acceptance remains blocked
+  by native System UI/system ANR overlays; screenshots and native events are
+  retained, including a target startup timeout during the unstable boot. Do not
+  call the prototype or a release verified. No ready/promote gate was bypassed.
+- Test boundary repairs preserve the square-pixel assertion and existing20s
+  readiness bound: wait for the actual GL viewport, drain already queued pause
+  frames, assert the paused clock, and reuse the existing stable-compositor
+  capture pattern instead of measuring Android's rotation animation. Keep failed
+  frames. The final app/source implementation was not changed for these retries.
+- Exact internal candidate: sibling
+  `output/ambient-frame-sync-20261103/candidate/GreaterArt-1.22.3-ambient-prototype.apk`,
+ 27136009 bytes, SHA-256
+  `cc9090a329e41eebe3aa79e7175384b1ccbe3cc8c473e10270e22b7df1c34dfd`.
+  Existing certificate/version/manifest/16KiB checks pass; debug prototype absent
+  from optimized release mapping. Production app/src/main tree is unchanged.
+  App/test ZIP CRC, public privacy/secret audit, helper environment restoration
+  and conflicting-trust-store rejection also pass. All prior APK hashes and the
+  independent Windows recovery checkpoint are preserved. No new remote write.
+  See [prototype evidence and remaining gates](docs/AMBIENT_FRAME_SYNC_PROTOTYPE.md).
 
 ### November3 — Approved branch repair and convergence
 
