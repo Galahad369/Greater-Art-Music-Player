@@ -3,7 +3,7 @@
 This file describes the **current repository state only**. Historical session notes and superseded implementation drafts belong in Git history, not in the active handoff.
 
 **Project:** `greater-art/` in the repository checkout
-**Current source:** `1.22.5 (code 326)` — SOURCE_ONLY. Hold either Now Playing speed button for temporary 2×. Portrait Now Playing uses one frame for video and Ambient light on confirmed 8-bit SDR. HDR, unknown formats, and unsupported rendering conditions use native foreground playback. HDR display output and optimized-artifact acceptance are not verified. The latest immutable verified APK remains 1.21.93. Retain earlier prototype and candidate APKs.
+**Current source:** `1.22.6 (code 327)` — SOURCE_ONLY. Both Ambient metadata queues now update their bounded contents atomically. Hold either Now Playing speed button for temporary 2×. Portrait Now Playing uses one frame for video and Ambient light on confirmed 8-bit SDR. HDR, unknown formats, and unsupported rendering conditions use native foreground playback. HDR display output and optimized-artifact acceptance are not verified. The latest immutable verified APK remains 1.21.93.
 **Previous optimized candidate:** sibling `App/output/GreaterArt-1.21.98.apk` —5,495,129 bytes, SHA-256 `36d5279c58b155f70cc7a47ca3af348e285df1e8bf5197eeca43f9a14ef8ba02`; same key, non-debuggable, artifact checks passed; **not promoted**. [Retained98 evidence](docs/CANDIDATE_1.21.98.md). The97 candidate is hash-verified and archived under sibling `output/retained-artifacts/`.
 
 The following release fields describe verified1.21.93, not the98 candidate:
@@ -17,6 +17,17 @@ The following release fields describe verified1.21.93, not the98 candidate:
 **Verification boundary:** Exact runtime source `58048b54e4119c3aad50ca99d4595afe479653c3`; Java21/Gradle9.8.2 unit/lint/debug app/test and optimized R8 assembly passed. 473 JVM tests, zero failures/errors/skips; lint0 errors/47 warnings/4 hints. API36 debug instrumentation23/23 in520.008s covers reflected Ambient, compact audio/video controls/title transparency, real audio/video IME dock continuity, real-page navigation/video sampling and fullscreen toolbar. Separate same-certificate optimized upgrade and native Library/video/dock/expanded-player smoke passed; actual screenshots inspected. Package/version, non-debuggable state, ZIP CRC,16KiB alignment and SHA-256 checked. The APK does not embed a usable VCS SHA; this receipt records it externally. Full rotation, physical-device visual/acoustic/performance acceptance, production signing and universal crash freedom remain unverified. See [the exact release receipt](docs/RELEASE_1.21.93.md).
 
 ## Repository state
+
+### November 5 — Ambient queue race repair
+
+- PR #223's CodeQL analysis found that the GL consumer can free capacity
+  between the producer's size check and eviction, dropping the next
+  frame's metadata unnecessarily. Both bounded queues now perform their
+  check, eviction, and insertion under their own Media3 queue monitor.
+  No queue holds the other queue's lock, and neither lock covers GL work.
+- The controlled interleaving using the pinned Media3 queue loses one
+  timestamp per queue on 1.22.5 and retains both on 1.22.6. The original
+  1.22.5 development APK remains unchanged; this is not a release.
 
 ### November 4 — Speed button hold
 

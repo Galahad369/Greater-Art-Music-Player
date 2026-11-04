@@ -152,12 +152,17 @@ public final class FrameAmbientView extends GLSurfaceView implements GLSurfaceVi
     public void sourceFrame(long ptsUs, long releaseTimeNs, float sourceAspect) {
         if (closed || failure != null) return;
         if (presentation) {
-            if (admittedFrames.size() >= 64) admittedFrames.pollFirst();
-            admittedFrames.add(releaseTimeNs, releaseTimeNs);
+            synchronized (admittedFrames) {
+                if (admittedFrames.size() >= 64) admittedFrames.pollFirst();
+                admittedFrames.add(releaseTimeNs, releaseTimeNs);
+            }
         }
-        if (timestamps.size() >= 64) timestamps.pollFirst();
         formatAllowed = true;
-        timestamps.add(releaseTimeNs, ptsUs);
+        // Keep eviction and insertion atomic with respect to the GL consumer.
+        synchronized (timestamps) {
+            if (timestamps.size() >= 64) timestamps.pollFirst();
+            timestamps.add(releaseTimeNs, ptsUs);
+        }
         if (sourceAspect > 0 && Float.isFinite(sourceAspect) && aspect != sourceAspect) {
             aspect = sourceAspect;
             queueEvent(() -> layoutDirty = true);
