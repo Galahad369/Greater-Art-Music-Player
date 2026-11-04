@@ -580,8 +580,8 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         _controller.value?.let(::publishPlayback)
     }
 
-    fun beginTemporaryDoubleSpeed(): Boolean =
-        com.local.listentomusic.playback.TemporaryPlaybackSpeed.begin()
+    fun beginTemporaryDoubleSpeed(origin: com.local.listentomusic.playback.TemporaryPlaybackSpeed.Origin): Boolean =
+        com.local.listentomusic.playback.TemporaryPlaybackSpeed.begin(origin)
 
     fun endTemporaryDoubleSpeed() =
         com.local.listentomusic.playback.TemporaryPlaybackSpeed.end()

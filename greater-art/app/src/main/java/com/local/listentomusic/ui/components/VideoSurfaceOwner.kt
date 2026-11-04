@@ -36,9 +36,11 @@ object VideoSurfaceOwner {
     val fullscreenActivityActive: Boolean get() = fullscreenActivity
     val expandedOverlayActive: Boolean
         get() = unifiedExpanded || fullscreenActivity || systemOverlayOwners.containsValue("NOW_PLAYING")
+    internal fun activeVideoSurface(): android.view.View? = active.get()?.videoSurfaceView
     internal fun ambientSource(): Pair<String, android.view.View>? {
         if (!foreground && !systemOverlayActive && !fullscreenActivity) return null
         val view = active.get() ?: return null
+        if (view is com.local.listentomusic.ambient.FrameAmbientPlayerView) return null
         val player = view.player ?: return null
         if (!player.isPlaying || player.videoSize.width <= 0) return null
         val id = player.currentMediaItem?.mediaId ?: return null
