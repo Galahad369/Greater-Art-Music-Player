@@ -172,9 +172,13 @@ class PlaybackService : MediaLibraryService() {
         ParallelPlayback.removeCommand = ::removeLayer
         ParallelPlayback.toggleCommand = { id -> layers.firstOrNull { it.id == id }?.player?.let { if (it.playWhenReady) it.pause() else it.play() } }
         ParallelPlayback.volumeCommand = { id, level -> layers.firstOrNull { it.id == id }?.level = level; applyMixLevels(); publishLayers() }
-        TemporaryPlaybackSpeed.beginCommand = {
+        TemporaryPlaybackSpeed.beginCommand = { origin ->
             val current = player.playbackParameters.speed
-            if (!player.isPlaying || current >= 2f || speedBeforeTemporaryHold != null) false
+            val eligible = when (origin) {
+                TemporaryPlaybackSpeed.Origin.VIDEO_GESTURE -> player.isPlaying && current < 2f
+                TemporaryPlaybackSpeed.Origin.SPEED_BUTTON -> player.currentMediaItem != null && current != 2f
+            }
+            if (!eligible || speedBeforeTemporaryHold != null) false
             else {
                 speedBeforeTemporaryHold = current
                 player.playbackParameters = androidx.media3.common.PlaybackParameters(2f)

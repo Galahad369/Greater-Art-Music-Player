@@ -16,7 +16,7 @@ This file is the authoritative version policy for Greater Art. If any handoff no
 ## Machine-checkable state
 
 
-Current source: **1.22.4 (code 325)**
+Current source: **1.22.5 (code 326)**
 Allowed consumed transition: **1.21.38 (code 261) -> 1.21.40 (code 263)**
 
 Retain PR174's original declared transition for eeb06d9. Its initial1.21.40
@@ -480,3 +480,4 @@ Previous baseline: 1.13.26 (code 115).
 - 1.22.2 (code 323): approved dependency repair and convergence. Preserve mobile1.22.1 and desktop PR215 history; reapply only Dependabot PR213 AGP9.5.0 and PR214's three setup-gradle6.4.1 pins under a valid atomic identity. Preserve original bot commits/mail patches and the exact1.22.1 optimized candidate. Unfinished Windows Trust work is checkpointed separately, not published under its conflicting desktop identity. SOURCE_ONLY; no production playback, quality, signing, permissions or shared-output change.
 - 1.22.3 (code 324): approved frame-synchronous Ambient experiment in a non-exported debug-only host, with one Media3 decoder/external texture and one video-plus-light draw; rapid-cut pixel probes, stale-palette negative control, native square geometry and precision-refusal tests. Production Ambient and app/src/main remain unchanged. Repair process-only optional Windows-root Gradle trust propagation, use the pinned wrapper and keep debug candidates outside immutable releases. SOURCE_ONLY pending runtime qualification; HDR/high-bit-depth and production surface handoffs are not adopted or claimed.
 - 1.22.4 (code 325): use the frame-synchronous SDR compositor in portrait Now Playing for Ambient modes. Use native foreground surfaces for HDR and other unsupported input. Retain the primary player and aspect policy. SOURCE_ONLY; the API 36 virtual display has no HDR types, and exact optimized-artifact acceptance is required before release.
+- 1.22.5 (code 326): hold either Now Playing speed button for temporary 2×, with exact speed restoration on release or cancellation. Keep the speed menu on tap and the existing video hold-to-lock gesture. SOURCE_ONLY.
