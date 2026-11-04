@@ -16,7 +16,7 @@ This file is the authoritative version policy for Greater Art. If any handoff no
 ## Machine-checkable state
 
 
-Current source: **1.22.6 (code 327)**
+Current source: **1.22.7 (code 328)**
 Allowed consumed transition: **1.21.38 (code 261) -> 1.21.40 (code 263)**
 
 Retain PR174's original declared transition for eeb06d9. Its initial1.21.40
@@ -482,3 +482,4 @@ Previous baseline: 1.13.26 (code 115).
 - 1.22.4 (code 325): use the frame-synchronous SDR compositor in portrait Now Playing for Ambient modes. Use native foreground surfaces for HDR and other unsupported input. Retain the primary player and aspect policy. SOURCE_ONLY; the API 36 virtual display has no HDR types, and exact optimized-artifact acceptance is required before release.
 - 1.22.5 (code 326): hold either Now Playing speed button for temporary 2×, with exact speed restoration on release or cancellation. Keep the speed menu on tap and the existing video hold-to-lock gesture. SOURCE_ONLY.
 - 1.22.6 (code 327): make capacity checks, eviction, and insertion atomic in both Ambient frame metadata queues. Preserve SDR admission, native fallback, and playback quality. SOURCE_ONLY.
+- 1.22.7 (code 328): add separate sound and picture alignment proposals, and a direct manual Stack offset editor. Apply one selected timing map per track. SOURCE_ONLY.

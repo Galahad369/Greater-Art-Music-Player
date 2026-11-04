@@ -3,7 +3,7 @@
 This file describes the **current repository state only**. Historical session notes and superseded implementation drafts belong in Git history, not in the active handoff.
 
 **Project:** `greater-art/` in the repository checkout
-**Current source:** `1.22.6 (code 327)` — SOURCE_ONLY. Both Ambient metadata queues now update their bounded contents atomically. Hold either Now Playing speed button for temporary 2×. Portrait Now Playing uses one frame for video and Ambient light on confirmed 8-bit SDR. HDR, unknown formats, and unsupported rendering conditions use native foreground playback. HDR display output and optimized-artifact acceptance are not verified. The latest immutable verified APK remains 1.21.93.
+**Current source:** `1.22.7 (code 328)` — SOURCE_ONLY. Stack has separate sound and picture alignment proposals and a manual offset editor. Both Ambient metadata queues update atomically. HDR display output and optimized-artifact acceptance are not verified. The latest immutable verified APK remains 1.21.93.
 **Previous optimized candidate:** sibling `App/output/GreaterArt-1.21.98.apk` —5,495,129 bytes, SHA-256 `36d5279c58b155f70cc7a47ca3af348e285df1e8bf5197eeca43f9a14ef8ba02`; same key, non-debuggable, artifact checks passed; **not promoted**. [Retained98 evidence](docs/CANDIDATE_1.21.98.md). The97 candidate is hash-verified and archived under sibling `output/retained-artifacts/`.
 
 The following release fields describe verified1.21.93, not the98 candidate:
@@ -17,6 +17,33 @@ The following release fields describe verified1.21.93, not the98 candidate:
 **Verification boundary:** Exact runtime source `58048b54e4119c3aad50ca99d4595afe479653c3`; Java21/Gradle9.8.2 unit/lint/debug app/test and optimized R8 assembly passed. 473 JVM tests, zero failures/errors/skips; lint0 errors/47 warnings/4 hints. API36 debug instrumentation23/23 in520.008s covers reflected Ambient, compact audio/video controls/title transparency, real audio/video IME dock continuity, real-page navigation/video sampling and fullscreen toolbar. Separate same-certificate optimized upgrade and native Library/video/dock/expanded-player smoke passed; actual screenshots inspected. Package/version, non-debuggable state, ZIP CRC,16KiB alignment and SHA-256 checked. The APK does not embed a usable VCS SHA; this receipt records it externally. Full rotation, physical-device visual/acoustic/performance acceptance, production signing and universal crash freedom remain unverified. See [the exact release receipt](docs/RELEASE_1.21.93.md).
 
 ## Repository state
+
+### November 5 — Separate Stack alignment methods
+
+- **Align by sound** uses the existing offline music matcher. **Align by
+  picture** reads only decoded video luma and presentation timestamps. It
+  proposes a single visual offset after comparing moving frames across three
+  parts of the video. Unsupported, ambiguous, and partial matches leave the
+  track unchanged. Picture analysis is bounded to the first 210 seconds of
+  each clip; its analysis sampling does not change playback resolution or rate.
+- Review and apply only the selected proposal. A picture result uses a unit
+  rate. The visible **Manual offset** control edits the selected companion's
+  signed milliseconds, with ±10/±100 ms controls. Edits preserve the existing
+  rate correction; Reset alignment restores zero offset and unit rate. It
+  works in a draft or active Stack and only changes playback when Apply is
+  pressed.
+- Regression checks compare both sides of a visual transition so repeated
+  frames cannot add a false delay. Mixed frame rates keep the best timing
+  rather than snapping to one clip's frame grid. The compiled scorer was
+  checked with FFmpeg-decoded luma and frame timestamps from the six local
+  孤独毒毒 takes: three offsets at 0 ms, one at +26 ms, and one abstention.
+  This is host-side picture evidence, not an Android decoder, user-interface,
+  or acoustic playback result.
+- Development candidate: sibling `App/output/stack-alignment-1.22.7-20261105-012104/GreaterArt-1.22.7-debug-candidate.apk`
+  (27,187,609 bytes, SHA-256 `48518dbcde90e8d21a5ba7eba3f674c880d0ca514e8103e5236dd2a6b7131a43`).
+  Version, package, existing signing certificate, ZIP integrity and 16 KiB
+  alignment passed. The A55 shell did not respond; the paired instrumentation
+  APK was built but not installed or run. No verified download was replaced.
 
 ### November 5 — Ambient queue race repair
 
