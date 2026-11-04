@@ -1,0 +1,24 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "framework": null,
+  "installCommand": "",
+  "buildCommand": "node scripts/build-public-site.mjs",
+  "outputDirectory": "vercel-site-output",
+  "redirects": [
+    {
+      "source": "/greater-art/README.md",
+      "destination": "https://github.com/Galahad369/Greater-Art-Music-Player/blob/main/greater-art/README.md",
+      "permanent": false
+    },
+    {
+      "source": "/greater-art/docs/NOW_PLAYING_REFLECTIONS_2026-10-30.md",
+      "destination": "https://github.com/Galahad369/Greater-Art-Music-Player/blob/main/greater-art/docs/NOW_PLAYING_REFLECTIONS_2026-10-30.md",
+      "permanent": false
+    },
+    {
+      "source": "/greater-art/docs/RELEASE_1.21.93.md",
+      "destination": "https://github.com/Galahad369/Greater-Art-Music-Player/blob/main/greater-art/docs/RELEASE_1.21.93.md",
+      "permanent": false
+    }
+  ]
+}
