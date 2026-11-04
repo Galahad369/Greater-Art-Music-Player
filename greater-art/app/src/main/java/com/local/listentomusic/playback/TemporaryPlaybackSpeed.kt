@@ -6,11 +6,13 @@ package com.local.listentomusic.playback
  * deliberately pulls down to lock it.
  */
 object TemporaryPlaybackSpeed {
-    internal var beginCommand: (() -> Boolean)? = null
+    enum class Origin { VIDEO_GESTURE, SPEED_BUTTON }
+
+    internal var beginCommand: ((Origin) -> Boolean)? = null
     internal var endCommand: (() -> Unit)? = null
     internal var lockCommand: (() -> Boolean)? = null
 
-    fun begin(): Boolean = beginCommand?.invoke() == true
+    fun begin(origin: Origin): Boolean = beginCommand?.invoke(origin) == true
     fun end() { endCommand?.invoke() }
     fun lock(): Boolean = lockCommand?.invoke() == true
     internal fun detach() { beginCommand = null; endCommand = null; lockCommand = null }

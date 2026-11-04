@@ -54,7 +54,7 @@ internal fun adaptiveArtworkPixels(artwork: Bitmap?): List<Int> {
 }
 
 @Composable
-private fun ambientSystemConstraints(): Pair<Boolean, Boolean> {
+internal fun ambientSystemConstraints(): Pair<Boolean, Boolean> {
     val context = LocalContext.current
     val power = remember(context) { context.getSystemService(Context.POWER_SERVICE) as PowerManager }
     var reduced by remember { mutableStateOf(false) }

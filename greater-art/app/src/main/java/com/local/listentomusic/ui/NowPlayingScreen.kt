@@ -104,6 +104,7 @@ import androidx.compose.material.icons.automirrored.rounded.PlaylistAdd
 import androidx.compose.material.icons.rounded.QueueMusic
 import com.local.listentomusic.data.FloatingWindowMode
 import com.local.listentomusic.data.nextFloatingMode
+import com.local.listentomusic.playback.TemporaryPlaybackSpeed
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.DropdownMenu
@@ -388,7 +389,7 @@ fun NowPlayingScreen(
     onLoadWaveform: suspend (String) -> FloatArray?,
     onMoveQueueItem: (Int, Int) -> Unit,
     onRemoveQueueItem: (Int) -> Unit,
-    onBeginTemporaryDoubleSpeed: () -> Boolean,
+    onBeginTemporaryDoubleSpeed: (TemporaryPlaybackSpeed.Origin) -> Boolean,
     onEndTemporaryDoubleSpeed: () -> Unit,
     onLockTemporaryDoubleSpeed: () -> Boolean,
     isFavourite: Boolean,
@@ -472,6 +473,18 @@ fun NowPlayingScreen(
         val landscape = maxWidth > maxHeight
         val portraitVideoHeight = minOf(maxWidth / playback.videoAspectRatio.coerceIn(0.75f, 2.25f), maxHeight * 0.34f)
         val immersiveVideo = playback.isVideo && (fullscreen || landscape)
+        val wantsFrameAmbient = playback.isVideo && !immersiveVideo && ambientPreferences != null &&
+            ambientPreferences.adaptiveReactToVideo &&
+            (ambientPreferences.backgroundMode == com.local.listentomusic.data.AppBackgroundMode.AMBIENT ||
+                ambientPreferences.backgroundMode == com.local.listentomusic.data.AppBackgroundMode.ADAPTIVE_DYNAMIC)
+        var frameAmbientFailed by remember(controller, playback.currentPath) { mutableStateOf(false) }
+        var frameAmbientStage by remember { mutableStateOf<Rect?>(null) }
+        val frameAmbientLight = if (ambientPreferences?.backgroundMode ==
+            com.local.listentomusic.data.AppBackgroundMode.AMBIENT) .8f
+            else com.local.listentomusic.ui.components.ambientUnit(ambientPreferences?.adaptiveIntensity ?: 0f)
+        val useFrameAmbient = wantsFrameAmbient && !frameAmbientFailed && frameAmbientLight > 0f &&
+            !com.local.listentomusic.ui.components.ambientSystemConstraints().second &&
+            com.local.listentomusic.ambient.hasFrameAmbientTrack(controller, playback.currentPath)
         val rotateFullscreen = {
             fullscreenLandscape = if (fullscreen) !fullscreenLandscape else !landscape
             fullscreen = true
@@ -491,6 +504,15 @@ fun NowPlayingScreen(
         BackHandler(enabled = controlsLocked) { controlsLocked = false }
 
         Box(Modifier.fillMaxSize().then(if (controlsLocked) Modifier.clearAndSetSemantics { } else Modifier)) {
+        if (useFrameAmbient && controller != null) {
+            com.local.listentomusic.ambient.FrameAmbientPresentation(
+                controller, overlay = sharedVideoView != null, stage = frameAmbientStage,
+                intensity = frameAmbientLight *
+                    (1f - com.local.listentomusic.ui.components.ambientUnit(ambientPreferences?.backgroundDim ?: 0f)),
+                onFailure = { frameAmbientFailed = true },
+                modifier = Modifier.fillMaxSize(),
+            )
+        }
         if (playback.isVideo) {
             val (pageBg, pageInsets) = if (immersiveVideo) {
                 Color.Black to WindowInsets(0)
@@ -520,6 +542,8 @@ fun NowPlayingScreen(
                     controller = controller,
                     sharedVideoView = sharedVideoView,
                     onSharedVideoReleased = onSharedVideoReleased,
+                    frameAmbient = useFrameAmbient,
+                    onFrameAmbientStage = { frameAmbientStage = it },
                     immersive = immersiveVideo,
                     onVideoBoundsChanged = onVideoBoundsChanged,
                     onHome = onHome,
@@ -565,6 +589,8 @@ fun NowPlayingScreen(
                                         editableQueue = editableQueue,
                                         language = language,
                                         onSpeed = onSpeed,
+                                        onBeginSpeedHold = { onBeginTemporaryDoubleSpeed(TemporaryPlaybackSpeed.Origin.SPEED_BUTTON) },
+                                        onEndSpeedHold = onEndTemporaryDoubleSpeed,
                                         onRepeat = onRepeat,
                                         onPrevious = onPrevious,
                                         onTogglePlay = onTogglePlay,
@@ -622,6 +648,8 @@ fun NowPlayingScreen(
                     onNext = onNext,
                     onSeek = onSeek,
                     onSpeed = onSpeed,
+                    onBeginSpeedHold = { onBeginTemporaryDoubleSpeed(TemporaryPlaybackSpeed.Origin.SPEED_BUTTON) },
+                    onEndSpeedHold = onEndTemporaryDoubleSpeed,
                     onRepeat = onRepeat,
                     onSleepTimer = onSleepTimer,
                     sleepTimer = sleepTimer,
@@ -699,6 +727,8 @@ private fun VideoPlayerStage(
     onSharedVideoReleased: () -> Unit,
     immersive: Boolean,
     onVideoBoundsChanged: (Rect) -> Unit,
+    frameAmbient: Boolean,
+    onFrameAmbientStage: (Rect) -> Unit,
     onHome: () -> Unit,
     onClose: () -> Unit,
     onPictureInPicture: () -> Unit,
@@ -712,7 +742,7 @@ private fun VideoPlayerStage(
     seekOffsetMs: Long = 5_000L,
     onSeekBy: (Long) -> Unit,
     onSpeed: (Float) -> Unit,
-    onBeginTemporaryDoubleSpeed: () -> Boolean,
+    onBeginTemporaryDoubleSpeed: (TemporaryPlaybackSpeed.Origin) -> Boolean,
     onEndTemporaryDoubleSpeed: () -> Unit,
     onLockTemporaryDoubleSpeed: () -> Boolean,
     onLockAnchorBoundsChanged: (androidx.compose.ui.geometry.Rect) -> Unit,
@@ -751,6 +781,7 @@ private fun VideoPlayerStage(
     }
     var panGestureActive by remember { mutableStateOf(false) }
     var playerGestureActive by remember { mutableStateOf(false) }
+    var speedButtonPressed by remember { mutableStateOf(false) }
     var timelineInteractionActive by remember { mutableStateOf(false) }
     var lastViewportSize by remember { mutableStateOf(IntSize.Zero) }
     var toolbarWindowBounds by remember(immersive, landscape) {
@@ -784,12 +815,12 @@ private fun VideoPlayerStage(
     // never interrupt a live slider/zoom/hold gesture. Gestures restart the timer.
     LaunchedEffect(immersive, controlsVisible, playback.currentPath,
         seeking, timelineInteractionActive, panGestureActive, playerGestureActive,
-        temporaryDoubleSpeed, unlockDoubleSpeedArmed,
+        temporaryDoubleSpeed, unlockDoubleSpeedArmed, speedButtonPressed,
     ) {
         if (shouldAutoHideVideoChrome(
                 immersive, controlsVisible, seeking,
                 panGestureActive, playerGestureActive,
-                temporaryDoubleSpeed, unlockDoubleSpeedArmed, timelineInteractionActive,
+                temporaryDoubleSpeed || speedButtonPressed, unlockDoubleSpeedArmed, timelineInteractionActive,
             )
         ) {
             delay(2_500)
@@ -808,7 +839,12 @@ private fun VideoPlayerStage(
 
     Box(
         modifier = modifier
-            .onGloballyPositioned { stageWindowBounds = it.boundsInWindow() }
+            .onGloballyPositioned {
+                val bounds = it.boundsInWindow()
+                stageWindowBounds = bounds
+                onFrameAmbientStage(Rect(bounds.left.roundToInt(), bounds.top.roundToInt(),
+                    bounds.right.roundToInt(), bounds.bottom.roundToInt()))
+            }
             .onSizeChanged { size ->
                 if (size != lastViewportSize) {
                     lastViewportSize = size
@@ -818,7 +854,7 @@ private fun VideoPlayerStage(
                 }
             }
             .inspectElement("VIDEO_STAGE", "Side double-tap seeks; pinch to zoom in fullscreen")
-            .background(Color.Black)
+            .background(if (frameAmbient) Color.Transparent else Color.Black)
             .clipToBounds(),
         contentAlignment = Alignment.Center,
     ) {
@@ -833,9 +869,11 @@ private fun VideoPlayerStage(
                 translationY = videoOffset.y
             }
         ) {
-            VideoSurface(playback.currentPath, controller, onVideoBoundsChanged, Modifier.fillMaxSize(),
-                sharedVideoView, onSharedVideoReleased,
-                frameMode = if (immersive) frameMode else FullscreenFrameMode.FIT)
+            if (!frameAmbient) {
+                VideoSurface(playback.currentPath, controller, onVideoBoundsChanged, Modifier.fillMaxSize(),
+                    sharedVideoView, onSharedVideoReleased,
+                    frameMode = if (immersive) frameMode else FullscreenFrameMode.FIT)
+            }
         }
         // PlayerView is a native AndroidView and can consume touches before a
         // parent detector sees them. This transparent layer is the single input
@@ -935,7 +973,9 @@ private fun VideoPlayerStage(
                             unlockArmed = true
                             unlockDoubleSpeedArmed = true
                             haptics.performHapticFeedback(HapticFeedbackType.LongPress)
-                        } else if (currentPlayback.isPlaying && onBeginTemporaryDoubleSpeed()) {
+                        } else if (currentPlayback.isPlaying &&
+                            onBeginTemporaryDoubleSpeed(TemporaryPlaybackSpeed.Origin.VIDEO_GESTURE)
+                        ) {
                             holdActivated = true
                             activationY = currentY
                             temporaryDoubleSpeed = true
@@ -1089,6 +1129,9 @@ private fun VideoPlayerStage(
                                         fullscreen = true,
                                         speed = playback.speed,
                                         onSpeed = onSpeed,
+                                        onBeginSpeedHold = { onBeginTemporaryDoubleSpeed(TemporaryPlaybackSpeed.Origin.SPEED_BUTTON) },
+                                        onEndSpeedHold = onEndTemporaryDoubleSpeed,
+                                        onSpeedPressedChange = { speedButtonPressed = it },
                                         onRotate = onRotate,
                                         landscape = landscape,
                                         onLock = onToggleControlsLock,
@@ -1182,6 +1225,8 @@ private fun AudioPlayer(
     onNext: () -> Unit,
     onSeek: (Long) -> Unit,
     onSpeed: (Float) -> Unit,
+    onBeginSpeedHold: () -> Boolean,
+    onEndSpeedHold: () -> Unit,
     onRepeat: () -> Unit,
     onSleepTimer: (Long) -> Unit,
     sleepTimer: SleepTimerState,
@@ -1334,7 +1379,8 @@ private fun AudioPlayer(
                                 onLocateCurrent = onLocateCurrent,
                             )
             WaveformTimeline(playback, waveform, onSeek, language, waveformLoading, artwork)
-            PlayerBottomControls(playback, onRepeat, onPrevious, onTogglePlay, onNext, onSpeed)
+            PlayerBottomControls(playback, onRepeat, onPrevious, onTogglePlay, onNext, onSpeed,
+                onBeginSpeedHold, onEndSpeedHold)
         }
         }
         // Short landscape windows put artwork beside the controls instead of
@@ -1421,6 +1467,8 @@ private fun SecondaryControls(
     editableQueue: Boolean,
     language: AppLanguage,
     onSpeed: (Float) -> Unit,
+    onBeginSpeedHold: () -> Boolean,
+    onEndSpeedHold: () -> Unit,
     onRepeat: () -> Unit,
     onPrevious: () -> Unit,
     onTogglePlay: () -> Unit,
@@ -1509,7 +1557,8 @@ private fun SecondaryControls(
                 .padding(horizontal = 8.dp, vertical = 4.dp),
         ) {
             Timeline(playback, onSeek)
-            PlayerBottomControls(playback, onRepeat, onPrevious, onTogglePlay, onNext, onSpeed)
+            PlayerBottomControls(playback, onRepeat, onPrevious, onTogglePlay, onNext, onSpeed,
+                onBeginSpeedHold, onEndSpeedHold)
         }
     }
 }
@@ -2072,13 +2121,15 @@ internal fun CompactSlider(
 }
 
 @Composable
-private fun PlayerBottomControls(
+internal fun PlayerBottomControls(
     playback: PlaybackUiState,
     onRepeat: () -> Unit,
     onPrevious: () -> Unit,
     onTogglePlay: () -> Unit,
     onNext: () -> Unit,
     onSpeed: (Float) -> Unit,
+    onBeginSpeedHold: () -> Boolean,
+    onEndSpeedHold: () -> Unit,
 ) {
     var speedMenuOpen by remember { mutableStateOf(false) }
     val accent = MaterialTheme.colorScheme.secondary
@@ -2157,12 +2208,17 @@ private fun PlayerBottomControls(
             Icon(Icons.Rounded.SkipNext, uiText(playback.appLanguage, "Next", "下一首"), modifier = Modifier.size(GaControl.icon).testTag("PLAYER_TRANSPORT_ICON"))
         }
         Box {
-                    IconButton(onClick = { speedMenuOpen = true }, modifier = Modifier.size(48.dp).inspectElement("SPEED_BUTTON", speedLabel(playback.speed))) {
-                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            SpeedDialIcon(playback.speed, accent, Modifier.size(GaControl.icon))
-                            Text(speedLabel(playback.speed), style = MaterialTheme.typography.labelSmall, maxLines = 1)
-                        }
-                    }
+            PlaybackSpeedButton(
+                onClick = { speedMenuOpen = true },
+                onBeginHold = onBeginSpeedHold,
+                onEndHold = onEndSpeedHold,
+                modifier = Modifier.testTag("SPEED_BUTTON").inspectElement("SPEED_BUTTON", speedLabel(playback.speed)),
+            ) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    SpeedDialIcon(playback.speed, accent, Modifier.size(GaControl.icon))
+                    Text(speedLabel(playback.speed), style = MaterialTheme.typography.labelSmall, maxLines = 1)
+                }
+            }
             DropdownMenu(speedMenuOpen, { speedMenuOpen = false }) {
                 playbackSpeeds.forEach { speed -> DropdownMenuItem(
                     text = { Text(if (speed == playback.speed) "✓  ${speedLabel(speed)}" else speedLabel(speed)) },
@@ -2404,6 +2460,9 @@ internal fun NowPlayingTopBar(
     fullscreen: Boolean = false,
     speed: Float = 1f,
     onSpeed: ((Float) -> Unit)? = null,
+    onBeginSpeedHold: (() -> Boolean)? = null,
+    onEndSpeedHold: () -> Unit = {},
+    onSpeedPressedChange: (Boolean) -> Unit = {},
     onLock: (() -> Unit)? = null,
     locked: Boolean = false,
     frameMode: FullscreenFrameMode? = null,
@@ -2453,8 +2512,14 @@ internal fun NowPlayingTopBar(
             if (hasSpeed) {
                 var menuOpen by remember { mutableStateOf(false) }
                 Box {
-                    IconButton(onClick = { menuOpen = true }, modifier = Modifier.size(GaControl.touchTarget)
-                        .inspectElement("FULLSCREEN_SPEED_BUTTON", speedLabel(speed))) {
+                    PlaybackSpeedButton(
+                        onClick = { menuOpen = true },
+                        onBeginHold = onBeginSpeedHold,
+                        onEndHold = onEndSpeedHold,
+                        onPressedChange = onSpeedPressedChange,
+                        modifier = Modifier.testTag("FULLSCREEN_SPEED_BUTTON")
+                            .inspectElement("FULLSCREEN_SPEED_BUTTON", speedLabel(speed)),
+                    ) {
                         Text(speedLabel(speed), color = foregroundColor,
                             style = MaterialTheme.typography.labelLarge, maxLines = 1)
                     }
