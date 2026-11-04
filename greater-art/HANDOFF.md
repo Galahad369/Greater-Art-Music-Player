@@ -3,7 +3,7 @@
 This file describes the **current repository state only**. Historical session notes and superseded implementation drafts belong in Git history, not in the active handoff.
 
 **Project:** `greater-art/` in the repository checkout
-**Current source:** `1.22.3 (code 324)` — SOURCE_ONLY, approved debug-only frame-synchronous Ambient prototype. Production Ambient/playback is unchanged until qualification; no polling reduction is presented as same-frame rendering. The Java21 build block has a verified process-only Windows-root recovery: correct official POM fetched and untrusted certificate rejected; wrapper configuration succeeds. `build-personal-debug.ps1 -UseWindowsTrustedRoots -BuildOnly` propagates temporary trust options to child JVMs and restores them. Prototype build/runtime results are recorded separately below. Latest immutable verified APK remains1.21.93; the exact1.22.1 candidate is preserved. Shared output remains disabled.
+**Current source:** `1.22.4 (code 325)` — SOURCE_ONLY. Portrait Now Playing uses one frame for the video and Ambient light when the selected track has confirmed 8-bit SDR metadata. HDR, unknown formats, and unsupported rendering conditions use native foreground playback. The QA virtual display reports no HDR types. Actual HDR display output and optimized-artifact acceptance are not verified. The latest immutable verified APK remains 1.21.93. Retain the 1.22.3 prototype pair and all earlier release evidence.
 **Previous optimized candidate:** sibling `App/output/GreaterArt-1.21.98.apk` —5,495,129 bytes, SHA-256 `36d5279c58b155f70cc7a47ca3af348e285df1e8bf5197eeca43f9a14ef8ba02`; same key, non-debuggable, artifact checks passed; **not promoted**. [Retained98 evidence](docs/CANDIDATE_1.21.98.md). The97 candidate is hash-verified and archived under sibling `output/retained-artifacts/`.
 
 The following release fields describe verified1.21.93, not the98 candidate:
@@ -17,6 +17,33 @@ The following release fields describe verified1.21.93, not the98 candidate:
 **Verification boundary:** Exact runtime source `58048b54e4119c3aad50ca99d4595afe479653c3`; Java21/Gradle9.8.2 unit/lint/debug app/test and optimized R8 assembly passed. 473 JVM tests, zero failures/errors/skips; lint0 errors/47 warnings/4 hints. API36 debug instrumentation23/23 in520.008s covers reflected Ambient, compact audio/video controls/title transparency, real audio/video IME dock continuity, real-page navigation/video sampling and fullscreen toolbar. Separate same-certificate optimized upgrade and native Library/video/dock/expanded-player smoke passed; actual screenshots inspected. Package/version, non-debuggable state, ZIP CRC,16KiB alignment and SHA-256 checked. The APK does not embed a usable VCS SHA; this receipt records it externally. Full rotation, physical-device visual/acoustic/performance acceptance, production signing and universal crash freedom remain unverified. See [the exact release receipt](docs/RELEASE_1.21.93.md).
 
 ## Repository state
+
+### November 4 — Frame-synchronous Ambient in Now Playing
+
+- The user selected virtual-device verification and quality-first routing.
+  In portrait Now Playing, Ambient and Adaptive Dynamic can draw the video and
+  reflected light from the same decoded SDR frame. There is no periodic palette
+  readback in this path. It reuses the primary decoder and player; it does not
+  cap resolution, bitrate or frame rate. Fullscreen and HDR retain native
+  playback without the frame-synchronous effect. Unknown metadata, unsupported
+  formats and compositor failure also use the native path.
+- `testDebugUnitTest assembleDebug assembleDebugAndroidTest` passed:
+  500 JVM tests with zero failures, errors or skips. The version validator
+  passed. Both APKs match the existing sideload certificate. Lint and optimized
+  assembly were not completed for 1.22.4.
+- Exact internal pair, **not a verified release**, under sibling
+  `output/ambient-production-preflight-20261104/candidate/`:
+  `GreaterArt-1.22.4-debug-candidate.apk` (SHA-256
+  `0b3913c0fc7c49ec28cebbd8bc96a7eb0c5b0a8d913be77ddadf824c4157af2c`) and
+  `GreaterArt-1.22.4-debug-candidate-tests.apk` (SHA-256
+  `b8195529be9a9c2183423451f10c54f887f819de133b801f5ce1cd8c76cac38b`).
+- Device acceptance is pending. The dedicated QA emulator preflight reported
+  a System UI ANR and no HDR display types. No 1.22.4 device test has run.
+  Preserve the preflight logs and use the same APK pair, SDR and PQ fixtures,
+  and acceptance checkpoint for the next attempt. Check installed hashes,
+  actual SDR rendering and native PQ routing, and inspect screenshots. A
+  routing pass is not physical HDR verification. Test the exact optimized
+  APK before promotion; do not replace 1.21.93 with the debug pair.
 
 ### November3 — Frame-synchronous Ambient prototype and local build recovery
 

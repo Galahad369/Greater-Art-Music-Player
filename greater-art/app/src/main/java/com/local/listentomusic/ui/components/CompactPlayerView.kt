@@ -7,7 +7,6 @@ import android.graphics.drawable.RippleDrawable
 import android.content.res.ColorStateList
 import android.view.Gravity
 import android.view.ViewGroup
-import android.view.LayoutInflater
 import android.view.View
 import android.widget.FrameLayout
 import android.widget.ImageButton
@@ -34,7 +33,9 @@ internal fun shouldRefreshCompactBinding(samePlayer: Boolean, samePresentation: 
 class CompactPlayerView(context: Context) : FrameLayout(context) {
     val preview = FrameLayout(context)
     val artwork = ImageView(context)
-    val video = LayoutInflater.from(context).inflate(R.layout.background_video, preview, false) as PlayerView
+    // The compact video can be borrowed by Expanded and Fullscreen. Keep its
+    // foreground output HDR-capable, not on the decorative TextureView layout.
+    val video: PlayerView = AspectPreservingPlayerView(context)
     private val title = TextView(context)
     private val previous = button(android.R.drawable.ic_media_previous)
     private val toggle = button(android.R.drawable.ic_media_play)
@@ -72,6 +73,7 @@ class CompactPlayerView(context: Context) : FrameLayout(context) {
         artwork.setImageResource(R.drawable.ic_launcher_foreground)
         preview.addView(artwork, LayoutParams(-1, -1))
         video.useController = false
+        if (android.os.Build.VERSION.SDK_INT == 34) video.setEnableComposeSurfaceSyncWorkaround(true)
         video.resizeMode = AspectRatioFrameLayout.RESIZE_MODE_FIT
         video.setKeepContentOnPlayerReset(true)
         video.isClickable = false

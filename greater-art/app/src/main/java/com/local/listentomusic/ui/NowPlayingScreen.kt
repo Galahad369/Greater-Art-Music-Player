@@ -472,6 +472,18 @@ fun NowPlayingScreen(
         val landscape = maxWidth > maxHeight
         val portraitVideoHeight = minOf(maxWidth / playback.videoAspectRatio.coerceIn(0.75f, 2.25f), maxHeight * 0.34f)
         val immersiveVideo = playback.isVideo && (fullscreen || landscape)
+        val wantsFrameAmbient = playback.isVideo && !immersiveVideo && ambientPreferences != null &&
+            ambientPreferences.adaptiveReactToVideo &&
+            (ambientPreferences.backgroundMode == com.local.listentomusic.data.AppBackgroundMode.AMBIENT ||
+                ambientPreferences.backgroundMode == com.local.listentomusic.data.AppBackgroundMode.ADAPTIVE_DYNAMIC)
+        var frameAmbientFailed by remember(controller, playback.currentPath) { mutableStateOf(false) }
+        var frameAmbientStage by remember { mutableStateOf<Rect?>(null) }
+        val frameAmbientLight = if (ambientPreferences?.backgroundMode ==
+            com.local.listentomusic.data.AppBackgroundMode.AMBIENT) .8f
+            else com.local.listentomusic.ui.components.ambientUnit(ambientPreferences?.adaptiveIntensity ?: 0f)
+        val useFrameAmbient = wantsFrameAmbient && !frameAmbientFailed && frameAmbientLight > 0f &&
+            !com.local.listentomusic.ui.components.ambientSystemConstraints().second &&
+            com.local.listentomusic.ambient.hasFrameAmbientTrack(controller, playback.currentPath)
         val rotateFullscreen = {
             fullscreenLandscape = if (fullscreen) !fullscreenLandscape else !landscape
             fullscreen = true
@@ -491,6 +503,15 @@ fun NowPlayingScreen(
         BackHandler(enabled = controlsLocked) { controlsLocked = false }
 
         Box(Modifier.fillMaxSize().then(if (controlsLocked) Modifier.clearAndSetSemantics { } else Modifier)) {
+        if (useFrameAmbient && controller != null) {
+            com.local.listentomusic.ambient.FrameAmbientPresentation(
+                controller, overlay = sharedVideoView != null, stage = frameAmbientStage,
+                intensity = frameAmbientLight *
+                    (1f - com.local.listentomusic.ui.components.ambientUnit(ambientPreferences?.backgroundDim ?: 0f)),
+                onFailure = { frameAmbientFailed = true },
+                modifier = Modifier.fillMaxSize(),
+            )
+        }
         if (playback.isVideo) {
             val (pageBg, pageInsets) = if (immersiveVideo) {
                 Color.Black to WindowInsets(0)
@@ -520,6 +541,8 @@ fun NowPlayingScreen(
                     controller = controller,
                     sharedVideoView = sharedVideoView,
                     onSharedVideoReleased = onSharedVideoReleased,
+                    frameAmbient = useFrameAmbient,
+                    onFrameAmbientStage = { frameAmbientStage = it },
                     immersive = immersiveVideo,
                     onVideoBoundsChanged = onVideoBoundsChanged,
                     onHome = onHome,
@@ -699,6 +722,8 @@ private fun VideoPlayerStage(
     onSharedVideoReleased: () -> Unit,
     immersive: Boolean,
     onVideoBoundsChanged: (Rect) -> Unit,
+    frameAmbient: Boolean,
+    onFrameAmbientStage: (Rect) -> Unit,
     onHome: () -> Unit,
     onClose: () -> Unit,
     onPictureInPicture: () -> Unit,
@@ -808,7 +833,12 @@ private fun VideoPlayerStage(
 
     Box(
         modifier = modifier
-            .onGloballyPositioned { stageWindowBounds = it.boundsInWindow() }
+            .onGloballyPositioned {
+                val bounds = it.boundsInWindow()
+                stageWindowBounds = bounds
+                onFrameAmbientStage(Rect(bounds.left.roundToInt(), bounds.top.roundToInt(),
+                    bounds.right.roundToInt(), bounds.bottom.roundToInt()))
+            }
             .onSizeChanged { size ->
                 if (size != lastViewportSize) {
                     lastViewportSize = size
@@ -818,7 +848,7 @@ private fun VideoPlayerStage(
                 }
             }
             .inspectElement("VIDEO_STAGE", "Side double-tap seeks; pinch to zoom in fullscreen")
-            .background(Color.Black)
+            .background(if (frameAmbient) Color.Transparent else Color.Black)
             .clipToBounds(),
         contentAlignment = Alignment.Center,
     ) {
@@ -833,9 +863,11 @@ private fun VideoPlayerStage(
                 translationY = videoOffset.y
             }
         ) {
-            VideoSurface(playback.currentPath, controller, onVideoBoundsChanged, Modifier.fillMaxSize(),
-                sharedVideoView, onSharedVideoReleased,
-                frameMode = if (immersive) frameMode else FullscreenFrameMode.FIT)
+            if (!frameAmbient) {
+                VideoSurface(playback.currentPath, controller, onVideoBoundsChanged, Modifier.fillMaxSize(),
+                    sharedVideoView, onSharedVideoReleased,
+                    frameMode = if (immersive) frameMode else FullscreenFrameMode.FIT)
+            }
         }
         // PlayerView is a native AndroidView and can consume touches before a
         // parent detector sees them. This transparent layer is the single input

@@ -1,6 +1,6 @@
 package com.local.listentomusic.ambient;
 
-/** Debug-prototype layout math. One proportional scale, with clipping for Crop. */
+/** One proportional scale, with clipping for Crop. */
 public final class FrameAmbientGeometry {
     private FrameAmbientGeometry() {}
 

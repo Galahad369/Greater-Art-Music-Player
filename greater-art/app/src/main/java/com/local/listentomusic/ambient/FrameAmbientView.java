@@ -22,7 +22,7 @@ import javax.microedition.khronos.egl.EGLConfig;
 import javax.microedition.khronos.opengles.GL10;
 
 /**
- * Private SDR experiment, not the production surface owner. The frame-available/
+ * SDR compositor shared by Now Playing and the private verification host. The frame-available/
  * external-texture pattern follows the AndroidX Media3 1.11.1 GL demo (Apache-2.0).
  * Video and lighting are drawn in ONE pass from ONE latched decoder texture.
  */
@@ -63,7 +63,7 @@ public final class FrameAmbientView extends GLSurfaceView implements GLSurfaceVi
             "precision highp float; varying vec2 vUv;\n" +
             "uniform samplerExternalOES uFrame; uniform mat4 uTransform;\n" +
             "uniform vec2 uSize; uniform vec4 uStage; uniform vec4 uVideo;\n" +
-            "uniform vec4 uBackground; uniform vec3 uHeldGlow; uniform float uHold;\n" +
+            "uniform vec4 uBackground; uniform vec3 uHeldGlow; uniform float uHold; uniform float uLight;\n" +
             "vec3 frame(vec2 uv){return texture2D(uFrame,(uTransform*vec4(clamp(uv,0.,1.),0.,1.)).xy).rgb;}\n" +
             "bool inside(vec2 p,vec4 r){return all(greaterThanEqual(p,r.xy))&&all(lessThan(p,r.xy+r.zw));}\n" +
             "void main(){vec2 p=vUv*uSize;\n" +
@@ -75,15 +75,17 @@ public final class FrameAmbientView extends GLSurfaceView implements GLSurfaceVi
             " c=mix(c,uHeldGlow,uHold);\n" +
             " float edge=exp(-vUv.x*5.)+exp(-(1.-vUv.x)*5.);\n" +
             " float ribbon=exp(-pow((vUv.y-(.21+.065*sin(vUv.x*5.))),2.)*220.);\n" +
-            " gl_FragColor=vec4(c*(.30+.16*edge+.13*ribbon)+vec3(.012),1.);}";
+            " gl_FragColor=vec4(c*(.30+.16*edge+.13*ribbon)*uLight+vec3(.012),1.);}";
 
     private final Listener listener;
     private final Handler main = new Handler(Looper.getMainLooper());
     private final AtomicBoolean available = new AtomicBoolean();
     private final TimedValueQueue<Long> timestamps = new TimedValueQueue<>();
+    private final TimedValueQueue<Long> admittedFrames = new TimedValueQueue<>();
     private final ArrayDeque<Sample> samples = new ArrayDeque<>();
     private final boolean diagnose;
     private final boolean staleGlowControl;
+    private final boolean presentation;
     private final FloatBuffer quad = ByteBuffer.allocateDirect(8 * Float.BYTES)
             .order(ByteOrder.nativeOrder()).asFloatBuffer();
     private final ByteBuffer pixel = ByteBuffer.allocateDirect(4);
@@ -110,6 +112,7 @@ public final class FrameAmbientView extends GLSurfaceView implements GLSurfaceVi
     private int backgroundLocation;
     private int heldLocation;
     private int holdLocation;
+    private int lightLocation;
     private int width;
     private int height;
     private long currentTimestamp;
@@ -119,13 +122,25 @@ public final class FrameAmbientView extends GLSurfaceView implements GLSurfaceVi
     private volatile float[] stage;
     private volatile float[] video;
     private float[] background;
+    private float[] stageFromTop;
+    private float light = 1f;
     private boolean layoutDirty = true;
 
     public FrameAmbientView(Context context, Listener listener, boolean diagnose, boolean staleGlowControl) {
+        this(context, listener, diagnose, staleGlowControl, false);
+    }
+
+    public FrameAmbientView(Context context, Listener listener) {
+        this(context, listener, false, false, true);
+    }
+
+    private FrameAmbientView(Context context, Listener listener, boolean diagnose,
+            boolean staleGlowControl, boolean presentation) {
         super(context);
         this.listener = listener;
         this.diagnose = diagnose;
         this.staleGlowControl = staleGlowControl;
+        this.presentation = presentation;
         quad.put(new float[] {-1, -1, 1, -1, -1, 1, 1, 1}).position(0);
         setEGLContextClientVersion(2);
         setEGLConfigChooser(8, 8, 8, 8, 0, 0);
@@ -135,6 +150,12 @@ public final class FrameAmbientView extends GLSurfaceView implements GLSurfaceVi
     }
 
     public void sourceFrame(long ptsUs, long releaseTimeNs, float sourceAspect) {
+        if (closed || failure != null) return;
+        if (presentation) {
+            if (admittedFrames.size() >= 64) admittedFrames.pollFirst();
+            admittedFrames.add(releaseTimeNs, releaseTimeNs);
+        }
+        if (timestamps.size() >= 64) timestamps.pollFirst();
         formatAllowed = true;
         timestamps.add(releaseTimeNs, ptsUs);
         if (sourceAspect > 0 && Float.isFinite(sourceAspect) && aspect != sourceAspect) {
@@ -144,6 +165,21 @@ public final class FrameAmbientView extends GLSurfaceView implements GLSurfaceVi
     }
 
     public void rejectFormat() { formatAllowed = false; requestRender(); }
+
+    public void refusePresentation() {
+        if (closed || failure != null) return;
+        formatAllowed = false;
+        fail("Video format requires native playback");
+    }
+
+    public void setStage(int left, int top, int width, int height, float intensity) {
+        queueEvent(() -> {
+            stageFromTop = new float[] {left, top, width, height};
+            light = intensity;
+            layoutDirty = true;
+        });
+        requestRender();
+    }
 
     public void setCrop(boolean value) {
         crop = value;
@@ -193,6 +229,7 @@ public final class FrameAmbientView extends GLSurfaceView implements GLSurfaceVi
             backgroundLocation = GLES20.glGetUniformLocation(program, "uBackground");
             heldLocation = GLES20.glGetUniformLocation(program, "uHeldGlow");
             holdLocation = GLES20.glGetUniformLocation(program, "uHold");
+            lightLocation = GLES20.glGetUniformLocation(program, "uLight");
             int[] names = new int[1];
             GLES20.glGenTextures(1, names, 0);
             frameTexture = names[0];
@@ -242,6 +279,15 @@ public final class FrameAmbientView extends GLSurfaceView implements GLSurfaceVi
                 texture.updateTexImage();
                 long nextTimestamp = texture.getTimestamp();
                 fresh = !hasFrame || nextTimestamp != currentTimestamp;
+                if (fresh && presentation) {
+                    Long admitted = admittedFrames.pollFloor(nextTimestamp);
+                    // A newer HDR/unknown frame can reach the queue before the
+                    // controller's track update. Never draw an unadmitted buffer.
+                    if (!formatAllowed || admitted == null || admitted != nextTimestamp) {
+                        fail("No matching SDR frame metadata");
+                        return;
+                    }
+                }
                 currentTimestamp = nextTimestamp;
                 texture.getTransformMatrix(matrix);
                 if (fresh) {
@@ -252,7 +298,13 @@ public final class FrameAmbientView extends GLSurfaceView implements GLSurfaceVi
             }
             if (!hasFrame) return;
             if (layoutDirty) {
-                stage = new float[] {0, height * .47f, width, height * .49f};
+                if (presentation) {
+                    if (stageFromTop == null || stageFromTop[2] <= 0 || stageFromTop[3] <= 0) return;
+                    stage = new float[] {stageFromTop[0], height - stageFromTop[1] - stageFromTop[3],
+                            stageFromTop[2], stageFromTop[3]};
+                } else {
+                    stage = new float[] {0, height * .47f, width, height * .49f};
+                }
                 video = FrameAmbientGeometry.place(stage[0], stage[1], stage[2], stage[3], aspect, crop);
                 background = FrameAmbientGeometry.place(0, 0, width, height, aspect, true);
                 layoutDirty = false;
@@ -270,6 +322,7 @@ public final class FrameAmbientView extends GLSurfaceView implements GLSurfaceVi
             GLES20.glUniform4fv(backgroundLocation, 1, background, 0);
             GLES20.glUniform3fv(heldLocation, 1, heldGlow, 0);
             GLES20.glUniform1f(holdLocation, staleGlowControl && held ? 1 : 0);
+            GLES20.glUniform1f(lightLocation, light);
             GLES20.glDrawArrays(GLES20.GL_TRIANGLE_STRIP, 0, 4);
             GLES20.glDisableVertexAttribArray(positionLocation);
             if (GLES20.glGetError() != GLES20.GL_NO_ERROR) throw new IllegalStateException("GL draw failed");

@@ -135,6 +135,7 @@ class PlaybackService : MediaLibraryService() {
             .build()
 
         player.installVideoDiagnostics("PRIMARY")
+        player.setVideoFrameMetadataListener(com.local.listentomusic.ambient.FrameAmbientPlayback)
         player.skipSilenceEnabled = false
         // DataStore restores asynchronously. Establish the product default immediately
         // so a first play tap cannot strand the fresh player in Media3's Repeat Off.
