@@ -1,8 +1,17 @@
 # Greater Art Desktop handoff
 
+## Setup .NET CI pin — November 6, 2026
+
+Current source is **0.1.26/code27, SOURCE_ONLY**. Dependabot PR #227
+updated the Windows workflow without its required version step. The
+replacement keeps the official Setup .NET v6.1.0 commit and adds the
+desktop identity in the same commit. The .NET SDK remains 10.0.300.
+Android source, release artifacts, and the required checks are unchanged.
+This is not a new verified installer or WinUI preview.
+
 ## Self-test preservation and CodeQL CI — November 6, 2026
 
-Current source is **0.1.25/code26, SOURCE_ONLY**. PR #221 preserves
+This checkpoint was **0.1.25/code26, SOURCE_ONLY**. PR #221 preserves
 existing self-test output: the native command creates a fresh directory or
 returns exit code 2 without changing the requested path. Windows CI checks
 the original playlist hash and the number of files after a refused run.
