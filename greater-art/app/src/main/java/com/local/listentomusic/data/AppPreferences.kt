@@ -280,16 +280,34 @@ class AppPreferences(private val context: Context) {
         require(json.optString("format") == "GreaterArtSettings" && json.optInt("version") == 1) { "Not a supported Greater Art backup" }
         val speed = json.optDouble(Keys.speed.name, 1.0)
         require(speed.isFinite() && speed in 0.25..3.0)
-        context.dataStore.edit { prefs ->
-            backupStrings.forEach { key ->
-                if (json.has(key.name)) {
-                    val value = json.getString(key.name)
-                    require(value.length <= 4_000_000)
-                    prefs[key] = value
-                } else prefs.remove(key)
+        // Validate collections before editing DataStore. The normal readers
+        // tolerate old or damaged rows; restore must not replace good data with them.
+        val strings = backupStrings.associateWith { key ->
+            if (!json.has(key.name)) null else {
+                val value = json.opt(key.name) as? String ?: error("Invalid backup value")
+                require(value.length <= 4_000_000)
+                val rows = value.lineSequence().count { it.isNotBlank() }
+                when (key) {
+                    Keys.playlists -> {
+                        val decoded = decodePlaylists(value, strict = true)
+                        require(decoded.size == rows && decoded.distinctBy { it.id }.size == rows)
+                    }
+                    Keys.savedStacks -> require(SavedStackCodec.decode(value).size == rows)
+                    Keys.customOrder, Keys.excludedFolders, Keys.favouritePaths ->
+                        require(StoredPathListCodec.decode(value).size == rows)
+                }
+                value
             }
-            backupBooleans.forEach { key ->
-                if (json.has(key.name)) prefs[key] = json.getBoolean(key.name) else prefs.remove(key)
+        }
+        val booleans = backupBooleans.associateWith { key ->
+            if (!json.has(key.name)) null else json.opt(key.name) as? Boolean ?: error("Invalid backup switch")
+        }
+        context.dataStore.edit { prefs ->
+            strings.forEach { (key, value) ->
+                if (value == null) prefs.remove(key) else prefs[key] = value
+            }
+            booleans.forEach { (key, value) ->
+                if (value == null) prefs.remove(key) else prefs[key] = value
             }
             prefs[Keys.speed] = speed.toFloat()
             prefs[Keys.repeatMode] = json.optLong(Keys.repeatMode.name, 1).coerceIn(0, 2)
@@ -454,9 +472,13 @@ class AppPreferences(private val context: Context) {
         playlists.map { if (it.id == id) it.copy(name = name.trim()) else it }
     }
 
-    suspend fun saveStack(stack: SavedStack) = edit { prefs ->
-        val current = SavedStackCodec.decode(prefs[Keys.savedStacks].orEmpty())
-        prefs[Keys.savedStacks] = SavedStackCodec.encode(current.filterNot { it.id == stack.id } + stack)
+    suspend fun saveStack(stack: SavedStack) {
+        val record = SavedStackCodec.encode(listOf(stack))
+        require(SavedStackCodec.decode(record).singleOrNull() == stack) { "Invalid Stack timing or tracks" }
+        edit { prefs ->
+            val current = SavedStackCodec.decode(prefs[Keys.savedStacks].orEmpty())
+            prefs[Keys.savedStacks] = SavedStackCodec.encode(current.filterNot { it.id == stack.id } + stack)
+        }
     }
 
     suspend fun deleteStack(id: String) = edit { prefs ->
@@ -492,9 +514,11 @@ class AppPreferences(private val context: Context) {
         }
     }
 
-    suspend fun movePlaylistItem(id: String, fromIndex: Int, toIndex: Int) = updatePlaylists { playlists ->
+    suspend fun movePlaylistItem(id: String, fromPath: String, toPath: String) = updatePlaylists { playlists ->
         playlists.map { playlist ->
-            if (playlist.id != id || fromIndex !in playlist.paths.indices || toIndex !in playlist.paths.indices) {
+            val fromIndex = playlist.paths.indexOf(fromPath)
+            val toIndex = playlist.paths.indexOf(toPath)
+            if (playlist.id != id || fromIndex < 0 || toIndex < 0 || fromIndex == toIndex) {
                 playlist
             } else {
                 playlist.copy(paths = playlist.paths.toMutableList().apply {
@@ -575,20 +599,27 @@ class AppPreferences(private val context: Context) {
         ).joinToString("|")
     }
 
-    private fun decodePlaylists(encoded: String): List<LocalPlaylist> = encoded.lineSequence().mapNotNull { line ->
+    private fun decodePlaylists(encoded: String, strict: Boolean = false): List<LocalPlaylist> =
+        encoded.lineSequence().filter(String::isNotBlank).mapNotNull { line ->
+        fun invalid(): Nothing? {
+            require(!strict) { "Invalid playlist in backup" }
+            return null
+        }
         // Four-field legacy rows remain valid; the fifth field is the optional Stack keyword.
         val parts = line.split('|', limit = 5)
-        if (parts.size < 3) return@mapNotNull null
-        val id = decode(parts[0]) ?: return@mapNotNull null
-        val name = decode(parts[1])?.takeIf { it.isNotBlank() } ?: return@mapNotNull null
-        val paths = if (parts[2].isBlank()) emptyList() else parts[2].split(',').mapNotNull(::decode)
-        val rule = parts.getOrNull(3)?.takeIf { it.isNotBlank() }?.let(::decode)?.let { raw -> runCatching {
-            val json = org.json.JSONObject(raw)
+        if (parts.size < 3) return@mapNotNull invalid()
+        val id = decode(parts[0])?.takeIf { !strict || it.isNotBlank() } ?: return@mapNotNull invalid()
+        val name = decode(parts[1])?.takeIf { it.isNotBlank() } ?: return@mapNotNull invalid()
+        val paths = if (parts[2].isBlank()) emptyList() else parts[2].split(',').mapNotNull {
+            decode(it)?.takeIf { path -> !strict || path.isNotBlank() } ?: invalid()
+        }
+        val rule = parts.getOrNull(3)?.takeIf { it.isNotBlank() }?.let { encodedRule -> runCatching {
+            val json = org.json.JSONObject(requireNotNull(decode(encodedRule)))
             com.local.listentomusic.model.PlaylistRule(json.optString("folder"), json.optString("extension"), json.optString("text"))
-        }.getOrNull() }
+        }.getOrElse { invalid() } }
         val stackKeyword = parts.getOrNull(4)
             ?.takeIf { it.isNotBlank() }
-            ?.let(::decode)
+            ?.let { decode(it) ?: invalid() }
             ?.trim()
             ?.take(80)
             .orEmpty()

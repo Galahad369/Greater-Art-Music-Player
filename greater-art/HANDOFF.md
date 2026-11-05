@@ -3,7 +3,7 @@
 This file describes the **current repository state only**. Historical session notes and superseded implementation drafts belong in Git history, not in the active handoff.
 
 **Project:** `greater-art/` in the repository checkout
-**Current source:** `1.22.7 (code 328)` — SOURCE_ONLY. Stack has separate sound and picture alignment proposals and a manual offset editor. Both Ambient metadata queues update atomically. HDR display output and optimized-artifact acceptance are not verified. The latest immutable verified APK remains 1.21.93.
+**Current source:** `1.22.8 (code 329)` — SOURCE_ONLY. Queue admission preserves the selected song, Stack saves validate before writing, and revoked scoped folders can be selected again in Library. Now Playing uses Ambient independently of browsing wallpaper. The latest immutable verified download remains 1.21.93.
 **Previous optimized candidate:** sibling `App/output/GreaterArt-1.21.98.apk` —5,495,129 bytes, SHA-256 `36d5279c58b155f70cc7a47ca3af348e285df1e8bf5197eeca43f9a14ef8ba02`; same key, non-debuggable, artifact checks passed; **not promoted**. [Retained98 evidence](docs/CANDIDATE_1.21.98.md). The97 candidate is hash-verified and archived under sibling `output/retained-artifacts/`.
 
 The following release fields describe verified1.21.93, not the98 candidate:
@@ -17,6 +17,39 @@ The following release fields describe verified1.21.93, not the98 candidate:
 **Verification boundary:** Exact runtime source `58048b54e4119c3aad50ca99d4595afe479653c3`; Java21/Gradle9.8.2 unit/lint/debug app/test and optimized R8 assembly passed. 473 JVM tests, zero failures/errors/skips; lint0 errors/47 warnings/4 hints. API36 debug instrumentation23/23 in520.008s covers reflected Ambient, compact audio/video controls/title transparency, real audio/video IME dock continuity, real-page navigation/video sampling and fullscreen toolbar. Separate same-certificate optimized upgrade and native Library/video/dock/expanded-player smoke passed; actual screenshots inspected. Package/version, non-debuggable state, ZIP CRC,16KiB alignment and SHA-256 checked. The APK does not embed a usable VCS SHA; this receipt records it externally. Full rotation, physical-device visual/acoustic/performance acceptance, production signing and universal crash freedom remain unverified. See [the exact release receipt](docs/RELEASE_1.21.93.md).
 
 ## Repository state
+
+### November 5 — Android playback and storage reliability
+
+- Reproduced on A55 with the exact 1.22.7 debug candidate and the new button
+  tests: moving a file before the selected song played the next song;
+  removing a Stack reference generated an invalid timing map and a save that
+  vanished; recovering an expired folder grant opened All Files settings.
+- Match the requested queue entry by its original index after admission.
+  Reject an unavailable selection, and keep the failed item selected on
+  playback errors. Apply the same play/pause intent to all playback controls.
+- Validate a Stack before storing it. If changing the reference produces an
+  out-of-range timing, reset only the invalid timing and show a warning.
+  Validate backup fields before replacing any playlist, Stack or path list.
+- Recover scoped folders in Android's folder picker and rescan after
+  reauthorization, including when the URI does not change. Use a document URI
+  for the picker's initial location, retain the tree URI as the grant, and
+  release the old grant only after the new selection is saved. Carry media type
+  through the session and restore. Preserve read grants still used by a cover
+  image. Match M3U entries and reorder playlist rows by media identity.
+- Now Playing defaults to reflected Ambient in every Library background
+  mode. Compatible SDR can use frame-synced reflections. The shader keeps 64
+  exact recent release-time mappings so out-of-order metadata does not discard
+  still-pending frames. No nearest-timestamp guess is permitted. Preserve the
+  native HDR and unsupported-track renderer and all playback-quality settings.
+- Local QA: 510 JVM tests passed, lint reported zero errors, and the exact
+  1.22.8 debug APK passed four A55 (API 36) reliability journeys: correct
+  song, Stack save/reopen, Android folder reauthorization/reload, and
+  atomic backup rejection. The real expanded SDR player rendered new
+  Ambient frames in all six Library background modes without switching
+  player, clip, or source dimensions. Evidence: sibling
+  `App/output/android-logic-reliability-1.22.8-20261105/`.
+  This is not a physical HDR or all-device playback claim; no tracked
+  APK or public release was replaced.
 
 ### November 5 — Separate Stack alignment methods
 

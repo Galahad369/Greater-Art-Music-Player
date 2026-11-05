@@ -257,8 +257,21 @@ class MiniWindowOverlayService : Service(), LifecycleOwner, ViewModelStoreOwner,
         } catch (error: RuntimeException) {
             // Keep the user's Mini preference intact. A temporary OEM overlay failure
             // must not silently rewrite Settings to a different floating mode.
+            Toast.makeText(this, "Could not open floating player", Toast.LENGTH_LONG).show()
             stopSelf()
             return
+        }
+        scope.launch {
+            PlaybackConnection.disconnected.collect { disconnected ->
+                if (controller !== disconnected) return@collect
+                disconnected.removeListener(listener)
+                controller = null
+                compact?.bind(null, "MINI_WINDOW")
+                connectionLease?.close()
+                sessionHasMedia.value = false
+                awaitDestinationReady()
+                connect()
+            }
         }
         connect()
         scope.launch {
@@ -524,12 +537,15 @@ class MiniWindowOverlayService : Service(), LifecycleOwner, ViewModelStoreOwner,
             if (future !== pending) {
                 return@addListener
             }
-            runCatching { pending.get() }.onSuccess { c ->
+            runCatching { pending.get().also { check(it.isConnected) } }.onSuccess { c ->
                 controller = c
                 identities.value = "controllerId=${System.identityHashCode(c)} playerViewId=${System.identityHashCode(videoView)}"
                 c.addListener(listener)
                 push(c)
                 awaitDestinationReady()
+            }.onFailure {
+                Toast.makeText(this, "Could not connect the floating player. Open it again from the Library.", Toast.LENGTH_LONG).show()
+                stopSelf()
             }
         }, ContextCompat.getMainExecutor(this))
     }

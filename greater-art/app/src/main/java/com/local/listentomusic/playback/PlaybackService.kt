@@ -6,6 +6,9 @@ import android.media.AudioDeviceInfo
 import android.media.AudioManager
 import android.os.Build
 import android.os.Handler
+import android.net.Uri
+import android.provider.DocumentsContract
+import android.provider.OpenableColumns
 import androidx.media3.common.AudioAttributes
 import androidx.media3.common.C
 import androidx.media3.common.MediaItem
@@ -23,6 +26,11 @@ import androidx.media3.session.MediaLibraryService
 import com.local.listentomusic.data.AppPreferences
 import com.local.listentomusic.data.MediaScanner
 import com.local.listentomusic.data.UserPreferences
+import com.local.listentomusic.data.mediaReadable
+import com.local.listentomusic.data.scopedMediaKind
+import com.local.listentomusic.model.MediaFile
+import com.local.listentomusic.model.MediaSource
+import com.local.listentomusic.model.sourceMediaPath
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -31,6 +39,7 @@ import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.collectLatest
@@ -249,7 +258,7 @@ class PlaybackService : MediaLibraryService() {
                 stackCoordinator.onMainPlayChanged(playWhenReady)
             }
             override fun onEvents(player: Player, events: Player.Events) {
-                PlaybackWidget.update(this@PlaybackService, player.mediaMetadata.title?.toString() ?: "Greater Art", player.isPlaying, widgetArtwork)
+                PlaybackWidget.update(this@PlaybackService, player.mediaMetadata.title?.toString() ?: "Greater Art", playbackRequested(player), widgetArtwork)
             }
             override fun onTracksChanged(tracks: androidx.media3.common.Tracks) {
                 com.local.listentomusic.data.MediaCaches.setVideoPlayback(tracks.isTypeSelected(C.TRACK_TYPE_VIDEO))
@@ -284,7 +293,7 @@ class PlaybackService : MediaLibraryService() {
                         val item = com.local.listentomusic.model.mediaFileFromSession(requireNotNull(mediaItem))
                             .copy(coverUri = preferences.current().localOverrides[path]?.coverUri.orEmpty())
                         widgetArtwork = com.local.listentomusic.data.MediaCaches.thumbnails(applicationContext).load(item)
-                        PlaybackWidget.update(this@PlaybackService, player.mediaMetadata.title?.toString() ?: "Greater Art", player.isPlaying, widgetArtwork)
+                        PlaybackWidget.update(this@PlaybackService, player.mediaMetadata.title?.toString() ?: "Greater Art", playbackRequested(player), widgetArtwork)
                     }
                 }
                 enhancer?.release()
@@ -313,18 +322,17 @@ class PlaybackService : MediaLibraryService() {
             override fun onPlayerError(error: PlaybackException) {
                 if (stackCoordinator.active) { stackCoordinator.onPrimaryError(error); return }
                 val failedPath = player.currentMediaItem?.mediaId
-                if (!failedPath.isNullOrBlank() && retriedPath != failedPath) {
+                val cannotOpen = error.errorCode == PlaybackException.ERROR_CODE_IO_FILE_NOT_FOUND ||
+                    error.errorCode == PlaybackException.ERROR_CODE_IO_NO_PERMISSION
+                if (!cannotOpen && player.playWhenReady && !failedPath.isNullOrBlank() && retriedPath != failedPath) {
                     // One retry covers transient decoder/audio-route failures without looping forever.
                     retriedPath = failedPath
                     val retryPosition = player.currentPosition.coerceAtLeast(0L)
                     player.prepare()
                     player.seekTo(retryPosition)
-                    player.playWhenReady = true
-                } else if (player.currentMediaItemIndex < player.mediaItemCount - 1) {
-                    // A corrupt or unsupported item must not strand the rest of the queue.
-                    player.seekToNextMediaItem()
-                    player.prepare()
-                    player.play()
+                } else {
+                    // Keep the failing item selected. The error and Next remain available.
+                    player.pause()
                 }
             }
         })
@@ -413,35 +421,34 @@ class PlaybackService : MediaLibraryService() {
         super.onDestroy()
     }
 
-    private fun restoreLastSession(saved: UserPreferences) {
+    private suspend fun restoreLastSession(saved: UserPreferences) {
         player.playbackParameters = androidx.media3.common.PlaybackParameters(saved.playbackSpeed)
         player.repeatMode = saved.repeatMode
         val path = saved.lastPath ?: return
-        if (com.local.listentomusic.model.MediaSource.parse(path) is com.local.listentomusic.model.MediaSource.ContentUri) {
-            val tree = saved.scopedMediaTreeUri ?: return
-            val readable = runCatching {
-                val root = android.net.Uri.parse(tree)
-                val identity = android.net.Uri.parse(path)
-                require(root.authority == identity.authority)
-                android.provider.DocumentsContract.buildDocumentUriUsingTree(root,
-                    android.provider.DocumentsContract.getDocumentId(identity))
-            }.getOrNull() ?: return
-            val item = com.local.listentomusic.model.MediaFile(path, readable.lastPathSegment.orEmpty(),
-                0, 0, 0, com.local.listentomusic.model.MediaKind.AUDIO, sourcePath = readable.toString())
-            if (!com.local.listentomusic.data.mediaReadable(this, item)) return
-            player.setMediaItem(item.toMediaItem(), if (saved.resumePlayback) saved.lastPositionMs else 0L)
-            player.prepare(); player.playWhenReady = false
-            return
-        }
-        val file = File(com.local.listentomusic.model.sourceMediaPath(path))
-        if (!file.isFile || !file.canRead() || !MediaScanner.isInsideTarget(file)) return
-
-        val item = MediaItem.Builder()
-            .setMediaId(path)
-            .setUri(android.net.Uri.fromFile(file))
-            .setClippingConfiguration(clipConfiguration(path))
-            .setMediaMetadata(MediaMetadata.Builder().setTitle(file.name).build())
-            .build()
+        val item = withContext(Dispatchers.IO) {
+            if (MediaSource.parse(path) is MediaSource.ContentUri) {
+                val tree = saved.scopedMediaTreeUri ?: return@withContext null
+                runCatching {
+                    val root = Uri.parse(tree)
+                    val identity = Uri.parse(path)
+                    require(root.authority == identity.authority)
+                    val uri = DocumentsContract.buildDocumentUriUsingTree(root, DocumentsContract.getDocumentId(identity))
+                    val name = contentResolver.query(uri, arrayOf(OpenableColumns.DISPLAY_NAME), null, null, null)
+                        ?.use { if (it.moveToFirst()) it.getString(0) else null }.orEmpty()
+                    val kind = scopedMediaKind(name, contentResolver.getType(uri)) ?: return@runCatching null
+                    val file = MediaFile(path, name, 0, 0, 0, kind, sourcePath = uri.toString())
+                    file.takeIf { mediaReadable(this@PlaybackService, it) }?.toMediaItem()
+                }.getOrNull()
+            } else {
+                val file = File(sourceMediaPath(path))
+                if (!file.isFile || !file.canRead() || !MediaScanner.isInsideTarget(file)) return@withContext null
+                MediaItem.Builder().setMediaId(path).setUri(Uri.fromFile(file))
+                    .setClippingConfiguration(clipConfiguration(path))
+                    .setMediaMetadata(MediaMetadata.Builder().setTitle(file.name).build())
+                    .build()
+            }
+        } ?: return
+        if (!shouldRestoreSavedSession(!destroyed, player.mediaItemCount)) return
         player.setMediaItem(item, if (saved.resumePlayback) saved.lastPositionMs else 0L)
         player.prepare()
         player.playWhenReady = false

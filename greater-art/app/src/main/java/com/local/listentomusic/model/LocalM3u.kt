@@ -1,13 +1,14 @@
 package com.local.listentomusic.model
 
 import java.io.File
+import java.util.Locale
 
 /** Standard paths remain usable by other players; VLC options preserve optional CUE clipping. */
 internal fun exportM3u(files: List<MediaFile>): String = buildString {
     appendLine("#EXTM3U")
     files.forEach { file ->
         appendLine("#EXTINF:${if (file.durationMs > 0) file.durationMs / 1000 else -1},${file.name.replace('\n', ' ').replace('\r', ' ')}")
-        if (file.path != file.sourcePath) {
+        if (file.clipStartMs > 0 || file.clipEndMs != null) {
             appendLine("#EXTVLCOPT:start-time=${file.clipStartMs / 1000.0}")
             file.clipEndMs?.let { appendLine("#EXTVLCOPT:stop-time=${it / 1000.0}") }
         }
@@ -22,12 +23,12 @@ internal fun exportPortableM3u(files: List<MediaFile>, root: File): String {
         appendLine("#EXTM3U")
         files.forEach { file ->
             appendLine("#EXTINF:${if (file.durationMs > 0) file.durationMs / 1000 else -1},${file.name.replace('\n', ' ').replace('\r', ' ')}")
-            if (file.path != file.sourcePath) {
+            if (file.clipStartMs > 0 || file.clipEndMs != null) {
                 appendLine("#EXTVLCOPT:start-time=${file.clipStartMs / 1000.0}")
                 file.clipEndMs?.let { appendLine("#EXTVLCOPT:stop-time=${it / 1000.0}") }
             }
             if (MediaSource.parse(file.sourcePath) is MediaSource.ContentUri) {
-                appendLine(file.sourcePath)
+                appendLine(file.relativePath ?: file.name)
                 return@forEach
             }
             val source = File(file.sourcePath).canonicalFile
@@ -47,6 +48,13 @@ internal class M3uLibraryIndex(files: List<MediaFile>) {
         files.forEach { file -> index.putIfAbsent(file.id, file); index.putIfAbsent(file.sourcePath, file) }
     }
     private val byClip = files.groupBy { it.clipStartMs to it.clipEndMs }
+    private val byRelative = files.filter { it.relativePath != null }
+        .groupBy { it.relativePath.orEmpty().replace('\\', '/') }
+    private val byCanonical = files.filterNot { MediaSource.parse(it.sourcePath) is MediaSource.ContentUri }
+        .groupBy { canonical(File(it.sourcePath)) }
+    private val byName = files.groupBy { it.name.lowercase(Locale.ROOT) }
+
+    private fun canonical(path: File): String? = runCatching { path.canonicalPath }.getOrNull()
 
     fun content(reference: String): MediaFile? = byReference[reference]
 
@@ -54,6 +62,30 @@ internal class M3uLibraryIndex(files: List<MediaFile>) {
         val candidates = byClip[start to end].orEmpty()
         return candidates.firstOrNull { it.sourcePath == source }
             ?: candidates.filter { File(it.sourcePath).name == File(source).name }.singleOrNull()
+    }
+
+    fun resolve(entry: M3uEntry, root: File, decode: (String) -> String): MediaFile? {
+        val raw = entry.path
+        if (raw.startsWith("content://")) return content(raw)
+        if ("://" in raw && !raw.startsWith("file://")) return null
+        val path = raw.removePrefix("file://")
+        val alternatives = listOf(path, decode(path)).distinct()
+        fun matching(items: List<MediaFile>?) = items.orEmpty().singleOrNull {
+            if (entry.start == null) it.clipStartMs == 0L && it.clipEndMs == null
+            else it.clipStartMs == entry.start && it.clipEndMs == entry.end
+        }
+        for (value in alternatives) {
+            val relative = value.replace('\\', '/').removePrefix("./")
+            matching(byRelative[relative])?.let { return it }
+            val file = File(value)
+            val resolved = canonical(if (file.isAbsolute) file else File(root, value))
+            if (resolved != null) matching(byCanonical[resolved])?.let { return it }
+        }
+        for (value in alternatives) {
+            if (entry.start != null) clipped(value, entry.start, entry.end)?.let { return it }
+            else matching(byName[File(value).name.lowercase(Locale.ROOT)])?.let { return it }
+        }
+        return null
     }
 }
 

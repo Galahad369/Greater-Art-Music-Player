@@ -19,6 +19,8 @@ import androidx.media3.ui.PlayerView
 import androidx.media3.ui.AspectRatioFrameLayout
 import com.local.listentomusic.R
 import com.local.listentomusic.model.MiniWindowMetrics
+import com.local.listentomusic.playback.playbackRequested
+import com.local.listentomusic.playback.togglePlayback
 import androidx.compose.ui.graphics.toArgb
 import com.local.listentomusic.data.AppFont
 import com.local.listentomusic.data.ThemeMode
@@ -93,7 +95,7 @@ class CompactPlayerView(context: Context) : FrameLayout(context) {
         addView(progress, LayoutParams(-1, dp(2f), Gravity.BOTTOM))
         setOnClickListener { onOpen() }
         previous.setOnClickListener { player?.let { if (it.currentPosition > 4000L) it.seekTo(0) else it.seekToPreviousMediaItem() } }
-        toggle.setOnClickListener { player?.let { if (it.isPlaying) it.pause() else it.play() } }
+        toggle.setOnClickListener { player?.let(::togglePlayback); refresh() }
         next.setOnClickListener { player?.seekToNextMediaItem() }
     }
     private fun button(icon: Int) = ImageButton(context).apply {
@@ -110,7 +112,7 @@ class CompactPlayerView(context: Context) : FrameLayout(context) {
         this.pauseLabel = pauseLabel
         this.nextLabel = nextLabel
         previous.contentDescription = previousLabel
-        toggle.contentDescription = if (player?.isPlaying == true) pauseLabel else playLabel
+        toggle.contentDescription = if (player?.let(::playbackRequested) == true) pauseLabel else playLabel
         next.contentDescription = nextLabel
     }
     fun colors(background: Int, foreground: Int, accent: Int) {
@@ -217,8 +219,9 @@ class CompactPlayerView(context: Context) : FrameLayout(context) {
         title.text = p.mediaMetadata.title ?: p.currentMediaItem?.mediaId?.substringAfterLast('/')
         previous.isEnabled = p.hasPreviousMediaItem()
         next.isEnabled = p.hasNextMediaItem()
-        toggle.setImageResource(if (p.isPlaying) android.R.drawable.ic_media_pause else android.R.drawable.ic_media_play)
-        toggle.contentDescription = if (p.isPlaying) pauseLabel else playLabel
+        val pause = playbackRequested(p)
+        toggle.setImageResource(if (pause) android.R.drawable.ic_media_pause else android.R.drawable.ic_media_play)
+        toggle.contentDescription = if (pause) pauseLabel else playLabel
         val isVideo = p.currentMediaItem?.mediaMetadata?.mediaType == androidx.media3.common.MediaMetadata.MEDIA_TYPE_VIDEO ||
             p.currentMediaItem?.mediaId?.substringAfterLast('.')?.lowercase() in setOf("mp4", "mkv", "webm", "mov", "m4v", "avi", "3gp", "ts", "mpeg", "mpg", "flv")
         video.visibility = if (isVideo) View.VISIBLE else View.GONE

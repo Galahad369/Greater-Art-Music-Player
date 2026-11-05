@@ -27,11 +27,11 @@ class PlaybackWidget : AppWidgetProvider() {
             try {
                 val player = future.get()
                 when (action) {
-                    "widget.toggle" -> if (player.isPlaying) player.pause() else player.play()
+                    "widget.toggle" -> togglePlayback(player)
                     "widget.next" -> player.seekToNextMediaItem()
                     "widget.previous" -> player.seekToPreviousMediaItem()
                 }
-                update(context, player.mediaMetadata.title?.toString() ?: "Greater Art", player.isPlaying, null)
+                update(context, player.mediaMetadata.title?.toString() ?: "Greater Art", playbackRequested(player), null)
                 player.release()
             } catch (_: Exception) { update(context, "Open Greater Art", false, null) }
             finally { pending.finish() }

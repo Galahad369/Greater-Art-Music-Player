@@ -57,6 +57,7 @@ import com.local.listentomusic.playback.StackRecommendationReason
 import com.local.listentomusic.playback.StackSlot
 import com.local.listentomusic.playback.recommendStackTracks
 import com.local.listentomusic.playback.stackRebaseMappings
+import com.local.listentomusic.playback.hasSupportedAlignment
 import com.local.listentomusic.ui.components.LiquidMetalSurface
 import com.local.listentomusic.ui.theme.GaRadius
 import com.local.listentomusic.ui.theme.GaSpacing
@@ -119,7 +120,7 @@ fun StackScreen(
         }
     }
 
-    val displayed = if (session.active) session.slots else staged.map { file ->
+    val rebasedDraft = if (session.active) emptyList() else staged.map { file ->
         val saved = stagedPreset?.tracks?.firstOrNull { it.path == file.path }
         StackSlot(file, saved?.volume ?: 1f, saved?.muted ?: false, saved?.solo ?: false, offsetMs = saved?.offsetMs ?: 0L,
             alignmentScale = saved?.alignmentScale ?: 1.0, alignmentOffsetUs = saved?.alignmentOffsetUs)
@@ -127,6 +128,11 @@ fun StackScreen(
         if (slots.isNotEmpty() && stagedPreset != null && slots.none { it.file.path == stagedPreset.primaryPath })
             stackRebaseMappings(slots, slots.first())
         else slots
+    }
+    val resetUnsupportedDraftTiming = rebasedDraft.any { !it.hasSupportedAlignment() }
+    val displayed = if (session.active) session.slots else rebasedDraft.map { slot ->
+        if (slot.hasSupportedAlignment()) slot
+        else slot.copy(offsetMs = 0L, alignmentScale = 1.0, alignmentOffsetUs = null)
     }
     val displayedPaths = remember(displayed) { displayed.map { it.file.path }.toSet() }
     val draftPrimary = stagedPreset?.primaryPath?.takeIf { it in displayedPaths } ?: staged.firstOrNull()?.path
@@ -378,6 +384,12 @@ fun StackScreen(
         }
 
         error?.let { Text(it, Modifier.padding(horizontal = 16.dp), color = MaterialTheme.colorScheme.error) }
+        if (resetUnsupportedDraftTiming) Text(
+            uiText(language, "Some offsets no longer fit the new reference and were reset. Review alignment before saving.",
+                "部分偏移超出新基準支援的範圍，已重設。儲存前請檢查對齊。"),
+            Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
+            color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.bodySmall,
+        )
 
         Column(
             Modifier.fillMaxWidth()

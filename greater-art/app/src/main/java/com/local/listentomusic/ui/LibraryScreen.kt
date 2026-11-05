@@ -143,7 +143,7 @@ fun LibraryScreen(
     onClearPlayHistory: () -> Unit,
     onQueryChange: (String) -> Unit,
     onSortChange: (SortMode) -> Unit,
-    onMoveItem: (Int, Int) -> Unit,
+    onMoveItem: (String, String) -> Unit,
     onSelectPlaylist: (String?) -> Unit,
     onCreatePlaylist: (String) -> Unit,
     onCreatePlaylistAndSeed: (String, String?, String?) -> Unit,
@@ -168,6 +168,7 @@ fun LibraryScreen(
     isPlaying: Boolean = false,
     onThumbnailViewport: (String, List<MediaFile>, List<MediaFile>, Boolean) -> Unit = { _, _, _, _ -> },
     onPeekThumbnail: (MediaFile) -> Bitmap? = { null },
+    onChooseScopedFolder: () -> Unit = onGrantStorageAccess,
 ) {
     val language = preferences.appLanguage
     val thumbnailBrush = rememberThumbnailBrush()
@@ -358,6 +359,11 @@ fun LibraryScreen(
                 }
             }
 
+            val scopedFolderSelected = preferences.scopedMediaTreeUri != null
+            if (state.status == LibraryStatus.READY) state.scopedIssue?.let { issue ->
+                Text(issue, Modifier.padding(horizontal = 16.dp, vertical = 6.dp),
+                    color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
+            }
             when (state.status) {
                 LibraryStatus.NEEDS_PERMISSION -> MessageState(
                     uiText(language, "Allow local file access", "允許本機檔案存取"),
@@ -381,7 +387,8 @@ fun LibraryScreen(
                         }
                         Text(uiText(language, "Opening your library", "正在開啟音樂庫"), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
                         LinearProgressIndicator(Modifier.width(112.dp).height(2.dp), color = MaterialTheme.colorScheme.secondary)
-                        Text(uiText(language, "Reading Download locally", "正在本機讀取 Download"),
+                        Text(if (scopedFolderSelected) uiText(language, "Reading your selected folder locally", "正在本機讀取所選資料夾")
+                            else uiText(language, "Reading Download locally", "正在本機讀取 Download"),
                             style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                 }
@@ -393,9 +400,10 @@ fun LibraryScreen(
                 )
                 LibraryStatus.CANNOT_READ -> MessageState(
                     uiText(language, "Folder access was lost", "資料夾存取權已失效"),
-                    uiText(language, "Grant file access again, then return to the app.", "請重新授予檔案存取權，然後返回應用程式。"),
-                    uiText(language, "Open settings", "開啟設定"),
-                    onGrantStorageAccess,
+                    state.scopedIssue ?: uiText(language, "Grant file access again, then return to the app.", "請重新授予檔案存取權，然後返回應用程式。"),
+                    if (scopedFolderSelected) uiText(language, "Choose folder again", "重新選擇資料夾")
+                    else uiText(language, "Open settings", "開啟設定"),
+                    if (scopedFolderSelected) onChooseScopedFolder else onGrantStorageAccess,
                 )
                 LibraryStatus.READY -> if (state.files.isEmpty()) {
                     MessageState(
@@ -403,6 +411,7 @@ fun LibraryScreen(
                         if (state.query.isBlank()) {
                             if (favouritesActive) uiText(language, "No favorites yet. Add them with the ⋮ button.", "尚未有我的最愛。使用 ⋮ 按鈕加入歌曲。")
                             else if (activePlaylist != null) uiText(language, "This playlist is empty. Add songs with the ⋮ button.", "此播放清單是空的。使用 ⋮ 按鈕加入歌曲。")
+                            else if (scopedFolderSelected) uiText(language, "No supported media was found in your selected folder.", "所選資料夾內沒有支援的媒體。")
                             else uiText(language, "No supported media was found under:\n${state.targetPath}", "在以下位置找不到支援的媒體：\n${state.targetPath}")
                         } else uiText(language, "Try a different search.", "請嘗試其他搜尋字詞。"),
                         uiText(language, "Scan again", "重新掃描"),
@@ -465,8 +474,14 @@ fun LibraryScreen(
                                 isSelected = item.path in selectedPaths,
                                 index = index,
                                 itemCount = state.files.size,
-                                dragEnabled = !favouritesActive && selected.isEmpty() && activePlaylist?.rule == null && state.query.isBlank() && (activePlaylist != null || state.sortMode == SortMode.CUSTOM),
-                                onMove = onMoveItem,
+                                dragEnabled = !favouritesActive && selected.isEmpty() && activePlaylist?.rule == null &&
+                                    activePlaylist?.stackKeyword.isNullOrBlank() && state.query.isBlank() &&
+                                    (activePlaylist != null || state.sortMode == SortMode.CUSTOM),
+                                onMove = { from, to ->
+                                    val source = state.files.getOrNull(from)
+                                    val target = state.files.getOrNull(to)
+                                    if (source != null && target != null) onMoveItem(source.path, target.path)
+                                },
                                 onLoadThumbnail = onLoadThumbnail,
                                 onPeekThumbnail = onPeekThumbnail,
                                 thumbnailBrush = thumbnailBrush,
@@ -484,11 +499,11 @@ fun LibraryScreen(
                                     openRowActionsPath = null
                                     songListFile = item
                                 },
-                                onDelete = {
+                                onDelete = if (item.reference.source is com.local.listentomusic.model.MediaSource.LocalFile) ({
                                     openRowActionsPath = null
                                     deleteCandidate = item
                                     deleteStep = 1
-                                },
+                                }) else null,
                                 moreDescription = uiText(language, "Actions", "操作"),
                             )
                             // Spacing between outlined cards replaces full-width dividers.
@@ -598,13 +613,14 @@ fun LibraryScreen(
                         Icon(Icons.AutoMirrored.Rounded.PlaylistAdd, null)
                         Text("  ${uiText(language, "Create playlist", "建立播放清單")}")
                     }
-                    TextButton(
+                    if (file.reference.source is com.local.listentomusic.model.MediaSource.LocalFile) TextButton(
                         onClick = { songListFile = null; deleteCandidate = file; deleteStep = 1 },
                         modifier = Modifier.inspectElement("DELETE_FILE_ACTION", "Starts three-step deletion confirmation for ${file.name}"),
                     ) {
                         Icon(Icons.Rounded.Delete, null, tint = MaterialTheme.colorScheme.error)
                         Text("  ${uiText(language, "Delete original file", "刪除原始檔案")}", color = MaterialTheme.colorScheme.error)
-                    }
+                    } else Text(uiText(language, "Manage or delete this original in Android Files.", "請在 Android 檔案管理員管理或刪除原始檔案。"),
+                        style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             },
             confirmButton = { TextButton(onClick = { songListFile = null }) { Text(uiText(language, "Done", "完成")) } },
@@ -722,7 +738,7 @@ internal fun MediaFileRow(
     onPlay: () -> Unit,
     onToggleActions: () -> Unit,
     onAddToList: () -> Unit,
-    onDelete: () -> Unit,
+    onDelete: (() -> Unit)?,
     moreDescription: String,
     onPeekThumbnail: (MediaFile) -> Bitmap? = { null },
 ) {
@@ -774,7 +790,7 @@ internal fun MediaFileRow(
     ) { open -> if (open) 1f else 0f }
     val density = LocalDensity.current
     val addActionSize = 48.dp
-    val deleteActionSize = 48.dp
+    val deleteActionSize = if (onDelete != null) 48.dp else 0.dp
     val actionWidth = addActionSize + deleteActionSize
     val actionWidthPx = with(density) { actionWidth.toPx() }
     val rowShape = RoundedCornerShape(GaRadius.control)
@@ -817,7 +833,7 @@ internal fun MediaFileRow(
                     Modifier.size(22.dp),
                 )
             }
-            IconButton(
+            if (onDelete != null) IconButton(
                 onClick = onDelete,
                 enabled = actionsOpen,
                 modifier = Modifier.size(deleteActionSize).inspectElement("LIBRARY_DELETE_INLINE", "Delete ${file.name}"),
