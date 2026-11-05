@@ -1,5 +1,17 @@
 # Greater Art Desktop handoff
 
+## Self-test preservation and CodeQL CI — November 6, 2026
+
+Current source is **0.1.25/code26, SOURCE_ONLY**. PR #221 preserves
+existing self-test output: the native command creates a fresh directory or
+returns exit code 2 without changing the requested path. Windows CI checks
+the original playlist hash and the number of files after a refused run.
+
+The next desktop version step pins CodeQL v4.39.2 in Windows CI, with the
+same required checks and package settings. No new desktop installer or
+interactive acceptance is claimed. The verified WinUI preview remains
+0.1.21; the frozen installer and portable release remain 0.1.16.
+
 ## Security source checkpoint — November 2, 2026
 
 Current source is **0.1.22/code23, SOURCE_ONLY**. The last verified WinUI preview remains 0.1.21; frozen installer/portable 0.1.16 and all existing artifacts remain unchanged.

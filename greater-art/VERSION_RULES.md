@@ -16,7 +16,7 @@ This file is the authoritative version policy for Greater Art. If any handoff no
 ## Machine-checkable state
 
 
-Current source: **1.22.8 (code 329)**
+Current source: **1.22.9 (code 330)**
 Allowed consumed transition: **1.21.38 (code 261) -> 1.21.40 (code 263)**
 
 Retain PR174's original declared transition for eeb06d9. Its initial1.21.40
@@ -484,3 +484,4 @@ Previous baseline: 1.13.26 (code 115).
 - 1.22.6 (code 327): make capacity checks, eviction, and insertion atomic in both Ambient frame metadata queues. Preserve SDR admission, native fallback, and playback quality. SOURCE_ONLY.
 - 1.22.7 (code 328): add separate sound and picture alignment proposals, and a direct manual Stack offset editor. Apply one selected timing map per track. SOURCE_ONLY.
 - 1.22.8 (code 329): preserve the selected song after queue admission, repair Stack saves and scoped-folder recovery, and enable Ambient by default in Now Playing. SOURCE_ONLY.
+- 1.22.9 (code 330): reapply the CodeQL update proposed in PR #217 using the official v4.39.2 release commit. Shared CI changes consume an Android version; no mobile behavior or APK changes. SOURCE_ONLY.
