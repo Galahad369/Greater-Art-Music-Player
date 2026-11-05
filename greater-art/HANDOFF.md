@@ -3,7 +3,7 @@
 This file describes the **current repository state only**. Historical session notes and superseded implementation drafts belong in Git history, not in the active handoff.
 
 **Project:** `greater-art/` in the repository checkout
-**Current source:** `1.22.8 (code 329)` — SOURCE_ONLY. Queue admission preserves the selected song, Stack saves validate before writing, and revoked scoped folders can be selected again in Library. Now Playing uses Ambient independently of browsing wallpaper. The latest immutable verified download remains 1.21.93.
+**Current source:** `1.22.9 (code 330)` — SOURCE_ONLY. Pins the official CodeQL v4.39.2 release in CI; no Android runtime change. The latest immutable verified download remains 1.21.93.
 **Previous optimized candidate:** sibling `App/output/GreaterArt-1.21.98.apk` —5,495,129 bytes, SHA-256 `36d5279c58b155f70cc7a47ca3af348e285df1e8bf5197eeca43f9a14ef8ba02`; same key, non-debuggable, artifact checks passed; **not promoted**. [Retained98 evidence](docs/CANDIDATE_1.21.98.md). The97 candidate is hash-verified and archived under sibling `output/retained-artifacts/`.
 
 The following release fields describe verified1.21.93, not the98 candidate:
@@ -17,6 +17,20 @@ The following release fields describe verified1.21.93, not the98 candidate:
 **Verification boundary:** Exact runtime source `58048b54e4119c3aad50ca99d4595afe479653c3`; Java21/Gradle9.8.2 unit/lint/debug app/test and optimized R8 assembly passed. 473 JVM tests, zero failures/errors/skips; lint0 errors/47 warnings/4 hints. API36 debug instrumentation23/23 in520.008s covers reflected Ambient, compact audio/video controls/title transparency, real audio/video IME dock continuity, real-page navigation/video sampling and fullscreen toolbar. Separate same-certificate optimized upgrade and native Library/video/dock/expanded-player smoke passed; actual screenshots inspected. Package/version, non-debuggable state, ZIP CRC,16KiB alignment and SHA-256 checked. The APK does not embed a usable VCS SHA; this receipt records it externally. Full rotation, physical-device visual/acoustic/performance acceptance, production signing and universal crash freedom remain unverified. See [the exact release receipt](docs/RELEASE_1.21.93.md).
 
 ## Repository state
+
+### November 6 — Versioned CodeQL CI update
+
+- PR #217 changed executable CI without a version bump, so its commit
+  failed the per-commit guard. Carry the update in a new commit with both
+  platform version steps. Pin the tagged v4.39.2 release commit rather than
+  the later merge-back commit, and retain all existing CI checks.
+- PR #224 limits the public Vercel build to three HTML files and two existing
+  APKs. The signed-in preview and production route checks confirmed the
+  demos remain visible and repository-only files are not served. PR #222
+  contained the same patch.
+- No new APK was built or device-tested for this CI-only checkpoint. The local
+  1.22.8 APK remains at sibling `App/output/GreaterArt-1.22.8.apk`; its
+  verification scope is recorded below. The public 1.21.93 APK is unchanged.
 
 ### November 5 — Android playback and storage reliability
 
