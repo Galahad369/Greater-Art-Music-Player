@@ -55,6 +55,8 @@ python desktop/packaging/test_version.py
 ./desktop/native/build/GreaterArt.exe --verify-graph 'C:/owned/local-video.mp4' 'C:/owned/graph-output'
 ```
 
+`--self-test` requires a new output directory under an existing parent. It returns exit code 2 when it cannot create that directory. Use a new path for each run.
+
 Tests isolate all generated settings. The video probe captures **only owned HWNDs**, checks real rendering, six voices, fullscreen bounds and renderer handoffs. The audio probe checks actual WASAPI timeline behavior; neither proves what six real covers sound like.
 
 ## Remaining gates
