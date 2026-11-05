@@ -42,6 +42,100 @@ import java.util.concurrent.TimeUnit
 class ProductionFrameAmbientTest {
     private val instrumentation get() = InstrumentationRegistry.getInstrumentation()
 
+    @Test fun expandedSdrUsesAmbientWithEveryLibraryBackground(): Unit = runBlocking {
+        val arguments = InstrumentationRegistry.getArguments()
+        assumeTrue(arguments.getString("defaultFrameAmbient") == "true")
+        val sdr = File(requireNotNull(arguments.getString("frameAmbientSdrPath")))
+        val context = instrumentation.targetContext
+        assertTrue("Provision the generated SDR clip", sdr.isFile)
+        assertTrue("Grant overlay access on the QA device", Settings.canDrawOverlays(context))
+        val preferences = AppPreferences(context)
+        val old = preferences.current()
+        preferences.setBackgroundMode(AppBackgroundMode.DEFAULT)
+        preferences.setAdaptiveReactToVideo(false)
+        preferences.setAdaptiveIntensity(.6f)
+        preferences.setBackgroundDim(.35f)
+        preferences.setFloatingWindowMode(FloatingWindowMode.MINI_WINDOW)
+        preferences.setScopedMediaTreeUri(null)
+        preferences.setResumePlayback(false)
+        preferences.setBluetoothOnlyListening(false)
+        var scenario: ActivityScenario<MainActivity>? = null
+        var player: Player? = null
+        try {
+            scenario = ActivityScenario.launch(Intent(context, MainActivity::class.java))
+            lateinit var model: MainViewModel
+            scenario.onActivity { model = ViewModelProvider(it)[MainViewModel::class.java] }
+            await("controller and Default wallpaper") {
+                model.controller.value != null && model.settings.value.backgroundMode == AppBackgroundMode.DEFAULT
+            }
+            val active = requireNotNull(model.controller.value)
+            player = active
+            onMain {
+                model.play(MediaFile(sdr.path, sdr.name, 0L, sdr.length(), sdr.lastModified(), MediaKind.VIDEO))
+                active.repeatMode = Player.REPEAT_MODE_ONE
+            }
+            await("actual dock playback") {
+                PlayerWindowVisibility.dockedVisible.value && onMain {
+                    active.isPlaying && active.currentMediaItem?.mediaId == sdr.path && active.videoSize.width > 0
+                }
+            }
+            val sourceSize = onMain { active.videoSize }
+            onMain {
+                ContextCompat.startForegroundService(context, Intent(context, MiniWindowOverlayService::class.java)
+                    .setAction(MiniWindowOverlayService.ACTION_EXPAND))
+            }
+            var checkedSurface: FrameAmbientView? = null
+            for (mode in AppBackgroundMode.entries) {
+                preferences.setBackgroundMode(mode)
+                await("$mode wallpaper setting applied") { model.settings.value.backgroundMode == mode }
+                val firstSurface = onMain { VideoSurfaceOwner.activeVideoSurface() as? FrameAmbientView }
+                val firstFrame = onMain { firstSurface?.renderedFrames() ?: 0 }
+                try {
+                    await("NOW_PLAYING_AMBIENT: $mode must render new frames on the actual expanded compositor") {
+                        PlayerWindowVisibility.expandedShowing.value && onMain {
+                            val surface = VideoSurfaceOwner.activeVideoSurface() as? FrameAmbientView
+                            if (surface == null || surface.renderedFrames() < if (surface === firstSurface) firstFrame + 8 else 8)
+                                false
+                            else { checkedSurface = surface; true }
+                        }
+                    }
+                } catch (failure: AssertionError) {
+                    val detail = onMain {
+                        "owner=${VideoSurfaceOwner.state.value.owner} playing=${active.isPlaying} state=${active.playbackState} " +
+                            "surface=${VideoSurfaceOwner.activeVideoSurface()?.javaClass?.simpleName} " +
+                            "frames=${checkedSurface?.renderedFrames()} error=${checkedSurface?.failure() ?: firstSurface?.failure()}"
+                    }
+                    throw AssertionError("${failure.message}; $detail", failure)
+                }
+                onMain {
+                    assertSame("Keep the shared controller", active, model.controller.value)
+                    assertEquals(sdr.path, active.currentMediaItem?.mediaId)
+                    assertEquals(sourceSize, active.videoSize)
+                }
+                android.util.Log.i("GA-FrameAmbient", "1.22.8 expanded Ambient verified: $mode")
+            }
+            capture("default-all-modes", context)
+        } finally {
+            try {
+                onMain { player?.let { it.pause(); it.clearMediaItems() } }
+                context.stopService(Intent(context, MiniWindowOverlayService::class.java))
+                scenario?.close()
+                context.stopService(Intent(context, PlaybackService::class.java))
+                instrumentation.waitForIdleSync()
+            } finally {
+                preferences.setBackgroundMode(old.backgroundMode)
+                preferences.setAdaptiveReactToVideo(old.adaptiveReactToVideo)
+                preferences.setAdaptiveIntensity(old.adaptiveIntensity)
+                preferences.setBackgroundDim(old.backgroundDim)
+                preferences.setFloatingWindowMode(old.floatingWindowMode)
+                preferences.setScopedMediaTreeUri(old.scopedMediaTreeUri)
+                preferences.setResumePlayback(old.resumePlayback)
+                preferences.setBluetoothOnlyListening(old.bluetoothOnlyListening)
+                preferences.savePlayback(old.lastPath, old.lastPositionMs, old.playbackSpeed, old.repeatMode)
+            }
+        }
+    }
+
     @Test fun expandedSdrAndPqUseCorrectOutputAndRetainPlayer(): Unit = runBlocking {
         val arguments = InstrumentationRegistry.getArguments()
         assumeTrue(arguments.getString("productionFrameAmbient") == "true")

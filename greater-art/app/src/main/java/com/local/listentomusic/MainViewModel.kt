@@ -10,6 +10,7 @@ import androidx.core.content.ContextCompat
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.media3.common.MediaItem
+import androidx.media3.common.MediaMetadata
 import androidx.media3.common.C
 import androidx.media3.common.PlaybackException
 import androidx.media3.common.PlaybackParameters
@@ -31,10 +32,14 @@ import com.local.listentomusic.data.AppBackgroundMode
 import com.local.listentomusic.data.BackgroundScaleMode
 import com.local.listentomusic.data.FloatingWindowMode
 import com.local.listentomusic.model.MediaFile
+import com.local.listentomusic.model.MediaKind
 import com.local.listentomusic.model.LocalLyrics
 import com.local.listentomusic.model.SortMode
 import com.local.listentomusic.model.loadLocalLyrics
 import com.local.listentomusic.playback.PlaybackService
+import com.local.listentomusic.playback.PlaybackConnection
+import com.local.listentomusic.playback.playbackRequested
+import com.local.listentomusic.playback.togglePlayback
 import kotlinx.coroutines.Job
 import com.local.listentomusic.data.openMedia
 import kotlinx.coroutines.ensureActive
@@ -105,6 +110,7 @@ data class LibraryUiState(
     val sortMode: SortMode = SortMode.NAME_ASC,
     val query: String = "",
     val targetPath: String = MediaScanner.targetFolder().absolutePath,
+    val scopedIssue: String? = null,
 )
 
 data class PlaybackUiState(
@@ -129,10 +135,13 @@ data class PlaybackUiState(
     val showSleepControl: Boolean = false,
     val showAbRepeat: Boolean = false,
     val stackCount: Int = 0,
+    val mediaKind: MediaKind? = null,
+    val playRequested: Boolean = isPlaying,
 ) {
     val hasMedia: Boolean get() = currentPath != null
     val isVideo: Boolean
-        get() = currentPath?.substringAfterLast('.', "")?.lowercase(Locale.ROOT) in VIDEO_EXTENSIONS
+        get() = hasMedia && (mediaKind?.let { it == MediaKind.VIDEO }
+            ?: (videoWidth > 0 || currentPath?.substringAfterLast('.', "")?.lowercase(Locale.ROOT) in VIDEO_EXTENSIONS))
 
     private companion object {
         val VIDEO_EXTENSIONS = setOf("mp4", "mov", "m4v", "mkv", "webm", "3gp", "ts", "mpeg", "mpg", "flv", "avi")
@@ -240,6 +249,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     private var durationProbePath: String? = null
     private val probedDurations = mutableMapOf<String, Long>()
     private var pendingPlay: MediaFile? = null
+    private var normalQueueRequest: Job? = null
     private var expandRestoredQueue = false
     private var lastPlaybackError: String? = null
         private var videoFrameRendered = false
@@ -257,7 +267,16 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         }
 
         override fun onPlayerError(error: PlaybackException) {
-            lastPlaybackError = "This file could not be decoded on this device."
+            val (english, chinese) = when (error.errorCode) {
+                PlaybackException.ERROR_CODE_IO_FILE_NOT_FOUND ->
+                    "File not found. Rescan the Library." to "找不到檔案。請重新掃描媒體庫。"
+                PlaybackException.ERROR_CODE_IO_NO_PERMISSION ->
+                    "File access was lost. Choose its folder again." to "檔案存取權限已失效。請重新選擇資料夾。"
+                PlaybackException.ERROR_CODE_IO_UNSPECIFIED ->
+                    "Could not read this file. Check that it is available." to "無法讀取此檔案。請確認檔案可用。"
+                else -> "This file could not be decoded on this device." to "此裝置無法解碼此檔案。"
+            }
+            lastPlaybackError = com.local.listentomusic.ui.uiText(userPreferences.appLanguage, english, chinese)
             publishPlayback(_controller.value ?: return)
         }
 
@@ -307,6 +326,11 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 }
             }
         }
+        viewModelScope.launch {
+            PlaybackConnection.disconnected.collect { disconnected ->
+                if (_controller.value === disconnected) clearDisconnectedController()
+            }
+        }
         connectController()
         // Also runs on service reconnection, not only on a new media-item event.
         waveformWarmupJob = viewModelScope.launch {
@@ -345,7 +369,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             applySortingAndFilter()
             if (graphRequested) requestGraph()
             _stackFiles.value = emptyList()
-            _library.value = _library.value.copy(status = LibraryStatus.NEEDS_PERMISSION)
+            _library.value = _library.value.copy(status = LibraryStatus.NEEDS_PERMISSION, scopedIssue = null)
             return
         }
         if (scanJob?.isActive == true) {
@@ -367,6 +391,12 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                         com.local.listentomusic.ui.scopedProblemText(userPreferences.appLanguage, it.problem)
                     }
             }
+            val issues = discovered?.issues.orEmpty().map { it.problem }.distinct()
+            val unavailable = issues.any { it != com.local.listentomusic.data.DiscoveryProblem.LIMIT_REACHED } &&
+                discovered?.records.isNullOrEmpty()
+            val scopedIssue = issues.takeIf { it.isNotEmpty() }?.joinToString(" ") {
+                com.local.listentomusic.ui.scopedProblemText(userPreferences.appLanguage, it)
+            }
             val scan = if (discovered != null) ScanResult.Success(discovered.records.map { it.media })
                 else MediaScanner.scan(userPreferences.excludedFolders.toSet())
             when (val result = scan) {
@@ -382,9 +412,10 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                     if (graphRequested) requestGraph()
                     refreshMetadata()
                     applySortingAndFilter()
-                    _library.value = _library.value.copy(status = if (discovered?.issues?.any {
-                        it.problem == com.local.listentomusic.data.DiscoveryProblem.PERMISSION_DENIED
-                    } == true) LibraryStatus.CANNOT_READ else LibraryStatus.READY)
+                    _library.value = _library.value.copy(
+                        status = if (unavailable) LibraryStatus.CANNOT_READ else LibraryStatus.READY,
+                        scopedIssue = scopedIssue,
+                    )
                 }
                 is ScanResult.FolderMissing -> {
                     scannedFiles = emptyList()
@@ -393,6 +424,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                     _library.value = _library.value.copy(
                         status = LibraryStatus.FOLDER_MISSING,
                         targetPath = result.path,
+                        scopedIssue = null,
                     )
                 }
                 is ScanResult.PermissionMissing -> {
@@ -402,6 +434,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                     _library.value = _library.value.copy(
                         status = LibraryStatus.CANNOT_READ,
                         targetPath = result.path,
+                        scopedIssue = null,
                     )
                 }
             }
@@ -434,11 +467,13 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-    fun moveCustomItem(fromIndex: Int, toIndex: Int) {
+    fun moveCustomItem(fromPath: String, toPath: String) {
         if (_library.value.query.isNotBlank()) return
+        val fromIndex = orderedFiles.indexOfFirst { it.path == fromPath }
+        val toIndex = orderedFiles.indexOfFirst { it.path == toPath }
         if (fromIndex !in orderedFiles.indices || toIndex !in orderedFiles.indices || fromIndex == toIndex) return
         userPreferences.activePlaylistId?.let { playlistId ->
-            viewModelScope.launch { preferences.movePlaylistItem(playlistId, fromIndex, toIndex) }
+            viewModelScope.launch { preferences.movePlaylistItem(playlistId, fromPath, toPath) }
             return
         }
         if (userPreferences.sortMode != SortMode.CUSTOM) return
@@ -452,6 +487,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun play(file: MediaFile) {
+        clearDisconnectedController()
         val player = _controller.value
         if (player == null) {
             // A tap can arrive while the MediaSession connection is still starting.
@@ -474,15 +510,34 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     /** Every normal queue replacement exits Stack first and shares one startup path. */
     private fun startNormalQueue(player: Player, queue: List<MediaFile>, index: Int, positionMs: Long) {
-        if (queue.isEmpty()) return
-        com.local.listentomusic.playback.StackPlayback.stop()
-        expandRestoredQueue = false
-        com.local.listentomusic.playback.PlaybackDiagnostics.requestedAtMs = android.os.SystemClock.elapsedRealtime()
-        com.local.listentomusic.playback.PlaybackDiagnostics.firstFrameDelayMs = null
-        lastPlaybackError = null
-        player.setMediaItems(queue.map(MediaFile::toMediaItem), index.coerceIn(queue.indices), positionMs.coerceAtLeast(0L))
-        player.playWhenReady = true
-        player.prepare()
+        val selected = queue.getOrNull(index) ?: return
+        normalQueueRequest?.cancel()
+        val stackRevision = com.local.listentomusic.playback.StackPlayback.transportRevision
+        normalQueueRequest = viewModelScope.launch {
+            val readable = withContext(Dispatchers.IO) {
+                com.local.listentomusic.data.mediaReadable(getApplication<Application>(), selected)
+            }
+            if (_controller.value !== player || _controller.value?.isConnected != true ||
+                stackRevision != com.local.listentomusic.playback.StackPlayback.transportRevision) return@launch
+            if (!readable) {
+                showActionError("File unavailable. Rescan or select its folder again.", "檔案無法使用。請重新掃描或選擇資料夾。")
+                return@launch
+            }
+            com.local.listentomusic.playback.StackPlayback.stop()
+            expandRestoredQueue = false
+            com.local.listentomusic.playback.PlaybackDiagnostics.requestedAtMs = android.os.SystemClock.elapsedRealtime()
+            com.local.listentomusic.playback.PlaybackDiagnostics.firstFrameDelayMs = null
+            lastPlaybackError = null
+            player.setMediaItems(queue.map(MediaFile::toMediaItem), index, positionMs.coerceAtLeast(0L))
+            player.playWhenReady = true
+            player.prepare()
+        }
+    }
+
+    private fun showActionError(english: String, chinese: String) {
+        android.widget.Toast.makeText(getApplication<Application>(),
+            com.local.listentomusic.ui.uiText(userPreferences.appLanguage, english, chinese),
+            android.widget.Toast.LENGTH_LONG).show()
     }
 
     fun peekThumbnail(file: MediaFile): Bitmap? = thumbnailRepository.peekMemory(file)
@@ -536,13 +591,14 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun togglePlayPause() {
-        val stack = com.local.listentomusic.playback.StackPlayback.state.value
-        if (stack.active) {
-            if (stack.playing) com.local.listentomusic.playback.StackPlayback.pause()
-            else com.local.listentomusic.playback.StackPlayback.play()
+        clearDisconnectedController()
+        val player = _controller.value
+        if (player == null) {
+            connectController()
+            showActionError("Connecting to playback. Try again shortly.", "正在連接播放服務。請稍後重試。")
             return
         }
-        _controller.value?.let { if (it.isPlaying) it.pause() else it.play() }
+        togglePlayback(player)
     }
 
     fun seekBy(deltaMs: Long) {
@@ -669,12 +725,23 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     fun toggleFavourite(path: String) = updatePreference { preferences.toggleFavourite(path) }
     fun clearPlayHistory() = updatePreference { preferences.clearPlayHistory() }
     fun setJokeAdsEnabled(value: Boolean) = updatePreference { preferences.setJokeAdsEnabled(value) }
-    fun setScopedMediaTree(uri: String?) = updatePreference {
+    fun setScopedMediaTree(uri: String?, onSaved: () -> Unit = {}) = viewModelScope.launch {
+        val sameSelection = uri == userPreferences.scopedMediaTreeUri
+        try {
+            preferences.setScopedMediaTreeUri(uri)
+        } catch (cancelled: kotlinx.coroutines.CancellationException) {
+            throw cancelled
+        } catch (_: java.io.IOException) {
+            showActionError("Could not save the folder selection. Try again.", "無法儲存所選資料夾。請重試。")
+            return@launch
+        }
         scopedPreviewJob?.cancel()
         scopedDiscoveredMedia.value = emptyList()
-        preferences.setScopedMediaTreeUri(uri)
         scopedPreviewStatus.value = if (uri == null) "No scoped folder selected." else
             "Folder selected. Preview it to verify the persisted grant."
+        onSaved()
+        // A recovered grant can have the exact same URI, so DataStore may not emit.
+        if (sameSelection) rescan()
     }
     fun previewScopedMediaTree(includeMediaStore: Boolean = false) {
         val value = settings.value.scopedMediaTreeUri
@@ -786,21 +853,11 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 while (true) { val count = input.read(chars); if (count < 0) break; data.append(chars, 0, count); require(data.length <= 5_000_000) }
                 data.lines()
             } }.getOrNull() ?: run { playlistFeedback("Could not read playlist", "無法讀取播放清單"); return@launch }
-            val byPath = scannedFiles.filter { it.reference.source is com.local.listentomusic.model.MediaSource.LocalFile }
-                .associateBy { File(it.path).canonicalPath }
-            val byName = scannedFiles.groupBy { it.name.lowercase(Locale.ROOT) }
-            val specialReferences = com.local.listentomusic.model.M3uLibraryIndex(scannedFiles)
-            val paths = com.local.listentomusic.model.parseM3u(raw).asSequence()
-                .mapNotNull { entry ->
-                    val decoded = Uri.decode(entry.path.removePrefix("file://"))
-                    if (entry.path.startsWith("content://"))
-                        return@mapNotNull specialReferences.content(entry.path)?.id
-                    if (entry.start != null) {
-                        return@mapNotNull specialReferences.clipped(decoded, entry.start, entry.end)?.path
-                    }
-                    runCatching { File(decoded).canonicalPath }.getOrNull()?.let(byPath::get)?.path
-                        ?: byName[File(decoded).name.lowercase(Locale.ROOT)]?.singleOrNull()?.path
-                }.distinct().toList()
+            val index = com.local.listentomusic.model.M3uLibraryIndex(scannedFiles)
+            val entries = com.local.listentomusic.model.parseM3u(raw)
+            val root = MediaScanner.targetFolder()
+            val matches = entries.mapNotNull { index.resolve(it, root, Uri::decode)?.path }
+            val paths = matches.distinct()
             if (paths.isEmpty()) { playlistFeedback("No matching files in playlist", "播放清單沒有相符的檔案"); return@launch }
             val displayName = runCatching {
                 resolver.query(uri, arrayOf(OpenableColumns.DISPLAY_NAME), null, null, null)?.use { cursor ->
@@ -809,7 +866,9 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             }.getOrNull().orEmpty().ifBlank { "Imported playlist" }
             val id = preferences.createPlaylistWithPaths(displayName.take(60), paths)
             preferences.setActivePlaylist(id)
-            playlistFeedback("Playlist imported", "播放清單已匯入")
+            val missing = entries.size - matches.size
+            if (missing == 0) playlistFeedback("Playlist imported", "播放清單已匯入")
+            else playlistFeedback("Playlist imported; $missing unavailable entries skipped", "已匯入播放清單；略過 $missing 個無法使用的項目")
             } catch (cancelled: kotlinx.coroutines.CancellationException) { throw cancelled }
             catch (_: Exception) { playlistFeedback("Could not import playlist", "無法匯入播放清單") }
         }
@@ -919,10 +978,17 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         val resolvedName = stackPlaylistName(name, cleanKeyword, clean.size)
         viewModelScope.launch {
             val id = java.util.UUID.randomUUID().toString()
-            preferences.saveStack(com.local.listentomusic.data.SavedStack(id, resolvedName,
-                clean.map { com.local.listentomusic.data.SavedStackTrack(it.file.path, it.volume, it.muted, it.solo, it.offsetMs, it.alignmentScale, it.alignmentOffsetUs) },
-                primary?.takeIf { path -> clean.any { it.file.path == path } } ?: clean.first().file.path,
-                loop, cleanKeyword))
+            try {
+                preferences.saveStack(com.local.listentomusic.data.SavedStack(id, resolvedName,
+                    clean.map { com.local.listentomusic.data.SavedStackTrack(it.file.path, it.volume, it.muted, it.solo, it.offsetMs, it.alignmentScale, it.alignmentOffsetUs) },
+                    primary?.takeIf { path -> clean.any { it.file.path == path } } ?: clean.first().file.path,
+                    loop, cleanKeyword))
+            } catch (cancelled: kotlinx.coroutines.CancellationException) {
+                throw cancelled
+            } catch (_: Exception) {
+                showActionError("Could not save Stack. Check the tracks and alignment.", "無法儲存疊播。請檢查歌曲和對齊。")
+                return@launch
+            }
             offerUndo("Saved \"$resolvedName\"") { preferences.deleteStack(id) }
         }
     }
@@ -1032,12 +1098,12 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     private fun connectController() {
         if (_controller.value != null || controllerLease != null) return
         val context = getApplication<Application>()
-        val lease = com.local.listentomusic.playback.PlaybackConnection.acquire(context)
+        val lease = PlaybackConnection.acquire(context)
         controllerLease = lease
         val future = lease.value
         future.addListener({
             if (controllerLease !== lease) return@addListener
-            runCatching { future.get() }.onSuccess { mediaController ->
+            runCatching { future.get().also { check(it.isConnected) } }.onSuccess { mediaController ->
                 lastPlaybackError = null
                 _controller.value = mediaController
                 mediaController.addListener(playerListener)
@@ -1061,6 +1127,21 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         }, ContextCompat.getMainExecutor(context))
     }
 
+    private fun clearDisconnectedController() {
+        val disconnected = _controller.value ?: return
+        if (disconnected.isConnected) return
+        disconnected.removeListener(playerListener)
+        _controller.value = null
+        controllerLease?.close()
+        controllerLease = null
+        tickerJob?.cancel()
+        lastPlaybackError = com.local.listentomusic.ui.uiText(userPreferences.appLanguage,
+            "Playback disconnected. Select a song or tap Play to reconnect.",
+            "播放服務已中斷。選擇歌曲或點擊播放以重新連接。")
+        _playback.value = _playback.value.copy(connected = false, isPlaying = false, playRequested = false,
+            videoFrameRendered = false, errorMessage = lastPlaybackError)
+    }
+
     private fun startTicker() {
         tickerJob?.cancel()
         tickerJob = viewModelScope.launch {
@@ -1074,8 +1155,16 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     private fun publishPlayback(player: Player) {
+        if (player is MediaController && !player.isConnected) return
         val stack = com.local.listentomusic.playback.StackPlayback.state.value.takeIf { it.active }
-        val path = stack?.primaryPath ?: player.currentMediaItem?.mediaId?.takeIf { it.isNotBlank() }
+        val item = player.currentMediaItem
+        val path = stack?.primaryPath ?: item?.mediaId?.takeIf { it.isNotBlank() }
+        val mediaKind = stack?.slots?.firstOrNull { it.file.path == path }?.file?.kind
+            ?: when (item?.mediaMetadata?.mediaType) {
+                MediaMetadata.MEDIA_TYPE_VIDEO -> MediaKind.VIDEO
+                MediaMetadata.MEDIA_TYPE_MUSIC -> MediaKind.AUDIO
+                else -> null
+            }
         val timelineDuration = if (
             !player.currentTimeline.isEmpty &&
             player.currentMediaItemIndex in 0 until player.currentTimeline.windowCount
@@ -1128,6 +1217,8 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             showSleepControl = userPreferences.showSleepControl,
             showAbRepeat = userPreferences.showAbRepeat,
             stackCount = stack?.slots?.size ?: 0,
+            mediaKind = mediaKind,
+            playRequested = playbackRequested(player),
         )
         // Skip identical emits. Every StateFlow update triggers a
         // recomposition storm across every screen that reads `playback`.
@@ -1272,6 +1363,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     fun setGraphOptions(options: com.local.listentomusic.graph.GraphOptions) = viewModelScope.launch { preferences.setGraphOptions(options) }
 
     fun refreshPlaybackSession() {
+        clearDisconnectedController()
         if (_controller.value == null && controllerLease == null) connectController()
         syncPlaybackQueue()
         _controller.value?.let(::publishPlayback)

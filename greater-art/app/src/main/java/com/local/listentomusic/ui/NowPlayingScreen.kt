@@ -448,15 +448,23 @@ fun NowPlayingScreen(
 
         var playerRootBounds by remember { mutableStateOf<androidx.compose.ui.geometry.Rect?>(null) }
 
-        // Now Playing already has its own media-colour backdrop. Browsing wallpaper
-        // selection must not route the default CURRENT_VIDEO player to a gradient
-        // without reflections. Reuse the same sparse colours and motion preferences.
-        val backdrop = if (ambientPreferences != null)
-            Modifier.adaptiveAmbientBackdrop(artwork, playback.currentPath, ambientPreferences,
+        // The Library wallpaper is independent from the player. Adaptive keeps its
+        // motion and intensity; every other browsing mode gets steady Ambient.
+        val playerAmbient = remember(ambientPreferences) {
+            ambientPreferences?.let {
+                it.copy(
+                    backgroundMode = if (it.backgroundMode == com.local.listentomusic.data.AppBackgroundMode.ADAPTIVE_DYNAMIC)
+                        it.backgroundMode else com.local.listentomusic.data.AppBackgroundMode.AMBIENT,
+                    adaptiveReactToVideo = true,
+                )
+            }
+        }
+        val backdrop = if (playerAmbient != null)
+            Modifier.adaptiveAmbientBackdrop(artwork, playback.currentPath, playerAmbient,
                 visible = !fullscreen,
-                extraDim = ambientPreferences.backgroundDim,
+                extraDim = playerAmbient.backgroundDim,
                 scrolling = queueListState.isScrollInProgress,
-                steady = ambientPreferences.backgroundMode == com.local.listentomusic.data.AppBackgroundMode.AMBIENT,
+                steady = playerAmbient.backgroundMode == com.local.listentomusic.data.AppBackgroundMode.AMBIENT,
                 playerPresentation = true) else Modifier.ambientBackdrop(
         artwork,
         MaterialTheme.colorScheme.background.luminance() > .5f,
@@ -473,15 +481,12 @@ fun NowPlayingScreen(
         val landscape = maxWidth > maxHeight
         val portraitVideoHeight = minOf(maxWidth / playback.videoAspectRatio.coerceIn(0.75f, 2.25f), maxHeight * 0.34f)
         val immersiveVideo = playback.isVideo && (fullscreen || landscape)
-        val wantsFrameAmbient = playback.isVideo && !immersiveVideo && ambientPreferences != null &&
-            ambientPreferences.adaptiveReactToVideo &&
-            (ambientPreferences.backgroundMode == com.local.listentomusic.data.AppBackgroundMode.AMBIENT ||
-                ambientPreferences.backgroundMode == com.local.listentomusic.data.AppBackgroundMode.ADAPTIVE_DYNAMIC)
+        val wantsFrameAmbient = playback.isVideo && !immersiveVideo && playerAmbient?.adaptiveReactToVideo == true
         var frameAmbientFailed by remember(controller, playback.currentPath) { mutableStateOf(false) }
         var frameAmbientStage by remember { mutableStateOf<Rect?>(null) }
-        val frameAmbientLight = if (ambientPreferences?.backgroundMode ==
+        val frameAmbientLight = if (playerAmbient?.backgroundMode ==
             com.local.listentomusic.data.AppBackgroundMode.AMBIENT) .8f
-            else com.local.listentomusic.ui.components.ambientUnit(ambientPreferences?.adaptiveIntensity ?: 0f)
+            else com.local.listentomusic.ui.components.ambientUnit(playerAmbient?.adaptiveIntensity ?: 0f)
         val useFrameAmbient = wantsFrameAmbient && !frameAmbientFailed && frameAmbientLight > 0f &&
             !com.local.listentomusic.ui.components.ambientSystemConstraints().second &&
             com.local.listentomusic.ambient.hasFrameAmbientTrack(controller, playback.currentPath)
@@ -508,7 +513,7 @@ fun NowPlayingScreen(
             com.local.listentomusic.ambient.FrameAmbientPresentation(
                 controller, overlay = sharedVideoView != null, stage = frameAmbientStage,
                 intensity = frameAmbientLight *
-                    (1f - com.local.listentomusic.ui.components.ambientUnit(ambientPreferences?.backgroundDim ?: 0f)),
+                    (1f - com.local.listentomusic.ui.components.ambientUnit(playerAmbient?.backgroundDim ?: 0f)),
                 onFailure = { frameAmbientFailed = true },
                 modifier = Modifier.fillMaxSize(),
             )
@@ -1165,8 +1170,8 @@ private fun VideoPlayerStage(
                         contentAlignment = Alignment.Center,
                     ) {
                         Icon(
-                            if (playback.isPlaying) Icons.Rounded.Pause else Icons.Rounded.PlayArrow,
-                            uiText(playback.appLanguage, if (playback.isPlaying) "Pause" else "Play", if (playback.isPlaying) "暫停" else "播放"),
+                            if (playback.playRequested) Icons.Rounded.Pause else Icons.Rounded.PlayArrow,
+                            uiText(playback.appLanguage, if (playback.playRequested) "Pause" else "Play", if (playback.playRequested) "暫停" else "播放"),
                             modifier = Modifier.size(GaControl.heroIcon),
                             tint = GaVideoOverlay.foreground,
                         )
@@ -2188,7 +2193,7 @@ internal fun PlayerBottomControls(
                 .clip(CircleShape)
                 .background(accent)
                 .border(1.dp, MaterialTheme.colorScheme.onSecondary.copy(alpha = 0.18f), CircleShape)
-                .inspectElement("PLAY_PAUSE_BUTTON", if (playback.isPlaying) "Pause" else "Play")
+                .inspectElement("PLAY_PAUSE_BUTTON", if (playback.playRequested) "Pause" else "Play")
                 .testTag("PLAY_PAUSE_BUTTON")
                 .clickable(
                     indication = null,
@@ -2198,8 +2203,8 @@ internal fun PlayerBottomControls(
             contentAlignment = Alignment.Center,
         ) {
             Icon(
-                if (playback.isPlaying) Icons.Rounded.Pause else Icons.Rounded.PlayArrow,
-                if (playback.isPlaying) uiText(playback.appLanguage, "Pause", "暫停") else uiText(playback.appLanguage, "Play", "播放"),
+                if (playback.playRequested) Icons.Rounded.Pause else Icons.Rounded.PlayArrow,
+                if (playback.playRequested) uiText(playback.appLanguage, "Pause", "暫停") else uiText(playback.appLanguage, "Play", "播放"),
                 modifier = Modifier.size(GaControl.prominentIcon),
                 tint = MaterialTheme.colorScheme.onSecondary,
             )

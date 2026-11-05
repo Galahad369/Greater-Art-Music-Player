@@ -10,6 +10,7 @@ import android.content.Intent
 import android.graphics.Rect
 import android.os.Build
 import android.os.Environment
+import android.provider.DocumentsContract
 import android.provider.Settings
 
 import androidx.activity.compose.BackHandler
@@ -98,6 +99,9 @@ fun GreaterArtApp(
     val expandedPlayerVisible by com.local.listentomusic.playback.PlayerWindowVisibility.expandedShowing.collectAsStateWithLifecycle()
     val listScrolling = ListScrollBudget.scrolling.collectAsStateWithLifecycle()
     val context = LocalContext.current
+    LaunchedEffect(playback.errorMessage) {
+        playback.errorMessage?.let { android.widget.Toast.makeText(context, it, android.widget.Toast.LENGTH_LONG).show() }
+    }
     fun hasReadGrant(uri: android.net.Uri) = context.contentResolver.persistedUriPermissions.any {
         it.uri == uri && it.isReadPermission
     }
@@ -106,7 +110,8 @@ fun GreaterArtApp(
         { hasReadGrant(uri) },
     )
     fun releaseReadGrant(value: String?, otherReferences: List<String?>): Boolean {
-        if (value == null || value in otherReferences) return true
+        if (value == null || value in otherReferences ||
+            settings.localOverrides.values.any { it.coverUri == value }) return true
         val uri = value.toUri()
         return releaseDocumentReadGrant(
             { context.contentResolver.releasePersistableUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION) },
@@ -147,9 +152,10 @@ fun GreaterArtApp(
         val persisted = retainReadGrant(uri)
         if (persisted) {
             val prior = settings.scopedMediaTreeUri
-            viewModel.setScopedMediaTree(uri.toString())
-            if (prior != uri.toString() && !releaseReadGrant(prior,
-                    listOf(settings.customBackgroundImageUri, settings.customBackgroundVideoUri))) grantFailure()
+            viewModel.setScopedMediaTree(uri.toString()) {
+                if (prior != uri.toString() && !releaseReadGrant(prior,
+                        listOf(settings.customBackgroundImageUri, settings.customBackgroundVideoUri))) grantFailure()
+            }
         } else {
             grantFailure()
         }
@@ -448,6 +454,16 @@ fun GreaterArtApp(
                         // The list now draws behind the player and keeps only a scroll-end inset.
                         contentPadding = PaddingValues(0.dp),
                         onGrantStorageAccess = onGrantStorageAccess,
+                        onChooseScopedFolder = {
+                            val initialDocument = settings.scopedMediaTreeUri?.toUri()?.let { tree ->
+                                // The picker accepts a document or provider root URI, not a bare tree grant.
+                                runCatching {
+                                    DocumentsContract.buildDocumentUri(requireNotNull(tree.authority),
+                                        DocumentsContract.getTreeDocumentId(tree))
+                                }.getOrNull()
+                            }
+                            scopedTreePicker.launch(initialDocument)
+                        },
                         onRefresh = viewModel::rescan,
                         onPlayHistoryEnabled = viewModel::setPlayHistoryEnabled,
                         onClearPlayHistory = viewModel::clearPlayHistory,
@@ -589,11 +605,11 @@ fun GreaterArtApp(
                     onChooseScopedFolder = { scopedTreePicker.launch(null) },
                     onPreviewScopedFolder = { viewModel.previewScopedMediaTree() },
                     onClearScopedFolder = {
-                        val shared = settings.scopedMediaTreeUri != null && settings.scopedMediaTreeUri in
-                            listOf(settings.customBackgroundImageUri, settings.customBackgroundVideoUri)
-                        if (shared) grantFailure()
-                        else if (releaseReadGrant(settings.scopedMediaTreeUri, emptyList()))
-                            viewModel.setScopedMediaTree(null) else grantFailure()
+                        val prior = settings.scopedMediaTreeUri
+                        viewModel.setScopedMediaTree(null) {
+                            if (!releaseReadGrant(prior,
+                                    listOf(settings.customBackgroundImageUri, settings.customBackgroundVideoUri))) grantFailure()
+                        }
                     },
                     onReplayGainEnabled = viewModel::setReplayGainEnabled,
                     onBluetoothOnlyListening = viewModel::setBluetoothOnlyListening,
@@ -735,8 +751,11 @@ fun GreaterArtApp(
                 confirmButton = { androidx.compose.material3.TextButton(onClick = { restoreConfirm = false; restorePicker.launch(arrayOf("application/json", "text/plain")) }) { androidx.compose.material3.Text(uiText(settings.appLanguage, "Choose backup", "選擇備份")) } },
                 dismissButton = { androidx.compose.material3.TextButton(onClick = { restoreConfirm = false }) { androidx.compose.material3.Text(uiText(settings.appLanguage, "Cancel", "取消")) } },
             )
-            if (showDuplicates) DuplicateDialog(library.files, playback.currentPath,
-                onDismiss = { showDuplicates = false }, onChanged = viewModel::rescan)
+            if (showDuplicates) {
+                val duplicateFiles by viewModel.stackFiles.collectAsStateWithLifecycle()
+                DuplicateDialog(duplicateFiles, playback.currentPath,
+                    onDismiss = { showDuplicates = false }, onChanged = viewModel::rescan)
+            }
             editDisplay?.let { file -> DisplayOverrideDialog(file, settings.localOverrides[file.path], settings.appLanguage,
                 viewModel::loadThumbnail, { title, cover -> viewModel.setLocalOverride(file.path, title, cover) }, { editDisplay = null }) }
             if (createRule) RulePlaylistDialog(settings.appLanguage, viewModel::createRulePlaylist, { createRule = false })

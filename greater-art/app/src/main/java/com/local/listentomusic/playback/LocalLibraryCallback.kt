@@ -2,6 +2,7 @@ package com.local.listentomusic.playback
 
 import android.content.Context
 import android.os.SystemClock
+import androidx.media3.common.C
 import androidx.media3.common.MediaItem
 import androidx.media3.common.MediaMetadata
 import androidx.media3.session.*
@@ -98,16 +99,40 @@ class LocalLibraryCallback(private val context: Context, private val scope: Coro
         else files().firstOrNull { it.path == mediaId && it.kind == MediaKind.AUDIO }?.let { LibraryResult.ofItem(browseItem(it), null) }
             ?: LibraryResult.ofError(SessionError.ERROR_BAD_VALUE)
     }
+    private suspend fun admitInternal(items: List<MediaItem>): List<IndexedValue<MediaItem>> =
+        withContext(Dispatchers.IO) { items.withIndex().filter { readableInternalMediaItem(context, it.value) } }
+
+    override fun onSetMediaItems(
+        mediaSession: MediaSession,
+        controller: MediaSession.ControllerInfo,
+        mediaItems: List<MediaItem>,
+        startIndex: Int,
+        startPositionMs: Long,
+    ): ListenableFuture<MediaSession.MediaItemsWithStartPosition> {
+        if (controller.packageName != context.packageName)
+            return super.onSetMediaItems(mediaSession, controller, mediaItems, startIndex, startPositionMs)
+        return future {
+            val admitted = admitInternal(mediaItems)
+            check(!StackPlayback.state.value.active) { "Stack owns playback" }
+            // A filtered queue uses new positions. Preserve the selected occurrence,
+            // including duplicates, rather than starting whatever moved into its index.
+            val resolvedIndex = if (startIndex == C.INDEX_UNSET || mediaItems.isEmpty()) startIndex
+                else admitted.indexOfFirst { it.index == startIndex }.also {
+                    if (it < 0) throw java.io.FileNotFoundException("Selected media is not readable")
+                }
+            if (mediaItems.isNotEmpty() && admitted.isEmpty()) throw java.io.FileNotFoundException("No readable media")
+            MediaSession.MediaItemsWithStartPosition(admitted.map { it.value }, resolvedIndex, startPositionMs)
+        }
+    }
+
     override fun onAddMediaItems(mediaSession: MediaSession, controller: MediaSession.ControllerInfo, mediaItems: List<MediaItem>): ListenableFuture<List<MediaItem>> = future {
         if (controller.packageName == context.packageName) {
             // Internal queues already came from our scanner. Avoid another complete
             // recursive scan on every row tap; validate only the requested paths.
-            val admitted = withContext(Dispatchers.IO) { mediaItems.filter { request ->
-                readableInternalMediaItem(context, request)
-            } }
+            val admitted = admitInternal(mediaItems)
             // Recheck on the service looper after IO. Ordinary app playback
             // explicitly exits Stack first; companion additions bypass this queue.
-            return@future if (StackPlayback.state.value.active) emptyList() else admitted
+            return@future if (StackPlayback.state.value.active) emptyList() else admitted.map { it.value }
         }
         // Internal requests returned above; all remaining trusted browsers see audio only.
         val allowed = files().filter { it.kind == MediaKind.AUDIO }

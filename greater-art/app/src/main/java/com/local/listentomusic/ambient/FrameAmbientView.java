@@ -9,7 +9,6 @@ import android.os.Handler;
 import android.os.Looper;
 import android.view.Surface;
 import androidx.media3.common.C;
-import androidx.media3.common.util.TimedValueQueue;
 import androidx.media3.common.util.UnstableApi;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
@@ -80,8 +79,7 @@ public final class FrameAmbientView extends GLSurfaceView implements GLSurfaceVi
     private final Listener listener;
     private final Handler main = new Handler(Looper.getMainLooper());
     private final AtomicBoolean available = new AtomicBoolean();
-    private final TimedValueQueue<Long> timestamps = new TimedValueQueue<>();
-    private final TimedValueQueue<Long> admittedFrames = new TimedValueQueue<>();
+    private final FrameAmbientFrameTimes frameTimes = new FrameAmbientFrameTimes();
     private final ArrayDeque<Sample> samples = new ArrayDeque<>();
     private final boolean diagnose;
     private final boolean staleGlowControl;
@@ -151,18 +149,8 @@ public final class FrameAmbientView extends GLSurfaceView implements GLSurfaceVi
 
     public void sourceFrame(long ptsUs, long releaseTimeNs, float sourceAspect) {
         if (closed || failure != null) return;
-        if (presentation) {
-            synchronized (admittedFrames) {
-                if (admittedFrames.size() >= 64) admittedFrames.pollFirst();
-                admittedFrames.add(releaseTimeNs, releaseTimeNs);
-            }
-        }
+        frameTimes.record(releaseTimeNs, ptsUs);
         formatAllowed = true;
-        // Keep eviction and insertion atomic with respect to the GL consumer.
-        synchronized (timestamps) {
-            if (timestamps.size() >= 64) timestamps.pollFirst();
-            timestamps.add(releaseTimeNs, ptsUs);
-        }
         if (sourceAspect > 0 && Float.isFinite(sourceAspect) && aspect != sourceAspect) {
             aspect = sourceAspect;
             queueEvent(() -> layoutDirty = true);
@@ -284,21 +272,19 @@ public final class FrameAmbientView extends GLSurfaceView implements GLSurfaceVi
                 texture.updateTexImage();
                 long nextTimestamp = texture.getTimestamp();
                 fresh = !hasFrame || nextTimestamp != currentTimestamp;
-                if (fresh && presentation) {
-                    Long admitted = admittedFrames.pollFloor(nextTimestamp);
-                    // A newer HDR/unknown frame can reach the queue before the
-                    // controller's track update. Never draw an unadmitted buffer.
-                    if (!formatAllowed || admitted == null || admitted != nextTimestamp) {
-                        fail("No matching SDR frame metadata");
+                if (fresh) {
+                    currentPts = frameTimes.lookup(nextTimestamp);
+                    // A newer HDR/unknown frame can reach the surface before the
+                    // controller's track update. Only draw a confirmed SDR buffer.
+                    if (presentation && (!formatAllowed || currentPts == C.TIME_UNSET)) {
+                        long latest = frameTimes.latest();
+                        fail("No matching SDR frame metadata; deltaNs=" +
+                                (latest == C.TIME_UNSET ? "none" : Long.toString(nextTimestamp - latest)));
                         return;
                     }
                 }
                 currentTimestamp = nextTimestamp;
                 texture.getTransformMatrix(matrix);
-                if (fresh) {
-                    Long pts = timestamps.poll(currentTimestamp);
-                    currentPts = pts == null ? C.TIME_UNSET : pts;
-                }
                 hasFrame = true;
             }
             if (!hasFrame) return;

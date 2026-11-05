@@ -3,6 +3,9 @@ package com.local.listentomusic
 import com.local.listentomusic.model.MediaFile
 import com.local.listentomusic.model.MediaKind
 import com.local.listentomusic.model.M3uLibraryIndex
+import com.local.listentomusic.model.exportPortableM3u
+import com.local.listentomusic.model.parseM3u
+import java.io.File
 import org.junit.Assert.*
 import org.junit.Test
 
@@ -35,5 +38,27 @@ class M3uLibraryIndexTest {
         assertEquals(open, index.clipped("/moved/song.flac", 1000, null))
         assertEquals(first, index.clipped("/moved/song.flac", 1000, 2000))
         assertNull(index.clipped(first.sourcePath, 2000, 3000))
+    }
+
+    @Test fun portableRoundTripDoesNotConfuseDuplicateFilenames() {
+        val root = File("test-downloads").absoluteFile
+        val one = File(root, "album-a/song.mp3")
+        val two = File(root, "album-b/song.mp3")
+        val files = listOf(media(one.path).copy(name = one.name), media(two.path).copy(name = two.name))
+        val exported = parseM3u(exportPortableM3u(files.reversed(), root).lines())
+        assertEquals(files.reversed(), exported.map { M3uLibraryIndex(files).resolve(it, root) { value -> value } })
+    }
+
+    @Test fun scopedPathsKeepTheirFolderAndLiteralPercentEncoding() {
+        val one = media("content://provider/document/1").copy(name = "50%20.mp3", relativePath = "Album/50%20.mp3")
+        val two = media("content://provider/document/2").copy(name = "50 .mp3", relativePath = "Album/50 .mp3")
+        val root = File("test-downloads")
+        val index = M3uLibraryIndex(listOf(one, two))
+        val exported = exportPortableM3u(listOf(one, two), root)
+        assertFalse(exported.contains("content://"))
+        assertFalse(exported.contains("#EXTVLCOPT"))
+        assertEquals(listOf(one, two), parseM3u(exported.lines()).map { entry ->
+            index.resolve(entry, root) { it.replace("%20", " ") }
+        })
     }
 }
