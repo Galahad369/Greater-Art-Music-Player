@@ -1,3 +1,6 @@
+# Generated public website output
+/vercel-site-output/
+
 *.iml
 **/__pycache__/
 *.pyc
