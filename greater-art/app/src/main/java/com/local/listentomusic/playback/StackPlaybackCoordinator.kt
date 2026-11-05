@@ -608,8 +608,7 @@ internal class StackPlaybackCoordinator(
         if (targetDuration > 0L && promotedPosition >= targetDuration) return false
         val rebased = stackRebaseMappings(slots, target)
         // Reject an unsupported rebase before touching players; never silently clamp a map.
-        if (rebased.any { it.alignmentScale !in .97..1.03 ||
-                kotlin.math.abs(it.alignmentOffsetUs ?: 0.0) > 30_000_000 }) return false
+        if (rebased.any { !it.hasSupportedAlignment() }) return false
         voices.toList().forEach { voice -> safePlayer { voice.player.pause() } }
         internalMainChange = true
         try {

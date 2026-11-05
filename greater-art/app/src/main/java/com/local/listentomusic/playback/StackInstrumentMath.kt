@@ -289,3 +289,7 @@ internal fun stackRebaseMappings(slots: List<StackSlot>, primary: StackSlot): Li
         slot.copy(offsetMs = (offset / 1000).roundToLong(), alignmentScale = scale, alignmentOffsetUs = offset)
     }
 }
+
+internal fun StackSlot.hasSupportedAlignment(): Boolean =
+    offsetMs in -30_000L..30_000L && alignmentScale in .97..1.03 &&
+        (alignmentOffsetUs ?: offsetMs * 1_000.0) in -30_000_000.0..30_000_000.0
