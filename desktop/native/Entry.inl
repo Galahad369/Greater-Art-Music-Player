@@ -50,7 +50,7 @@ void writeIcon(const std::filesystem::path &file)
     if (!output)
         throw std::runtime_error("Icon resource write failed.");
 }
-bool selfTestPathSpelling(const std::filesystem::path &path)
+bool diagnosticOutputSpelling(const std::filesystem::path &path)
 {
     const auto &value = path.native();
     const auto separator = [](wchar_t c) { return c == L'\\' || c == L'/'; };
@@ -79,13 +79,13 @@ bool selfTestPathSpelling(const std::filesystem::path &path)
     }
     return true;
 }
-std::filesystem::path selfTestOutputPath(const std::filesystem::path &requested)
+std::filesystem::path diagnosticOutputPath(const std::filesystem::path &requested)
 {
-    if (!selfTestPathSpelling(requested))
+    if (!diagnosticOutputSpelling(requested))
         return {};
     std::error_code error;
     auto directory = std::filesystem::absolute(requested, error).lexically_normal().make_preferred();
-    if (error || !directory.is_absolute() || !selfTestPathSpelling(directory))
+    if (error || !directory.is_absolute() || !diagnosticOutputSpelling(directory))
         return {};
     if (!directory.has_filename())
         directory = directory.parent_path();
@@ -110,7 +110,7 @@ std::filesystem::path selfTestOutputPath(const std::filesystem::path &requested)
 int tests(const std::filesystem::path &requested)
 {
     // Tests deliberately replace fixtures, so only write inside a new directory.
-    const auto directory = selfTestOutputPath(requested);
+    const auto directory = diagnosticOutputPath(requested);
     if (directory.empty() || !CreateDirectoryW(directory.c_str(), nullptr))
         return 2;
     std::ofstream report(directory / L"unit-tests.txt");
@@ -516,7 +516,9 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE, PWSTR, int)
     }
     if (verifyStackOutput)
     {
-        int result = stackOutputTests(argv[2]) ? 0 : 2;
+        const auto directory = diagnosticOutputPath(argv[2]);
+        int result = !directory.empty() && CreateDirectoryW(directory.c_str(), nullptr) &&
+                     stackOutputTests(directory.wstring()) ? 0 : 2;
         LocalFree(argv);
         return result;
     }
