@@ -26,6 +26,10 @@ No system equalizer is installed on this device.|此裝置未安裝系統等化�
 Align by sound|按聲音對齊|音で位置合わせ|Nach Klang ausrichten|Aligner par le son
 Align by picture|按畫面對齊|映像で位置合わせ|Nach Bild ausrichten|Aligner par l’image
 Aligning by picture|正在按畫面對齊|映像を解析中|Bilder werden analysiert|Analyse des images
+Checking reference video|正在檢查參考影片|基準の映像を確認中|Referenzvideo wird geprüft|Analyse de la vidéo de référence
+Wider picture search|正在擴大畫面搜尋範圍|映像の検索範囲を拡大中|Erweiterte Bildsuche|Recherche d’images élargie
+Wider search (±30 s)|擴大搜尋（±30 秒）|検索範囲を広げる（±30 秒）|Suche erweitern (±30 s)|Élargir la recherche (±30 s)
+Quick scan reached its time limit|快速搜尋已達時間上限|クイック検索が制限時間に達しました|Zeitlimit der Schnellsuche erreicht|Temps limite de la recherche rapide atteint
 Suggested offsets|建議偏移|推奨オフセット|Vorgeschlagene Versätze|Décalages proposés
 Review offsets|檢視偏移|オフセットを確認|Versätze prüfen|Vérifier les décalages
 Apply alignment|套用對齊|位置合わせを適用|Ausrichtung anwenden|Appliquer l’alignement

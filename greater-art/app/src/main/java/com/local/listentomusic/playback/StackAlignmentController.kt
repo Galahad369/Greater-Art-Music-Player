@@ -22,9 +22,16 @@ data class StackAlignmentProgress(val running: Boolean = false, val completed: I
     val method: StackAlignmentMethod = StackAlignmentMethod.SOUND,
     val proposal: Map<String, StackAlignment> = emptyMap(),
     val applied: Boolean = false,
+    val widePictureSearch: Boolean = false,
+    val readingPictureReference: Boolean = false,
+    val quickPictureTimedOut: Boolean = false,
 ) {
     internal fun belongsTo(session: StackSession): Boolean =
         session.active && primaryPath == session.primaryPath && paths == session.slots.map { it.file.path }
+
+    internal val canRetryPictureWider: Boolean
+        get() = !running && method == StackAlignmentMethod.PICTURE && !widePictureSearch &&
+            matched?.let { it < total } == true
 }
 
 /** Analysis belongs to the playback session, not a disposable pager page. */
@@ -34,7 +41,17 @@ object StackAlignmentController {
     val state = mutable.asStateFlow()
     private var job: Job? = null
 
-    fun start(context: Context, method: StackAlignmentMethod) {
+    fun start(context: Context, method: StackAlignmentMethod) =
+        start(context, method, StackPictureSearch.QUICK)
+
+    fun retryPictureWider(context: Context) {
+        val previous = mutable.value
+        if (previous.canRetryPictureWider && previous.belongsTo(StackPlayback.state.value)) {
+            start(context, StackAlignmentMethod.PICTURE, StackPictureSearch.WIDE)
+        }
+    }
+
+    private fun start(context: Context, method: StackAlignmentMethod, pictureSearch: StackPictureSearch) {
         if (job?.isActive == true) return
         val snapshot = StackPlayback.state.value
         val primary = snapshot.slots.firstOrNull { it.file.path == snapshot.primaryPath } ?: return
@@ -51,7 +68,9 @@ object StackAlignmentController {
                 it.slots.map { slot -> slot.file.path } == snapshot.slots.map { slot -> slot.file.path }
         }
         mutable.value = StackAlignmentProgress(running = true, total = companions.size,
-            primaryPath = snapshot.primaryPath, paths = snapshot.slots.map { it.file.path }, method = method)
+            primaryPath = snapshot.primaryPath, paths = snapshot.slots.map { it.file.path }, method = method,
+            widePictureSearch = pictureSearch == StackPictureSearch.WIDE,
+            readingPictureReference = method == StackAlignmentMethod.PICTURE)
         job = scope.launch {
             try {
                 coroutineScope {
@@ -63,19 +82,21 @@ object StackAlignmentController {
                     try {
                         val files = companions.map { it.file }
                         val progress: (Int) -> Unit = { index ->
-                            mutable.value = mutable.value.copy(completed = index)
+                            mutable.value = mutable.value.copy(completed = index, readingPictureReference = false)
                         }
-                        val matches = when (method) {
-                            StackAlignmentMethod.SOUND -> StackAudioAlign(context.applicationContext)
-                                .estimateAll(primary.file, files, progress)
-                            StackAlignmentMethod.PICTURE -> StackPictureAlign(context.applicationContext)
-                                .estimateAll(primary.file, files, progress)
-                        }
+                        val pictureResult = if (method == StackAlignmentMethod.PICTURE)
+                            StackPictureAlign(context.applicationContext)
+                                .estimateAll(primary.file, files, pictureSearch, progress)
+                        else null
+                        val matches = pictureResult?.matches ?: StackAudioAlign(context.applicationContext)
+                            .estimateAll(primary.file, files, progress)
                         ensureActive()
                         if (unchanged() && StackPlayback.transportRevision == intent) {
                             val proposal = matches.filterValues { it.confident }
-                            mutable.value = mutable.value.copy(running = false, completed = companions.size,
-                                matched = proposal.size, proposal = proposal)
+                            mutable.value = mutable.value.copy(running = false,
+                                completed = if (pictureResult == null) companions.size else mutable.value.completed,
+                                matched = proposal.size, proposal = proposal, readingPictureReference = false,
+                                quickPictureTimedOut = pictureResult?.quickTimedOut == true)
                         }
                     } finally { watcher.cancel() }
                 }
