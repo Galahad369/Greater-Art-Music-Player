@@ -227,7 +227,8 @@ bool audioDecodeTest(const std::wstring &directory)
     report << "a=" << a.energy.size() << " b=" << b.energy.size() << " offset=" << match.offset
            << " confidence=" << match.confidence << " accepted=" << match.accepted << " errorA=" << toUtf8(a.error)
            << " errorB=" << toUtf8(b.error) << "\n";
+    report.close();
     MFShutdown();
-    return a.error.empty() && b.error.empty() && match.accepted && std::abs(match.offset - .5) < .03;
+    return report && a.error.empty() && b.error.empty() && match.accepted && std::abs(match.offset - .5) < .03;
 }
 } // namespace ga

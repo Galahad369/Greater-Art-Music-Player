@@ -327,6 +327,8 @@ bool iconTests(const std::filesystem::path &directory)
             auto path = directory / (L"vector-icons-" + std::to_wstring(dpi) + L"dpi.png");
             passed = sheet.Save(path.c_str(), &png, nullptr) == Gdiplus::Ok && passed;
         }
+        report.close();
+        passed = passed && report;
     }
     Gdiplus::GdiplusShutdown(token);
     return passed;
