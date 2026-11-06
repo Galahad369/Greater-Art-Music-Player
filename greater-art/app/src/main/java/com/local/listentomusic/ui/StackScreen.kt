@@ -87,8 +87,18 @@ fun StackScreen(
     val pictureMode = alignment.method == StackAlignmentMethod.PICTURE
     val methodLabel = if (pictureMode) uiText(language, "Align by picture", "按畫面對齊")
         else uiText(language, "Align by sound", "按聲音對齊")
-    val alignProgress = if (alignment.running) "${if (pictureMode) uiText(language, "Aligning by picture", "正在按畫面對齊")
-        else uiText(language, "Aligning by sound", "正在按聲音對齊")} ${alignment.completed}/${alignment.total}" else null
+    val alignProgress = when {
+        !alignment.running -> null
+        alignment.readingPictureReference -> uiText(language, "Checking reference video", "正在檢查參考影片")
+        else -> {
+            val stage = when {
+                alignment.widePictureSearch -> uiText(language, "Wider picture search", "正在擴大畫面搜尋範圍")
+                pictureMode -> uiText(language, "Aligning by picture", "正在按畫面對齊")
+                else -> uiText(language, "Aligning by sound", "正在按聲音對齊")
+            }
+            "$stage ${alignment.completed}/${alignment.total}"
+        }
+    }
     var stagedPaths by rememberSaveable { mutableStateOf(emptyList<String>()) }
     val staged = remember(files, stagedPaths) {
         stagedPaths.mapNotNull { path -> files.firstOrNull { it.path == path } }
@@ -280,6 +290,16 @@ fun StackScreen(
                 TextButton(onClick = { reviewOffsets = true },
                     modifier = Modifier.inspectElement("STACK_REVIEW_ALIGNMENT", "Review only the selected analysis result")) {
                     Text(uiText(language, "Review offsets", "檢視偏移"))
+                }
+            }
+            if (alignment.quickPictureTimedOut) Text(
+                uiText(language, "Quick scan reached its time limit", "快速搜尋已達時間上限"),
+                Modifier.padding(horizontal = 8.dp), style = MaterialTheme.typography.labelSmall,
+            )
+            if (alignment.canRetryPictureWider) {
+                TextButton(onClick = { StackAlignmentController.retryPictureWider(context) },
+                    modifier = Modifier.inspectElement("STACK_RETRY_PICTURE_WIDER", "Search up to 30 seconds in either direction")) {
+                    Text(uiText(language, "Wider search (±30 s)", "擴大搜尋（±30 秒）"))
                 }
             }
             if (alignment.failed) Text(uiText(language, "Could not analyse these files", "無法分析這些檔案"),

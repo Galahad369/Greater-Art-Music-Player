@@ -3,7 +3,7 @@
 This file describes the **current repository state only**. Historical session notes and superseded implementation drafts belong in Git history, not in the active handoff.
 
 **Project:** `greater-art/` in the repository checkout
-**Current source:** `1.22.9 (code 330)` — SOURCE_ONLY. Pins the official CodeQL v4.39.2 release in CI; no Android runtime change. The latest immutable verified download remains 1.21.93.
+**Current source:** `1.22.12 (code 333)` — SOURCE_ONLY. Uses the local AVC decoder for quick Stack picture analysis on compatible x86-64 Android emulators. The latest immutable verified download remains 1.21.93.
 **Previous optimized candidate:** sibling `App/output/GreaterArt-1.21.98.apk` —5,495,129 bytes, SHA-256 `36d5279c58b155f70cc7a47ca3af348e285df1e8bf5197eeca43f9a14ef8ba02`; same key, non-debuggable, artifact checks passed; **not promoted**. [Retained98 evidence](docs/CANDIDATE_1.21.98.md). The97 candidate is hash-verified and archived under sibling `output/retained-artifacts/`.
 
 The following release fields describe verified1.21.93, not the98 candidate:
@@ -17,6 +17,51 @@ The following release fields describe verified1.21.93, not the98 candidate:
 **Verification boundary:** Exact runtime source `58048b54e4119c3aad50ca99d4595afe479653c3`; Java21/Gradle9.8.2 unit/lint/debug app/test and optimized R8 assembly passed. 473 JVM tests, zero failures/errors/skips; lint0 errors/47 warnings/4 hints. API36 debug instrumentation23/23 in520.008s covers reflected Ambient, compact audio/video controls/title transparency, real audio/video IME dock continuity, real-page navigation/video sampling and fullscreen toolbar. Separate same-certificate optimized upgrade and native Library/video/dock/expanded-player smoke passed; actual screenshots inspected. Package/version, non-debuggable state, ZIP CRC,16KiB alignment and SHA-256 checked. The APK does not embed a usable VCS SHA; this receipt records it externally. Full rotation, physical-device visual/acoustic/performance acceptance, production signing and universal crash freedom remain unverified. See [the exact release receipt](docs/RELEASE_1.21.93.md).
 
 ## Repository state
+
+### November 6 — Quick Stack picture scan on A55
+
+- On the unchanged A55 emulator, the 18 first-pass extractor seeks took
+  686 ms in total. The local software AVC decoder with batched ready
+  buffers read all three Riona windows in 7.22 s and produced the same
+  timestamp and luma hashes as the 16.26 s host-decoder run.
+- The quick scan uses this decoder only for supported AVC on x86-64
+  Ranchu. If it drops frames, the standard decoder repeats the take. The 45-second
+  budget, sampling windows, confidence rules and wider search are
+  retained. The 1.22.11 app run still timed out at 45.028 s with two of
+  five companions because several open-GOP seeks triggered a full-file
+  retry. Starting the local decoder from the previous IDR recovered all
+  missing Yoshino samples and matched the standard decoder hashes.
+  The unchanged A55 corpus test passed on the exact 1.22.12 development
+  APK in 35.534 s, with all five companions analysed. Offsets were
+  unchanged, 0, 0, +26, and 0 ms. App SHA-256
+  8799240c33a38b1a96d1c8aabb79e28611cb06c865c9c7b1c2014dffebec1c32.
+  This measures the emulator analysis path. Source remains SOURCE_ONLY.
+
+### November 6 — Stack picture alignment
+
+- The previous scan decoded up to 210 seconds per take before it could report
+  a result. On a known 250 ms edit, it accepted the wrong global offset because
+  the still after each cut counted as timing evidence.
+- The default ±2-second scan samples three eight-second sections on longer
+  clips, decodes only the matching padded windows on companions, and has a
+  45-second overall analysis budget. If some tracks do not match, **Wider
+  search (±30 s)** is available. Wider analysis remains bounded to 210
+  seconds per take. No automatic fallback or offset application.
+- Require consistent before/after transitions in all three parts before
+  proposing an offset. Sound alignment, manual offsets, saved Stacks and
+  native video/audio quality retain their existing paths.
+- Local development APK: sibling `App/output/GreaterArt-1.22.10.apk`
+  (code 331). All 514 JVM tests, lint, app and instrumentation assembly,
+  package identity and signing checks passed. The same host check that
+  previously accepted the 250 ms edit now rejects it. The quick scan kept
+  the six-take host corpus results: unchanged, 0, 0, +26, 0 ms.
+- A55 API 36 ran the exact 1.22.10 APK with the six original videos. The
+  quick pass hit its limit in 45.034 s after two of five companions, with
+  only one confirmed match. The wider pass completed in 268.246 s with
+  offsets unchanged, 0, 0, +17, 0 ms, within the expected ranges. These are
+  decoder and matcher times, not UI tap timings. **Quick acceptance failed;
+  no merge or release promotion.** See sibling
+  `App/output/picture-align-a55-1.22.10-20261106/VERIFICATION.md`.
 
 ### November 6 — Versioned CodeQL CI update
 
