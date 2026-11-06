@@ -291,7 +291,8 @@ int tests(const std::filesystem::path &directory)
                legacyGraphPreferences.playlists.size() == 1 && legacyGraphPreferences.playlists[0].name == L"Keep this list",
            "pre-graph settings load with default forces");
     report << "total=" << passed << "/" << total << "\n";
-    return passed == total ? 0 : 2;
+    report.close();
+    return passed == total && report ? 0 : 2;
 }
 int audioPlaybackTests(const std::wstring &file, const std::filesystem::path &directory, bool stack = false)
 {

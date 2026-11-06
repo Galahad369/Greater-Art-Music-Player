@@ -705,6 +705,7 @@ bool videoAmbientTests(const std::wstring &directory)
         MFShutdown();
     if (SUCCEEDED(com))
         CoUninitialize();
-    return ok;
+    report.close();
+    return ok && report;
 }
 } // namespace ga

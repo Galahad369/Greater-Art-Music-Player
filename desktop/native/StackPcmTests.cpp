@@ -188,6 +188,7 @@ bool stackPcmTests(const std::wstring &directory)
         expect(ready && error < 1e-6 && received >= 3 * reference.size(),
                "three whole-group loops are contiguous sample blocks, not endpoint restarts");
     }
-    return passed;
+    report.close();
+    return passed && report;
 }
 } // namespace ga
