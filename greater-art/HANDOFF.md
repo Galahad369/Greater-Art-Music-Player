@@ -3,7 +3,7 @@
 This file describes the **current repository state only**. Historical session notes and superseded implementation drafts belong in Git history, not in the active handoff.
 
 **Project:** `greater-art/` in the repository checkout
-**Current source:** `1.22.12 (code 333)` — SOURCE_ONLY. Uses the local AVC decoder for quick Stack picture analysis on compatible x86-64 Android emulators. The latest immutable verified download remains 1.21.93.
+**Current source:** `1.22.13 (code 334)` — SOURCE_ONLY. Android CI and Java/Kotlin CodeQL use the existing `setup-gradle` cache. The local AVC decoder supports quick Stack picture analysis on compatible x86-64 Android emulators. The latest immutable verified download remains 1.21.93.
 **Previous optimized candidate:** sibling `App/output/GreaterArt-1.21.98.apk` —5,495,129 bytes, SHA-256 `36d5279c58b155f70cc7a47ca3af348e285df1e8bf5197eeca43f9a14ef8ba02`; same key, non-debuggable, artifact checks passed; **not promoted**. [Retained98 evidence](docs/CANDIDATE_1.21.98.md). The97 candidate is hash-verified and archived under sibling `output/retained-artifacts/`.
 
 The following release fields describe verified1.21.93, not the98 candidate:
