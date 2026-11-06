@@ -5,7 +5,9 @@ import android.graphics.ImageFormat
 import android.media.MediaCodec
 import android.media.MediaCodecInfo
 import android.media.MediaExtractor
+import android.media.MediaCodecList
 import android.media.MediaFormat
+import android.os.Build
 import com.local.listentomusic.data.OfflineAnalysisBudget
 import com.local.listentomusic.data.openMedia
 import com.local.listentomusic.model.MediaFile
@@ -16,9 +18,12 @@ import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
+import java.io.IOException
 
 internal class StackPictureAlign(private val context: Context) {
     data class Result(val matches: Map<String, StackAlignment>, val quickTimedOut: Boolean)
+
+    private class IncompleteLocalDecode : IllegalStateException()
 
     private data class Samples(val windows: List<StackPictureWindow>, val frames: List<StackPictureFrame>)
 
@@ -61,7 +66,11 @@ internal class StackPictureAlign(private val context: Context) {
         withContext(Dispatchers.IO) {
             OfflineAnalysisBudget.mutex.withLock {
                 try {
-                    decode(file, search, reference)
+                    try {
+                        decode(file, search, reference)
+                    } catch (_: IncompleteLocalDecode) {
+                        decode(file, search, reference, allowLocalAvc = false)
+                    }
                 } catch (cancel: CancellationException) {
                     throw cancel
                 } catch (_: Exception) {
@@ -76,6 +85,7 @@ internal class StackPictureAlign(private val context: Context) {
         file: MediaFile,
         search: StackPictureSearch,
         reference: List<StackPictureWindow>?,
+        allowLocalAvc: Boolean = true,
     ): Samples? {
         val extractor = MediaExtractor()
         var codec: MediaCodec? = null
@@ -102,9 +112,31 @@ internal class StackPictureAlign(private val context: Context) {
             format.setInteger(MediaFormat.KEY_ROTATION, 0)
             format.setInteger(MediaFormat.KEY_COLOR_FORMAT, MediaCodecInfo.CodecCapabilities.COLOR_FormatYUV420Flexible)
             extractor.selectTrack(track)
-            val decoder = MediaCodec.createDecoderByType(mime).also { codec = it }
-            decoder.configure(format, null, null, 0)
-            decoder.start()
+            fun startDecoder(decoder: MediaCodec): MediaCodec {
+                codec = decoder
+                decoder.configure(format, null, null, 0)
+                decoder.start()
+                return decoder
+            }
+            // Ranchu's host AVC decoder transfers analysis frames across the VM boundary.
+            val localAvc = if (allowLocalAvc && search == StackPictureSearch.QUICK && mime == MediaFormat.MIMETYPE_VIDEO_AVC &&
+                Build.HARDWARE == "ranchu" && Build.SUPPORTED_ABIS.firstOrNull() == "x86_64"
+            ) {
+                try {
+                    MediaCodecList(MediaCodecList.REGULAR_CODECS).codecInfos.firstOrNull {
+                        it.name == "c2.android.avc.decoder" && it.getCapabilitiesForType(mime).isFormatSupported(format)
+                    }?.let { startDecoder(MediaCodec.createByCodecName(it.name)) }
+                } catch (failure: Exception) {
+                    if (failure !is IOException && failure !is IllegalArgumentException &&
+                        failure !is IllegalStateException
+                    ) throw failure
+                    val failed = codec
+                    codec = null
+                    failed?.release()
+                    null
+                }
+            } else null
+            val decoder = localAvc ?: startDecoder(MediaCodec.createDecoderByType(mime))
             val info = MediaCodec.BufferInfo()
             val luma = FloatArray(STACK_PICTURE_GRID * STACK_PICTURE_GRID)
             for ((index, window) in windows.withIndex()) {
@@ -112,8 +144,9 @@ internal class StackPictureAlign(private val context: Context) {
                 val start = clipStartUs + window.startUs
                 if (index > 0) decoder.flush() // Synchronous codec; resume with a keyframe.
                 if (start > 0) extractor.seekTo(start, MediaExtractor.SEEK_TO_PREVIOUS_SYNC)
-                decodeWindow(extractor, decoder, info, luma, start, clipStartUs + window.endUs,
-                    clipStartUs, rotation, frames)
+                if (!decodeWindow(extractor, decoder, info, luma, start, clipStartUs + window.endUs,
+                        clipStartUs, rotation, frames, batchBuffers = localAvc != null)
+                ) throw IncompleteLocalDecode()
             }
             return Samples(windows, frames)
         } finally {
@@ -131,34 +164,43 @@ internal class StackPictureAlign(private val context: Context) {
         clipStartUs: Long,
         rotation: Int,
         frames: MutableList<StackPictureFrame>,
-    ) {
+        batchBuffers: Boolean,
+    ): Boolean {
         var inputDone = false
         var outputDone = false
         var lastBucket = -1L
-        while (!outputDone) {
-            currentCoroutineContext().ensureActive()
+        val submittedTimes = if (batchBuffers) ArrayList<Long>() else null
+        val returnedTimes = if (batchBuffers) ArrayList<Long>() else null
+        val analysisContext = currentCoroutineContext()
+        fun feedInput(waitUs: Long): Boolean {
+            analysisContext.ensureActive()
+            val index = decoder.dequeueInputBuffer(waitUs)
+            if (index < 0) return false
+            val time = extractor.sampleTime
+            val size = if (time < 0 || time >= end + 250_000L) -1
+                else extractor.readSampleData(requireNotNull(decoder.getInputBuffer(index)), 0)
+            inputDone = size < 0
+            decoder.queueInputBuffer(index, 0, size.coerceAtLeast(0), time.coerceAtLeast(0),
+                if (inputDone) MediaCodec.BUFFER_FLAG_END_OF_STREAM else 0)
             if (!inputDone) {
-                val index = decoder.dequeueInputBuffer(10_000L)
-                if (index >= 0) {
-                    val time = extractor.sampleTime
-                    val size = if (time < 0 || time >= end + 250_000L) -1
-                        else extractor.readSampleData(requireNotNull(decoder.getInputBuffer(index)), 0)
-                    inputDone = size < 0
-                    decoder.queueInputBuffer(index, 0, size.coerceAtLeast(0), time.coerceAtLeast(0),
-                        if (inputDone) MediaCodec.BUFFER_FLAG_END_OF_STREAM else 0)
-                    if (!inputDone) extractor.advance()
-                }
+                if (time in start until end) submittedTimes?.add(time)
+                extractor.advance()
             }
-            val index = decoder.dequeueOutputBuffer(info, 10_000L)
-            if (index < 0) continue
+            return true
+        }
+        fun drainOutput(waitUs: Long): Boolean {
+            analysisContext.ensureActive()
+            val index = decoder.dequeueOutputBuffer(info, waitUs)
+            if (index < 0) return index != MediaCodec.INFO_TRY_AGAIN_LATER
             try {
                 outputDone = info.flags and MediaCodec.BUFFER_FLAG_END_OF_STREAM != 0
                 val time = info.presentationTimeUs
-                if (info.size == 0 || time !in start until end) continue
+                if (info.size == 0 || time !in start until end) return true
+                returnedTimes?.add(time)
                 val bucket = (time - clipStartUs) * 30L / 1_000_000L
-                if (bucket <= lastBucket) continue
+                if (bucket <= lastBucket) return true
                 lastBucket = bucket
-                val image = decoder.getOutputImage(index) ?: continue
+                val image = decoder.getOutputImage(index) ?: return true
                 image.use {
                     if (it.format != ImageFormat.YUV_420_888) return@use
                     val plane = it.planes[0]
@@ -179,6 +221,21 @@ internal class StackPictureAlign(private val context: Context) {
             } finally {
                 decoder.releaseOutputBuffer(index, false)
             }
+            return true
         }
+        while (!outputDone) {
+            if (batchBuffers) {
+                var progressed = false
+                while (!outputDone && drainOutput(0L)) progressed = true
+                while (!outputDone && !inputDone && feedInput(0L)) progressed = true
+                if (!progressed && !outputDone) drainOutput(1_000L)
+            } else {
+                if (!inputDone) feedInput(10_000L)
+                drainOutput(10_000L)
+            }
+        }
+        // Some AVC sync samples start a GOP that the local decoder only partially returns.
+        submittedTimes?.sort()
+        return submittedTimes == returnedTimes
     }
 }
