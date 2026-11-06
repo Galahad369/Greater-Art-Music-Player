@@ -158,26 +158,25 @@ jobs:
             throw 'Malformed diagnostics entered startup or wrote output'
           }
           Write-Output 'Native diagnostic argument rejection: 44/44 passed.'
-      - name: Reject unavailable native Stack output paths
+      - name: Reject unavailable native diagnostic paths
         shell: pwsh
         run: |
           $app = Join-Path $PWD 'desktop/native/build/GreaterArt.exe'
           $scratch = New-Item -ItemType Directory -Path (Join-Path $env:RUNNER_TEMP ('GreaterArt-stack-negative-' + [guid]::NewGuid()))
 
-          function Invoke-RejectedStackOutput([string]$destination) {
+          function Invoke-NativeDiagnostic([string[]]$diagnosticArgs) {
             $start = [Diagnostics.ProcessStartInfo]::new($app)
             $start.UseShellExecute = $false
             $start.CreateNoWindow = $true
             $start.WindowStyle = [Diagnostics.ProcessWindowStyle]::Hidden
             $start.WorkingDirectory = $scratch.FullName
-            $start.ArgumentList.Add('--verify-stack-output')
-            $start.ArgumentList.Add($destination)
+            foreach ($argument in $diagnosticArgs) { $start.ArgumentList.Add($argument) }
             $process = [Diagnostics.Process]::Start($start)
             try {
               if (-not $process.WaitForExit(10000)) {
                 if (-not $process.HasExited) { $process.Kill() }
                 [void]$process.WaitForExit(5000)
-                throw 'Rejected Stack diagnostic timed out'
+                throw 'Native diagnostic timed out'
               }
               return $process.ExitCode
             } finally {
@@ -191,7 +190,7 @@ jobs:
           $originalHash = (Get-FileHash -LiteralPath $sentinel).Hash
           # A blocked first WAV stops the checked writer before audio if only the dispatch gate regresses.
           $blockedWave = New-Item -ItemType Directory -Path (Join-Path $occupied.FullName 'output-voice-0.wav')
-          if ((Invoke-RejectedStackOutput $occupied.FullName) -ne 2 -or
+          if ((Invoke-NativeDiagnostic @('--verify-stack-output', $occupied.FullName)) -ne 2 -or
               (Get-FileHash -LiteralPath $sentinel).Hash -ne $originalHash -or
               @(Get-ChildItem -LiteralPath $occupied.FullName -Force).Count -ne 2 -or
               -not (Test-Path -LiteralPath $blockedWave.FullName -PathType Container) -or
@@ -200,11 +199,55 @@ jobs:
           }
 
           $missingParent = Join-Path $scratch.FullName 'missing parent'
-          if ((Invoke-RejectedStackOutput (Join-Path $missingParent 'new-output')) -ne 2 -or
+          if ((Invoke-NativeDiagnostic @('--verify-stack-output', (Join-Path $missingParent 'new-output'))) -ne 2 -or
               (Test-Path -LiteralPath $missingParent)) {
             throw 'Stack diagnostic created an unavailable output parent'
           }
           Write-Output 'Native Stack destination rejection: 2/2 passed.'
+
+          $fixture = Join-Path $scratch.FullName 'synthetic fixture.wav'
+          Set-Content -LiteralPath $fixture -Value 'synthetic ordinary file'
+          $fixtureHash = (Get-FileHash -LiteralPath $fixture).Hash
+          $missingFixture = Join-Path $scratch.FullName 'missing.wav'
+          $unusedOutput = Join-Path $scratch.FullName 'unused output'
+          $options = @('--verify-audio', '--verify-stack-audio', '--verify-routing', '--verify',
+                       '--verify-ambient', '--verify-ambient-fault', '--verify-visual', '--verify-graph')
+          foreach ($option in $options) {
+              if ((Invoke-NativeDiagnostic @($option, $missingFixture, $unusedOutput)) -ne 2 -or
+                  (Test-Path -LiteralPath $unusedOutput)) {
+                  throw "Native diagnostic accepted a missing fixture for $option"
+              }
+              if ((Invoke-NativeDiagnostic @($option, $fixture, $occupied.FullName)) -ne 2 -or
+                  (Get-FileHash -LiteralPath $sentinel).Hash -ne $originalHash -or
+                  @(Get-ChildItem -LiteralPath $occupied.FullName -Force).Count -ne 2) {
+                  throw "Native diagnostic changed an occupied destination for $option"
+              }
+          }
+          if ((Get-FileHash -LiteralPath $fixture).Hash -ne $fixtureHash) {
+              throw 'Native diagnostic changed the synthetic fixture'
+          }
+          Write-Output 'Native media diagnostic path rejection: 16/16 passed.'
+
+          $builtIcon = Join-Path $PWD 'desktop/native/build/app.ico'
+          $testIcon = Join-Path $scratch.FullName 'app.ico'
+          if ((Invoke-NativeDiagnostic @('--write-icon', 'app.ico')) -ne 0 -or
+              -not (Test-Path -LiteralPath $testIcon -PathType Leaf)) {
+              throw 'The native icon command did not produce a fresh icon'
+          }
+          $testIconHash = (Get-FileHash -LiteralPath $testIcon).Hash
+          if ($testIconHash -ne (Get-FileHash -LiteralPath $builtIcon).Hash) {
+              throw 'The direct icon differs from the icon generated by the build'
+          }
+          if ((Invoke-NativeDiagnostic @('--write-icon', 'app.ico')) -ne 2 -or
+              (Get-FileHash -LiteralPath $testIcon).Hash -ne $testIconHash) {
+              throw 'The native icon command did not preserve the occupied icon'
+          }
+          if ((Invoke-NativeDiagnostic @('--write-icon', 'unused.ico')) -ne 2 -or
+              (Test-Path -LiteralPath (Join-Path $scratch.FullName 'unused.ico')) -or
+              (Get-FileHash -LiteralPath $testIcon).Hash -ne $testIconHash) {
+              throw 'The native icon command accepted an alternate destination'
+          }
+          Write-Output 'Native icon publication and rejection: 3/3 passed.'
       - name: Prepare existing codec redistribution evidence
         shell: pwsh
         run: ./desktop/native/prepare-codec-package.ps1 -VcpkgRegistry '${{ steps.codecs.outputs.registry }}'

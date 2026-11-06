@@ -59,6 +59,12 @@ python desktop/packaging/test_version.py
 
 `--verify-stack-output` uses the same fresh local output-directory rule. Existing directories are preserved, and report or WAV write failures return exit code 2.
 
+`--verify-audio`, `--verify-stack-audio` and `--verify-routing` use the same output rule. They require an existing ordinary local media file. Linked files and linked parent folders are rejected.
+
+GUI probes also require an ordinary local fixture and a fresh output directory. An optional adjacent lyrics file is read only when its path stays on a local drive and contains no linked components.
+
+The native build writes its icon in a fresh working directory before replacing the generated `build/app.ico`. For a direct check, run `--write-icon app.ico` with an empty local working directory that you control. Other destination names and existing outputs return exit code 2.
+
 Recognized native diagnostic commands with missing or extra arguments return exit code 2 before the normal app starts.
 
 Tests isolate all generated settings. The video probe captures **only owned HWNDs**, checks real rendering, six voices, fullscreen bounds and renderer handoffs. The audio probe checks actual WASAPI timeline behavior; neither proves what six real covers sound like.

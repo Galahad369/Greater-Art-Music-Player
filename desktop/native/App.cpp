@@ -684,6 +684,29 @@ void positionPreview(HWND parent, Rect rect)
     if (!app.slots.empty())
         mediaAttach(app.slots[0].player, app.preview);
 }
+bool probeSidecarIsLocalFile(const std::filesystem::path &file)
+{
+    if (!file.is_absolute() || !file.has_relative_path() || !localMediaPath(file.native()))
+        return false;
+    auto prefix = file.root_path();
+    const UINT drive = GetDriveTypeW(prefix.c_str());
+    if (drive != DRIVE_FIXED && drive != DRIVE_REMOVABLE && drive != DRIVE_CDROM && drive != DRIVE_RAMDISK)
+        return false;
+
+    // The probe caller owns the fixture tree and keeps it stable through the read.
+    const auto relative = file.relative_path();
+    for (auto component = relative.begin(); component != relative.end();)
+    {
+        prefix /= *component++;
+        const DWORD attributes = GetFileAttributesW(prefix.c_str());
+        if (attributes == INVALID_FILE_ATTRIBUTES || (attributes & FILE_ATTRIBUTE_REPARSE_POINT))
+            return false;
+        const bool directory = (attributes & FILE_ATTRIBUTE_DIRECTORY) != 0;
+        if (directory != (component != relative.end()))
+            return false;
+    }
+    return true;
+}
 void playSong(const Song &input)
 {
     Song song = input;
@@ -691,7 +714,11 @@ void playSong(const Song &input)
     releaseSlots();
     app.practice = {};
     app.titleAt = GetTickCount64();
-    app.lyrics = parseLyrics(readLocalText(std::filesystem::path(song.path).replace_extension(L".lrc")));
+    const auto sidecar = std::filesystem::path(song.path).replace_extension(L".lrc");
+    if (!app.probe || probeSidecarIsLocalFile(sidecar))
+        app.lyrics = parseLyrics(readLocalText(sidecar));
+    else
+        app.lyrics.clear();
     void *player = mediaCreate(false);
     if (!player)
     {

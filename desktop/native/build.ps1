@@ -21,8 +21,27 @@ try {
     } elseif($RequireCodecs) { throw 'Approved source-built codec runtime is missing. Run build-codecs.ps1 first.' }
     & cl.exe @options @sources /Fobuild/ /Febuild/GreaterArt-raw.exe /link /SUBSYSTEM:WINDOWS @libraries
     if ($LASTEXITCODE -ne 0) { throw 'Native app compilation failed.' }
-    $iconProcess = Start-Process -FilePath (Join-Path $PSScriptRoot 'build/GreaterArt-raw.exe') -ArgumentList @('--write-icon', 'build/app.ico') -WindowStyle Hidden -PassThru -Wait
-    if ($iconProcess.ExitCode -ne 0) { throw 'App icon generation failed.' }
+    $iconStage = New-Item -ItemType Directory -Path ('build/icon-' + [guid]::NewGuid().ToString('N'))
+    $stagedIcon = Join-Path $iconStage.FullName 'app.ico'
+    $iconProcess = Start-Process -FilePath (Join-Path $PSScriptRoot 'build/GreaterArt-raw.exe') -ArgumentList @('--write-icon', 'app.ico') -WorkingDirectory $iconStage.FullName -WindowStyle Hidden -PassThru -Wait
+    if ($iconProcess.ExitCode -ne 0 -or !(Test-Path -LiteralPath $stagedIcon -PathType Leaf) -or
+        (Get-Item -LiteralPath $stagedIcon).Length -eq 0) {
+        throw "App icon generation failed. Staged path: $stagedIcon"
+    }
+    $icon = Join-Path $PSScriptRoot 'build/app.ico'
+    $priorIcon = Join-Path $iconStage.FullName 'app.ico.prior'
+    if ([IO.File]::Exists($icon)) {
+        if ((Get-Item -LiteralPath $icon -Force).Attributes -band [IO.FileAttributes]::ReparsePoint) {
+            throw "App icon destination is a reparse point: $icon"
+        }
+        [IO.File]::Replace($stagedIcon, $icon, $priorIcon)
+        Remove-Item -LiteralPath $priorIcon -ErrorAction SilentlyContinue
+    } else {
+        [IO.File]::Move($stagedIcon, $icon)
+    }
+    if (!(Test-Path -LiteralPath $priorIcon)) {
+        [IO.Directory]::Delete($iconStage.FullName)
+    }
     & rc.exe /nologo /fobuild/App.res App.rc
     if ($LASTEXITCODE -ne 0) { throw 'Native resource compilation failed.' }
     $objects=$sources|ForEach-Object {'build/'+[IO.Path]::GetFileNameWithoutExtension($_)+'.obj'}

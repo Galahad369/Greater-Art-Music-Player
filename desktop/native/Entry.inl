@@ -1,13 +1,13 @@
 namespace
 {
-void writeIcon(const std::filesystem::path &file)
+bool writeIcon(const std::filesystem::path &file)
 {
     ULONG_PTR token = 0;
     Gdiplus::GdiplusStartupInput startup;
     if (Gdiplus::GdiplusStartup(&token, &startup, nullptr) != Gdiplus::Ok)
-        throw std::runtime_error("Icon renderer initialization failed.");
+        return false;
     constexpr int sizes[]{16, 24, 32, 48, 64, 128, 256};
-    std::ofstream output(file, std::ios::binary);
+    std::ostringstream output(std::ios::out | std::ios::binary);
     std::uint16_t header[]{0, 1, 7};
     output.write(reinterpret_cast<char *>(header), 6);
     std::uint32_t offset = 6 + 7 * 16;
@@ -29,7 +29,16 @@ void writeIcon(const std::filesystem::path &file)
         void *pixels = nullptr;
         HDC dc = CreateCompatibleDC(nullptr);
         HBITMAP bitmap = CreateDIBSection(dc, &info, DIB_RGB_COLORS, &pixels, nullptr, 0);
-        auto old = SelectObject(dc, bitmap);
+        auto old = dc && bitmap && pixels ? SelectObject(dc, bitmap) : nullptr;
+        if (!old || old == HGDI_ERROR)
+        {
+            if (bitmap)
+                DeleteObject(bitmap);
+            if (dc)
+                DeleteDC(dc);
+            Gdiplus::GdiplusShutdown(token);
+            return false;
+        }
         drawAppMark(dc, 0, 0, float(size));
         GdiFlush();
         auto bytes = static_cast<unsigned char *>(pixels);
@@ -40,7 +49,8 @@ void writeIcon(const std::filesystem::path &file)
         output.write(reinterpret_cast<char *>(&dib), 40);
         for (int y = size - 1; y >= 0; --y)
             output.write(reinterpret_cast<char *>(pixels) + y * size * 4, size * 4);
-        std::vector<char> mask(((size + 31) / 32) * 4 * size);
+        const auto width = static_cast<std::vector<char>::size_type>(size);
+        std::vector<char> mask(((width + 31) / 32) * 4 * width);
         output.write(mask.data(), std::streamsize(mask.size()));
         SelectObject(dc, old);
         DeleteObject(bitmap);
@@ -48,9 +58,20 @@ void writeIcon(const std::filesystem::path &file)
     }
     Gdiplus::GdiplusShutdown(token);
     if (!output)
-        throw std::runtime_error("Icon resource write failed.");
+        return false;
+    const auto data = std::move(output).str();
+    if (data.size() != offset)
+        return false;
+    const HANDLE icon = CreateFileW(file.c_str(), GENERIC_WRITE, 0, nullptr, CREATE_NEW,
+                                    FILE_ATTRIBUTE_NORMAL | FILE_FLAG_OPEN_REPARSE_POINT, nullptr);
+    if (icon == INVALID_HANDLE_VALUE)
+        return false;
+    DWORD written = 0;
+    const bool complete = WriteFile(icon, data.data(), offset, &written, nullptr) && written == offset;
+    const bool closed = CloseHandle(icon) != FALSE;
+    return complete && closed;
 }
-bool diagnosticOutputSpelling(const std::filesystem::path &path)
+bool diagnosticPathSpelling(const std::filesystem::path &path)
 {
     const auto &value = path.native();
     const auto separator = [](wchar_t c) { return c == L'\\' || c == L'/'; };
@@ -79,13 +100,13 @@ bool diagnosticOutputSpelling(const std::filesystem::path &path)
     }
     return true;
 }
-std::filesystem::path diagnosticOutputPath(const std::filesystem::path &requested)
+std::filesystem::path diagnosticPath(const std::filesystem::path &requested)
 {
-    if (!diagnosticOutputSpelling(requested))
+    if (!diagnosticPathSpelling(requested))
         return {};
     std::error_code error;
     auto directory = std::filesystem::absolute(requested, error).lexically_normal().make_preferred();
-    if (error || !directory.is_absolute() || !diagnosticOutputSpelling(directory))
+    if (error || !directory.is_absolute() || !diagnosticPathSpelling(directory))
         return {};
     if (!directory.has_filename())
         directory = directory.parent_path();
@@ -110,7 +131,7 @@ std::filesystem::path diagnosticOutputPath(const std::filesystem::path &requeste
 int tests(const std::filesystem::path &requested)
 {
     // Tests deliberately replace fixtures, so only write inside a new directory.
-    const auto directory = diagnosticOutputPath(requested);
+    const auto directory = diagnosticPath(requested);
     if (directory.empty() || !CreateDirectoryW(directory.c_str(), nullptr))
         return 2;
     std::ofstream report(directory / L"unit-tests.txt");
@@ -351,10 +372,24 @@ int tests(const std::filesystem::path &requested)
     report.close();
     return passed == total && report ? 0 : 2;
 }
+std::filesystem::path diagnosticFixturePath(const std::filesystem::path &requested)
+{
+    const auto filename = requested.filename();
+    if (filename.empty() || filename == L"." || filename == L"..")
+        return {};
+    const auto fixture = diagnosticPath(requested);
+    if (fixture.empty())
+        return {};
+    const DWORD attributes = GetFileAttributesW(fixture.c_str());
+    if (attributes == INVALID_FILE_ATTRIBUTES || (attributes & (FILE_ATTRIBUTE_DIRECTORY | FILE_ATTRIBUTE_REPARSE_POINT)))
+        return {};
+    return fixture;
+}
 int audioPlaybackTests(const std::wstring &file, const std::filesystem::path &directory, bool stack = false)
 {
-    std::filesystem::create_directories(directory);
     std::ofstream report(directory / L"audio-playback-tests.txt");
+    if (!report)
+        return 2;
     int total = 0, passed = 0;
     auto expect = [&](bool condition, const char *name) {
         ++total;
@@ -423,12 +458,14 @@ int audioPlaybackTests(const std::wstring &file, const std::filesystem::path &di
     }
     player.pause(true);
     report << "total=" << passed << "/" << total << "\n";
-    return passed == total ? 0 : 2;
+    report.close();
+    return passed == total && report ? 0 : 2;
 }
 int audioRoutingTest(const std::wstring &file, const std::filesystem::path &directory)
 {
-    std::filesystem::create_directories(directory);
     std::ofstream report(directory / L"audio-routing.txt");
+    if (!report)
+        return 2;
     if (!mediaInitialize())
     {
         report << "FAIL initialize\n";
@@ -463,7 +500,8 @@ int audioRoutingTest(const std::wstring &file, const std::filesystem::path &dire
     if (player)
         mediaRelease(player);
     mediaShutdown();
-    return passed ? 0 : 2;
+    report.close();
+    return passed && report ? 0 : 2;
 }
 } // namespace
 
@@ -492,9 +530,11 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE, PWSTR, int)
     }
     if (writeIconRequested)
     {
-        writeIcon(argv[2]);
+        const auto file = wcscmp(argv[2], L"app.ico") == 0
+                              ? diagnosticPath(L"app.ico") : std::filesystem::path{};
+        const int result = !file.empty() && writeIcon(file) ? 0 : 2;
         LocalFree(argv);
-        return 0;
+        return result;
     }
     if (selfTestRequested)
     {
@@ -502,31 +542,39 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE, PWSTR, int)
         LocalFree(argv);
         return result;
     }
-    if (verifyAudio)
+    if (verifyAudio || verifyStackAudio || verifyRouting)
     {
-        int result = audioPlaybackTests(argv[2], argv[3]);
-        LocalFree(argv);
-        return result;
-    }
-    if (verifyStackAudio)
-    {
-        int result = audioPlaybackTests(argv[2], argv[3], true);
+        const auto fixture = diagnosticFixturePath(argv[2]);
+        int result = 2;
+        if (!fixture.empty())
+        {
+            const auto directory = diagnosticPath(argv[3]);
+            if (!directory.empty() && CreateDirectoryW(directory.c_str(), nullptr))
+                result = verifyRouting ? audioRoutingTest(fixture.wstring(), directory)
+                                       : audioPlaybackTests(fixture.wstring(), directory, verifyStackAudio);
+        }
         LocalFree(argv);
         return result;
     }
     if (verifyStackOutput)
     {
-        const auto directory = diagnosticOutputPath(argv[2]);
+        const auto directory = diagnosticPath(argv[2]);
         int result = !directory.empty() && CreateDirectoryW(directory.c_str(), nullptr) &&
                      stackOutputTests(directory.wstring()) ? 0 : 2;
         LocalFree(argv);
         return result;
     }
-    if (verifyRouting)
+    if (verifyGui)
     {
-        int result = audioRoutingTest(argv[2], argv[3]);
-        LocalFree(argv);
-        return result;
+        const auto fixture = diagnosticFixturePath(argv[2]);
+        const auto output = fixture.empty() ? std::filesystem::path{} : diagnosticPath(argv[3]);
+        if (output.empty() || !CreateDirectoryW(output.c_str(), nullptr))
+        {
+            LocalFree(argv);
+            return 2;
+        }
+        app.probeFixture = fixture.wstring();
+        app.probeOutput = output;
     }
     winrt::init_apartment(winrt::apartment_type::single_threaded);
     INITCOMMONCONTROLSEX controls{sizeof(controls), ICC_STANDARD_CLASSES};
@@ -548,9 +596,6 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE, PWSTR, int)
         app.probeAmbient = wcscmp(argv[1], L"--verify-ambient") == 0 || app.probeFault;
         if (app.probeAmbient)
             app.features.background = 2;
-        app.probeFixture = argv[2];
-        app.probeOutput = std::filesystem::absolute(argv[3]);
-        std::filesystem::create_directories(app.probeOutput);
         app.dataDir = app.probeOutput / L"isolated-settings";
         app.probeAt = GetTickCount64();
     }
