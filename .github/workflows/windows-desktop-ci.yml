@@ -158,6 +158,53 @@ jobs:
             throw 'Malformed diagnostics entered startup or wrote output'
           }
           Write-Output 'Native diagnostic argument rejection: 44/44 passed.'
+      - name: Reject unavailable native Stack output paths
+        shell: pwsh
+        run: |
+          $app = Join-Path $PWD 'desktop/native/build/GreaterArt.exe'
+          $scratch = New-Item -ItemType Directory -Path (Join-Path $env:RUNNER_TEMP ('GreaterArt-stack-negative-' + [guid]::NewGuid()))
+
+          function Invoke-RejectedStackOutput([string]$destination) {
+            $start = [Diagnostics.ProcessStartInfo]::new($app)
+            $start.UseShellExecute = $false
+            $start.CreateNoWindow = $true
+            $start.WindowStyle = [Diagnostics.ProcessWindowStyle]::Hidden
+            $start.WorkingDirectory = $scratch.FullName
+            $start.ArgumentList.Add('--verify-stack-output')
+            $start.ArgumentList.Add($destination)
+            $process = [Diagnostics.Process]::Start($start)
+            try {
+              if (-not $process.WaitForExit(10000)) {
+                if (-not $process.HasExited) { $process.Kill() }
+                [void]$process.WaitForExit(5000)
+                throw 'Rejected Stack diagnostic timed out'
+              }
+              return $process.ExitCode
+            } finally {
+              $process.Dispose()
+            }
+          }
+
+          $occupied = New-Item -ItemType Directory -Path (Join-Path $scratch.FullName 'occupied output')
+          $sentinel = Join-Path $occupied.FullName 'stack-output-tests.txt'
+          Set-Content -LiteralPath $sentinel -Value 'preserve existing Stack report'
+          $originalHash = (Get-FileHash -LiteralPath $sentinel).Hash
+          # A blocked first WAV stops the checked writer before audio if only the dispatch gate regresses.
+          $blockedWave = New-Item -ItemType Directory -Path (Join-Path $occupied.FullName 'output-voice-0.wav')
+          if ((Invoke-RejectedStackOutput $occupied.FullName) -ne 2 -or
+              (Get-FileHash -LiteralPath $sentinel).Hash -ne $originalHash -or
+              @(Get-ChildItem -LiteralPath $occupied.FullName -Force).Count -ne 2 -or
+              -not (Test-Path -LiteralPath $blockedWave.FullName -PathType Container) -or
+              @(Get-ChildItem -LiteralPath $blockedWave.FullName -Force).Count -ne 0) {
+            throw 'Stack diagnostic did not preserve the occupied output directory'
+          }
+
+          $missingParent = Join-Path $scratch.FullName 'missing parent'
+          if ((Invoke-RejectedStackOutput (Join-Path $missingParent 'new-output')) -ne 2 -or
+              (Test-Path -LiteralPath $missingParent)) {
+            throw 'Stack diagnostic created an unavailable output parent'
+          }
+          Write-Output 'Native Stack destination rejection: 2/2 passed.'
       - name: Prepare existing codec redistribution evidence
         shell: pwsh
         run: ./desktop/native/prepare-codec-package.ps1 -VcpkgRegistry '${{ steps.codecs.outputs.registry }}'

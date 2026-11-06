@@ -127,9 +127,11 @@ struct OwnProcessCapture
         return result;
     }
 };
-void wave(const std::filesystem::path &path, const std::vector<float> &pcm)
+bool wave(const std::filesystem::path &path, const std::vector<float> &pcm)
 {
     std::ofstream out(path, std::ios::binary);
+    if (!out)
+        return false;
     std::uint32_t length = std::uint32_t(pcm.size() * 4), size = length + 36, fmt = 16, rate = 48000,
                   bytes = 192000;
     std::uint16_t type = 3, channels = 1, align = 4, bits = 32;
@@ -147,6 +149,8 @@ void wave(const std::filesystem::path &path, const std::vector<float> &pcm)
     out.write("data", 4);
     write(length);
     out.write(reinterpret_cast<const char *>(pcm.data()), length);
+    out.close();
+    return bool(out);
 }
 HRESULT record(const std::vector<PcmVoice> &voices, std::vector<float> &output, unsigned &underruns,
                const std::filesystem::path &destination)
@@ -180,8 +184,7 @@ HRESULT record(const std::vector<PcmVoice> &voices, std::vector<float> &output, 
     player.pause(true);
     underruns = unsigned(player.state().pcmUnderruns);
     output = std::move(recorder.samples);
-    wave(destination, output);
-    return S_OK;
+    return wave(destination, output) ? S_OK : HRESULT_FROM_WIN32(ERROR_WRITE_FAULT);
 }
 double difference(const std::vector<float> &reference, const std::vector<float> &actual, int &lag)
 {
@@ -219,9 +222,16 @@ double difference(const std::vector<float> &reference, const std::vector<float> 
 } // namespace
 bool stackOutputTests(const std::wstring &directory)
 {
-    std::filesystem::create_directories(directory);
     auto root = std::filesystem::path(directory);
     std::ofstream report(root / L"stack-output-tests.txt");
+    if (!report)
+        return false;
+    const auto writeFixture = [&](const std::filesystem::path &file, const std::vector<float> &signal) {
+        if (wave(file, signal))
+            return true;
+        report << "FAIL writing WAV fixture\n";
+        return false;
+    };
     HRESULT com = CoInitializeEx(nullptr, COINIT_MULTITHREADED);
     struct Apartment
     {
@@ -255,12 +265,14 @@ bool stackOutputTests(const std::wstring &directory)
             mixed[frame] += value / 6;
         }
         auto path = root / (L"output-voice-" + std::to_wstring(voice) + L".wav");
-        wave(path, signal);
+        if (!writeFixture(path, signal))
+            return false;
         voices.push_back({path.wstring(), 1, double(delay) / 48000});
     }
     // The primary duration is exactly three seconds, like the reference.
     auto referenceFile = root / L"output-calibration.wav";
-    wave(referenceFile, mixed);
+    if (!writeFixture(referenceFile, mixed))
+        return false;
     std::vector<float> calibration, actual, sabotaged;
     unsigned firstUnderruns = 0, actualUnderruns = 0, badUnderruns = 0;
     HRESULT result = record({{referenceFile.wstring(), 1, 0}}, calibration, firstUnderruns,
@@ -279,7 +291,8 @@ bool stackOutputTests(const std::wstring &directory)
     for (std::size_t i = 0; i < loopSignal.size(); ++i)
         loopSignal[i] = float(.2 * std::sin(double(i) * .04));
     auto loopFile = root / L"output-loop.wav";
-    wave(loopFile, loopSignal);
+    if (!writeFixture(loopFile, loopSignal))
+        return false;
     AudioFallback loopPlayer(std::vector<PcmVoice>(2, {loopFile.wstring(), 1, 0}));
     loopPlayer.volume(.01);
     loopPlayer.loop(true);
@@ -310,6 +323,7 @@ bool stackOutputTests(const std::wstring &directory)
            << actualUnderruns << "\ncontinuous_loop_and_stop=" << (loopPassed ? "PASS" : "FAIL")
            << "\nloopUnderruns=" << loopState.pcmUnderruns
            << "\nother_app_audio_captured=false\nmicrophone_used=false\nphysical_acoustic_proof=false\n";
-    return passed;
+    report.close();
+    return passed && report;
 }
 } // namespace ga
