@@ -472,37 +472,55 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE, PWSTR, int)
     SetProcessDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2);
     int argc = 0;
     auto argv = CommandLineToArgvW(GetCommandLine(), &argc);
-    if (argc == 3 && wcscmp(argv[1], L"--write-icon") == 0)
+    if (!argv)
+        return 2;
+    const auto isOption = [&](const wchar_t *option) { return argc > 1 && wcscmp(argv[1], option) == 0; };
+    const bool writeIconRequested = isOption(L"--write-icon");
+    const bool selfTestRequested = isOption(L"--self-test");
+    const bool verifyStackOutput = isOption(L"--verify-stack-output");
+    const bool verifyAudio = isOption(L"--verify-audio");
+    const bool verifyStackAudio = isOption(L"--verify-stack-audio");
+    const bool verifyRouting = isOption(L"--verify-routing");
+    const bool verifyGui = isOption(L"--verify") || isOption(L"--verify-ambient") ||
+                           isOption(L"--verify-ambient-fault") || isOption(L"--verify-visual") ||
+                           isOption(L"--verify-graph");
+    if (((writeIconRequested || selfTestRequested || verifyStackOutput) && argc != 3) ||
+        ((verifyAudio || verifyStackAudio || verifyRouting || verifyGui) && argc != 4))
+    {
+        LocalFree(argv);
+        return 2;
+    }
+    if (writeIconRequested)
     {
         writeIcon(argv[2]);
         LocalFree(argv);
         return 0;
     }
-    if (argc == 3 && wcscmp(argv[1], L"--self-test") == 0)
+    if (selfTestRequested)
     {
         int result = tests(argv[2]);
         LocalFree(argv);
         return result;
     }
-    if (argc == 4 && wcscmp(argv[1], L"--verify-audio") == 0)
+    if (verifyAudio)
     {
         int result = audioPlaybackTests(argv[2], argv[3]);
         LocalFree(argv);
         return result;
     }
-    if (argc == 4 && wcscmp(argv[1], L"--verify-stack-audio") == 0)
+    if (verifyStackAudio)
     {
         int result = audioPlaybackTests(argv[2], argv[3], true);
         LocalFree(argv);
         return result;
     }
-    if (argc == 3 && wcscmp(argv[1], L"--verify-stack-output") == 0)
+    if (verifyStackOutput)
     {
         int result = stackOutputTests(argv[2]) ? 0 : 2;
         LocalFree(argv);
         return result;
     }
-    if (argc == 4 && wcscmp(argv[1], L"--verify-routing") == 0)
+    if (verifyRouting)
     {
         int result = audioRoutingTest(argv[2], argv[3]);
         LocalFree(argv);
@@ -519,10 +537,7 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE, PWSTR, int)
     app.dataDir = std::filesystem::path(data ? data : L".") / L"GreaterArtDesktopNative";
     if (data)
         CoTaskMemFree(data);
-    if (argc == 4 &&
-        (wcscmp(argv[1], L"--verify") == 0 || wcscmp(argv[1], L"--verify-ambient") == 0 ||
-         wcscmp(argv[1], L"--verify-ambient-fault") == 0 || wcscmp(argv[1], L"--verify-visual") == 0 ||
-         wcscmp(argv[1], L"--verify-graph") == 0))
+    if (verifyGui)
     {
         app.probe = true;
         app.probeVisual = wcscmp(argv[1], L"--verify-visual") == 0;

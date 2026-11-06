@@ -111,6 +111,53 @@ jobs:
           if ((Invoke-NativeSelfTest ('\\?\' + "$out-device")) -ne 2 -or (Test-Path -LiteralPath "$out-device")) {
             throw 'Self-test accepted a device-prefixed output path'
           }
+      - name: Reject malformed native diagnostics before startup
+        shell: pwsh
+        run: |
+          $app = Join-Path $PWD 'desktop/native/build/GreaterArt.exe'
+          $scratch = New-Item -ItemType Directory -Path (Join-Path $env:RUNNER_TEMP ('GreaterArt-diagnostic-arity-' + [guid]::NewGuid()))
+          $settings = Join-Path ([Environment]::GetFolderPath('LocalApplicationData')) 'GreaterArtDesktopNative'
+          if (Test-Path -LiteralPath $settings) { throw 'Expected a fresh native settings directory' }
+          $flags = @{
+            1 = @('--write-icon', '--self-test', '--verify-stack-output')
+            2 = @('--verify-audio', '--verify-stack-audio', '--verify-routing', '--verify', '--verify-ambient',
+                  '--verify-ambient-fault', '--verify-visual', '--verify-graph')
+          }
+          $checks = 0
+          foreach ($requiredOperands in $flags.Keys) {
+            foreach ($flag in $flags[$requiredOperands]) {
+              for ($count = 0; $count -le 4; $count++) {
+                if ($count -eq $requiredOperands) { continue }
+                $start = [Diagnostics.ProcessStartInfo]::new($app)
+                $start.UseShellExecute = $false
+                $start.WindowStyle = [Diagnostics.ProcessWindowStyle]::Hidden
+                $start.WorkingDirectory = $scratch.FullName
+                $start.ArgumentList.Add($flag)
+                for ($operand = 0; $operand -lt $count; $operand++) {
+                  $start.ArgumentList.Add((Join-Path $scratch.FullName "synthetic operand $operand"))
+                }
+                $process = [Diagnostics.Process]::Start($start)
+                try {
+                  if (-not $process.WaitForExit(10000)) {
+                    $process.Kill()
+                    [void]$process.WaitForExit(5000)
+                    throw "Malformed diagnostic timed out ($flag, $count operands)"
+                  }
+                  if ($process.ExitCode -ne 2) {
+                    throw "Malformed diagnostic returned $($process.ExitCode) ($flag, $count operands)"
+                  }
+                } finally {
+                  $process.Dispose()
+                }
+                $checks++
+              }
+            }
+          }
+          if ($checks -ne 44 -or (Test-Path -LiteralPath $settings) -or
+              @(Get-ChildItem -LiteralPath $scratch.FullName -Force).Count -ne 0) {
+            throw 'Malformed diagnostics entered startup or wrote output'
+          }
+          Write-Output 'Native diagnostic argument rejection: 44/44 passed.'
       - name: Prepare existing codec redistribution evidence
         shell: pwsh
         run: ./desktop/native/prepare-codec-package.ps1 -VcpkgRegistry '${{ steps.codecs.outputs.registry }}'
