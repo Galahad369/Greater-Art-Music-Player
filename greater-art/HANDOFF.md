@@ -3,7 +3,7 @@
 This file describes the **current repository state only**. Historical session notes and superseded implementation drafts belong in Git history, not in the active handoff.
 
 **Project:** `greater-art/` in the repository checkout
-**Current source:** `1.22.11 (code 332)` — SOURCE_ONLY. Uses the local AVC decoder for quick Stack picture analysis on compatible x86-64 Android emulators. The latest immutable verified download remains 1.21.93.
+**Current source:** `1.22.12 (code 333)` — SOURCE_ONLY. Uses the local AVC decoder for quick Stack picture analysis on compatible x86-64 Android emulators. The latest immutable verified download remains 1.21.93.
 **Previous optimized candidate:** sibling `App/output/GreaterArt-1.21.98.apk` —5,495,129 bytes, SHA-256 `36d5279c58b155f70cc7a47ca3af348e285df1e8bf5197eeca43f9a14ef8ba02`; same key, non-debuggable, artifact checks passed; **not promoted**. [Retained98 evidence](docs/CANDIDATE_1.21.98.md). The97 candidate is hash-verified and archived under sibling `output/retained-artifacts/`.
 
 The following release fields describe verified1.21.93, not the98 candidate:
@@ -27,7 +27,15 @@ The following release fields describe verified1.21.93, not the98 candidate:
 - The quick scan uses this decoder only for supported AVC on x86-64
   Ranchu. If it drops frames, the standard decoder repeats the take. The 45-second
   budget, sampling windows, confidence rules and wider search are
-  retained. Exact six-take app acceptance is pending.
+  retained. The 1.22.11 app run still timed out at 45.028 s with two of
+  five companions because several open-GOP seeks triggered a full-file
+  retry. Starting the local decoder from the previous IDR recovered all
+  missing Yoshino samples and matched the standard decoder hashes.
+  The unchanged A55 corpus test passed on the exact 1.22.12 development
+  APK in 35.534 s, with all five companions analysed. Offsets were
+  unchanged, 0, 0, +26, and 0 ms. App SHA-256
+  8799240c33a38b1a96d1c8aabb79e28611cb06c865c9c7b1c2014dffebec1c32.
+  This measures the emulator analysis path. Source remains SOURCE_ONLY.
 
 ### November 6 — Stack picture alignment
 

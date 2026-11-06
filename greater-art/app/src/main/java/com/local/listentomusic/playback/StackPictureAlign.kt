@@ -19,11 +19,12 @@ import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
 import java.io.IOException
+import java.nio.ByteBuffer
 
 internal class StackPictureAlign(private val context: Context) {
     data class Result(val matches: Map<String, StackAlignment>, val quickTimedOut: Boolean)
 
-    private class IncompleteLocalDecode : IllegalStateException()
+    private class IncompleteLocalDecode(cause: Throwable? = null) : IllegalStateException(cause)
 
     private data class Samples(val windows: List<StackPictureWindow>, val frames: List<StackPictureFrame>)
 
@@ -139,19 +140,59 @@ internal class StackPictureAlign(private val context: Context) {
             val decoder = localAvc ?: startDecoder(MediaCodec.createDecoderByType(mime))
             val info = MediaCodec.BufferInfo()
             val luma = FloatArray(STACK_PICTURE_GRID * STACK_PICTURE_GRID)
-            for ((index, window) in windows.withIndex()) {
-                currentCoroutineContext().ensureActive()
-                val start = clipStartUs + window.startUs
-                if (index > 0) decoder.flush() // Synchronous codec; resume with a keyframe.
-                if (start > 0) extractor.seekTo(start, MediaExtractor.SEEK_TO_PREVIOUS_SYNC)
-                if (!decodeWindow(extractor, decoder, info, luma, start, clipStartUs + window.endUs,
-                        clipStartUs, rotation, frames, batchBuffers = localAvc != null)
-                ) throw IncompleteLocalDecode()
+            val syncProbe = if (localAvc == null) null else ByteBuffer.allocateDirect(512 * 1024)
+            try {
+                for ((index, window) in windows.withIndex()) {
+                    currentCoroutineContext().ensureActive()
+                    val start = clipStartUs + window.startUs
+                    if (index > 0) decoder.flush() // Synchronous codec; resume with a keyframe.
+                    if (start > 0) extractor.seekTo(start, MediaExtractor.SEEK_TO_PREVIOUS_SYNC)
+                    if (syncProbe != null) seekToLocalAvcIdr(extractor, syncProbe)
+                    if (!decodeWindow(extractor, decoder, info, luma, start, clipStartUs + window.endUs,
+                            clipStartUs, rotation, frames, batchBuffers = localAvc != null)
+                    ) throw IncompleteLocalDecode()
+                }
+            } catch (failure: MediaCodec.CodecException) {
+                if (localAvc == null) throw failure
+                throw IncompleteLocalDecode(failure)
             }
             return Samples(windows, frames)
         } finally {
             try { codec?.release() } finally { extractor.release() }
         }
+    }
+
+    // The local AVC decoder can drop frames when a container sync sample is
+    // a recovery point in an open GOP. Start it at a nearby IDR instead.
+    private suspend fun seekToLocalAvcIdr(extractor: MediaExtractor, packet: ByteBuffer) {
+        val firstSync = extractor.sampleTime
+        var sync = firstSync
+        while (sync >= 0 && firstSync - sync <= 5_000_000L) {
+            currentCoroutineContext().ensureActive()
+            packet.clear()
+            val size = try {
+                extractor.readSampleData(packet, 0)
+            } catch (failure: IllegalArgumentException) {
+                throw IncompleteLocalDecode(failure)
+            }
+            if (size !in 4..packet.capacity()) break
+            // MediaExtractor exposes AVC samples with Annex B start codes.
+            for (index in 0 until size - 3) {
+                if (packet.get(index).toInt() != 0 || packet.get(index + 1).toInt() != 0 ||
+                    packet.get(index + 2).toInt() != 1
+                ) continue
+                when (packet.get(index + 3).toInt() and 31) {
+                    5 -> return
+                    in 1..4 -> break
+                }
+            }
+            if (sync == 0L) break
+            extractor.seekTo(sync - 1, MediaExtractor.SEEK_TO_PREVIOUS_SYNC)
+            val earlier = extractor.sampleTime
+            if (earlier >= sync) break
+            sync = earlier
+        }
+        throw IncompleteLocalDecode()
     }
 
     private suspend fun decodeWindow(
