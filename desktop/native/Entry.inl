@@ -50,11 +50,68 @@ void writeIcon(const std::filesystem::path &file)
     if (!output)
         throw std::runtime_error("Icon resource write failed.");
 }
-int tests(const std::filesystem::path &directory)
+bool selfTestPathSpelling(const std::filesystem::path &path)
+{
+    const auto &value = path.native();
+    const auto separator = [](wchar_t c) { return c == L'\\' || c == L'/'; };
+    // Win32 can interpret two separators after a drive letter as a UNC path.
+    if (!localMediaPath(value) ||
+        (value.size() >= 4 && value[1] == L':' && separator(value[2]) && separator(value[3])))
+        return false;
+    for (const auto &component : path.relative_path())
+    {
+        const auto &name = component.native();
+        if (name.empty() || name == L"." || name == L"..")
+            continue;
+        if (name.back() == L'.' || name.back() == L' ' || name.find_first_of(L"<>\"|?*") != std::wstring::npos)
+            return false;
+        auto stem = name.substr(0, name.find(L'.'));
+        const auto last = stem.find_last_not_of(L' ');
+        if (last == std::wstring::npos)
+            continue;
+        stem.resize(last + 1);
+        stem = lower(std::move(stem));
+        const bool numberedDevice = stem.size() == 4 && (stem.starts_with(L"com") || stem.starts_with(L"lpt")) &&
+                                    wcschr(L"123456789\u00b9\u00b2\u00b3", stem.back());
+        if (numberedDevice || stem == L"con" || stem == L"prn" || stem == L"aux" || stem == L"nul" ||
+            stem == L"conin$" || stem == L"conout$")
+            return false;
+    }
+    return true;
+}
+std::filesystem::path selfTestOutputPath(const std::filesystem::path &requested)
+{
+    if (!selfTestPathSpelling(requested))
+        return {};
+    std::error_code error;
+    auto directory = std::filesystem::absolute(requested, error).lexically_normal().make_preferred();
+    if (error || !directory.is_absolute() || !selfTestPathSpelling(directory))
+        return {};
+    if (!directory.has_filename())
+        directory = directory.parent_path();
+    if (!directory.has_filename())
+        return {};
+
+    auto prefix = directory.root_path();
+    const UINT drive = GetDriveTypeW(prefix.c_str());
+    if (drive != DRIVE_FIXED && drive != DRIVE_REMOVABLE && drive != DRIVE_RAMDISK)
+        return {};
+    // Inspect each parent before accessing any child. The caller keeps this tree stable during the test.
+    for (const auto &component : directory.parent_path().relative_path())
+    {
+        prefix /= component;
+        const DWORD attributes = GetFileAttributesW(prefix.c_str());
+        if (attributes == INVALID_FILE_ATTRIBUTES || !(attributes & FILE_ATTRIBUTE_DIRECTORY) ||
+            (attributes & FILE_ATTRIBUTE_REPARSE_POINT))
+            return {};
+    }
+    return directory;
+}
+int tests(const std::filesystem::path &requested)
 {
     // Tests deliberately replace fixtures, so only write inside a new directory.
-    std::error_code error;
-    if (!std::filesystem::create_directory(directory, error))
+    const auto directory = selfTestOutputPath(requested);
+    if (directory.empty() || !CreateDirectoryW(directory.c_str(), nullptr))
         return 2;
     std::ofstream report(directory / L"unit-tests.txt");
     if (!report)

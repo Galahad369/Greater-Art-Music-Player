@@ -1,7 +1,7 @@
 # Greater Art Desktop version policy
 
-Current desktop: **0.1.27 (code 28)**
-Release state: **SOURCE_ONLY — self-test report writes**
+Current desktop: **0.1.28 (code 29)**
+Release state: **SOURCE_ONLY — local self-test output paths**
 Android versions remain independent. This desktop stage does not change Android source or artifacts. Refer to the Android ledger for its current identity.
 
 Every committed desktop executable/build/workflow change increments PATCH and code together. Documentation and verified-artifact finalization do not consume another version. Never overwrite a versioned artifact. Full-parity 1.0.0 is reserved until all parity gates pass.
@@ -42,6 +42,8 @@ Every committed desktop executable/build/workflow change increments PATCH and co
 | 0.1.26 / 27 | SOURCE_ONLY CI update | Carry PR #227's official Setup .NET v6.1.0 pin with the required desktop version increment. Retain .NET SDK 10.0.300, all required checks, and existing binaries. |
 
 | 0.1.27 / 28 | SOURCE_ONLY self-test report integrity | Return failure if a native self-test report cannot be fully written. |
+
+| 0.1.28 / 29 | SOURCE_ONLY self-test output paths | Reject network, device and linked-parent destinations before creating the fresh report directory. |
 
 The one-time source-baseline transition from 0.1.16/code17 to 0.1.19/code20 skips the two consumed identities above. The version guard permits only this exact transition; subsequent executable/build changes still require PATCH/code +1. This does not relabel or overwrite a historical release.
 

@@ -79,25 +79,37 @@ jobs:
         run: |
           $out = Join-Path $env:RUNNER_TEMP ("GreaterArt-native-tests-" + [guid]::NewGuid())
           $app = Join-Path $PWD 'desktop/native/build/GreaterArt.exe'
-          $test = Start-Process $app -ArgumentList "--self-test `"$out`"" -WindowStyle Hidden -PassThru
-          if (-not $test.WaitForExit(60000)) {
-            Stop-Process -Id $test.Id
-            throw 'Native tests timed out'
+          function Invoke-NativeSelfTest([string]$directory, [string]$workingDirectory = $PWD.Path) {
+            $test = Start-Process $app -ArgumentList "--self-test `"$directory`"" -WorkingDirectory $workingDirectory -WindowStyle Hidden -PassThru
+            if (-not $test.WaitForExit(60000)) {
+              Stop-Process -Id $test.Id
+              throw 'Native self-test timed out'
+            }
+            return $test.ExitCode
           }
+          if ((Invoke-NativeSelfTest $out) -ne 0) { throw 'Native tests failed' }
           Get-Content (Join-Path $out 'unit-tests.txt')
-          if ($test.ExitCode -ne 0) { throw 'Native tests failed' }
           $existing = New-Item -ItemType Directory -Path "$out-existing"
           $sentinel = Join-Path $existing.FullName 'roundtrip.m3u8'
           Set-Content -LiteralPath $sentinel -Value 'preserve existing playlist'
           $originalHash = (Get-FileHash -LiteralPath $sentinel).Hash
-          $retry = Start-Process $app -ArgumentList "--self-test `"$($existing.FullName)`"" -WindowStyle Hidden -PassThru
-          if (-not $retry.WaitForExit(60000)) {
-            Stop-Process -Id $retry.Id
-            throw 'Self-test existing-directory check timed out'
-          }
-          if ($retry.ExitCode -ne 2 -or (Get-FileHash -LiteralPath $sentinel).Hash -ne $originalHash -or
+          if ((Invoke-NativeSelfTest $existing.FullName) -ne 2 -or (Get-FileHash -LiteralPath $sentinel).Hash -ne $originalHash -or
               @(Get-ChildItem -LiteralPath $existing.FullName -Force).Count -ne 1) {
             throw 'Self-test did not preserve an existing output directory'
+          }
+          $relative = "GreaterArt 測試 " + [guid]::NewGuid()
+          if ((Invoke-NativeSelfTest $relative $env:RUNNER_TEMP) -ne 0 -or
+              -not (Test-Path -LiteralPath (Join-Path $env:RUNNER_TEMP "$relative/unit-tests.txt") -PathType Leaf)) {
+            throw 'Self-test rejected an ordinary relative Unicode output directory'
+          }
+          $target = New-Item -ItemType Directory -Path "$out-target"
+          $junction = New-Item -ItemType Junction -Path "$out-junction" -Target $target.FullName
+          if ((Invoke-NativeSelfTest (Join-Path $junction.FullName 'new-output')) -ne 2 -or
+              @(Get-ChildItem -LiteralPath $target.FullName -Force).Count -ne 0) {
+            throw 'Self-test wrote through a junction parent'
+          }
+          if ((Invoke-NativeSelfTest ('\\?\' + "$out-device")) -ne 2 -or (Test-Path -LiteralPath "$out-device")) {
+            throw 'Self-test accepted a device-prefixed output path'
           }
       - name: Prepare existing codec redistribution evidence
         shell: pwsh
