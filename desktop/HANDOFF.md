@@ -1,8 +1,23 @@
 # Greater Art Desktop handoff
 
+## Installer extraction and CodeQL maintenance — November 7, 2026
+
+Current source: **0.1.34/code35, SOURCE_ONLY**. The Windows workflow uses the
+official CodeQL v4.39.3 pin. PR #237 keeps exclusive creation of the embedded
+MSI and removes the folder argument from the internal extraction command.
+Run `Setup.exe --extract-msi` from an existing ordinary local directory; the
+fixed output is `GreaterArt.msi`. Linked and network destinations are refused.
+Normal and silent install keep their existing entry points.
+
+The original Setup fixture wrote through a synthetic junction. The repaired
+fixture preserves an existing MSI, permits one writer under contention,
+verifies the payload digest and refuses junctions, linked parents and the old
+argument. Windows CI repeats these cases against its packaged Setup. This does
+not verify the Windows Installer service handoff or replace a frozen release.
+
 ## Setup .NET CI pin — November 6, 2026
 
-Current source is **0.1.26/code27, SOURCE_ONLY**. Dependabot PR #227
+That source checkpoint was **0.1.26/code27, SOURCE_ONLY**. Dependabot PR #227
 updated the Windows workflow without its required version step. The
 replacement keeps the official Setup .NET v6.1.0 commit and adds the
 desktop identity in the same commit. The .NET SDK remains 10.0.300.

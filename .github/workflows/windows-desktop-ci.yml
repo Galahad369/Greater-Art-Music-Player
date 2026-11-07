@@ -65,7 +65,7 @@ jobs:
         with:
           dotnet-version: '10.0.300'
       - name: Initialize native Windows CodeQL analysis
-        uses: github/codeql-action/init@1fc58d04a4d4374f921bdac573c3811c240f9c26 # v4.39.2
+        uses: github/codeql-action/init@33d7b85da1a04171e211befe2c739303b9a4c066 # v4.39.3
         with:
           languages: c-cpp,csharp
           # The explicit builds below trace both languages. The build-mode input
@@ -273,9 +273,87 @@ jobs:
           }
           ./desktop/native/package.ps1 -WixPath (Split-Path $candle.Source) -VcpkgRegistry '${{ steps.codecs.outputs.registry }}'
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          $build = Join-Path $PWD 'desktop/native/build'
+          $receipt = Get-Content -Raw -LiteralPath (Join-Path $build 'package-receipt.json') | ConvertFrom-Json
+          if ($receipt.version -notmatch '^\d+\.\d+\.\d+$' -or $receipt.msiSha256 -notmatch '^[a-f0-9]{64}$' -or $receipt.setupSha256 -notmatch '^[a-f0-9]{64}$') {
+            throw 'Installer package receipt is invalid.'
+          }
+          $setup = Join-Path $build "GreaterArt-Desktop-Setup-$($receipt.version).exe"
+          if ((Get-FileHash -LiteralPath $setup -Algorithm SHA256).Hash -ne $receipt.setupSha256) {
+            throw 'Setup executable does not match its package receipt.'
+          }
+          $scratch = New-Item -ItemType Directory -Path (Join-Path $env:RUNNER_TEMP ('GreaterArt-msi-extract-' + [guid]::NewGuid().ToString('N')))
+          function Invoke-SetupExtraction([string[]]$destinations, [switch]$obsoleteFolderArgument) {
+            $processes = [Collections.Generic.List[Diagnostics.Process]]::new()
+            try {
+              foreach ($destination in $destinations) {
+                $start = [Diagnostics.ProcessStartInfo]::new($setup)
+                $start.WorkingDirectory = $destination
+                $start.UseShellExecute = $false
+                $start.CreateNoWindow = $true
+                $start.ArgumentList.Add('--extract-msi')
+                if ($obsoleteFolderArgument) { $start.ArgumentList.Add($destination) }
+                $processes.Add([Diagnostics.Process]::Start($start))
+              }
+              foreach ($process in $processes) {
+                if (-not $process.WaitForExit(30000)) { throw 'Setup extraction timed out.' }
+                $process.ExitCode
+              }
+            } finally {
+              foreach ($process in $processes) {
+                if (-not $process.HasExited) {
+                  $process.Kill()
+                  [void]$process.WaitForExit(5000)
+                }
+                $process.Dispose()
+              }
+            }
+          }
+          function Assert-ExtractedMsi([string]$destination) {
+            $msi = Join-Path $destination 'GreaterArt.msi'
+            if ((Get-FileHash -LiteralPath $msi -Algorithm SHA256).Hash -ne $receipt.msiSha256) {
+              throw 'Extracted MSI does not match its package receipt.'
+            }
+          }
+          $fresh = New-Item -ItemType Directory -Path (Join-Path $scratch.FullName 'fresh 測試')
+          $freshExit = @(Invoke-SetupExtraction @($fresh.FullName))
+          if ($freshExit.Count -ne 1 -or $freshExit[0] -ne 0) { throw 'Fresh Setup extraction failed.' }
+          Assert-ExtractedMsi $fresh.FullName
+          $shared = New-Item -ItemType Directory -Path (Join-Path $scratch.FullName 'shared output')
+          $sharedExits = @(Invoke-SetupExtraction @($shared.FullName, $shared.FullName) | Sort-Object)
+          if ($sharedExits.Count -ne 2 -or $sharedExits[0] -ne 0 -or $sharedExits[1] -ne 2) {
+            throw 'Concurrent Setup extraction did not produce one success and one refusal.'
+          }
+          Assert-ExtractedMsi $shared.FullName
+          $occupied = New-Item -ItemType Directory -Path (Join-Path $scratch.FullName 'occupied output')
+          $sentinel = Join-Path $occupied.FullName 'GreaterArt.msi'
+          [IO.File]::WriteAllText($sentinel, 'Synthetic occupied MSI destination')
+          $sentinelHash = (Get-FileHash -LiteralPath $sentinel -Algorithm SHA256).Hash
+          $occupiedExit = @(Invoke-SetupExtraction @($occupied.FullName))
+          if ($occupiedExit.Count -ne 1 -or $occupiedExit[0] -ne 2 -or (Get-FileHash -LiteralPath $sentinel -Algorithm SHA256).Hash -ne $sentinelHash) {
+            throw 'Setup extraction failed to preserve an occupied destination.'
+          }
+          $target = New-Item -ItemType Directory -Path (Join-Path $scratch.FullName 'linked target')
+          $child = New-Item -ItemType Directory -Path (Join-Path $target.FullName 'ordinary child')
+          $junction = New-Item -ItemType Junction -Path (Join-Path $scratch.FullName 'linked output') -Target $target.FullName
+          foreach ($case in @(
+            @{ source = $junction.FullName; target = $target.FullName },
+            @{ source = (Join-Path $junction.FullName $child.Name); target = $child.FullName }
+          )) {
+            $linkedExit = @(Invoke-SetupExtraction @($case.source))
+            if ($linkedExit.Count -ne 1 -or $linkedExit[0] -ne 2 -or (Test-Path -LiteralPath (Join-Path $case.target 'GreaterArt.msi'))) {
+              throw 'Setup extraction followed a linked working directory.'
+            }
+          }
+          $obsolete = New-Item -ItemType Directory -Path (Join-Path $scratch.FullName 'obsolete folder argument')
+          $obsoleteExit = @(Invoke-SetupExtraction @($obsolete.FullName) -obsoleteFolderArgument)
+          if ($obsoleteExit.Count -ne 1 -or $obsoleteExit[0] -ne 2 -or (Test-Path -LiteralPath (Join-Path $obsolete.FullName 'GreaterArt.msi'))) {
+            throw 'Setup extraction did not reject the obsolete folder argument.'
+          }
+          Write-Output 'Native Setup extraction: 6/6 passed (fresh, concurrent, occupied, junction, linked parent, obsolete argument).'
       - name: Analyze native Windows C++ and C#
         id: native-analysis
-        uses: github/codeql-action/analyze@1fc58d04a4d4374f921bdac573c3811c240f9c26 # v4.39.2
+        uses: github/codeql-action/analyze@33d7b85da1a04171e211befe2c739303b9a4c066 # v4.39.3
         with:
           category: /component:windows-native
       - name: Verify owned source and extraction diagnostics in both CodeQL databases

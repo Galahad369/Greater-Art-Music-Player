@@ -3,7 +3,7 @@
 This file describes the **current repository state only**. Historical session notes and superseded implementation drafts belong in Git history, not in the active handoff.
 
 **Project:** `greater-art/` in the repository checkout
-**Current source:** `1.22.13 (code 334)` — SOURCE_ONLY. Android CI and Java/Kotlin CodeQL use the existing `setup-gradle` cache. The local AVC decoder supports quick Stack picture analysis on compatible x86-64 Android emulators. The latest immutable verified download remains 1.21.93.
+**Current source:** `1.22.14 (code 335)` — SOURCE_ONLY. Android builds use Android Gradle plugin 9.5.1; CI uses the official Setup Java v6.2.0 and CodeQL v4.39.3 pins with the existing `setup-gradle` cache. The local AVC decoder supports quick Stack picture analysis on compatible x86-64 Android emulators. The latest immutable verified download remains 1.21.93.
 **Previous optimized candidate:** sibling `App/output/GreaterArt-1.21.98.apk` —5,495,129 bytes, SHA-256 `36d5279c58b155f70cc7a47ca3af348e285df1e8bf5197eeca43f9a14ef8ba02`; same key, non-debuggable, artifact checks passed; **not promoted**. [Retained98 evidence](docs/CANDIDATE_1.21.98.md). The97 candidate is hash-verified and archived under sibling `output/retained-artifacts/`.
 
 The following release fields describe verified1.21.93, not the98 candidate:
@@ -17,6 +17,11 @@ The following release fields describe verified1.21.93, not the98 candidate:
 **Verification boundary:** Exact runtime source `58048b54e4119c3aad50ca99d4595afe479653c3`; Java21/Gradle9.8.2 unit/lint/debug app/test and optimized R8 assembly passed. 473 JVM tests, zero failures/errors/skips; lint0 errors/47 warnings/4 hints. API36 debug instrumentation23/23 in520.008s covers reflected Ambient, compact audio/video controls/title transparency, real audio/video IME dock continuity, real-page navigation/video sampling and fullscreen toolbar. Separate same-certificate optimized upgrade and native Library/video/dock/expanded-player smoke passed; actual screenshots inspected. Package/version, non-debuggable state, ZIP CRC,16KiB alignment and SHA-256 checked. The APK does not embed a usable VCS SHA; this receipt records it externally. Full rotation, physical-device visual/acoustic/performance acceptance, production signing and universal crash freedom remain unverified. See [the exact release receipt](docs/RELEASE_1.21.93.md).
 
 ## Repository state
+
+### November 7 — Dependency maintenance
+
+- PRs #238 and #239 proposed valid upstream updates, but their commits did not contain the required version increments. A later version-only commit cannot satisfy the per-commit guard. Carry both changes in one correctly versioned commit without changing the guard or rewriting the original branches.
+- No signed release, device acceptance or playback change is claimed for this source update.
 
 ### November 6 — Quick Stack picture scan on A55
 

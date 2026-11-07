@@ -4,7 +4,7 @@ Greater Art is a native Kotlin/Jetpack Compose player for local music and video.
 
 ## Current release
 
-Current source: **1.22.12 / code 333 — SOURCE_ONLY**. Stack picture alignment starts with a quick ±2-second search across three sections. If some tracks do not match, choose **Wider search (±30 s)**. Review the offsets before applying them. Sound alignment and playback quality are unchanged. The verified download remains 1.21.93.
+Current source: **1.22.14 / code 335 — SOURCE_ONLY**. Stack picture alignment starts with a quick ±2-second search across three sections. If some tracks do not match, choose **Wider search (±30 s)**. Review the offsets before applying them. Sound alignment and playback quality are unchanged. The verified download remains 1.21.93.
 
 Latest verified local maintenance APK: **1.21.93 / code316**. Now Playing has a transparent title area, compact controls and reflected Ambient. The subtle Library current-track dot, keyboard-safe dock, primary playback quality and row actions are preserved. See the [release receipt](docs/RELEASE_1.21.93.md) for exact source, signing, artifact and emulator evidence. Shared output remains disabled; this maintenance release does not complete its high-resolution and function-parity gates in the [refinement report](docs/STACK_SHARED_OUTPUT_REFINEMENT_2026-10-28.md). [Physical measurements](../docs/LIBRARY_AUDIT_2026-10-24.md), complete fullscreen-rotation acceptance and acoustic Stack validation remain unresolved. The independent [safe sync workflow](../docs/SAFE_SYNC.md) remains available. Adaptive Dynamic combines
 Classic/Aurora/Bloom/Flow; Classic remains available. See
