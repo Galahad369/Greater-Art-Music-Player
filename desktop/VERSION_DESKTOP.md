@@ -1,7 +1,7 @@
 # Greater Art Desktop version policy
 
-Current desktop: **0.1.31 (code 32)**
-Release state: **SOURCE_ONLY — diagnostic paths and icon preservation**
+Current desktop: **0.1.32 (code 33)**
+Release state: **SOURCE_ONLY — installer extraction preservation**
 Android versions remain independent. This desktop stage does not change Android source or artifacts. Refer to the Android ledger for its current identity.
 
 Every committed desktop executable/build/workflow change increments PATCH and code together. Documentation and verified-artifact finalization do not consume another version. Never overwrite a versioned artifact. Full-parity 1.0.0 is reserved until all parity gates pass.
@@ -50,6 +50,8 @@ Every committed desktop executable/build/workflow change increments PATCH and co
 | 0.1.30 / 31 | SOURCE_ONLY Stack diagnostic output | Require a fresh local destination and report file-write failures. |
 
 | 0.1.31 / 32 | SOURCE_ONLY diagnostic paths and icon preservation | Require ordinary local diagnostic fixtures and fresh destinations, preserve the prior build icon until replacement succeeds, and verify both in Windows CI. |
+
+| 0.1.32 / 33 | SOURCE_ONLY installer extraction | Reserve the MSI output exclusively and verify extraction in Windows CI. |
 
 The one-time source-baseline transition from 0.1.16/code17 to 0.1.19/code20 skips the two consumed identities above. The version guard permits only this exact transition; subsequent executable/build changes still require PATCH/code +1. This does not relabel or overwrite a historical release.
 

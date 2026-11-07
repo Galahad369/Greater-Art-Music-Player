@@ -5,7 +5,6 @@
 #include <bcrypt.h>
 #include <dwmapi.h>
 #include <filesystem>
-#include <fstream>
 #include <iomanip>
 #include <msi.h>
 #include <shellapi.h>
@@ -85,14 +84,26 @@ bool extract(const std::filesystem::path &directory)
     std::filesystem::create_directories(directory, error);
     if (error)
         return false;
-    payload = directory / L"GreaterArt.msi";
-    // Build/test extraction refuses to overwrite an existing package.
-    if (std::filesystem::exists(payload))
+    auto destination = directory / L"GreaterArt.msi";
+    // Reserve the file and reject a collision in one operation.
+    HANDLE output = CreateFileW(destination.c_str(), GENERIC_WRITE | DELETE, 0, nullptr, CREATE_NEW,
+                                FILE_ATTRIBUTE_NORMAL | FILE_FLAG_OPEN_REPARSE_POINT, nullptr);
+    if (output == INVALID_HANDLE_VALUE)
         return false;
-    std::ofstream output(payload, std::ios::binary);
-    output.write(reinterpret_cast<const char *>(data), size);
-    output.close();
-    return bool(output);
+    DWORD writtenBytes = 0;
+    bool complete = WriteFile(output, data, size, &writtenBytes, nullptr) && writtenBytes == size &&
+                    FlushFileBuffers(output);
+    if (!complete)
+    {
+        // Clean up the file we opened, even if its path changes.
+        FILE_DISPOSITION_INFO disposition{TRUE};
+        SetFileInformationByHandle(output, FileDispositionInfo, &disposition, sizeof(disposition));
+    }
+    CloseHandle(output);
+    if (!complete)
+        return false;
+    payload = destination;
+    return true;
 }
 std::filesystem::path temporary()
 {
