@@ -39,7 +39,31 @@ std::filesystem::path installFolder()
         CoTaskMemFree(local);
     return folder;
 }
-bool extract(const std::filesystem::path &directory)
+bool localExtractionWorkingDirectory()
+{
+    std::error_code error;
+    const auto directory = std::filesystem::current_path(error);
+    if (error || !directory.is_absolute())
+        return false;
+    const auto volume = directory.root_name().native();
+    if (volume.size() != 2 || volume[1] != L':')
+        return false;
+
+    auto prefix = directory.root_path();
+    const UINT drive = GetDriveTypeW(prefix.c_str());
+    if (drive != DRIVE_FIXED && drive != DRIVE_REMOVABLE && drive != DRIVE_RAMDISK)
+        return false;
+    for (const auto &component : directory.relative_path())
+    {
+        prefix /= component;
+        const DWORD attributes = GetFileAttributesW(prefix.c_str());
+        if (attributes == INVALID_FILE_ATTRIBUTES || !(attributes & FILE_ATTRIBUTE_DIRECTORY) ||
+            (attributes & FILE_ATTRIBUTE_REPARSE_POINT))
+            return false;
+    }
+    return true;
+}
+bool extract(const std::filesystem::path &directory = {})
 {
     auto module = GetModuleHandle(nullptr);
     auto resource = FindResource(module, MAKEINTRESOURCE(11), RT_RCDATA),
@@ -80,10 +104,13 @@ bool extract(const std::filesystem::path &directory)
         encoded << std::hex << std::setw(2) << std::setfill('0') << int(b);
     if (encoded.str() != std::string(expected, 64))
         return false;
-    std::error_code error;
-    std::filesystem::create_directories(directory, error);
-    if (error)
-        return false;
+    if (!directory.empty())
+    {
+        std::error_code error;
+        std::filesystem::create_directories(directory, error);
+        if (error)
+            return false;
+    }
     auto destination = directory / L"GreaterArt.msi";
     // Reserve the file and reject a collision in one operation.
     HANDLE output = CreateFileW(destination.c_str(), GENERIC_WRITE | DELETE, 0, nullptr, CREATE_NEW,
@@ -250,9 +277,10 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE, PWSTR, int)
     CoInitializeEx(nullptr, COINIT_APARTMENTTHREADED);
     int argc = 0;
     auto argv = CommandLineToArgvW(GetCommandLine(), &argc);
-    if (argc == 3 && wcscmp(argv[1], L"--extract-msi") == 0)
+    if (argv && argc >= 2 && wcscmp(argv[1], L"--extract-msi") == 0)
     {
-        bool okay = extract(argv[2]);
+        // Test extraction writes a fixed name in the caller's working directory.
+        const bool okay = argc == 2 && localExtractionWorkingDirectory() && extract();
         LocalFree(argv);
         CoUninitialize();
         return okay ? 0 : 2;

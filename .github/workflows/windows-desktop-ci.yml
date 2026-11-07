@@ -283,16 +283,16 @@ jobs:
             throw 'Setup executable does not match its package receipt.'
           }
           $scratch = New-Item -ItemType Directory -Path (Join-Path $env:RUNNER_TEMP ('GreaterArt-msi-extract-' + [guid]::NewGuid().ToString('N')))
-          function Invoke-SetupExtraction([string[]]$destinations) {
+          function Invoke-SetupExtraction([string[]]$destinations, [switch]$obsoleteFolderArgument) {
             $processes = [Collections.Generic.List[Diagnostics.Process]]::new()
             try {
               foreach ($destination in $destinations) {
                 $start = [Diagnostics.ProcessStartInfo]::new($setup)
-                $start.WorkingDirectory = $scratch.FullName
+                $start.WorkingDirectory = $destination
                 $start.UseShellExecute = $false
                 $start.CreateNoWindow = $true
                 $start.ArgumentList.Add('--extract-msi')
-                $start.ArgumentList.Add($destination)
+                if ($obsoleteFolderArgument) { $start.ArgumentList.Add($destination) }
                 $processes.Add([Diagnostics.Process]::Start($start))
               }
               foreach ($process in $processes) {
@@ -315,16 +315,16 @@ jobs:
               throw 'Extracted MSI does not match its package receipt.'
             }
           }
-          $fresh = Join-Path $scratch.FullName 'fresh 測試'
-          $freshExit = @(Invoke-SetupExtraction @($fresh))
+          $fresh = New-Item -ItemType Directory -Path (Join-Path $scratch.FullName 'fresh 測試')
+          $freshExit = @(Invoke-SetupExtraction @($fresh.FullName))
           if ($freshExit.Count -ne 1 -or $freshExit[0] -ne 0) { throw 'Fresh Setup extraction failed.' }
-          Assert-ExtractedMsi $fresh
-          $shared = Join-Path $scratch.FullName 'shared output'
-          $sharedExits = @(Invoke-SetupExtraction @($shared, $shared) | Sort-Object)
+          Assert-ExtractedMsi $fresh.FullName
+          $shared = New-Item -ItemType Directory -Path (Join-Path $scratch.FullName 'shared output')
+          $sharedExits = @(Invoke-SetupExtraction @($shared.FullName, $shared.FullName) | Sort-Object)
           if ($sharedExits.Count -ne 2 -or $sharedExits[0] -ne 0 -or $sharedExits[1] -ne 2) {
             throw 'Concurrent Setup extraction did not produce one success and one refusal.'
           }
-          Assert-ExtractedMsi $shared
+          Assert-ExtractedMsi $shared.FullName
           $occupied = New-Item -ItemType Directory -Path (Join-Path $scratch.FullName 'occupied output')
           $sentinel = Join-Path $occupied.FullName 'GreaterArt.msi'
           [IO.File]::WriteAllText($sentinel, 'Synthetic occupied MSI destination')
@@ -333,7 +333,24 @@ jobs:
           if ($occupiedExit.Count -ne 1 -or $occupiedExit[0] -ne 2 -or (Get-FileHash -LiteralPath $sentinel -Algorithm SHA256).Hash -ne $sentinelHash) {
             throw 'Setup extraction failed to preserve an occupied destination.'
           }
-          Write-Output 'Native Setup extraction: 3/3 passed (fresh, concurrent, occupied).'
+          $target = New-Item -ItemType Directory -Path (Join-Path $scratch.FullName 'linked target')
+          $child = New-Item -ItemType Directory -Path (Join-Path $target.FullName 'ordinary child')
+          $junction = New-Item -ItemType Junction -Path (Join-Path $scratch.FullName 'linked output') -Target $target.FullName
+          foreach ($case in @(
+            @{ source = $junction.FullName; target = $target.FullName },
+            @{ source = (Join-Path $junction.FullName $child.Name); target = $child.FullName }
+          )) {
+            $linkedExit = @(Invoke-SetupExtraction @($case.source))
+            if ($linkedExit.Count -ne 1 -or $linkedExit[0] -ne 2 -or (Test-Path -LiteralPath (Join-Path $case.target 'GreaterArt.msi'))) {
+              throw 'Setup extraction followed a linked working directory.'
+            }
+          }
+          $obsolete = New-Item -ItemType Directory -Path (Join-Path $scratch.FullName 'obsolete folder argument')
+          $obsoleteExit = @(Invoke-SetupExtraction @($obsolete.FullName) -obsoleteFolderArgument)
+          if ($obsoleteExit.Count -ne 1 -or $obsoleteExit[0] -ne 2 -or (Test-Path -LiteralPath (Join-Path $obsolete.FullName 'GreaterArt.msi'))) {
+            throw 'Setup extraction did not reject the obsolete folder argument.'
+          }
+          Write-Output 'Native Setup extraction: 6/6 passed (fresh, concurrent, occupied, junction, linked parent, obsolete argument).'
       - name: Analyze native Windows C++ and C#
         id: native-analysis
         uses: github/codeql-action/analyze@1fc58d04a4d4374f921bdac573c3811c240f9c26 # v4.39.2
