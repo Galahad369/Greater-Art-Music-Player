@@ -16,7 +16,7 @@ This file is the authoritative version policy for Greater Art. If any handoff no
 ## Machine-checkable state
 
 
-Current source: **1.22.13 (code 334)**
+Current source: **1.22.14 (code 335)**
 Allowed consumed transition: **1.21.38 (code 261) -> 1.21.40 (code 263)**
 
 Retain PR174's original declared transition for eeb06d9. Its initial1.21.40
@@ -489,3 +489,4 @@ Previous baseline: 1.13.26 (code 115).
 - 1.22.11 (code 332): prefer the local AVC decoder and batch ready buffers for quick Stack picture analysis on x86-64 Android emulators. A55 quick acceptance remained incomplete at 2 of 5 companions. SOURCE_ONLY.
 - 1.22.12 (code 333): start the local AVC decoder from a nearby IDR frame when the planned sync point is in an open GOP, preserving all matching windows and the 45-second budget. SOURCE_ONLY.
 - 1.22.13 (code 334): use the existing `setup-gradle` cache in Android CI and Java/Kotlin CodeQL without the duplicate `setup-java` cache. SOURCE_ONLY.
+- 1.22.14 (code 335): carry the official Setup Java v6.2.0 and CodeQL v4.39.3 pins from PR #238 and Android Gradle plugin 9.5.1 from PR #239. Keep the existing Gradle wrapper, Java version, required checks and verified APK. SOURCE_ONLY.

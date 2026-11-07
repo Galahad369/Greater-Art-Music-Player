@@ -1,7 +1,7 @@
 # Greater Art Desktop version policy
 
-Current desktop: **0.1.33 (code 34)**
-Release state: **SOURCE_ONLY — restrict installer test extraction**
+Current desktop: **0.1.34 (code 35)**
+Release state: **SOURCE_ONLY — CodeQL pin update**
 Android versions remain independent. This desktop stage does not change Android source or artifacts. Refer to the Android ledger for its current identity.
 
 Every committed desktop executable/build/workflow change increments PATCH and code together. Documentation and verified-artifact finalization do not consume another version. Never overwrite a versioned artifact. Full-parity 1.0.0 is reserved until all parity gates pass.
@@ -54,6 +54,8 @@ Every committed desktop executable/build/workflow change increments PATCH and co
 | 0.1.32 / 33 | SOURCE_ONLY installer extraction | Reserve the MSI output exclusively and verify extraction in Windows CI. |
 
 | 0.1.33 / 34 | SOURCE_ONLY installer extraction boundary | Test-only Setup --extract-msi writes the fixed MSI name in an ordinary local working directory. Reject extra arguments, linked directories and network paths; retain normal and silent install. |
+
+| 0.1.34 / 35 | SOURCE_ONLY CI update | Pin the official CodeQL v4.39.3 release in Windows CI. Keep the installer extraction checks and existing verified artifacts. |
 
 The one-time source-baseline transition from 0.1.16/code17 to 0.1.19/code20 skips the two consumed identities above. The version guard permits only this exact transition; subsequent executable/build changes still require PATCH/code +1. This does not relabel or overwrite a historical release.
 
