@@ -149,11 +149,9 @@ final class FrameAmbientShaders {
                 float rim = exp2(-.87 * x * x);
                 float haze = exp2(-.14 * x * x);
                 float reach = exp2(-.40 * screenDistance);
-                tint = max(vec3(0.), tint - vec3(.62 * min(tint.r, min(tint.g, tint.b))));
-                tint /= max(max(tint.r, max(tint.g, tint.b)), .01);
-                vec3 plasma = tint * min(1., rim * .98 + haze * .32);
-                vec3 hot = mix(tint, vec3(1.), .91);
-                return shape.y * reach * mix(plasma, hot, core * .89);
+                // Shape the brightness without changing the sampled color at the core.
+                float brightness = mix(min(1., rim * .98 + haze * .32), 1., core * .89);
+                return tint * (shape.y * reach * brightness);
             }
 
             void main() {
