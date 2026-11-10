@@ -38,6 +38,9 @@ import com.local.listentomusic.model.SortMode
 import com.local.listentomusic.model.loadLocalLyrics
 import com.local.listentomusic.playback.PlaybackService
 import com.local.listentomusic.playback.PlaybackConnection
+import com.local.listentomusic.playback.QueueStartOrder
+import com.local.listentomusic.playback.isActiveListSelection
+import com.local.listentomusic.playback.playListSelection
 import com.local.listentomusic.playback.playbackRequested
 import com.local.listentomusic.playback.togglePlayback
 import kotlinx.coroutines.Job
@@ -248,7 +251,8 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         private var waveformAheadJob: Job? = null
     private var durationProbePath: String? = null
     private val probedDurations = mutableMapOf<String, Long>()
-    private var pendingPlay: MediaFile? = null
+    private data class PendingPlay(val file: MediaFile, val keepActive: Boolean, val revision: Long)
+    private var pendingPlay: PendingPlay? = null
     private var normalQueueRequest: Job? = null
     private var expandRestoredQueue = false
     private var lastPlaybackError: String? = null
@@ -486,30 +490,39 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch { preferences.setCustomOrder(moved.map { it.path }) }
     }
 
-    fun play(file: MediaFile) {
+    fun playLibraryItem(file: MediaFile) = requestPlay(file, keepActive = true)
+
+    fun play(file: MediaFile) = requestPlay(file, keepActive = false)
+
+    private fun isPlayingSelection(player: Player, file: MediaFile) =
+        isActiveListSelection(file.path, player.currentMediaItem?.mediaId, playbackRequested(player))
+
+    private fun requestPlay(file: MediaFile, keepActive: Boolean) {
         clearDisconnectedController()
         val player = _controller.value
+        if (keepActive && player != null && isPlayingSelection(player, file)) return
+        val revision = QueueStartOrder.advance()
         if (player == null) {
             // A tap can arrive while the MediaSession connection is still starting.
             // Keep it instead of silently dropping the user's request.
-            pendingPlay = file
+            pendingPlay = PendingPlay(file, keepActive, revision)
             if (controllerLease == null) connectController()
             return
         }
-        playNow(player, file)
+        playNow(player, file, revision)
     }
 
-    private fun playNow(player: Player, file: MediaFile) {
+    private fun playNow(player: Player, file: MediaFile, revision: Long) {
         val queue = com.local.listentomusic.model.browsingQueue(file, orderedFiles, scannedFiles)
         val index = queue.indexOfFirst { it.path == file.path }.coerceAtLeast(0)
         val resumeAt = if (userPreferences.resumePlayback && file.path == userPreferences.lastPath) {
             userPreferences.lastPositionMs
         } else 0L
-        startNormalQueue(player, queue, index, resumeAt)
+        startNormalQueue(player, queue, index, resumeAt, revision)
     }
 
     /** Every normal queue replacement exits Stack first and shares one startup path. */
-    private fun startNormalQueue(player: Player, queue: List<MediaFile>, index: Int, positionMs: Long) {
+    private fun startNormalQueue(player: Player, queue: List<MediaFile>, index: Int, positionMs: Long, revision: Long) {
         val selected = queue.getOrNull(index) ?: return
         normalQueueRequest?.cancel()
         val stackRevision = com.local.listentomusic.playback.StackPlayback.transportRevision
@@ -517,7 +530,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             val readable = withContext(Dispatchers.IO) {
                 com.local.listentomusic.data.mediaReadable(getApplication<Application>(), selected)
             }
-            if (_controller.value !== player || _controller.value?.isConnected != true ||
+            if (!QueueStartOrder.isCurrent(revision) || _controller.value !== player || _controller.value?.isConnected != true ||
                 stackRevision != com.local.listentomusic.playback.StackPlayback.transportRevision) return@launch
             if (!readable) {
                 showActionError("File unavailable. Rescan or select its folder again.", "檔案無法使用。請重新掃描或選擇資料夾。")
@@ -571,8 +584,11 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     fun playQueueItem(index: Int) {
         val player = _controller.value ?: return
         if (index !in 0 until player.mediaItemCount) return
-        player.seekToDefaultPosition(index)
-        player.play()
+        playListSelection(index, player.currentMediaItemIndex, playbackRequested(player)) {
+            QueueStartOrder.advance()
+            player.seekToDefaultPosition(index)
+            player.play()
+        }
     }
 
     suspend fun loadCurrentArtwork(path: String?, cachedOnly: Boolean = false): Bitmap? {
@@ -594,6 +610,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         clearDisconnectedController()
         val player = _controller.value
         if (player == null) {
+            QueueStartOrder.advance()
             connectController()
             showActionError("Connecting to playback. Try again shortly.", "正在連接播放服務。請稍後重試。")
             return
@@ -618,7 +635,10 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     fun next() {
         if (com.local.listentomusic.playback.StackPlayback.state.value.active) return
-        _controller.value?.seekToNextMediaItem()
+        _controller.value?.let {
+            QueueStartOrder.advance()
+            it.seekToNextMediaItem()
+        }
     }
 
     fun previous() {
@@ -627,6 +647,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             return
         }
         _controller.value?.let {
+            QueueStartOrder.advance()
             if (it.currentPosition > 4_000) it.seekTo(0) else it.seekToPreviousMediaItem()
         }
     }
@@ -931,7 +952,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                     keyword = playlist.stackKeyword,
                 )
         }
-        startNormalQueue(player, queue, 0, 0L)
+        if (queue.isNotEmpty()) startNormalQueue(player, queue, 0, 0L, QueueStartOrder.advance())
     }
 
     fun filesForPlaylist(id: String): List<MediaFile> {
@@ -1115,7 +1136,10 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 startTicker()
                 pendingPlay?.let { requested ->
                     pendingPlay = null
-                    playNow(mediaController, requested)
+                    if (QueueStartOrder.isCurrent(requested.revision) &&
+                        (!requested.keepActive || !isPlayingSelection(mediaController, requested.file))) {
+                        playNow(mediaController, requested.file, requested.revision)
+                    }
                 }
             }.onFailure {
                 controllerLease = null

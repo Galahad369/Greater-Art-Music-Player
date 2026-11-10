@@ -107,42 +107,49 @@ internal fun Modifier.adaptiveAmbientBackdrop(
     }
     val (reduced, saving) = ambientSystemConstraints()
     val active = visible && resumed
-    val artPixels by produceState<List<Int>>(emptyList(), artwork, mediaId, active) {
-        value = emptyList()
-        if (active) value = withContext(Dispatchers.Default) {
-            runCatching { adaptiveArtworkPixels(artwork) }.getOrDefault(emptyList())
+    // Restarting the producer alone would retain the previous track's state.
+    val artPixels by key(mediaId, artwork) {
+        produceState<List<Int>>(emptyList(), active) {
+            value = emptyList()
+            if (active) value = withContext(Dispatchers.Default) {
+                runCatching { adaptiveArtworkPixels(artwork) }.getOrDefault(emptyList())
+            }
         }
     }
     // Classic Ambient has a strong, steady light arrangement. Adaptive keeps the
     // existing intensity/motion controls and scene-response behavior.
     val intensity = if (steady) .8f else ambientUnit(preferences.adaptiveIntensity)
     val motion = if (steady) com.local.listentomusic.data.AmbientMotion.OFF else preferences.adaptiveMotion
-    val inputActive = active && !scrolling && !saving && intensity > 0f
-    val signal by produceState(SharedAdaptiveAmbient.cache.snapshot(mediaId.orEmpty(), fallback),
-        artPixels, mediaId, inputActive, fallback) {
-        value = SharedAdaptiveAmbient.cache.snapshot(mediaId.orEmpty(), fallback)
-        suspend fun refreshSignal() {
-            val video = VideoAmbientColors.state.value
-            value = withContext(Dispatchers.Default) {
-                val pixels = ambientInputPixels(mediaId, video.mediaId, video.pixels, artPixels)
-                SharedAdaptiveAmbient.cache.update(mediaId.orEmpty(), pixels, fallback, SystemClock.uptimeMillis())
+    val inputActive = ambientShouldRefreshColors(active, scrolling, saving, playerPresentation, intensity)
+    val signal by key(mediaId) {
+        produceState(SharedAdaptiveAmbient.cache.snapshot(mediaId.orEmpty(), fallback),
+            artPixels, inputActive, fallback) {
+            value = SharedAdaptiveAmbient.cache.snapshot(mediaId.orEmpty(), fallback)
+            suspend fun refreshSignal() {
+                val video = VideoAmbientColors.state.value
+                value = withContext(Dispatchers.Default) {
+                    val pixels = ambientInputPixels(mediaId, video.mediaId, video.pixels, artPixels)
+                    SharedAdaptiveAmbient.cache.update(mediaId.orEmpty(), pixels, fallback, SystemClock.uptimeMillis())
+                }
             }
-        }
-        if (inputActive) {
-            refreshSignal()
-            while (isActive) {
-                // Mark subsequent sampling as continuous decorative work so Compose
-                // test clocks can settle finite palette transitions instead of chasing
-                // a new 1.9s fade every simulated 900ms forever.
-                withInfiniteAnimationFrameNanos { }
-                delay(900L)
+            if (inputActive) {
                 refreshSignal()
+                while (isActive) {
+                    // Mark subsequent sampling as continuous decorative work so Compose
+                    // test clocks can settle finite palette transitions instead of chasing
+                    // a new 1.9s fade every simulated 900ms forever.
+                    withInfiniteAnimationFrameNanos { }
+                    delay(900L)
+                    refreshSignal()
+                }
             }
         }
     }
     val layers = ambientLayers(signal, intensity,
         !steady && preferences.adaptiveReactToVideo, motion)
-    val fade = if (reduced) snap<Color>() else tween(1600)
+    // Keep the sampled glow in the player without animating between samples in Power saving.
+    val immediatePalette = reduced || (saving && playerPresentation)
+    val fade = if (immediatePalette) snap<Color>() else tween(1600)
     val base = theme.background
     // Intensity cannot bypass contrast: layer tint is capped before drawing.
     val tint = if (light) .18f else if (playerPresentation) .82f else .72f
@@ -152,7 +159,7 @@ internal fun Modifier.adaptiveAmbientBackdrop(
     val glow = animateColorAsState(Color(signal.colors[0]), fade, label = "adaptive-glow")
     val lightBand = animateColorAsState(Color(signal.colors[1]), fade, label = "adaptive-light-band")
     val flowing = animateColorAsState(Color(signal.colors[2]), fade, label = "adaptive-flow-color")
-    val strengthSpec = if (reduced) snap<Float>() else tween(1900)
+    val strengthSpec = if (immediatePalette) snap<Float>() else tween(1900)
     val aurora = animateFloatAsState(layers.aurora, strengthSpec, label = "adaptive-aurora")
     val bloom = animateFloatAsState(layers.bloom, strengthSpec, label = "adaptive-bloom")
     val flow = animateFloatAsState(layers.flow, strengthSpec, label = "adaptive-flow")

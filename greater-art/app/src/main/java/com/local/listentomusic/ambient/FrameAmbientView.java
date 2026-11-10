@@ -23,7 +23,7 @@ import javax.microedition.khronos.opengles.GL10;
 /**
  * SDR compositor shared by Now Playing and the private verification host. The frame-available/
  * external-texture pattern follows the AndroidX Media3 1.11.1 GL demo (Apache-2.0).
- * Video and lighting are drawn in ONE pass from ONE latched decoder texture.
+ * A tiny light map and the final composition use the same latched decoder texture.
  */
 @UnstableApi
 public final class FrameAmbientView extends GLSurfaceView implements GLSurfaceView.Renderer {
@@ -54,27 +54,35 @@ public final class FrameAmbientView extends GLSurfaceView implements GLSurfaceVi
         }
     }
 
-    private static final String VERTEX =
-            "attribute vec2 aPosition; varying vec2 vUv;\n" +
-            "void main(){vUv=aPosition*.5+.5;gl_Position=vec4(aPosition,0.,1.);}";
-    private static final String FRAGMENT =
-            "#extension GL_OES_EGL_image_external : require\n" +
-            "precision highp float; varying vec2 vUv;\n" +
-            "uniform samplerExternalOES uFrame; uniform mat4 uTransform;\n" +
-            "uniform vec2 uSize; uniform vec4 uStage; uniform vec4 uVideo;\n" +
-            "uniform vec4 uBackground; uniform vec3 uHeldGlow; uniform float uHold; uniform float uLight;\n" +
-            "vec3 frame(vec2 uv){return texture2D(uFrame,(uTransform*vec4(clamp(uv,0.,1.),0.,1.)).xy).rgb;}\n" +
-            "bool inside(vec2 p,vec4 r){return all(greaterThanEqual(p,r.xy))&&all(lessThan(p,r.xy+r.zw));}\n" +
-            "void main(){vec2 p=vUv*uSize;\n" +
-            " if(inside(p,uStage)){gl_FragColor=inside(p,uVideo)?vec4(frame((p-uVideo.xy)/uVideo.zw),1.):vec4(0.,0.,0.,1.);return;}\n" +
-            " vec2 uv=(p-uBackground.xy)/uBackground.zw;vec2 d=vec2(30.)/uBackground.zw;\n" +
-            " vec3 c=frame(uv)*.20;\n" +
-            " c+=(frame(uv+vec2(d.x,0.))+frame(uv-vec2(d.x,0.))+frame(uv+vec2(0.,d.y))+frame(uv-vec2(0.,d.y)))*.12;\n" +
-            " c+=(frame(uv+d)+frame(uv-d)+frame(uv+vec2(d.x,-d.y))+frame(uv+vec2(-d.x,d.y)))*.08;\n" +
-            " c=mix(c,uHeldGlow,uHold);\n" +
-            " float edge=exp(-vUv.x*5.)+exp(-(1.-vUv.x)*5.);\n" +
-            " float ribbon=exp(-pow((vUv.y-(.21+.065*sin(vUv.x*5.))),2.)*220.);\n" +
-            " gl_FragColor=vec4(c*(.30+.16*edge+.13*ribbon)*uLight+vec3(.012),1.);}";
+    private static final class FrameProgram {
+        final int id;
+        final int position;
+        final int transform;
+        final int size;
+        final int stage;
+        final int video;
+
+        FrameProgram(String fragmentSource) {
+            int vertex = shader(GLES20.GL_VERTEX_SHADER, FrameAmbientShaders.VERTEX);
+            int fragment = shader(GLES20.GL_FRAGMENT_SHADER, fragmentSource);
+            id = GLES20.glCreateProgram();
+            GLES20.glAttachShader(id, vertex);
+            GLES20.glAttachShader(id, fragment);
+            GLES20.glLinkProgram(id);
+            GLES20.glDeleteShader(vertex);
+            GLES20.glDeleteShader(fragment);
+            int[] status = new int[1];
+            GLES20.glGetProgramiv(id, GLES20.GL_LINK_STATUS, status, 0);
+            if (status[0] == 0) throw new IllegalStateException("GL program link failed");
+            position = GLES20.glGetAttribLocation(id, "aPosition");
+            transform = GLES20.glGetUniformLocation(id, "uTransform");
+            size = GLES20.glGetUniformLocation(id, "uSize");
+            stage = GLES20.glGetUniformLocation(id, "uStage");
+            video = GLES20.glGetUniformLocation(id, "uVideo");
+            GLES20.glUseProgram(id);
+            GLES20.glUniform1i(GLES20.glGetUniformLocation(id, "uFrame"), 0);
+        }
+    }
 
     private final Listener listener;
     private final Handler main = new Handler(Looper.getMainLooper());
@@ -99,15 +107,11 @@ public final class FrameAmbientView extends GLSurfaceView implements GLSurfaceVi
     private volatile String rendererName = "not-created";
     private SurfaceTexture texture;
     private Surface input;
-    private int program;
+    private FrameProgram composite;
+    private FrameProgram analysis;
     private int frameTexture;
-    private int positionLocation;
-    private int frameLocation;
-    private int transformLocation;
-    private int sizeLocation;
-    private int stageLocation;
-    private int videoLocation;
-    private int backgroundLocation;
+    private int beamTexture;
+    private int beamFramebuffer;
     private int heldLocation;
     private int holdLocation;
     private int lightLocation;
@@ -119,10 +123,10 @@ public final class FrameAmbientView extends GLSurfaceView implements GLSurfaceVi
     private boolean held;
     private volatile float[] stage;
     private volatile float[] video;
-    private float[] background;
     private float[] stageFromTop;
     private float light = 1f;
     private boolean layoutDirty = true;
+    private boolean beamsDirty = true;
 
     public FrameAmbientView(Context context, Listener listener, boolean diagnose, boolean staleGlowControl) {
         this(context, listener, diagnose, staleGlowControl, false);
@@ -202,28 +206,15 @@ public final class FrameAmbientView extends GLSurfaceView implements GLSurfaceVi
         if (closed) return;
         try {
             rendererName = GLES20.glGetString(GLES20.GL_RENDERER);
-            program = GLES20.glCreateProgram();
-            int vertex = shader(GLES20.GL_VERTEX_SHADER, VERTEX);
-            int fragment = shader(GLES20.GL_FRAGMENT_SHADER, FRAGMENT);
-            GLES20.glAttachShader(program, vertex);
-            GLES20.glAttachShader(program, fragment);
-            GLES20.glLinkProgram(program);
-            int[] status = new int[1];
-            GLES20.glGetProgramiv(program, GLES20.GL_LINK_STATUS, status, 0);
-            GLES20.glDeleteShader(vertex);
-            GLES20.glDeleteShader(fragment);
-            if (status[0] == 0) throw new IllegalStateException("GL program link failed");
-            positionLocation = GLES20.glGetAttribLocation(program, "aPosition");
-            frameLocation = GLES20.glGetUniformLocation(program, "uFrame");
-            transformLocation = GLES20.glGetUniformLocation(program, "uTransform");
-            sizeLocation = GLES20.glGetUniformLocation(program, "uSize");
-            stageLocation = GLES20.glGetUniformLocation(program, "uStage");
-            videoLocation = GLES20.glGetUniformLocation(program, "uVideo");
-            backgroundLocation = GLES20.glGetUniformLocation(program, "uBackground");
-            heldLocation = GLES20.glGetUniformLocation(program, "uHeldGlow");
-            holdLocation = GLES20.glGetUniformLocation(program, "uHold");
-            lightLocation = GLES20.glGetUniformLocation(program, "uLight");
+            analysis = new FrameProgram(FrameAmbientShaders.ANALYZE);
+            composite = new FrameProgram(FrameAmbientShaders.COMPOSITE);
+            GLES20.glUniform1i(GLES20.glGetUniformLocation(composite.id, "uBeams"), 1);
+            heldLocation = GLES20.glGetUniformLocation(composite.id, "uHeldGlow");
+            holdLocation = GLES20.glGetUniformLocation(composite.id, "uHold");
+            lightLocation = GLES20.glGetUniformLocation(composite.id, "uLight");
             int[] names = new int[1];
+            createBeamMap(names);
+            GLES20.glActiveTexture(GLES20.GL_TEXTURE0);
             GLES20.glGenTextures(1, names, 0);
             frameTexture = names[0];
             GLES20.glBindTexture(GLES11Ext.GL_TEXTURE_EXTERNAL_OES, frameTexture);
@@ -231,6 +222,7 @@ public final class FrameAmbientView extends GLSurfaceView implements GLSurfaceVi
             GLES20.glTexParameteri(GLES11Ext.GL_TEXTURE_EXTERNAL_OES, GLES20.GL_TEXTURE_MAG_FILTER, GLES20.GL_LINEAR);
             GLES20.glTexParameteri(GLES11Ext.GL_TEXTURE_EXTERNAL_OES, GLES20.GL_TEXTURE_WRAP_S, GLES20.GL_CLAMP_TO_EDGE);
             GLES20.glTexParameteri(GLES11Ext.GL_TEXTURE_EXTERNAL_OES, GLES20.GL_TEXTURE_WRAP_T, GLES20.GL_CLAMP_TO_EDGE);
+            if (GLES20.glGetError() != GLES20.GL_NO_ERROR) throw new IllegalStateException("Ambient GL setup failed");
             SurfaceTexture nextTexture = new SurfaceTexture(frameTexture);
             Surface nextInput = new Surface(nextTexture);
             SurfaceTexture oldTexture = texture;
@@ -239,6 +231,7 @@ public final class FrameAmbientView extends GLSurfaceView implements GLSurfaceVi
             input = nextInput;
             currentTimestamp = 0;
             hasFrame = false;
+            beamsDirty = true;
             currentPts = C.TIME_UNSET;
             available.set(false);
             held = false;
@@ -286,6 +279,7 @@ public final class FrameAmbientView extends GLSurfaceView implements GLSurfaceVi
                 currentTimestamp = nextTimestamp;
                 texture.getTransformMatrix(matrix);
                 hasFrame = true;
+                beamsDirty = true;
             }
             if (!hasFrame) return;
             if (layoutDirty) {
@@ -297,25 +291,20 @@ public final class FrameAmbientView extends GLSurfaceView implements GLSurfaceVi
                     stage = new float[] {0, height * .47f, width, height * .49f};
                 }
                 video = FrameAmbientGeometry.place(stage[0], stage[1], stage[2], stage[3], aspect, crop);
-                background = FrameAmbientGeometry.place(0, 0, width, height, aspect, true);
                 layoutDirty = false;
+                beamsDirty = true;
             }
-            GLES20.glUseProgram(program);
-            GLES20.glEnableVertexAttribArray(positionLocation);
-            GLES20.glVertexAttribPointer(positionLocation, 2, GLES20.GL_FLOAT, false, 0, quad);
             GLES20.glActiveTexture(GLES20.GL_TEXTURE0);
             GLES20.glBindTexture(GLES11Ext.GL_TEXTURE_EXTERNAL_OES, frameTexture);
-            GLES20.glUniform1i(frameLocation, 0);
-            GLES20.glUniformMatrix4fv(transformLocation, 1, false, matrix, 0);
-            GLES20.glUniform2f(sizeLocation, width, height);
-            GLES20.glUniform4fv(stageLocation, 1, stage, 0);
-            GLES20.glUniform4fv(videoLocation, 1, video, 0);
-            GLES20.glUniform4fv(backgroundLocation, 1, background, 0);
+            if (light > 0f && beamsDirty) {
+                drawBeamMap();
+                beamsDirty = false;
+            }
+            useFrameProgram(composite);
             GLES20.glUniform3fv(heldLocation, 1, heldGlow, 0);
             GLES20.glUniform1f(holdLocation, staleGlowControl && held ? 1 : 0);
             GLES20.glUniform1f(lightLocation, light);
-            GLES20.glDrawArrays(GLES20.GL_TRIANGLE_STRIP, 0, 4);
-            GLES20.glDisableVertexAttribArray(positionLocation);
+            drawQuad(composite);
             if (GLES20.glGetError() != GLES20.GL_NO_ERROR) throw new IllegalStateException("GL draw failed");
             // Publish only after drawing. Android layout can resize before this GL thread.
             drawnViewport = (long) width << 32 | (height & 0xffffffffL);
@@ -337,6 +326,62 @@ public final class FrameAmbientView extends GLSurfaceView implements GLSurfaceVi
                 }
             }
         } catch (RuntimeException error) { fail(error.getClass().getSimpleName()); }
+    }
+
+    private void createBeamMap(int[] names) {
+        GLES20.glGenTextures(1, names, 0);
+        beamTexture = names[0];
+        GLES20.glActiveTexture(GLES20.GL_TEXTURE1);
+        GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, beamTexture);
+        GLES20.glTexParameteri(GLES20.GL_TEXTURE_2D, GLES20.GL_TEXTURE_MIN_FILTER, GLES20.GL_NEAREST);
+        GLES20.glTexParameteri(GLES20.GL_TEXTURE_2D, GLES20.GL_TEXTURE_MAG_FILTER, GLES20.GL_NEAREST);
+        GLES20.glTexParameteri(GLES20.GL_TEXTURE_2D, GLES20.GL_TEXTURE_WRAP_S, GLES20.GL_CLAMP_TO_EDGE);
+        GLES20.glTexParameteri(GLES20.GL_TEXTURE_2D, GLES20.GL_TEXTURE_WRAP_T, GLES20.GL_CLAMP_TO_EDGE);
+        GLES20.glTexImage2D(GLES20.GL_TEXTURE_2D, 0, GLES20.GL_RGBA, FrameAmbientShaders.BEAM_COLUMNS,
+                FrameAmbientShaders.BEAM_EDGES, 0, GLES20.GL_RGBA, GLES20.GL_UNSIGNED_BYTE, null);
+        GLES20.glGenFramebuffers(1, names, 0);
+        beamFramebuffer = names[0];
+        GLES20.glBindFramebuffer(GLES20.GL_FRAMEBUFFER, beamFramebuffer);
+        try {
+            GLES20.glFramebufferTexture2D(GLES20.GL_FRAMEBUFFER, GLES20.GL_COLOR_ATTACHMENT0,
+                    GLES20.GL_TEXTURE_2D, beamTexture, 0);
+            if (GLES20.glCheckFramebufferStatus(GLES20.GL_FRAMEBUFFER) != GLES20.GL_FRAMEBUFFER_COMPLETE) {
+                throw new IllegalStateException("Ambient beam map is incomplete");
+            }
+        } finally {
+            GLES20.glBindFramebuffer(GLES20.GL_FRAMEBUFFER, 0);
+        }
+    }
+
+    private void drawBeamMap() {
+        // Do not latch the SurfaceTexture here. The color and direction must
+        // correspond to the exact same decoder buffer as the foreground draw.
+        GLES20.glBindFramebuffer(GLES20.GL_FRAMEBUFFER, beamFramebuffer);
+        GLES20.glViewport(0, 0, FrameAmbientShaders.BEAM_COLUMNS, FrameAmbientShaders.BEAM_EDGES);
+        GLES20.glDisable(GLES20.GL_DITHER); // The RGBA bytes encode coordinates, not display colors.
+        try {
+            useFrameProgram(analysis);
+            drawQuad(analysis);
+        } finally {
+            GLES20.glEnable(GLES20.GL_DITHER); // Restore the default for the unchanged video draw.
+            GLES20.glBindFramebuffer(GLES20.GL_FRAMEBUFFER, 0);
+            GLES20.glViewport(0, 0, width, height);
+        }
+    }
+
+    private void useFrameProgram(FrameProgram pass) {
+        GLES20.glUseProgram(pass.id);
+        GLES20.glUniformMatrix4fv(pass.transform, 1, false, matrix, 0);
+        GLES20.glUniform2f(pass.size, width, height);
+        GLES20.glUniform4fv(pass.stage, 1, stage, 0);
+        GLES20.glUniform4fv(pass.video, 1, video, 0);
+    }
+
+    private void drawQuad(FrameProgram pass) {
+        GLES20.glEnableVertexAttribArray(pass.position);
+        GLES20.glVertexAttribPointer(pass.position, 2, GLES20.GL_FLOAT, false, 0, quad);
+        GLES20.glDrawArrays(GLES20.GL_TRIANGLE_STRIP, 0, 4);
+        GLES20.glDisableVertexAttribArray(pass.position);
     }
 
     private int readPixel(int x, int y) {

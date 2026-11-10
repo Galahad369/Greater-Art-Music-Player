@@ -4,7 +4,7 @@ Greater Art is a native Kotlin/Jetpack Compose player for local music and video.
 
 ## Current release
 
-Current source: **1.22.14 / code 335 — SOURCE_ONLY**. Stack picture alignment starts with a quick ±2-second search across three sections. If some tracks do not match, choose **Wider search (±30 s)**. Review the offsets before applying them. Sound alignment and playback quality are unchanged. The verified download remains 1.21.93.
+Current source: **1.22.15 / code 336 — SOURCE_ONLY**. Compatible SDR video in Now Playing casts directional light beyond the frame when a bright streak crosses an edge. Other scenes use a softer edge glow. HDR and Power saving keep native video with the existing automatic sampled glow. Stack picture alignment starts with a quick ±2-second search across three sections. If some tracks do not match, choose **Wider search (±30 s)**. Review the offsets before applying them. Sound alignment and playback quality are unchanged. The verified download remains 1.21.93.
 
 Latest verified local maintenance APK: **1.21.93 / code316**. Now Playing has a transparent title area, compact controls and reflected Ambient. The subtle Library current-track dot, keyboard-safe dock, primary playback quality and row actions are preserved. See the [release receipt](docs/RELEASE_1.21.93.md) for exact source, signing, artifact and emulator evidence. Shared output remains disabled; this maintenance release does not complete its high-resolution and function-parity gates in the [refinement report](docs/STACK_SHARED_OUTPUT_REFINEMENT_2026-10-28.md). [Physical measurements](../docs/LIBRARY_AUDIT_2026-10-24.md), complete fullscreen-rotation acceptance and acoustic Stack validation remain unresolved. The independent [safe sync workflow](../docs/SAFE_SYNC.md) remains available. Adaptive Dynamic combines
 Classic/Aurora/Bloom/Flow; Classic remains available. See
@@ -221,14 +221,13 @@ Requirements:
 - JDK 21
 - Android SDK / API 37
 
-From `greater-art/`:
+From the repository root, run the [optimized APK gate](docs/ANDROID_RELEASE_GATE.md):
 
 ```powershell
-$env:JAVA_HOME = 'C:\Program Files\Android\openjdk\jdk-21.0.8'
-$env:ANDROID_HOME = "$env:LOCALAPPDATA\Android\Sdk"
-$env:GRADLE_USER_HOME = Join-Path $env:USERPROFILE '.gradle'
-& "$env:JAVA_HOME\bin\java.exe" -classpath gradle\wrapper\gradle-wrapper.jar org.gradle.wrapper.GradleWrapperMain testDebugUnitTest lintDebug assembleDebug --no-daemon
+python -B scripts/greater-art-android-gate.py build --out ../output/android-release-1.22.15-new
 ```
+
+This runs preflight then `:app:assembleRelease`. The exact APK and device smoke must pass before completion. The debug builder is for development only; publishing remains separate.
 
 Current release artifact:
 

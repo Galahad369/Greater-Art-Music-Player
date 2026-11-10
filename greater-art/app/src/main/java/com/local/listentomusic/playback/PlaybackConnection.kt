@@ -2,12 +2,17 @@ package com.local.listentomusic.playback
 
 import android.content.ComponentName
 import android.content.Context
+import android.os.Bundle
 import androidx.annotation.MainThread
 import androidx.media3.session.MediaController
 import androidx.media3.session.SessionToken
 import com.google.common.util.concurrent.ListenableFuture
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
+
+internal const val APP_TRANSPORT_ORDERED = "com.local.listentomusic.playback.APP_TRANSPORT_ORDERED"
+
+internal fun orderedTransportHints() = Bundle().apply { putBoolean(APP_TRANSPORT_ORDERED, true) }
 
 /** Shared by the three player presentations; only the final borrower releases it. */
 internal object PlaybackConnection {
@@ -20,6 +25,7 @@ internal object PlaybackConnection {
         fun create(): ListenableFuture<MediaController> {
             val app = context.applicationContext
             return MediaController.Builder(app, SessionToken(app, ComponentName(app, PlaybackService::class.java)))
+                .setConnectionHints(orderedTransportHints())
                 .setListener(object : MediaController.Listener {
                     override fun onDisconnected(controller: MediaController) {
                         disconnections.tryEmit(controller)

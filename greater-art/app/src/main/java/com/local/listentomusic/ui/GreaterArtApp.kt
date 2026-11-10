@@ -512,9 +512,7 @@ fun GreaterArtApp(
                         onCreateRule = { createRule = true },
                         onAddSelected = viewModel::addAllToPlaylist,
                         onCreateSelected = viewModel::createSelectionPlaylist,
-                        onPlay = {
-                            viewModel.play(it)
-                        },
+                        onPlay = viewModel::playLibraryItem,
                     )
                                                                             }
                         }

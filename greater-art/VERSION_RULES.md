@@ -16,7 +16,7 @@ This file is the authoritative version policy for Greater Art. If any handoff no
 ## Machine-checkable state
 
 
-Current source: **1.22.14 (code 335)**
+Current source: **1.22.15 (code 336)**
 Allowed consumed transition: **1.21.38 (code 261) -> 1.21.40 (code 263)**
 
 Retain PR174's original declared transition for eeb06d9. Its initial1.21.40
@@ -147,6 +147,10 @@ runtime behavior or verified APK changes are implied.
 8. **Documentation-only or release-finalization commits do not bump the app version** provided they contain no versioned code changes.
 9. **Do not overwrite history to repair a version mistake.** Consume the next PATCH and record what happened.
 10. **Pure integration merges do not consume another source version.** Only a merge whose complete tree exactly matches a parent qualifies. Underlying commits are still validated, and APK immutability checks still apply. Merges introducing conflict-resolution code must follow the normal source-version rules.
+
+### Mandatory Android APK gate
+
+Android app or build changes require the [local optimized APK gate](docs/ANDROID_RELEASE_GATE.md), even when the functional test contract does not declare a release. Preflight first and run `:app:assembleRelease` when the JDK and SDK are available. Missing signing or device prerequisites block those stages, not assembly. `SOURCE_ONLY` is a valid intermediate repository state, not task completion. Mark an APK verified only after the original signer, exact-file identity and smoke on those installed bytes pass for the exact versioned source commit. Publishing is a separate decision. Documentation-only changes do not trigger this build gate.
 
 ## What counts as versioned code
 
@@ -490,3 +494,4 @@ Previous baseline: 1.13.26 (code 115).
 - 1.22.12 (code 333): start the local AVC decoder from a nearby IDR frame when the planned sync point is in an open GOP, preserving all matching windows and the 45-second budget. SOURCE_ONLY.
 - 1.22.13 (code 334): use the existing `setup-gradle` cache in Android CI and Java/Kotlin CodeQL without the duplicate `setup-java` cache. SOURCE_ONLY.
 - 1.22.14 (code 335): carry the official Setup Java v6.2.0 and CodeQL v4.39.3 pins from PR #238 and Android Gradle plugin 9.5.1 from PR #239. Keep the existing Gradle wrapper, Java version, required checks and verified APK. SOURCE_ONLY.
+- 1.22.15 (code 336): keep the automatic Now Playing glow in Android Power saving by using existing video-color samples or artwork. Skip decorative motion and palette fades while Power saving is on. Keep native video and HDR output and the browsing background policy. Compatible SDR Now Playing uses a same-frame GPU light map to continue a bright streak beyond the visible edge without filtering the picture. Remove only the expanded toolbar outline, retaining the rounded fill, controls, and fullscreen styling. An active list retap leaves playback alone, including after reconnect; later app transport commands and external session Pause supersede older queue starts, without counting an app Pause twice. Reset artwork and palette state across media changes and stop refreshing an obscured landscape backdrop. Add the mandatory local optimized APK gate with independent assembly, signing and device results. SOURCE_ONLY.
