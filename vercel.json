@@ -11,6 +11,11 @@
       "permanent": false
     },
     {
+      "source": "/greater-art/HANDOFF.md",
+      "destination": "https://github.com/Galahad369/Greater-Art-Music-Player/blob/main/greater-art/HANDOFF.md",
+      "permanent": false
+    },
+    {
       "source": "/greater-art/docs/NOW_PLAYING_REFLECTIONS_2026-10-30.md",
       "destination": "https://github.com/Galahad369/Greater-Art-Music-Player/blob/main/greater-art/docs/NOW_PLAYING_REFLECTIONS_2026-10-30.md",
       "permanent": false

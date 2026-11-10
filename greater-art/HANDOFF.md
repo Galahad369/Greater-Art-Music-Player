@@ -3,21 +3,39 @@
 This file describes the **current repository state only**. Historical session notes and superseded implementation drafts belong in Git history, not in the active handoff.
 
 **Project:** `greater-art/` in the repository checkout
-**Current source:** `1.22.17 (code 338)` — SOURCE_ONLY. Compatible SDR Now Playing follows one coherent streak beyond the video edge in its sampled color; uncertain directions retain the soft glow. Android Power saving keeps the automatic low-power glow. Android builds use Android Gradle plugin 9.5.1; CI uses the official Setup Java v6.2.0 and CodeQL v4.39.3 pins with the existing `setup-gradle` cache. The local AVC decoder supports quick Stack picture analysis on compatible x86-64 Android emulators. The latest immutable verified download remains 1.21.93.
+
+## Current Android builds
+
+**Current source:** `1.22.18 (code 339)` — SOURCE_ONLY. Inactive Now Playing queue rows are transparent. Compatible SDR Now Playing follows one coherent streak beyond the video edge in its sampled color; uncertain directions retain the soft glow. Android Power saving keeps the automatic low-power glow. Android builds use Android Gradle plugin 9.5.1; CI uses the official Setup Java v6.2.0 and CodeQL v4.39.3 pins with the existing `setup-gradle` cache. The local AVC decoder supports quick Stack picture analysis on compatible x86-64 Android emulators. The latest immutable verified download remains 1.21.93.
 **Newest local device-tested APK:** `1.22.14 (code 335)` — sibling `App/output/android-release-1.22.14-20261107/GreaterArt-1.22.14.apk`, SHA-256 `7a932a41a46ea9bc85c865aade4c50579dde9bc0ca838ae5d05af03076497a13`. Optimized, same sideload key, A55 emulator smoke passed for those bytes. Not published; does not contain 1.22.15 changes.
-**Local sideload candidate:** `1.22.17 (code 338)` — `App/output/android-release-1.22.17-20261110-streak-tracking/candidate/GreaterArt-1.22.17.apk`, SHA-256 `20c7f320fecbd185ac554253f6ba0d4c1c4bd431338776d4e564adb2e7ee8b59`. Optimized and signed with the same separate local key as 1.22.15–16; exact-file checks passed. Device acceptance is pending; see the local `VERIFICATION.md`. This cannot update an original-signer installation.
+**Local sideload candidate:** `1.22.18 (code 339)` — `App/output/android-release-1.22.18-20261110-transparent-queue/candidate/GreaterArt-1.22.18.apk`, SHA-256 `faca68b801c72afef2ad8134e07c1fac8922c92deae2953566808a1a0d2ebf5d`. Optimized and signed with the same separate local key as 1.22.15–17; exact-file checks passed. Device acceptance is pending; see the local `VERIFICATION.md`. This cannot update an original-signer installation.
 
 The following release fields describe the immutable repository release **1.21.93**, not the newer local APK or pending source:
 
 **Current version:** `1.21.93 (code 316)`
-**Latest APK:** `releases/GreaterArt-1.21.93.apk` (`5,478,717 bytes`; SHA-256 `cee3f50632cdf186a1b58304c195378c1917284f20ce04d354c3549ab180f6cc`)
+**Latest APK:** `releases/GreaterArt-1.21.93.apk` (`5,478,717 bytes`; SHA-256 `cee3f50632cdf186a1b58304c195378c1917284f20ce04d354c3549ab180f6cc`). [Download verified APK](releases/GreaterArt-1.21.93.apk).
 **Application ID:** `com.local.listentomusic`
 **Signing certificate SHA-256:** `9e28eb45b3b171c3ea47d7da942d28d88b16538885e392a6971a80906d612fbf`
 **Build date:** `2026-10-30`
 **Test device:** `GreaterArt_Scroll_QA36 (API36 emulator, Android 16)`
 **Verification boundary:** Exact runtime source `58048b54e4119c3aad50ca99d4595afe479653c3`; Java21/Gradle9.8.2 unit/lint/debug app/test and optimized R8 assembly passed. 473 JVM tests, zero failures/errors/skips; lint0 errors/47 warnings/4 hints. API36 debug instrumentation23/23 in520.008s covers reflected Ambient, compact audio/video controls/title transparency, real audio/video IME dock continuity, real-page navigation/video sampling and fullscreen toolbar. Separate same-certificate optimized upgrade and native Library/video/dock/expanded-player smoke passed; actual screenshots inspected. Package/version, non-debuggable state, ZIP CRC,16KiB alignment and SHA-256 checked. The APK does not embed a usable VCS SHA; this receipt records it externally. Full rotation, physical-device visual/acoustic/performance acceptance, production signing and universal crash freedom remain unverified. See [the exact release receipt](docs/RELEASE_1.21.93.md).
 
+## Keep optimized builds and smooth scrolling
+
+**APK size.** The archived 1.10.4 debug APK was 26,008,568 bytes; the optimized 1.22.18 candidate is 5,546,768 bytes, about 79% smaller. ZIP entry inspection shows that compiled code went from 23,287,618 bytes across 12 DEX files to 2,806,836 bytes in one. Packaged resources stayed near 2.46 MB. The optimized 1.21.93 download was already 5.48 MB. The saving is mainly the switch from debug delivery to [R8-optimized release builds](https://developer.android.com/topic/performance/app-optimization/enable-app-optimization), with no change to source media quality from packaging.
+
+- Keep release code optimization enabled and retain the app's targeted keep rules. Resource shrinking is deliberately off. Run the [optimized APK gate](docs/ANDROID_RELEASE_GATE.md) with `:app:assembleRelease` for delivery, even when signing or device smoke is blocked. Use debug APKs for development and instrumentation. Require an exact non-debuggable APK identity and device smoke before calling a release verified. Compare release to release when investigating a size or performance regression.
+- Keep Library thumbnail RAM hits synchronous and free of filesystem or scheduler work. Allow bounded disk-cache hits while scrolling; defer fresh frame/artwork generation until scrolling settles. Keep viewport priority and cancellation, conflate obsolete viewport updates at the existing 50 ms cadence, and report scroll start/stop to the budget immediately.
+- Keep playback-position ticks out of the app shell; the player and diagnostics still receive their needed clock updates. Keep row paint reads in the draw phase and avoid restarting or reducing the quality of the primary player for scroll performance.
+
+The owner reports smoother scrolling. [The Library performance report](../docs/LIBRARY_AUDIT_2026-10-24.md) records the source changes and focused tests. There is no matched physical-device trace that isolates each change's contribution, and the exact 1.22.18 candidate still needs device smoke.
+
 ## Repository state
+
+### November 10 — Transparent inactive queue rows
+
+- The inactive Now Playing queue foreground used a 22% surface fill that dimmed Ambient. Set only that fill to zero. Keep the current-track tint and dot, row outline, clipped action underlay, player panels, and beam unchanged.
+- A source-derived compositing check failed on the old fill and passed at zero alpha. The version guard, optimized build, and exact-file checks passed. No A55 was connected and available RAM was below its boot requirement, so device smoke and visual acceptance were not run.
 
 ### November 10 — Follow the same Ambient streak
 

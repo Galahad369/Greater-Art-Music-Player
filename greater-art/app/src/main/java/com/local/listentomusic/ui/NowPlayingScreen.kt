@@ -210,7 +210,7 @@ internal const val HOLD_2X_ACTIVATION_MS = 700L
 internal const val HOLD_2X_LOCK_DISTANCE_DP = 72f
 internal const val NOW_PLAYING_AMBIENT_BOTTOM_BLEND = 0.62f
 internal const val NOW_PLAYING_AMBIENT_PANEL_ALPHA = 0.32f
-internal const val NOW_PLAYING_AMBIENT_ROW_ALPHA = 0.22f
+internal const val NOW_PLAYING_AMBIENT_ROW_ALPHA = 0f
 internal const val NOW_PLAYING_AMBIENT_OUTLINE_ALPHA = 0.34f
 internal const val NOW_PLAYING_ART_STAGE_ALPHA = 0.32f
 

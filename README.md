@@ -6,12 +6,12 @@ Greater Art is a local-first Android audio and video player. This repository con
 
 > **Vibe-coded disclosure:** Greater Art was built through iterative work with AI coding agents. Human direction, product decisions, device feedback, and acceptance guide the work; substantial code and documentation are AI-assisted.
 
-- Verified optimized maintenance sideload: **1.21.93 (code 316)** — see the [release receipt and verification boundary](greater-art/docs/RELEASE_1.21.93.md); physical performance acceptance remains pending.
-- APK: [GreaterArt-1.21.93.apk](greater-art/releases/GreaterArt-1.21.93.apk)
-- [App documentation](greater-art/README.md) · [Handoff and verification](greater-art/HANDOFF.md)
+- Latest Android source: **1.22.18 (code 339) — SOURCE_ONLY**. [Optimized local candidate and verification status](greater-art/HANDOFF.md#current-android-builds). Device smoke is pending; the candidate is not published.
+- Verified repository download: [GreaterArt-1.21.93.apk](greater-art/releases/GreaterArt-1.21.93.apk), code 316. [Release receipt and verification limits](greater-art/docs/RELEASE_1.21.93.md).
+- [App documentation](greater-art/README.md) · [Why the APK is smaller and scrolling is smoother](greater-art/HANDOFF.md#keep-optimized-builds-and-smooth-scrolling)
 - [User demonstration](greater-art-user-demo.html) · [Technical demonstration](greater-art-technical-demo.html)
 
-Current Android source: **1.22.17 / code 338 — SOURCE_ONLY**. Compatible SDR Now Playing projects one coherent light streak in its source color. If the direction is unclear, the soft glow remains without a guessed beam. HDR and Android Power saving keep native video and automatic sampled glow. Stack picture alignment checks three short sections first and offers a separate ±30-second search when tracks are unmatched. Sound alignment and playback quality are unchanged. The verified download remains 1.21.93.
+In 1.22.18, inactive Now Playing queue rows let Ambient show through. Compatible SDR video projects a coherent light streak in its source color. If the direction is unclear, the soft glow remains. HDR and Android Power saving keep native video with an automatic sampled glow. Stack picture alignment checks three short sections first and offers a separate ±30-second search for unmatched tracks. Sound alignment and playback quality are unchanged.
 
 Latest verified local maintenance APK: **1.21.93 / code316**. Now Playing has a transparent title area, compact controls and reflected Ambient. The Library's subtle current-track dot and keyboard-safe dock remain intact. Source `58048b54e4119c3aad50ca99d4595afe479653c3` passed 473 JVM tests, lint with zero errors, and 23 focused debug-instrumentation cases; see the [release receipt](greater-art/docs/RELEASE_1.21.93.md) for separate optimized-APK checks and exact limits. Shared output remains disabled with a known high-resolution stress failure; this maintenance release does not complete its [parity gates](greater-art/docs/STACK_SHARED_OUTPUT_REFINEMENT_2026-10-28.md). [Physical trace/profile acceptance](docs/LIBRARY_AUDIT_2026-10-24.md), complete fullscreen-rotation acceptance and acoustic Stack validation remain unfinished. No universal performance or crash-free claim.
 Windows Desktop source is independently versioned at **0.1.34 / code 35 — SOURCE_ONLY**. Windows CI uses CodeQL v4.39.3 and verifies exclusive, local-only installer test extraction. The last verified preview remains **0.1.21 / code 22**; its [WinUI receipt](desktop/winui/VERIFICATION_0.1.21.md) records the runnable publish folder and remaining gates. The frozen installer/portable delivery remains **0.1.16 / code 17**, unchanged.
@@ -23,12 +23,11 @@ see [desktop implementation and limitations](desktop/README.md).
 Integrated Mini/Android PiP/No Floating, queue Locate, readiness-gated PiP startup
 and independent High Contrast. [Full engineering evidence and remaining gates](greater-art/docs/QUALITY_PASS_2026-10-12.md).
 Classic/Aurora/Bloom/Flow coexist without another video decoder; see the
-[feature evidence](greater-art/docs/ADAPTIVE_AMBIENT_2.md). Latest verified APK
-is 1.21.93. Selected-folder URI Library/playback is preserved
+[feature evidence](greater-art/docs/ADAPTIVE_AMBIENT_2.md). Selected-folder URI Library/playback is preserved
 with distributed timing anchors, confidence-gated linear drift maps and bounded
 original-rate transient refinement. Library Performance v2
-stages 1–2. Shared viewport-priority artwork work pauses during fling; RAM hits stay
-immediate, allocation budgets respond to playback/Stack pressure, and verified
+stages 1–2. Fresh artwork generation waits during fling; RAM hits stay immediate and
+disk-cache reads stay bounded. Allocation budgets respond to playback/Stack pressure, and verified
 identical covers reuse assets. No playback-quality constraint or network permission.
 Main's screen-awake, fullscreen-lock and Void OLED changes are preserved. Full-size screens
 (Library, Settings, expanded Now Playing and landscape fullscreen) now request the
