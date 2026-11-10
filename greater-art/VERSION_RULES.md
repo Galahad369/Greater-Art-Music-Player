@@ -16,7 +16,7 @@ This file is the authoritative version policy for Greater Art. If any handoff no
 ## Machine-checkable state
 
 
-Current source: **1.22.16 (code 337)**
+Current source: **1.22.17 (code 338)**
 Allowed consumed transition: **1.21.38 (code 261) -> 1.21.40 (code 263)**
 
 Retain PR174's original declared transition for eeb06d9. Its initial1.21.40
@@ -496,3 +496,4 @@ Previous baseline: 1.13.26 (code 115).
 - 1.22.14 (code 335): carry the official Setup Java v6.2.0 and CodeQL v4.39.3 pins from PR #238 and Android Gradle plugin 9.5.1 from PR #239. Keep the existing Gradle wrapper, Java version, required checks and verified APK. SOURCE_ONLY.
 - 1.22.15 (code 336): keep the automatic Now Playing glow in Android Power saving by using existing video-color samples or artwork. Skip decorative motion and palette fades while Power saving is on. Keep native video and HDR output and the browsing background policy. Compatible SDR Now Playing uses a same-frame GPU light map to continue a bright streak beyond the visible edge without filtering the picture. Remove only the expanded toolbar outline, retaining the rounded fill, controls, and fullscreen styling. An active list retap leaves playback alone, including after reconnect; later app transport commands and external session Pause supersede older queue starts, without counting an app Pause twice. Reset artwork and palette state across media changes and stop refreshing an obscured landscape backdrop. Add the mandatory local optimized APK gate with independent assembly, signing and device results. SOURCE_ONLY.
 - 1.22.16 (code 337): keep the same Now Playing beam and use its sampled video color for the core, rim and haze. Remove the synthetic white core without changing the beam trigger, direction, video, or HDR and Power saving routes. Retain the separate 1.22.15 local APK and its exact source snapshot; do not collapse these identities into a skipped commit. SOURCE_ONLY.
+- 1.22.17 (code 338): track one coherent Ambient streak from the visible edge into the frame, so a separate highlight cannot tilt a straight shaft. Keep the sampled tint and genuine diagonal directions; use the existing soft glow when the line lacks support. Preserve the video, HDR and Power saving routes and prior APKs. SOURCE_ONLY.

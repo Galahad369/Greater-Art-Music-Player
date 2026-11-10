@@ -46,30 +46,70 @@ final class FrameAmbientShaders {
     static final String ANALYZE = FRAME_INPUT + """
             struct Spot { float center; float spread; float confidence; vec3 tint; };
 
-            Spot hotspot(vec2 origin, vec2 span, bool horizontal, bool positive, float inset) {
+            vec3 bandColor(vec2 origin, vec2 span, bool horizontal, bool positive, float inset, float t) {
                 float normal = positive ? 1. - inset : inset;
-                float mean = 0., peak = 0., weight = 0., first = 0., second = 0.;
-                vec3 tint = vec3(0.);
-                for (int i = 0; i < 64; ++i) {
+                vec2 uv = horizontal ? vec2(t, normal) : vec2(normal, t);
+                return frame(origin + uv * span);
+            }
+
+            float lightEnergy(vec3 color, float hi) {
+                return .72 * hi + .28 * (color.r + color.g + color.b) / 3.;
+            }
+
+            Spot streakRun(vec2 origin, vec2 span, bool horizontal, bool positive, float inset,
+                           float target, float radius) {
+                float mean = 0., bestScore = 0., runnerUp = 0., bestPeak = 0.;
+                Spot best = Spot(.5, 0., 0., vec3(0.));
+                // Weight, first moment, second moment, and peak for one contiguous run.
+                vec4 run = vec4(0.);
+                vec3 runTint = vec3(0.);
+                for (int i = 0; i < 65; ++i) {
                     float t = (float(i) + .5) / 64.;
-                    vec2 uv = horizontal ? vec2(t, normal) : vec2(normal, t);
-                    vec3 color = frame(origin + uv * span);
+                    // The final dark sample closes any run that reaches the end of the band.
+                    vec3 color = i < 64 ? bandColor(origin, span, horizontal, positive, inset, t) : vec3(0.);
                     float hi = max(color.r, max(color.g, color.b));
-                    float energy = .72 * hi + .28 * (color.r + color.g + color.b) / 3.;
+                    float energy = lightEnergy(color, hi);
                     float w = smoothstep(.57, .92, energy);
                     w *= w;
                     mean += energy / 64.;
-                    peak = max(peak, energy);
-                    weight += w;
-                    first += w * t;
-                    second += w * t * t;
-                    tint += color * w * (.16 + hi - min(color.r, min(color.g, color.b)));
+                    if (w > .001) {
+                        run.xyz += w * vec3(1., t, t * t);
+                        run.w = max(run.w, energy);
+                        runTint += color * w * (.16 + hi - min(color.r, min(color.g, color.b)));
+                    } else if (run.x > 0.) {
+                        float center = run.y / run.x;
+                        float spread = sqrt(max(0., run.z / run.x - center * center));
+                        float quality = smoothstep(.24, 1.45, run.x) * (1. - smoothstep(.066, .145, spread));
+                        // Seed at the strongest edge run. Farther in, prefer the predicted position
+                        // over the brightness of a different object in the same band.
+                        float match = radius > 0. ? 1. - smoothstep(0., radius, abs(center - target)) : run.x;
+                        float score = quality * match;
+                        if (score > bestScore) {
+                            runnerUp = bestScore;
+                            bestScore = score;
+                            bestPeak = run.w;
+                            vec3 tint = runTint / max(max(runTint.r, max(runTint.g, runTint.b)), .001);
+                            best = Spot(center, spread, quality, tint);
+                        } else {
+                            runnerUp = max(runnerUp, score);
+                        }
+                        run = vec4(0.);
+                        runTint = vec3(0.);
+                    }
                 }
-                float center = first / max(weight, .0001);
-                float spread = sqrt(max(0., second / max(weight, .0001) - center * center));
-                float confidence = smoothstep(.24, 1.45, weight) * smoothstep(.19, .49, peak - mean)
-                    * (1. - smoothstep(.066, .145, spread));
-                return Spot(center, spread, confidence, tint / max(max(tint.r, max(tint.g, tint.b)), .001));
+                best.confidence *= smoothstep(.19, .49, bestPeak - mean)
+                    * (1. - smoothstep(.72, .96, runnerUp / max(bestScore, .0001)));
+                return best;
+            }
+
+            float lineSupport(vec2 origin, vec2 span, bool horizontal, bool positive, float edge, float inner) {
+                float support = 1.;
+                for (int i = 0; i < 4; ++i) {
+                    float f = (float(i) + .5) / 4.;
+                    vec3 c = bandColor(origin, span, horizontal, positive, mix(NEAR_EDGE, INNER, f), mix(edge, inner, f));
+                    support = min(support, lightEnergy(c, max(c.r, max(c.g, c.b))));
+                }
+                return smoothstep(.48, .62, support);
             }
 
             // Pack positions more precisely than one byte: the small difference
@@ -94,13 +134,25 @@ final class FrameAmbientShaders {
                 }
                 vec2 origin = (visible.xy - uVideo.xy) / uVideo.zw;
                 vec2 span = visible.zw / uVideo.zw;
-                Spot edge = hotspot(origin, span, horizontal, positive, NEAR_EDGE);
-                Spot middle = hotspot(origin, span, horizontal, positive, (NEAR_EDGE + INNER) * .5);
-                Spot inner = hotspot(origin, span, horizontal, positive, INNER);
-                // Reject broad highlights and disconnected bright objects rather
-                // than guessing an angle from a single line of the picture.
+                Spot edge = streakRun(origin, span, horizontal, positive, NEAR_EDGE, 0., 0.);
+                if (edge.confidence <= .001) {
+                    gl_FragColor = vec4(0.);
+                    return;
+                }
+                Spot middle = streakRun(origin, span, horizontal, positive, (NEAR_EDGE + INNER) * .5, edge.center, .25);
+                if (middle.confidence <= .001) {
+                    gl_FragColor = vec4(0.);
+                    return;
+                }
+                float predicted = 2. * middle.center - edge.center;
+                float tolerance = clamp(.016 + max(edge.spread, middle.spread), .030, .065);
+                Spot inner = streakRun(origin, span, horizontal, positive, INNER, predicted, tolerance);
                 float aligned = 1. - smoothstep(.027, .091, abs(middle.center - (edge.center + inner.center) * .5));
                 float strength = min(edge.confidence, min(middle.confidence, inner.confidence)) * aligned;
+                // Three bright samples aren't proof of a shaft if the line between them is dark.
+                if (strength > .001) {
+                    strength *= lineSupport(origin, span, horizontal, positive, edge.center, inner.center);
+                }
                 if (vUv.x < .25) {
                     gl_FragColor = vec4(packPosition(edge.center), packPosition(inner.center));
                 } else if (vUv.x < .5) {
