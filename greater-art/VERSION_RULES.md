@@ -16,7 +16,7 @@ This file is the authoritative version policy for Greater Art. If any handoff no
 ## Machine-checkable state
 
 
-Current source: **1.22.18 (code 339)**
+Current source: **1.22.19 (code 340)**
 Allowed consumed transition: **1.21.38 (code 261) -> 1.21.40 (code 263)**
 
 Retain PR174's original declared transition for eeb06d9. Its initial1.21.40
@@ -498,3 +498,4 @@ Previous baseline: 1.13.26 (code 115).
 - 1.22.16 (code 337): keep the same Now Playing beam and use its sampled video color for the core, rim and haze. Remove the synthetic white core without changing the beam trigger, direction, video, or HDR and Power saving routes. Retain the separate 1.22.15 local APK and its exact source snapshot; do not collapse these identities into a skipped commit. SOURCE_ONLY.
 - 1.22.17 (code 338): track one coherent Ambient streak from the visible edge into the frame, so a separate highlight cannot tilt a straight shaft. Keep the sampled tint and genuine diagonal directions; use the existing soft glow when the line lacks support. Preserve the video, HDR and Power saving routes and prior APKs. SOURCE_ONLY.
 - 1.22.18 (code 339): remove the grey fill from inactive Now Playing queue rows so the Ambient backdrop shows through. Retain the active track highlight, outlines, action reveal, controls and beam. SOURCE_ONLY.
+- 1.22.19 (code 340): remove the normal Now Playing toolbar backplate so its buttons sit directly on the Ambient background. Keep control layout, touch targets, callbacks, the grab handle, bottom panel and fullscreen contrast scrim. Update the toolbar pixel test for the owner-approved transparent design. SOURCE_ONLY.

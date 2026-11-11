@@ -37,14 +37,16 @@ class NowPlayingToolbarChromeTest {
     private var topInsetPx = 0
     private var leftInsetPx = 0
 
-    @Test fun expandedToolbarKeepsRoundedFillWithoutOutlineAndRetainsItsActions() {
+    @Test fun expandedToolbarIsTransparentAndRetainsItsActions() {
         showToolbar(overlay = false)
         checkToolbarPixels { bitmap ->
             val centerX = bitmap.width / 2
-            val fill = bitmap.getPixel(centerX, bitmap.height / 5)
-            assertNotEquals("Expanded toolbar must retain its fill", backdrop, fill)
-            assertEquals("The straight top edge must not paint an outline", fill, bitmap.getPixel(centerX, topInsetPx))
-            assertEquals("The top-left corner must remain rounded", backdrop, bitmap.getPixel(leftInsetPx, topInsetPx))
+            assertEquals("Expanded toolbar must show the shared background", backdrop,
+                bitmap.getPixel(centerX, bitmap.height / 5))
+            assertEquals("The top edge must not paint a backplate or outline", backdrop,
+                bitmap.getPixel(centerX, topInsetPx))
+            assertEquals("The corner must show the shared background", backdrop,
+                bitmap.getPixel(leftInsetPx, topInsetPx))
         }
         val actions = listOf("Open floating player", "Home", "Lock player controls", "Fullscreen", "Close player")
         for (action in actions) {

@@ -2480,8 +2480,7 @@ internal fun NowPlayingTopBar(
     onTopBarBoundsChanged: (androidx.compose.ui.geometry.Rect) -> Unit = {},
 ) {
     val foregroundColor = if (overlay || frameLit) GaVideoOverlay.foreground else MaterialTheme.colorScheme.onSurface
-    val backgroundColor = if (overlay) GaVideoOverlay.scrim
-        else MaterialTheme.colorScheme.surface.copy(alpha = NOW_PLAYING_AMBIENT_PANEL_ALPHA)
+    val backgroundColor = if (overlay) GaVideoOverlay.scrim else Color.Transparent
     BoxWithConstraints(modifier.fillMaxWidth()
         .onGloballyPositioned { onTopBarBoundsChanged(it.boundsInWindow()) }) {
         // Keep 48dp targets at every width. Under 224dp, provide two compact
@@ -2503,10 +2502,10 @@ internal fun NowPlayingTopBar(
         val shape = RoundedCornerShape(GaRadius.chrome)
         val chrome = Modifier.fillMaxWidth()
             .padding(horizontal = 12.dp, vertical = 6.dp)
-            .clip(shape)
-            .background(backgroundColor)
             .then(if (overlay) {
-                Modifier.border(1.dp, Color.White.copy(alpha = 0.14f), shape)
+                Modifier.clip(shape)
+                    .background(backgroundColor)
+                    .border(1.dp, Color.White.copy(alpha = 0.14f), shape)
             } else Modifier)
             .padding(horizontal = innerPadding)
 

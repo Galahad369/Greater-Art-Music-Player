@@ -4,10 +4,10 @@ Greater Art is a native Kotlin/Jetpack Compose player for local music and video.
 
 ## Current Android builds
 
-- Latest source: **1.22.18 / code 339 — SOURCE_ONLY**. [Optimized local candidate and verification status](HANDOFF.md#current-android-builds). Exact-file checks passed; device smoke is pending. The separate local signer cannot update an original-signer installation.
+- Latest source: **1.22.19 / code 340 — SOURCE_ONLY**. [A55-tested optimized local candidate and limits](docs/LOCAL_CANDIDATE_1.22.19.md). The separate local signer cannot update an original-signer installation; no public APK was replaced.
 - Verified repository download: [GreaterArt-1.21.93.apk](releases/GreaterArt-1.21.93.apk), code 316. See the [release receipt](docs/RELEASE_1.21.93.md) for signing and test limits.
 
-In 1.22.18, inactive Now Playing queue rows are transparent; the current track stays highlighted. Compatible SDR video extends a coherent light streak in its sampled color. Uncertain directions keep the soft glow. HDR and Power saving keep native video with automatic sampled glow. Stack picture alignment starts with a quick ±2-second search across three sections. If some tracks do not match, choose **Wider search (±30 s)** and review the offsets before applying them. Sound alignment and playback quality are unchanged.
+Normal Now Playing toolbar buttons sit directly on Ambient without a rounded backplate. Inactive queue rows are transparent; the current track stays highlighted. Compatible SDR video extends a coherent light streak in its sampled color. Uncertain directions keep the soft glow. HDR and Power saving keep native video with automatic sampled glow. Stack picture alignment starts with a quick ±2-second search across three sections. If some tracks do not match, choose **Wider search (±30 s)** and review the offsets before applying them. Sound alignment and playback quality are unchanged.
 
 The 1.21.93 maintenance APK includes compact controls, reflected Ambient, the subtle Library current-track dot, and a keyboard-safe dock. Shared output remains disabled; its [high-resolution and function-parity gates](docs/STACK_SHARED_OUTPUT_REFINEMENT_2026-10-28.md) are incomplete. [Physical performance measurements](../docs/LIBRARY_AUDIT_2026-10-24.md), full rotation, and acoustic Stack validation remain unresolved. The independent [safe sync workflow](../docs/SAFE_SYNC.md) remains available. Adaptive Dynamic combines
 Classic/Aurora/Bloom/Flow; Classic remains available. See
@@ -227,7 +227,7 @@ Requirements:
 From the repository root, run the [optimized APK gate](docs/ANDROID_RELEASE_GATE.md):
 
 ```powershell
-python -B scripts/greater-art-android-gate.py build --out ../output/android-release-1.22.18-next-check
+python -B scripts/greater-art-android-gate.py build --out ../output/android-release-1.22.19-next-check
 ```
 
 This runs preflight then `:app:assembleRelease` with R8 code optimization. The exact APK and device smoke must pass before completion. The debug builder is for development only; publishing remains separate. See [the size comparison and scroll fixes to preserve](HANDOFF.md#keep-optimized-builds-and-smooth-scrolling).
