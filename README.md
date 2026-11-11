@@ -6,7 +6,7 @@ Greater Art is a local-first Android audio and video player. This repository con
 
 > **Vibe-coded disclosure:** Greater Art was built through iterative work with AI coding agents. Human direction, product decisions, device feedback, and acceptance guide the work; substantial code and documentation are AI-assisted.
 
-- Latest Android source: **1.22.20 (code 341) — SOURCE_ONLY**; [Stack alignment repair, tested candidate and remaining limits](greater-art/docs/STACK_ALIGNMENT_1.22.20.md). Quick picture timing and actual output sync are not qualified. [Previous A55-tested 1.22.19 candidate](greater-art/docs/LOCAL_CANDIDATE_1.22.19.md) is preserved, not renamed or replaced.
+- Latest Android source: **1.22.21 (code 342) — SOURCE_ONLY**; [A55-tested Power saving notice and candidate limits](greater-art/docs/POWER_SAVING_NOTICE_1.22.21.md). [Stack alignment repair and remaining limits](greater-art/docs/STACK_ALIGNMENT_1.22.20.md) remain separate: Quick picture timing and actual output sync are not qualified. [Previous A55-tested 1.22.19 candidate](greater-art/docs/LOCAL_CANDIDATE_1.22.19.md) is preserved, not renamed or replaced.
 - Verified repository download: [GreaterArt-1.21.93.apk](greater-art/releases/GreaterArt-1.21.93.apk), code 316. [Release receipt and verification limits](greater-art/docs/RELEASE_1.21.93.md).
 - [App documentation](greater-art/README.md) · [Why the APK is smaller and scrolling is smoother](greater-art/HANDOFF.md#keep-optimized-builds-and-smooth-scrolling)
 - [User demonstration](greater-art-user-demo.html) · [Technical demonstration](greater-art-technical-demo.html)

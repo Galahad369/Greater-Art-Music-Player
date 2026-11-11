@@ -15,6 +15,8 @@ internal fun additionalUiText(language: AppLanguage, key: String): String? {
 }
 
 internal val additionalTranslations = """
+Power saving makes Ambient less vivid. Video quality is unchanged.|省電模式會減弱氛圍燈光效果，但影片畫質不變。|省電力モードではアンビエントの光が控えめになります。動画の画質は変わりません。|Im Energiesparmodus wirkt das Ambient-Licht dezenter. Die Videoqualität bleibt unverändert.|Le mode économie d’énergie atténue l’éclairage ambiant. La qualité vidéo reste inchangée.
+Dismiss power saving notice|關閉省電提示|省電力の通知を閉じる|Energiesparhinweis schließen|Fermer l’avis d’économie d’énergie
 nodes|節點|ノード|Knoten|nœuds
 links|連線|リンク|Verbindungen|liens
 Connections|連線|接続|Verbindungen|Connexions

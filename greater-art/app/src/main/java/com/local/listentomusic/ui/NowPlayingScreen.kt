@@ -447,6 +447,9 @@ fun NowPlayingScreen(
         }
 
         var playerRootBounds by remember { mutableStateOf<androidx.compose.ui.geometry.Rect?>(null) }
+        var normalToolbarBounds by remember { mutableStateOf<androidx.compose.ui.geometry.Rect?>(null) }
+        val powerSaving = com.local.listentomusic.ui.components.ambientSystemConstraints().second
+        val noticeGapPx = with(LocalDensity.current) { GaSpacing.sm.roundToPx() }
 
         // The Library wallpaper is independent from the player. Adaptive keeps its
         // motion and intensity; every other browsing mode gets steady Ambient.
@@ -488,7 +491,7 @@ fun NowPlayingScreen(
             com.local.listentomusic.data.AppBackgroundMode.AMBIENT) .8f
             else com.local.listentomusic.ui.components.ambientUnit(playerAmbient?.adaptiveIntensity ?: 0f)
         val useFrameAmbient = wantsFrameAmbient && !frameAmbientFailed && frameAmbientLight > 0f &&
-            !com.local.listentomusic.ui.components.ambientSystemConstraints().second &&
+            !powerSaving &&
             com.local.listentomusic.ambient.hasFrameAmbientTrack(controller, playback.currentPath)
         val rotateFullscreen = {
             fullscreenLandscape = if (fullscreen) !fullscreenLandscape else !landscape
@@ -541,6 +544,7 @@ fun NowPlayingScreen(
                                         onLock = { controlsLocked = !controlsLocked },
                                         locked = controlsLocked,
                                         onLockAnchorBoundsChanged = reportLockAnchor,
+                                        onTopBarBoundsChanged = { normalToolbarBounds = it },
                                     )
                                 }
                                 VideoPlayerStage(
@@ -639,6 +643,7 @@ fun NowPlayingScreen(
                     onLock = { controlsLocked = !controlsLocked },
                     locked = controlsLocked,
                     onLockAnchorBoundsChanged = reportLockAnchor,
+                    onTopBarBoundsChanged = { normalToolbarBounds = it },
                 )
                 AudioPlayer(
                     playback = playback.copy(appLanguage = language),
@@ -721,6 +726,17 @@ fun NowPlayingScreen(
                 }
             }
         }
+        NowPlayingPowerSavingNotice(
+            powerSaving = powerSaving,
+            visible = !fullscreen && !immersiveVideo && playback.currentPath != null && normalToolbarBounds != null,
+            language = language,
+            modifier = Modifier.align(Alignment.TopCenter).fillMaxWidth().offset {
+                val root = playerRootBounds
+                val toolbar = normalToolbarBounds
+                IntOffset(0, if (root != null && toolbar != null)
+                    (toolbar.bottom - root.top).roundToInt().coerceAtLeast(0) + noticeGapPx else 0)
+            }.padding(horizontal = GaSpacing.md),
+        )
     }
 }
 }
