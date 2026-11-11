@@ -228,7 +228,15 @@ class PlaybackService : MediaLibraryService() {
                     if (focusHeld) stackCoordinator.play()
                 } else super.play()
             }
-            override fun pause() = pauseEveryPlayer()
+            override fun pause() {
+                val caller = if (::mediaSession.isInitialized) mediaSession.controllerForCurrentRequest else null
+                // The app stamped its Pause before sending it. Counting it again
+                // on delivery could cancel a Library tap made after that Pause.
+                val alreadyOrdered = caller != null && caller.uid == applicationInfo.uid &&
+                    caller.connectionHints.getBoolean(APP_TRANSPORT_ORDERED)
+                if (!alreadyOrdered) QueueStartOrder.advance()
+                pauseEveryPlayer()
+            }
             override fun setPlayWhenReady(ready: Boolean) { if (ready) play() else pause() }
             // A controller's pre-Stack append can arrive after async admission.
             // Stack owns one primary queue item; its takes use the coordinator.

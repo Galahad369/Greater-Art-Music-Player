@@ -113,30 +113,15 @@ Expected result: `False`. If `True`, inspect provenance and verify the existing 
 Do not invent a new source version just to bypass a bad filename. Preserve invalid
 placeholders outside releases; never overwrite an actual historical release.
 
-## 4. Build with the pinned Windows toolchain
+## 4. Build the optimized APK with the pinned toolchain
 
-Run from `greater-art/`:
-
-```powershell
-$env:JAVA_HOME = 'C:\Program Files\Android\openjdk\jdk-21.0.8'
-$env:ANDROID_HOME = "$env:LOCALAPPDATA\Android\Sdk"
-$env:GRADLE_USER_HOME = Join-Path $env:USERPROFILE '.gradle'
-$env:ANDROID_USER_HOME = Join-Path $env:USERPROFILE '.android'
-& "$env:JAVA_HOME\bin\java.exe" -jar gradle\wrapper\gradle-wrapper.jar testDebugUnitTest lintDebug assembleDebug --offline --no-daemon --max-workers=2
-```
-
-If the `.gradle` lock reports `Access is denied`, fix runner permission for that exact
-cache path. A workspace-only fallback is already ignored by Git:
+Run the [Android release gate](ANDROID_RELEASE_GATE.md) from the repository root. It runs preflight and `:app:assembleRelease`. Check its separate assembly, signing, identity and device results. Do not close an Android app change with a host-only check or an `assembleDebug` APK.
 
 ```powershell
-$env:GRADLE_USER_HOME = Join-Path (Get-Location) '.gradle-user'
+python -B scripts/greater-art-android-gate.py build --out ../output/android-release-1.22.15-new
 ```
 
-That fallback may need one network-enabled dependency download if the workspace cache
-is empty; do not misreport a cache/network failure as a source-code failure.
-
-The raw build output is
-`app/build/outputs/apk/debug/app-debug.apk`. It is not the release artifact yet.
+Use `--java-home` and `--sdk` for existing trusted installs. A cache, network or toolchain blocker is not a source failure. If assembly succeeds but signing is blocked, retain the unsigned result as build evidence, not as a distributable APK.
 
 ### October 5 artifact-corruption lesson
 
@@ -158,27 +143,9 @@ binary checks were repeated. Do not use this as a generic substitute for rebuild
 - If source has changed since the tested build, build/test again; never copy an older
   installed binary into the new version name.
 
-## 5. Validate before copying or documenting
+## 5. Validate the exact APK before delivery
 
-Use the newest installed Android build-tools. Required checks:
-
-- `aapt dump badging`: package, versionName and versionCode are correct;
-- `aapt dump permissions`: no `android.permission.INTERNET`;
-- `zipalign -c -P 16 -v 4`: succeeds;
-- `apksigner verify --verbose --print-certs`: v2 signature succeeds and the pinned
-  certificate SHA-256 matches;
-- unit-test XML totals have zero failures/errors;
-- lint summary has zero errors.
-
-Only then copy to a new path:
-
-```powershell
-$source = 'app\build\outputs\apk\debug\app-debug.apk'
-$target = 'releases\GreaterArt-<new-version>.apk'
-if (Test-Path -LiteralPath $target) { throw "Refusing to overwrite $target" }
-Copy-Item -LiteralPath $source -Destination $target
-Get-FileHash -Algorithm SHA256 -LiteralPath $target
-```
+Use the gate's signed candidate and `build.json` rather than copying from a Gradle output directory. The gate checks package, version/code, compatibility signer, manifest, ZIP and alignment. Run the native device smoke on the same bytes and keep `device.json`; do not rerun the same checks merely to rename the file. Run the relevant source tests and keep their results distinct from device acceptance. Copy only verified bytes to a new destination when authorized. Never overwrite or publish as part of the build command.
 
 ## 6. Align docs and run the consistency gate
 

@@ -21,6 +21,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
@@ -73,9 +74,11 @@ internal fun PlayerWindowExpandedContent(
     val density = LocalDensity.current.density
     var fullscreen by remember { mutableStateOf(false) }
     var addToListFile by remember { mutableStateOf<com.local.listentomusic.model.MediaFile?>(null) }
-    val artwork by produceState<android.graphics.Bitmap?>(null, playback.currentPath,
-        settings.localOverrides[playback.currentPath]) {
-        value = viewModel.loadCurrentArtwork(playback.currentPath)
+    val artwork by key(playback.currentPath, settings.localOverrides[playback.currentPath]) {
+        val path = playback.currentPath
+        produceState<android.graphics.Bitmap?>(null) {
+            value = viewModel.loadCurrentArtwork(path)
+        }
     }
     val lyrics by produceState<com.local.listentomusic.model.LocalLyrics?>(null, playback.currentPath) {
         value = viewModel.loadLyrics(playback.currentPath)

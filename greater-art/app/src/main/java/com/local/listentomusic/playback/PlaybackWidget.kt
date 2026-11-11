@@ -22,7 +22,9 @@ class PlaybackWidget : AppWidgetProvider() {
     }
     private fun connect(context: Context, action: String?) {
         val pending = goAsync()
-        val future = MediaController.Builder(context, SessionToken(context, ComponentName(context, PlaybackService::class.java))).buildAsync()
+        val future = MediaController.Builder(context, SessionToken(context, ComponentName(context, PlaybackService::class.java)))
+            .setConnectionHints(orderedTransportHints())
+            .buildAsync()
         future.addListener({
             try {
                 val player = future.get()

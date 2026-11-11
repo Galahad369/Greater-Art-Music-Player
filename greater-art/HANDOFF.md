@@ -3,20 +3,97 @@
 This file describes the **current repository state only**. Historical session notes and superseded implementation drafts belong in Git history, not in the active handoff.
 
 **Project:** `greater-art/` in the repository checkout
-**Current source:** `1.22.14 (code 335)` — SOURCE_ONLY. Android builds use Android Gradle plugin 9.5.1; CI uses the official Setup Java v6.2.0 and CodeQL v4.39.3 pins with the existing `setup-gradle` cache. The local AVC decoder supports quick Stack picture analysis on compatible x86-64 Android emulators. The latest immutable verified download remains 1.21.93.
-**Previous optimized candidate:** sibling `App/output/GreaterArt-1.21.98.apk` —5,495,129 bytes, SHA-256 `36d5279c58b155f70cc7a47ca3af348e285df1e8bf5197eeca43f9a14ef8ba02`; same key, non-debuggable, artifact checks passed; **not promoted**. [Retained98 evidence](docs/CANDIDATE_1.21.98.md). The97 candidate is hash-verified and archived under sibling `output/retained-artifacts/`.
 
-The following release fields describe verified1.21.93, not the98 candidate:
+## Current Android builds
+
+**Current source:** `1.22.19 (code 340)` — SOURCE_ONLY. Normal Now Playing toolbar buttons sit on Ambient without a separate backplate; inactive queue rows remain transparent. Compatible SDR Now Playing follows one coherent streak beyond the video edge in its sampled color; uncertain directions retain the soft glow. Android Power saving keeps the automatic low-power glow. Android builds use Android Gradle plugin 9.5.1; CI uses the official Setup Java v6.2.0 and CodeQL v4.39.3 pins with the existing `setup-gradle` cache. The local AVC decoder supports quick Stack picture analysis on compatible x86-64 Android emulators. The latest immutable verified download remains 1.21.93.
+**Newest local device-tested APK:** `1.22.19 (code 340)` — `App/output/android-toolbar-1.22.19-20261111/release/candidate/GreaterArt-1.22.19.apk`, SHA-256 `79328f13b443a543c655cb321360cc6feec6afdcda086332572bf43eb4a2886e`. The exact installed APK passed A55 native playback, pause/resume, fullscreen geometry, Mini and Library-return checks. Real-video Now Playing captures were inspected; the toolbar has no rounded backplate. [Local candidate receipt and limits](docs/LOCAL_CANDIDATE_1.22.19.md).
+**Signing and release limit:** the local candidate uses the same separate key as 1.22.15–18 and cannot update an original-signer installation. No APK was overwritten or published. The repository's verified original-signer download remains 1.21.93; local emulator smoke is not physical-device, HDR or acoustic acceptance.
+
+The following release fields describe the immutable repository release **1.21.93**, not the newer local APK or pending source:
 
 **Current version:** `1.21.93 (code 316)`
-**Latest APK:** `releases/GreaterArt-1.21.93.apk` (`5,478,717 bytes`; SHA-256 `cee3f50632cdf186a1b58304c195378c1917284f20ce04d354c3549ab180f6cc`)
+**Latest APK:** `releases/GreaterArt-1.21.93.apk` (`5,478,717 bytes`; SHA-256 `cee3f50632cdf186a1b58304c195378c1917284f20ce04d354c3549ab180f6cc`). [Download verified APK](releases/GreaterArt-1.21.93.apk).
 **Application ID:** `com.local.listentomusic`
 **Signing certificate SHA-256:** `9e28eb45b3b171c3ea47d7da942d28d88b16538885e392a6971a80906d612fbf`
 **Build date:** `2026-10-30`
 **Test device:** `GreaterArt_Scroll_QA36 (API36 emulator, Android 16)`
 **Verification boundary:** Exact runtime source `58048b54e4119c3aad50ca99d4595afe479653c3`; Java21/Gradle9.8.2 unit/lint/debug app/test and optimized R8 assembly passed. 473 JVM tests, zero failures/errors/skips; lint0 errors/47 warnings/4 hints. API36 debug instrumentation23/23 in520.008s covers reflected Ambient, compact audio/video controls/title transparency, real audio/video IME dock continuity, real-page navigation/video sampling and fullscreen toolbar. Separate same-certificate optimized upgrade and native Library/video/dock/expanded-player smoke passed; actual screenshots inspected. Package/version, non-debuggable state, ZIP CRC,16KiB alignment and SHA-256 checked. The APK does not embed a usable VCS SHA; this receipt records it externally. Full rotation, physical-device visual/acoustic/performance acceptance, production signing and universal crash freedom remain unverified. See [the exact release receipt](docs/RELEASE_1.21.93.md).
 
+## Keep optimized builds and smooth scrolling
+
+**APK size.** The archived 1.10.4 debug APK was 26,008,568 bytes; the optimized 1.22.18 candidate is 5,546,768 bytes, about 79% smaller. ZIP entry inspection shows that compiled code went from 23,287,618 bytes across 12 DEX files to 2,806,836 bytes in one. Packaged resources stayed near 2.46 MB. The optimized 1.21.93 download was already 5.48 MB. The saving is mainly the switch from debug delivery to [R8-optimized release builds](https://developer.android.com/topic/performance/app-optimization/enable-app-optimization), with no change to source media quality from packaging.
+
+- Keep release code optimization enabled and retain the app's targeted keep rules. Resource shrinking is deliberately off. Run the [optimized APK gate](docs/ANDROID_RELEASE_GATE.md) with `:app:assembleRelease` for delivery, even when signing or device smoke is blocked. Use debug APKs for development and instrumentation. Require an exact non-debuggable APK identity and device smoke before calling a release verified. Compare release to release when investigating a size or performance regression.
+- Keep Library thumbnail RAM hits synchronous and free of filesystem or scheduler work. Allow bounded disk-cache hits while scrolling; defer fresh frame/artwork generation until scrolling settles. Keep viewport priority and cancellation, conflate obsolete viewport updates at the existing 50 ms cadence, and report scroll start/stop to the budget immediately.
+- Keep playback-position ticks out of the app shell; the player and diagnostics still receive their needed clock updates. Keep row paint reads in the draw phase and avoid restarting or reducing the quality of the primary player for scroll performance.
+
+The owner reports smoother scrolling. [The Library performance report](../docs/LIBRARY_AUDIT_2026-10-24.md) records the source changes and focused tests. There is no matched physical-device trace that isolates each change's contribution, and the exact 1.22.18 candidate still needs device smoke.
+
 ## Repository state
+
+### November 11 — Containerless Now Playing toolbar
+
+- Owner confirmed that the circled toolbar holder should disappear: remove its fill, outline and shadow, leaving the buttons directly on the shared Ambient background. This supersedes the earlier outline-only request. Gate the existing backplate paint to immersive fullscreen only; keep every control, callback, inset, touch target and grab handle unchanged. The bottom control panel is outside this change.
+- Update `NowPlayingToolbarChromeTest` to require unchanged background pixels in normal mode and retain all 48 dp action checks and the fullscreen-scrim assertion. Source checks are not a rendered screenshot or proof that this device test ran. Keep optimized-build and device acceptance separate in the local candidate receipt.
+- Initial build status: optimized assembly and Android test compilation passed for the frozen 1.22.19 inputs. Local signing, package/version, non-debuggable state, ZIP CRC and 16 KiB alignment passed. A55 smoke was initially pending because no device was connected. The prior 1.22.18 APK is unchanged.
+- Follow-up: the unchanged A55 profile booted and the existing 1.22.19 APK passed the native smoke. Installed SHA-256 matched before and after playback. The 1280×720 fixture rendered in a 1080×607 fullscreen band with a 66×67 square; real Morisray playback, pause, and same-position Lock/Unlock taps also passed. Actual Now Playing screenshots show the containerless toolbar and three local videos. Overlay, storage and notification permissions returned to their original states. See the [candidate receipt](docs/LOCAL_CANDIDATE_1.22.19.md).
+- Test-harness lesson: a fresh A55 can show notification and first-use fullscreen dialogs. Handle those system prompts before locating Library controls or measuring video pixels; do not weaken media assertions. The locked accessibility tree did not expose the expected Unlock label in this run, so the second tap used the observed Lock position. This is touch-interaction evidence, not a TalkBack acceptance claim. The app binary did not change during these harness repairs.
+
+### November 10 — Transparent inactive queue rows
+
+- The inactive Now Playing queue foreground used a 22% surface fill that dimmed Ambient. Set only that fill to zero. Keep the current-track tint and dot, row outline, clipped action underlay, player panels, and beam unchanged.
+- A source-derived compositing check failed on the old fill and passed at zero alpha. The version guard, optimized build, and exact-file checks passed. No A55 was connected and available RAM was below its boot requirement, so device smoke and visual acceptance were not run.
+
+### November 10 — Follow the same Ambient streak
+
+- The 1.22.16 analyzer averaged all highlights in each band. A disconnected red patch could tilt a straight strip; the Riona *孤独毒毒* frame at 0:01.43 exposed the same false direction. Seed a contiguous run at the visible edge, match it across the existing bands, and check support along the line before projecting. Ambiguous or disconnected input keeps the soft edge glow. The source-colored core and actual diagonal directions remain supported.
+- The before test measured a 14.17px tilt across 48px when adding the separate patch. After the fix the strip stays at x=160px at both sample distances. True diagonal, Riona fallback, and the prior color, video and Fit/Crop checks pass. GLSL ES validation, optimized assembly and exact-file checks passed; no owned A55 was running and host RAM was below its boot requirement. See `App/output/ambient-laser-audit-20261110/STREAK_VERIFICATION.md`. Keep the exact 1.22.16 APK and frozen source as the before version.
+
+### November 10 — Source-colored Ambient beams
+
+- The Morisray *孤独毒毒* clip at 0:46 exposed an artificial white core on red light. Keep the beam, including its original trigger, direction and brightness profile. Multiply that profile by the sampled tint throughout instead of blending the core toward white. No changes to the video branch, HDR, Power saving, fit, crop, or frame timing.
+- The same host shader check failed before and passed after: the 0:46 beam contribution changed from RGB `(109,109,109)` to `(109,0,0)`. Cyan still produces cyan. Pixel, Fit/Crop, beam direction and same-draw checks passed. The optimized 1.22.16 build and exact APK checks passed; the A55 was not running and had insufficient host RAM to boot. Keep the exact 1.22.15 candidate as the before version. Local host replay: `App/output/ambient-laser-audit-20261110/TINT_VERIFICATION.md`.
+
+### November 10 — Mandatory Android build and device gate
+
+- [Run the optimized APK gate](docs/ANDROID_RELEASE_GATE.md) for Android app/build changes. Preflight first, then assemble the release variant even if the signer or A55 is unavailable. The local workflow's `ready` and `promote` reject Android changes without the exact-file device receipt. Host-only proof does not close a release task.
+- Ran the new gate for `1.22.15/code 336`: `App/output/android-release-gate-1.22.15-20261110/build.json`. Preflight blocked assembly: JDK 21 and API 37 were not found. The original sideload key was separately unavailable; APK identity and device smoke did not run. Source remains `SOURCE_ONLY`. Restore or provide the existing toolchain and original key, then build the exact versioned source. No new APK, tag, publication, or replacement of an older APK.
+- Toolchain retry: restored portable Microsoft OpenJDK `21.0.13.0.2` under `App/output/android-toolchain-20261110/` and matched the vendor SHA-256. The gate recognized this JDK; API 37 is the remaining assembly blocker. The keystore now at the usual path does not match the established sideload certificate and was not used. Once the licensed SDK is available, assembly can run without signing. Receipt: `App/output/android-release-gate-1.22.15-20261110-toolchain-retry/build.json`.
+- Signing recovery: the original sideload key was not recovered from the accessible locations. With owner approval, created a separate local signer for clean installs and proved it can sign using its Windows-protected credential. Reuse this key for future builds on the new identity; do not regenerate it or change the original upgrade pin. It cannot update the existing same-package installation signed with the old key. Keep that installation and all old APKs intact. API 37 still blocks assembly, so no APK was built or verified. Local receipt and signing notes: `App/output/android-release-1.22.15-20261110-signer-recovery/SIGNER_RECOVERY.md`.
+- SDK restore: reused the installed IDE and verified JDK 21. Installed Google SDK Platform `37.0` (package `platforms;android-37.0`), Build-Tools 36.0.0 and ADB at the configured SDK path with owner license acceptance. The existing gate passed `:app:assembleRelease` and kept original-key signing blocked. Separately signed and checked the 1.22.15 clean-install candidate from the frozen uncommitted source: `App/output/android-release-1.22.15-20261110-sdk-restored/candidate/GreaterArt-1.22.15.apk`. No release was overwritten or published.
+- Recreated the A55 API 36 test profile at 1080×2340, 450 dpi, 4 GiB RAM, and six vCPUs. Emulator registration and WHPX passed. Host RAM was below the launch requirement; no playback smoke test ran at setup. Use the clean-install adapter named in the local candidate receipt after RAM is available.
+
+### November 10 — Directional Ambient in Now Playing
+
+- Extend a coherent bright streak past the edge where it leaves the visible picture. Three narrow bands must agree on the direction. Broad highlights and objects that do not reach the edge stay on the softer color wash. Never project the video image itself or sample content outside the visible Crop.
+- Compute a 4 × 4 light map on the GPU only when a frame is latched or the stage geometry changes. Both passes use that same decoder texture. The foreground shader branch and Fit bars are unchanged; HDR, unsupported formats and Power saving retain native playback with the existing fallback glow. No new decoder, quality cap, production readback, or setting.
+- Host challenge: the frozen check failed on the previous shader with `Missing projected beam` and passed on the compiled Java shader constants. It checks unchanged pixels, same-draw position/color, right-margin projection, black Fit bars, and rejection of broad light, interior highlights, and hidden Crop content. Evidence: `App/output/ambient-beam-integration-20261110/`. Host OpenGL uses a synthetic 2D texture, not the Android external decoder surface.
+- The optimized SDK-restored candidate above includes this change. A55 directional-light, contrast, and performance checks remain pending. Retain the existing 1.22.14 local APK and immutable 1.21.93 release. Run `ProductionFrameAmbientTest` with the SDR/PQ fixtures and inspect the real queue and controls with a bright crossing streak, including after seek and in Power saving.
+
+### November 9 — Playback request order and Ambient state
+
+- A file-read check can finish after a later transport action, including from another app player window. Give queue starts a shared request order and check it after file admission. Recheck queued Library taps against the active media on reconnect; keep a playing song at its current position. A different or paused selection still plays.
+- An external Pause now advances the request order at the MediaSession player before pausing. The app's shared controller and widget identify commands already ordered at dispatch; only a matching app UID can use that hint. This prevents a late app Pause from invalidating a newer tap. Eight host replays pass, and both late-delivery cases fail if the same Pause is counted twice. Android notification/headset delivery still needs device verification.
+- Reset cover, artwork-sample, and palette state when the expanded player changes tracks. Pause backdrop color work when immersive landscape video covers it, while keeping the visible Power saving glow for portrait video and audio.
+- Host replay: three playback and three Ambient assertions failed on the retained source and passed on the fix; all 12 replay cases and 8 focused JVM tests pass. The replay uses actual transport statements and desktop Compose with synthetic input, not an Android device. Local evidence is under `App/output/android-retro-ambient-1.22.15-20261109/logic-followup-20261109/`. API 37, Java 21, and the original sideload keystore are missing at their recorded paths. No new APK was built; the retained 1.22.14 APK is unchanged.
+
+### November 9 — Outline-free Now Playing toolbar
+
+- The expanded toolbar keeps its rounded fill and removes only the outline. Its insets, 48dp targets, grab handle, icon placement, and callbacks are unchanged. Fullscreen retains its contrast scrim and outline.
+- The Android toolbar capture and device checks have not run; no APK was built.
+
+### November 9 — Retapping the playing song
+
+- A tap on the active Library item or active Now Playing queue row leaves playback position and queue intact. Library matches the full media ID; the queue matches the active slot so another occurrence can still be selected. Use the existing playback-intent check so a buffering track with playback requested is also left alone.
+- Different and paused rows, explicit playlist playback, row actions, and seek controls keep their existing behavior. The focused JVM regression checks that the active tap does not dispatch the playback action. Device playback verification remains pending.
+- This fix joins the unpublished 1.22.15 source change. The retained 1.22.14 APK is unchanged.
+
+### November 7 — Now Playing Ambient in Power saving
+
+- Power saving disabled both the frame-synced renderer and the fallback palette refresh, so the player could show gray reflections even with colorful media. Keep the existing native video route in Power saving. Only Now Playing refreshes its palette from the existing video samples or cover art, with no palette fade or decorative motion in this mode.
+- No new switch, sampler, decoder, or quality constraint. Preserve HDR and unsupported-format routing, the frame-synced SDR path outside Power saving, and the existing Library, Nodes and Stack behavior.
+- The focused JVM regression checks color refresh and the preserved inactivity, scroll, intensity and motion gates. A55 visual verification is deferred by request. The existing local 1.22.14 APK does not include this change.
 
 ### November 7 — Dependency maintenance
 

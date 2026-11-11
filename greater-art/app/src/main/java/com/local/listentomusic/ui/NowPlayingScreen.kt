@@ -210,7 +210,7 @@ internal const val HOLD_2X_ACTIVATION_MS = 700L
 internal const val HOLD_2X_LOCK_DISTANCE_DP = 72f
 internal const val NOW_PLAYING_AMBIENT_BOTTOM_BLEND = 0.62f
 internal const val NOW_PLAYING_AMBIENT_PANEL_ALPHA = 0.32f
-internal const val NOW_PLAYING_AMBIENT_ROW_ALPHA = 0.22f
+internal const val NOW_PLAYING_AMBIENT_ROW_ALPHA = 0f
 internal const val NOW_PLAYING_AMBIENT_OUTLINE_ALPHA = 0.34f
 internal const val NOW_PLAYING_ART_STAGE_ALPHA = 0.32f
 
@@ -459,28 +459,28 @@ fun NowPlayingScreen(
                 )
             }
         }
-        val backdrop = if (playerAmbient != null)
-            Modifier.adaptiveAmbientBackdrop(artwork, playback.currentPath, playerAmbient,
-                visible = !fullscreen,
-                extraDim = playerAmbient.backgroundDim,
-                scrolling = queueListState.isScrollInProgress,
-                steady = playerAmbient.backgroundMode == com.local.listentomusic.data.AppBackgroundMode.AMBIENT,
-                playerPresentation = true) else Modifier.ambientBackdrop(
-        artwork,
-        MaterialTheme.colorScheme.background.luminance() > .5f,
-        playback.currentPath,
-        bottomBlend = NOW_PLAYING_AMBIENT_BOTTOM_BLEND,
-    )
     BoxWithConstraints(
             modifier = Modifier.fillMaxSize()
                 .padding(PaddingValues(horizontal = 0.dp, vertical = contentPadding.calculateTopPadding()))
                 .onGloballyPositioned { playerRootBounds = it.boundsInWindow() }
-                .inspectElement("NOW_PLAYING_SCREEN", "Current artwork or video, queue, timeline, and transport controls")
-                .then(backdrop),
+                .inspectElement("NOW_PLAYING_SCREEN", "Current artwork or video, queue, timeline, and transport controls"),
         ) {
         val landscape = maxWidth > maxHeight
         val portraitVideoHeight = minOf(maxWidth / playback.videoAspectRatio.coerceIn(0.75f, 2.25f), maxHeight * 0.34f)
         val immersiveVideo = playback.isVideo && (fullscreen || landscape)
+        val backdrop = if (playerAmbient != null) {
+            Modifier.adaptiveAmbientBackdrop(artwork, playback.currentPath, playerAmbient,
+                visible = !fullscreen && !immersiveVideo,
+                extraDim = playerAmbient.backgroundDim,
+                scrolling = queueListState.isScrollInProgress,
+                steady = playerAmbient.backgroundMode == com.local.listentomusic.data.AppBackgroundMode.AMBIENT,
+                playerPresentation = true)
+        } else Modifier.ambientBackdrop(
+            artwork,
+            MaterialTheme.colorScheme.background.luminance() > .5f,
+            playback.currentPath,
+            bottomBlend = NOW_PLAYING_AMBIENT_BOTTOM_BLEND,
+        )
         val wantsFrameAmbient = playback.isVideo && !immersiveVideo && playerAmbient?.adaptiveReactToVideo == true
         var frameAmbientFailed by remember(controller, playback.currentPath) { mutableStateOf(false) }
         var frameAmbientStage by remember { mutableStateOf<Rect?>(null) }
@@ -508,7 +508,7 @@ fun NowPlayingScreen(
         BackHandler(enabled = fullscreen) { fullscreen = false }
         BackHandler(enabled = controlsLocked) { controlsLocked = false }
 
-        Box(Modifier.fillMaxSize().then(if (controlsLocked) Modifier.clearAndSetSemantics { } else Modifier)) {
+        Box(Modifier.fillMaxSize().then(backdrop).then(if (controlsLocked) Modifier.clearAndSetSemantics { } else Modifier)) {
         if (useFrameAmbient && controller != null) {
             com.local.listentomusic.ambient.FrameAmbientPresentation(
                 controller, overlay = sharedVideoView != null, stage = frameAmbientStage,
@@ -537,6 +537,7 @@ fun NowPlayingScreen(
                                         onHome = onHome,
                                         onFullscreen = toggleFullscreen,
                                         onClose = onClose,
+                                        frameLit = useFrameAmbient,
                                         onLock = { controlsLocked = !controlsLocked },
                                         locked = controlsLocked,
                                         onLockAnchorBoundsChanged = reportLockAnchor,
@@ -2462,6 +2463,7 @@ internal fun NowPlayingTopBar(
     onClose: () -> Unit,
     modifier: Modifier = Modifier,
     overlay: Boolean = false,
+    frameLit: Boolean = false,
     fullscreen: Boolean = false,
     speed: Float = 1f,
     onSpeed: ((Float) -> Unit)? = null,
@@ -2477,12 +2479,8 @@ internal fun NowPlayingTopBar(
     onLockAnchorBoundsChanged: (androidx.compose.ui.geometry.Rect) -> Unit = {},
     onTopBarBoundsChanged: (androidx.compose.ui.geometry.Rect) -> Unit = {},
 ) {
-    val foreground = if (overlay) GaVideoOverlay.foreground else MaterialTheme.colorScheme.onSurface
-    val background = if (overlay) GaVideoOverlay.scrim
-        else MaterialTheme.colorScheme.surface.copy(alpha = NOW_PLAYING_AMBIENT_PANEL_ALPHA)
-    val foregroundColor = foreground
-    val backgroundColor = background
-    val topBarShape = RoundedCornerShape(GaRadius.chrome)
+    val foregroundColor = if (overlay || frameLit) GaVideoOverlay.foreground else MaterialTheme.colorScheme.onSurface
+    val backgroundColor = if (overlay) GaVideoOverlay.scrim else Color.Transparent
     BoxWithConstraints(modifier.fillMaxWidth()
         .onGloballyPositioned { onTopBarBoundsChanged(it.boundsInWindow()) }) {
         // Keep 48dp targets at every width. Under 224dp, provide two compact
@@ -2501,16 +2499,14 @@ internal fun NowPlayingTopBar(
         val essentialSlots = (if (onRotate != null) 4 else 3) + (if (canToggleFrame) 1 else 0) + (if (hasSpeed) 1 else 0)
         val compact = slots < essentialSlots
         val oneColumn = slots < 2
+        val shape = RoundedCornerShape(GaRadius.chrome)
         val chrome = Modifier.fillMaxWidth()
             .padding(horizontal = 12.dp, vertical = 6.dp)
-            .clip(topBarShape)
-            .background(backgroundColor)
-            .border(
-                1.dp,
-                if (overlay) Color.White.copy(alpha = 0.14f)
-                else MaterialTheme.colorScheme.outlineVariant.copy(alpha = NOW_PLAYING_AMBIENT_OUTLINE_ALPHA),
-                topBarShape,
-            )
+            .then(if (overlay) {
+                Modifier.clip(shape)
+                    .background(backgroundColor)
+                    .border(1.dp, Color.White.copy(alpha = 0.14f), shape)
+            } else Modifier)
             .padding(horizontal = innerPadding)
 
         val speedButton: @Composable () -> Unit = {

@@ -115,3 +115,11 @@ internal fun ambientLayers(signal: AmbientSignal, intensity: Float, react: Boole
 internal fun ambientShouldAnimate(visible: Boolean, resumed: Boolean, scrolling: Boolean,
     reducedMotion: Boolean, powerSave: Boolean, motion: AmbientMotion): Boolean =
     visible && resumed && !scrolling && !reducedMotion && !powerSave && motion != AmbientMotion.OFF
+
+internal fun ambientShouldRefreshColors(
+    active: Boolean,
+    scrolling: Boolean,
+    powerSave: Boolean,
+    playerPresentation: Boolean,
+    intensity: Float,
+): Boolean = active && !scrolling && (!powerSave || playerPresentation) && intensity > 0f

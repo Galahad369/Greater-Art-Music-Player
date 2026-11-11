@@ -12,6 +12,7 @@ internal fun playbackRequested(player: Player): Boolean =
 /** A buffering player is still playing by intent. A tap cancels that request. */
 @OptIn(UnstableApi::class)
 internal fun togglePlayback(player: Player) {
+    QueueStartOrder.advance()
     val stack = StackPlayback.state.value
     if (!stack.active) Util.handlePlayPauseButtonAction(player, false)
     else if (stack.playing) StackPlayback.pause()
