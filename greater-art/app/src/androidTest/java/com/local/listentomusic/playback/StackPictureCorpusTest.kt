@@ -23,7 +23,12 @@ class StackPictureCorpusTest {
         val folder = File(requireNotNull(context.getExternalFilesDir(null)), "qa-stack-picture-20261105")
         val tracks = (0..5).map { index ->
             val file = File(folder, "take-$index.mp4")
-            assertTrue("Provision picture fixture $index", file.isFile)
+            assertTrue(
+                "Provision picture fixture $index: ${file.absolutePath}; " +
+                    "package=${context.packageName}, uid=${android.os.Process.myUid()}, " +
+                    "parentReadable=${folder.canRead()}, exists=${file.exists()}",
+                file.isFile,
+            )
             MediaFile(file.path, file.name, 188_000L, file.length(), file.lastModified(), MediaKind.VIDEO)
         }
         val start = android.os.SystemClock.elapsedRealtime()

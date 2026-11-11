@@ -11,6 +11,7 @@ private const val MAX_ANALYSIS_US = 210_000_000L
 private const val QUICK_WINDOW_US = 8_000_000L
 private const val BUCKET_US = 100_000L
 private const val FRAME_TOLERANCE_US = 35_000L
+private const val PICTURE_SIMILARITY = .86f
 private const val REGIONS = 3
 
 internal enum class StackPictureSearch(val maxShiftUs: Long) {
@@ -129,6 +130,13 @@ internal fun estimateStackPictureOffset(
     if (companion.size < 24) return null
     val anchors = reference.anchors
     val maxShiftUs = search.maxShiftUs
+    val referenceIntervals = anchors.map { it.after.timeUs - it.before.timeUs }.sorted()
+    val companionIntervals = companion.zipWithNext { before, after -> after.timeUs - before.timeUs }
+        .filter { it in 1L..125_000L }.sorted()
+    if (companionIntervals.isEmpty()) return null
+    val frameIntervalUs = maxOf(referenceIntervals[referenceIntervals.size / 2],
+        companionIntervals[companionIntervals.size / 2])
+    val resolvedSeparationUs = maxOf(2 * FRAME_TOLERANCE_US, 2 * frameIntervalUs)
     val bins = IntArray((2 * maxShiftUs / BUCKET_US).toInt() + 1)
     for ((_, anchor) in anchors) {
         checkpoint()
@@ -149,7 +157,9 @@ internal fun estimateStackPictureOffset(
     for (bin in bins.indices.sortedByDescending { bins[it] }) {
         val offset = bin * BUCKET_US - maxShiftUs + BUCKET_US / 2
         if (bins[bin] < 6 || seeds.size == 8) break
-        if (seeds.none { abs(it - offset) <= 300_000L }) seeds += offset
+        // Each seed is refined over ±150 ms. Do not suppress a separate peak
+        // outside that range merely because it is less than 300 ms away.
+        if (seeds.none { abs(it - offset) <= 150_000L }) seeds += offset
     }
     if (seeds.isEmpty()) return null
 
@@ -160,22 +170,26 @@ internal fun estimateStackPictureOffset(
         val frame = if (left != null && (right == null || target - left.timeUs <= right.timeUs - target)) left else right
         return frame?.takeIf { abs(it.timeUs - target) <= FRAME_TOLERANCE_US }
     }
-    data class Score(val offset: Long, val value: Double, val coverage: Boolean, val deltas: List<Long>)
+    data class Score(val offset: Long, val value: Double, val coverage: Boolean, val deltas: List<Long>,
+        val matched: IntArray, val regionValues: DoubleArray)
     fun score(offset: Long): Score {
         checkpoint()
         val matched = IntArray(REGIONS)
+        val regionSums = DoubleArray(REGIONS)
         val deltas = ArrayList<Long>()
         var sum = 0.0
         for ((before, after, change, region) in anchors) {
             val frame = nearest(after.timeUs + offset) ?: continue
             val similarity = pictureSimilarity(after, frame)
-            if (similarity < .86f) continue
+            if (similarity < PICTURE_SIMILARITY) continue
             val preceding = nearest(before.timeUs + offset)
             val beforeSimilarity = preceding?.let { pictureSimilarity(before, it).coerceAtLeast(0f) } ?: 0f
             // Use the picture score to rank candidates once they have enough
             // timing evidence; this avoids favoring a particular frame cadence.
-            sum += .75 * similarity + .25 * beforeSimilarity
-            if (preceding == null || preceding.timeUs >= frame.timeUs || beforeSimilarity < .86f) continue
+            val pictureScore = .75 * similarity + .25 * beforeSimilarity
+            sum += pictureScore
+            regionSums[region] += pictureScore
+            if (preceding == null || preceding.timeUs >= frame.timeUs || beforeSimilarity < PICTURE_SIMILARITY) continue
             // An image can agree for a whole still. Both sides must agree
             // better in order than swapped before this counts as timing evidence.
             val pairedGain = beforeSimilarity + similarity -
@@ -184,9 +198,15 @@ internal fun estimateStackPictureOffset(
             matched[region]++
             deltas += frame.timeUs - after.timeUs
         }
-        val coverage = deltas.size * 2 >= anchors.size &&
-            matched.indices.all { matched[it] >= 4 && matched[it] * 3 >= reference.totals[it] }
-        return Score(offset, sum / anchors.size, coverage, deltas)
+        val value = sum / anchors.size
+        // Mixed frame rates can miss a transition pair even when its pictures
+        // agree. Require a distributed two-thirds timing majority; matching
+        // only half must not imply a global map. The ranking score averages
+        // missing pictures as zero, so it is not a per-image cosine threshold.
+        val coverage = deltas.size * 3 >= anchors.size * 2 &&
+            matched.indices.all { matched[it] >= 4 && matched[it] * 2 >= reference.totals[it] }
+        return Score(offset, value, coverage, deltas, matched,
+            DoubleArray(REGIONS) { regionSums[it] / reference.totals[it] })
     }
     val candidates = seeds.flatMap { seed ->
         checkpoint()
@@ -198,7 +218,11 @@ internal fun estimateStackPictureOffset(
     val best = (-9..9).asSequence().map {
         score((coarseBest.offset + it * 1_000L).coerceIn(-maxShiftUs, maxShiftUs))
     }.filter { it.coverage }.maxWithOrNull(rank) ?: coarseBest
-    if (candidates.any { abs(it.offset - best.offset) >= 400_000L && it.value >= best.value - .06 }) return null
+    if (candidates.any {
+        val separation = abs(it.offset - best.offset)
+        (separation >= 400_000L || it.coverage && separation >= resolvedSeparationUs) &&
+            it.value >= best.value - .06
+    }) return null
     // Same-cadence clips can agree on one exact PTS delta. Mixed frame rates
     // produce several deltas; keep the best search position instead of
     // snapping it to a frame that only agrees with part of the clip.
@@ -207,6 +231,23 @@ internal fun estimateStackPictureOffset(
         if (abs(median) > maxShiftUs) return null
         score(median).takeIf { it.coverage && it.value >= best.value - .002 } ?: best
     } else best
+    // A unit-rate result cannot fix separated regions with visibly different
+    // local optima. Compare near the proposed peak, allowing one observed frame
+    // interval for cadence quantisation rather than claiming subframe accuracy.
+    val regionalBest = List(REGIONS) { region ->
+        candidates.asSequence().filter {
+            abs(it.offset - result.offset) <= 2 * FRAME_TOLERANCE_US &&
+                it.matched[region] >= 4 && it.matched[region] * 2 >= reference.totals[region]
+        }.maxWithOrNull(compareBy<Score> { it.regionValues[region] }
+            .thenBy { -abs(it.offset - result.offset) }) ?: result
+    }
+    val lowestRegion = regionalBest.indices.minBy { regionalBest[it].offset }
+    val highestRegion = regionalBest.indices.maxBy { regionalBest[it].offset }
+    if (regionalBest[highestRegion].offset - regionalBest[lowestRegion].offset > frameIntervalUs &&
+        listOf(lowestRegion, highestRegion).any {
+            regionalBest[it].regionValues[it] > result.regionValues[it] + .002
+        }
+    ) return null
     val offset = result.offset
     return StackAlignment((offset / 1_000.0).roundToLong(), result.value, true,
         timeScale = 1.0, offsetUs = offset.toDouble())

@@ -6,6 +6,10 @@ internal const val STACK_INSTRUMENT_HOP_MS = 20
 internal const val STACK_INSTRUMENT_RATE = 16_000
 internal const val STACK_REGION_MS = 6_000L
 internal const val STACK_SEARCH_MS = 15_000L
+private const val STACK_INSTRUMENT_FIT_TOLERANCE_MS = 25.0
+// Two coarse fits can overlap by their 25 ms residual bounds; native refinement
+// searches only +/-12 ms, so it cannot resolve a distinct map beyond this range.
+private const val STACK_INSTRUMENT_MAP_UNCERTAINTY_MS = STACK_INSTRUMENT_FIT_TOLERANCE_MS * 2
 
 /** Coordinates are relative to the clipped track, never to the untrimmed source. */
 internal data class StackInstrumentRegion(
@@ -179,7 +183,12 @@ internal fun stackInstrumentCandidates(
     val peaks = ArrayList<Triple<Int, Double, Int>>(4)
     for (candidate in candidates.sortedByDescending { it.second }) {
         if (candidate.second < minimumScore) break
-        if (peaks.any { abs(it.first - candidate.first) <= 25 }) continue
+        val left = candidates.getOrNull(candidate.first - 1)?.second ?: -1.0
+        val right = candidates.getOrNull(candidate.first + 1)?.second ?: -1.0
+        if (candidate.second < left || candidate.second < right) continue
+        // Retain distinct local maxima, including sub-beat alternatives. Broad
+        // shoulders of one peak must not crowd those alternatives out of the cap.
+        if (peaks.any { abs(it.first - candidate.first) * STACK_INSTRUMENT_HOP_MS <= STACK_INSTRUMENT_MAP_UNCERTAINTY_MS }) continue
         peaks += candidate
         if (peaks.size == 4) break
     }
@@ -196,7 +205,7 @@ internal fun stackInstrumentCandidates(
 /** One vote per independent region. Competing whole-song maps still abstain. */
 internal fun stackFitInstrumentCandidates(regions: List<List<StackInstrumentAnchor>>, durationMs: Long): StackAlignment {
     val groups = regions.filter { it.isNotEmpty() }
-    if (groups.size < 3) return StackAlignment(0, 0.0, false)
+    if (groups.size < 3 || groups.size * 4 < regions.size * 3) return StackAlignment(0, 0.0, false)
     val models = ArrayList<StackAlignment>()
     for (i in groups.indices) for (j in i + 1 until groups.size) {
         for (a in groups[i]) for (b in groups[j]) {
@@ -207,23 +216,39 @@ internal fun stackFitInstrumentCandidates(regions: List<List<StackInstrumentAnch
             if (scale !in .985..1.015 || abs(offset) > 30_000) continue
             val inliers = groups.mapNotNull { group ->
                 group.minByOrNull { abs(it.companionMs - (scale * it.primaryMs + offset)) }
-                    ?.takeIf { abs(it.companionMs - (scale * it.primaryMs + offset)) <= 25 }
+                    ?.takeIf { abs(it.companionMs - (scale * it.primaryMs + offset)) <= STACK_INSTRUMENT_FIT_TOLERANCE_MS }
             }
             // Reject scattered local hits; never let two regions manufacture a map.
-            if (inliers.size < 3 || inliers.size * 4 < groups.size * 3) continue
+            if (inliers.size < 3 || inliers.size * 4 < regions.size * 3) continue
             val fitted = stackFitInstrumentMap(inliers, durationMs)
-            if (fitted.confident) models += fitted
+            if (fitted.confident && fitted.anchorCount * 4 >= regions.size * 3) models += fitted
         }
     }
     val best = models.maxWithOrNull(compareBy<StackAlignment> { it.anchorCount }.thenBy { it.correlation })
         ?: return StackAlignment(0, 0.0, false)
     val alternative = models.filter {
-        abs(it.offsetUs - best.offsetUs) > 500_000 ||
-            abs((it.timeScale - best.timeScale) * durationMs + (it.offsetUs - best.offsetUs) / 1000) > 500
+        val offsetDeltaMs = (it.offsetUs - best.offsetUs) / 1000
+        abs(offsetDeltaMs) > STACK_INSTRUMENT_MAP_UNCERTAINTY_MS ||
+            abs((it.timeScale - best.timeScale) * durationMs + offsetDeltaMs) > STACK_INSTRUMENT_MAP_UNCERTAINTY_MS
     }.maxWithOrNull(compareBy<StackAlignment> { it.anchorCount }.thenBy { it.correlation })
     if (alternative != null && alternative.anchorCount >= best.anchorCount && best.correlation - alternative.correlation < .06)
         return StackAlignment(0, best.correlation, false)
     return best
+}
+
+internal data class StackInstrumentEvidence(val alignment: StackAlignment, val nativeMonoRequired: Boolean)
+
+/** Select the same evidence policy for production and its host-side regression tests. */
+internal fun stackSelectInstrumentEvidence(mono: StackAlignment, side: StackAlignment?, durationMs: Long): StackInstrumentEvidence? {
+    if (!mono.confident) return null
+    // A missing side view is not an independent confirmation of the mono map.
+    if (side == null) return StackInstrumentEvidence(mono, nativeMonoRequired = true)
+    if (!side.confident) {
+        if (mono.anchorCount < 4 || mono.correlation < .6 || mono.residualMs > 5) return null
+        return StackInstrumentEvidence(mono, nativeMonoRequired = true)
+    }
+    if (abs(mono.offsetUs - side.offsetUs) > 40_000 || abs((mono.timeScale - side.timeScale) * durationMs) > 40) return null
+    return StackInstrumentEvidence(side, nativeMonoRequired = false)
 }
 
 /** A mono-only decision requires independent native-rate attack agreement, not a relaxed score. */
@@ -263,7 +288,7 @@ private fun stackFitCoherentInstrumentMap(anchors: List<StackInstrumentAnchor>, 
     val scale = anchors.sumOf { (it.primaryMs - xMean) * (it.companionMs - yMean) } / denominator
     val offset = yMean - scale * xMean
     val residual = anchors.maxOf { abs(it.companionMs - (scale * it.primaryMs + offset)) }
-    if (!scale.isFinite() || scale !in .985..1.015 || abs(offset) > 30_000 || residual > 25) {
+    if (!scale.isFinite() || scale !in .985..1.015 || abs(offset) > 30_000 || residual > STACK_INSTRUMENT_FIT_TOLERANCE_MS) {
         return StackAlignment(0, anchors.map { it.score }.average(), false)
     }
     return StackAlignment(offset.roundToLong(), anchors.map { it.score }.average(), true,

@@ -37,6 +37,23 @@ Manual offset|手動偏移|手動オフセット|Manueller Versatz|Décalage man
 Offset (ms)|偏移（毫秒）|オフセット（ms）|Versatz (ms)|Décalage (ms)
 Enter −30,000 to +30,000 ms|請輸入 −30,000 至 +30,000 毫秒|−30,000〜+30,000 ms を入力|−30.000 bis +30.000 ms eingeben|Saisissez −30 000 à +30 000 ms
 Positive starts this track later in its file.|正數會從此檔案中較後的位置開始。|正の値はファイルの後ろから再生します。|Ein positiver Wert startet später in der Datei.|Une valeur positive commence plus loin dans le fichier.
+Enter −30000 to +30000 ms|請輸入 −30000 至 +30000 毫秒|−30000〜+30000 ms を入力|−30000 bis +30000 ms eingeben|Saisissez −30000 à +30000 ms
+Positive moves this track earlier; negative moves it later.|正數會提早此歌曲；負數會延後。|正の値はこの曲を早め、負の値は遅らせます。|Positive Werte verschieben diesen Titel nach vorn, negative nach hinten.|Une valeur positive avance cette piste ; une valeur négative la retarde.
+Earlier|提早|早める|Früher|Plus tôt
+Later|延後|遅らせる|Später|Plus tard
+Timing applied|已套用時間調整|タイミングを適用済み|Timing angewendet|Décalage appliqué
+Reference track|參考歌曲|基準の曲|Referenztitel|Piste de référence
+Current → proposed|目前 → 建議|現在 → 提案|Aktuell → Vorschlag|Actuel → Proposé
+Speed fit|速度配合|速度補正|Geschwindigkeitsanpassung|Correction de vitesse
+Sound matching follows the shared backing track, not the singers' phrasing.|聲音匹配以共同伴奏為準，而非歌手的唱法。|音の照合は歌い方ではなく共通の伴奏を基準にします。|Der Klangabgleich folgt der gemeinsamen Begleitung, nicht der Phrasierung der Stimmen.|La comparaison sonore suit l’accompagnement commun, pas le phrasé des voix.
+Picture matching aligns images. It does not guarantee matching sound.|畫面匹配只對齊影像，不保證聲音同步。|映像の照合は画像を揃えます。音の一致は保証しません。|Der Bildabgleich richtet Bilder aus. Er garantiert keinen gleichen Klangzeitpunkt.|La comparaison d’images aligne les images. Elle ne garantit pas la synchronisation du son.
+Could not establish one consistent sound offset.|未能確立一致的聲音偏移。|一貫した音のオフセットを特定できませんでした。|Kein einheitlicher Klangversatz ermittelbar.|Impossible d’établir un décalage sonore cohérent.
+Could not establish one consistent picture offset.|未能確立一致的畫面偏移。|一貫した映像のオフセットを特定できませんでした。|Kein einheitlicher Bildversatz ermittelbar.|Impossible d’établir un décalage d’image cohérent.
+Not completed before the quick scan time limit.|未能在快速搜尋時限內完成。|クイックスキャンの制限時間内に完了しませんでした。|Vor dem Zeitlimit des Schnellsuchlaufs nicht abgeschlossen.|Non terminé avant la limite de temps de la recherche rapide.
+Kept unchanged|保持不變|変更なし|Unverändert|Inchangé
+Apply timing ({count})|套用時間調整（{count}）|タイミングを適用（{count}）|Timing anwenden ({count})|Appliquer ({count})
+Applying timing briefly pauses the Stack. Listen to check the result.|套用時間調整時，疊播會短暫暫停。請聆聽並檢查結果。|適用時は重ね再生を短く一時停止します。聴いて結果を確認してください。|Beim Anwenden pausiert der Mix kurz. Prüfen Sie das Ergebnis durch Anhören.|L’application du décalage met brièvement le mix en pause. Écoutez pour vérifier le résultat.
+Timing was applied, not verified. Listen and adjust if needed.|已套用時間調整，但尚未驗證。請聆聽並按需要調整。|タイミングは適用済みですが、未検証です。聴いて必要なら調整してください。|Das Timing wurde angewendet, nicht überprüft. Hören Sie es an und passen Sie es bei Bedarf an.|Le décalage a été appliqué, pas vérifié. Écoutez et ajustez si nécessaire.
 Aligned tracks|已對齊歌曲|位置合わせ済み|Ausgerichtete Titel|Pistes alignées
 Playback resumes after analysis|分析後繼續播放|解析後に再生を再開|Wiedergabe nach Analyse fortsetzen|Lecture reprise après analyse
 Aligning by sound|正在按聲音對齊|音を解析中|Klang wird analysiert|Analyse du son

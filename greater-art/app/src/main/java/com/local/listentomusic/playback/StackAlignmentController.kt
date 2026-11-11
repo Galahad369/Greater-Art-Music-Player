@@ -25,13 +25,15 @@ data class StackAlignmentProgress(val running: Boolean = false, val completed: I
     val widePictureSearch: Boolean = false,
     val readingPictureReference: Boolean = false,
     val quickPictureTimedOut: Boolean = false,
+    val eligiblePaths: List<String> = emptyList(),
+    val results: Map<String, StackAlignment> = emptyMap(),
 ) {
     internal fun belongsTo(session: StackSession): Boolean =
         session.active && primaryPath == session.primaryPath && paths == session.slots.map { it.file.path }
 
     internal val canRetryPictureWider: Boolean
         get() = !running && method == StackAlignmentMethod.PICTURE && !widePictureSearch &&
-            matched?.let { it < total } == true
+            total > 0 && matched != null
 }
 
 /** Analysis belongs to the playback session, not a disposable pager page. */
@@ -70,6 +72,7 @@ object StackAlignmentController {
         mutable.value = StackAlignmentProgress(running = true, total = companions.size,
             primaryPath = snapshot.primaryPath, paths = snapshot.slots.map { it.file.path }, method = method,
             widePictureSearch = pictureSearch == StackPictureSearch.WIDE,
+            eligiblePaths = companions.map { it.file.path },
             readingPictureReference = method == StackAlignmentMethod.PICTURE)
         job = scope.launch {
             try {
@@ -80,22 +83,23 @@ object StackAlignmentController {
                         }
                     }
                     try {
-                        val files = companions.map { it.file }
+                        val files = companions.map { it.fileForAlignment() }
+                        val referenceFile = primary.fileForAlignment()
                         val progress: (Int) -> Unit = { index ->
                             mutable.value = mutable.value.copy(completed = index, readingPictureReference = false)
                         }
                         val pictureResult = if (method == StackAlignmentMethod.PICTURE)
                             StackPictureAlign(context.applicationContext)
-                                .estimateAll(primary.file, files, pictureSearch, progress)
+                                .estimateAll(referenceFile, files, pictureSearch, progress)
                         else null
                         val matches = pictureResult?.matches ?: StackAudioAlign(context.applicationContext)
-                            .estimateAll(primary.file, files, progress)
+                            .estimateAll(referenceFile, files, progress)
                         ensureActive()
                         if (unchanged() && StackPlayback.transportRevision == intent) {
                             val proposal = matches.filterValues { it.confident }
                             mutable.value = mutable.value.copy(running = false,
                                 completed = if (pictureResult == null) companions.size else mutable.value.completed,
-                                matched = proposal.size, proposal = proposal, readingPictureReference = false,
+                                matched = proposal.size, proposal = proposal, results = matches, readingPictureReference = false,
                                 quickPictureTimedOut = pictureResult?.quickTimedOut == true)
                         }
                     } finally { watcher.cancel() }

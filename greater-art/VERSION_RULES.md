@@ -16,7 +16,7 @@ This file is the authoritative version policy for Greater Art. If any handoff no
 ## Machine-checkable state
 
 
-Current source: **1.22.19 (code 340)**
+Current source: **1.22.20 (code 341)**
 Allowed consumed transition: **1.21.38 (code 261) -> 1.21.40 (code 263)**
 
 Retain PR174's original declared transition for eeb06d9. Its initial1.21.40
@@ -499,3 +499,4 @@ Previous baseline: 1.13.26 (code 115).
 - 1.22.17 (code 338): track one coherent Ambient streak from the visible edge into the frame, so a separate highlight cannot tilt a straight shaft. Keep the sampled tint and genuine diagonal directions; use the existing soft glow when the line lacks support. Preserve the video, HDR and Power saving routes and prior APKs. SOURCE_ONLY.
 - 1.22.18 (code 339): remove the grey fill from inactive Now Playing queue rows so the Ambient backdrop shows through. Retain the active track highlight, outlines, action reveal, controls and beam. SOURCE_ONLY.
 - 1.22.19 (code 340): remove the normal Now Playing toolbar backplate so its buttons sit directly on the Ambient background. Keep control layout, touch targets, callbacks, the grab handle, bottom panel and fullscreen contrast scrim. Update the toolbar pixel test for the owner-approved transparent design. SOURCE_ONLY.
+- 1.22.20 (code 341): tighten Stack sound and picture confidence against missing sections, ambiguous offsets and distributed edits; require native attack confirmation for mono-only sound evidence and invalidate older pair decisions. Apply changed timing through the existing group readiness gate instead of letting the reference run during a companion seek. Use prepared Stack durations instead of stale unknown Library metadata for analysis. Clarify method-specific review, unchanged/unfinished tracks, timing/rate changes and manual Earlier/Later controls; allow explicit wider picture verification after successful Quick results. Preserve source quality, independent sound/picture selection, manual edits, saved Stacks and the exact tested 1.22.19 APK. SOURCE_ONLY pending current-build qualification; no universal or sample-perfect accuracy claim.

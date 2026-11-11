@@ -316,7 +316,7 @@ internal class StackPlaybackCoordinator(
     }
 
     /** Hold every player until all of them can produce audio at the same instant. */
-    private fun armStartGate(requestedMaster: Long? = null) {
+    private fun armStartGate(requestedMaster: Long? = null, seekChanged: Set<String> = emptySet()) {
         if (!playing || !active) return
         val master = requestedMaster ?: position()
         anchorMs = master
@@ -325,7 +325,9 @@ internal class StackPlaybackCoordinator(
         armingGate = true
         try {
             setMainPlayWhenReady(false)
-            voices.toList().forEach { voice -> safePlayer { parkVoice(voice, master, anchorTimeMs, alwaysSeek = false) } }
+            voices.toList().forEach { voice -> safePlayer {
+                parkVoice(voice, master, anchorTimeMs, alwaysSeek = voice.file.path in seekChanged)
+            } }
         } finally { armingGate = false }
     }
 
@@ -473,7 +475,8 @@ internal class StackPlaybackCoordinator(
                 val next = if (isPrimary) 0L else value.offsetMs.coerceIn(-30_000L, 30_000L)
                 val scale = if (isPrimary) 1.0 else value.timeScale
                 val offsetUs = if (isPrimary) 0.0 else value.offsetUs.coerceIn(-30_000_000.0, 30_000_000.0)
-                if (next != slot.offsetMs || scale != slot.alignmentScale || offsetUs != slot.alignmentOffsetUs) {
+                if (next != slot.offsetMs || scale != slot.alignmentScale ||
+                    offsetUs != (slot.alignmentOffsetUs ?: slot.offsetMs * 1000.0)) {
                     slots[i] = slot.copy(offsetMs = next, alignmentScale = scale, alignmentOffsetUs = offsetUs)
                     changed += slot.file.path
                 }
@@ -482,10 +485,15 @@ internal class StackPlaybackCoordinator(
         if (changed.isEmpty()) return
         val master = position()
         val nowMs = SystemClock.elapsedRealtime()
-        // Parked voices are started by the entry logic exactly when the master arrives.
-        val live = playing && !gated && main.isPlaying
-        voices.filter { it.file.path in changed }.forEach { voice ->
-            safePlayer { parkVoice(voice, master, nowMs, alwaysSeek = true, leadMs = if (live) voice.seekLeadMs else 0L) }
+        if (playing) {
+            // Apply is one group transition. Do not let the reference advance
+            // while an individually parked singer seeks and fills its buffer.
+            armStartGate(master, changed)
+            tryOpenStartGate()
+        } else {
+            voices.filter { it.file.path in changed }.forEach { voice ->
+                safePlayer { parkVoice(voice, master, nowMs, alwaysSeek = true) }
+            }
         }
         publish()
     }
