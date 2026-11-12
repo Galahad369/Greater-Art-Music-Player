@@ -47,8 +47,8 @@ Timing applied|已套用時間調整|タイミングを適用済み|Timing angew
 Reference track|參考歌曲|基準の曲|Referenztitel|Piste de référence
 Current → proposed|目前 → 建議|現在 → 提案|Aktuell → Vorschlag|Actuel → Proposé
 Speed fit|速度配合|速度補正|Geschwindigkeitsanpassung|Correction de vitesse
-Sound matching follows the shared backing track, not the singers' phrasing.|聲音匹配以共同伴奏為準，而非歌手的唱法。|音の照合は歌い方ではなく共通の伴奏を基準にします。|Der Klangabgleich folgt der gemeinsamen Begleitung, nicht der Phrasierung der Stimmen.|La comparaison sonore suit l’accompagnement commun, pas le phrasé des voix.
-Picture matching aligns images. It does not guarantee matching sound.|畫面匹配只對齊影像，不保證聲音同步。|映像の照合は画像を揃えます。音の一致は保証しません。|Der Bildabgleich richtet Bilder aus. Er garantiert keinen gleichen Klangzeitpunkt.|La comparaison d’images aligne les images. Elle ne garantit pas la synchronisation du son.
+Sound estimates backing timing. Vocals can affect the result; review before applying.|聲音分析會估算伴奏時間，但人聲仍可能影響結果；套用前請先檢查。|音から伴奏のタイミングを推定します。歌声が結果に影響するため、適用前に確認してください。|Der Klangabgleich schätzt das Timing der Begleitung. Stimmen können das Ergebnis beeinflussen; vor dem Anwenden prüfen.|Le son sert à estimer le calage de l’accompagnement. Les voix peuvent influencer le résultat ; vérifiez avant d’appliquer.
+Picture timing is frame-limited. Matching images does not verify matching sound.|畫面對齊的精度受影格限制；影像相同不代表聲音已同步。|映像の時間精度はフレームに制限されます。画像が一致しても音の同期は確認できません。|Die Bildgenauigkeit ist durch die Frames begrenzt. Gleiche Bilder bestätigen keinen synchronen Ton.|La précision visuelle dépend des images vidéo. Leur correspondance ne prouve pas la synchronisation du son.
 Could not establish one consistent sound offset.|未能確立一致的聲音偏移。|一貫した音のオフセットを特定できませんでした。|Kein einheitlicher Klangversatz ermittelbar.|Impossible d’établir un décalage sonore cohérent.
 Could not establish one consistent picture offset.|未能確立一致的畫面偏移。|一貫した映像のオフセットを特定できませんでした。|Kein einheitlicher Bildversatz ermittelbar.|Impossible d’établir un décalage d’image cohérent.
 Not completed before the quick scan time limit.|未能在快速搜尋時限內完成。|クイックスキャンの制限時間内に完了しませんでした。|Vor dem Zeitlimit des Schnellsuchlaufs nicht abgeschlossen.|Non terminé avant la limite de temps de la recherche rapide.

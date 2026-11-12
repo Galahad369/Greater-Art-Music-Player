@@ -22,8 +22,8 @@ class StackAlignmentUiTextTest {
     @Test fun alignmentReviewAndManualDirectionsAreBundledForEveryLanguage() {
         val keys = listOf(
             "Timing applied", "Reference track", "Current → proposed", "Speed fit",
-            "Sound matching follows the shared backing track, not the singers' phrasing.",
-            "Picture matching aligns images. It does not guarantee matching sound.",
+            "Sound estimates backing timing. Vocals can affect the result; review before applying.",
+            "Picture timing is frame-limited. Matching images does not verify matching sound.",
             "Could not establish one consistent sound offset.",
             "Could not establish one consistent picture offset.",
             "Not completed before the quick scan time limit.",

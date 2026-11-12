@@ -227,10 +227,29 @@ internal fun estimateStackPictureOffset(
     // produce several deltas; keep the best search position instead of
     // snapping it to a frame that only agrees with part of the clip.
     val median = best.deltas.sorted()[best.deltas.size / 2]
-    val result = if (best.deltas.count { abs(it - median) <= 1_000L } * 3 >= best.deltas.size * 2) {
+    val sameCadence = best.deltas.count { abs(it - median) <= 1_000L } * 3 >= best.deltas.size * 2
+    var result = if (sameCadence) {
         if (abs(median) > maxShiftUs) return null
         score(median).takeIf { it.coverage && it.value >= best.value - .002 } ?: best
     } else best
+    if (!sameCadence) {
+        // Mixed frame rates can make an interval equally good. Choosing its edge
+        // nearest zero biases the answer when the same clip is shifted. Center
+        // only the contiguous, exactly equal maximum, admitting no weaker score.
+        fun plateauEdge(direction: Long): Long {
+            var edge = result.offset
+            for (step in 1..((frameIntervalUs + 999L) / 1_000L + 1L).toInt()) {
+                val next = (result.offset + direction * step * 1_000L).coerceIn(-maxShiftUs, maxShiftUs)
+                if (next == edge) break
+                val candidate = score(next)
+                if (!candidate.coverage || candidate.value != result.value) break
+                edge = next
+            }
+            return edge
+        }
+        val midpoint = score((plateauEdge(-1L) + plateauEdge(1L)) / 2)
+        if (midpoint.coverage && midpoint.value == result.value) result = midpoint
+    }
     // A unit-rate result cannot fix separated regions with visibly different
     // local optima. Compare near the proposed peak, allowing one observed frame
     // interval for cadence quantisation rather than claiming subframe accuracy.

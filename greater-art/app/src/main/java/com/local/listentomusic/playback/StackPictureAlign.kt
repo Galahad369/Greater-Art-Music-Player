@@ -209,10 +209,12 @@ internal class StackPictureAlign(private val context: Context) {
     ): Boolean {
         var inputDone = false
         var outputDone = false
-        var lastBucket = -1L
         val submittedTimes = if (batchBuffers) ArrayList<Long>() else null
         val returnedTimes = if (batchBuffers) ArrayList<Long>() else null
         val analysisContext = currentCoroutineContext()
+        val sampler = StackPictureNearestSampler(30, end - clipStartUs) { time, pixels ->
+            stackPictureFrame(time, pixels)?.let(frames::add)
+        }
         fun feedInput(waitUs: Long): Boolean {
             analysisContext.ensureActive()
             val index = decoder.dequeueInputBuffer(waitUs)
@@ -238,9 +240,6 @@ internal class StackPictureAlign(private val context: Context) {
                 val time = info.presentationTimeUs
                 if (info.size == 0 || time !in start until end) return true
                 returnedTimes?.add(time)
-                val bucket = (time - clipStartUs) * 30L / 1_000_000L
-                if (bucket <= lastBucket) return true
-                lastBucket = bucket
                 val image = decoder.getOutputImage(index) ?: return true
                 image.use {
                     if (it.format != ImageFormat.YUV_420_888) return@use
@@ -257,7 +256,7 @@ internal class StackPictureAlign(private val context: Context) {
                         if (position >= buffer.limit()) return@use
                         luma[y * STACK_PICTURE_GRID + x] = (buffer.get(position).toInt() and 255).toFloat()
                     }
-                    stackPictureFrame(time - clipStartUs, luma)?.let(frames::add)
+                    sampler.offer(time - clipStartUs, luma)
                 }
             } finally {
                 decoder.releaseOutputBuffer(index, false)
@@ -275,6 +274,7 @@ internal class StackPictureAlign(private val context: Context) {
                 drainOutput(10_000L)
             }
         }
+        sampler.finish()
         // Some AVC sync samples start a GOP that the local decoder only partially returns.
         submittedTimes?.sort()
         return submittedTimes == returnedTimes

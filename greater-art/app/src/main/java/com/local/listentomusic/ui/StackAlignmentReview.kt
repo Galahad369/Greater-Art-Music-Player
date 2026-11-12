@@ -69,8 +69,8 @@ internal fun StackAlignmentReview(
                 item(key = "summary") {
                     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         Text(
-                            if (picture) uiText(language, "Picture matching aligns images. It does not guarantee matching sound.", "畫面匹配只對齊影像，不保證聲音同步。")
-                            else uiText(language, "Sound matching follows the shared backing track, not the singers' phrasing.", "聲音匹配以共同伴奏為準，而非歌手的唱法。"),
+                            if (picture) uiText(language, "Picture timing is frame-limited. Matching images does not verify matching sound.", "畫面對齊的精度受影格限制；影像相同不代表聲音已同步。")
+                            else uiText(language, "Sound estimates backing timing. Vocals can affect the result; review before applying.", "聲音分析會估算伴奏時間，但人聲仍可能影響結果；套用前請先檢查。"),
                             Modifier.testTag("STACK_ALIGNMENT_METHOD"),
                             style = MaterialTheme.typography.bodyMedium,
                         )
