@@ -403,6 +403,7 @@ fun NowPlayingScreen(
     sharedVideoView: PlayerView? = null,
     onSharedVideoReleased: () -> Unit = {},
     ambientPreferences: com.local.listentomusic.data.UserPreferences? = null,
+    onFullscreenToolbarBoundsChanged: (androidx.compose.ui.geometry.Rect) -> Unit = {},
 ) {
     androidx.compose.runtime.CompositionLocalProvider(
         LocalSystemPlayer provides systemOverlay,
@@ -473,7 +474,6 @@ fun NowPlayingScreen(
         val immersiveVideo = playback.isVideo && (fullscreen || landscape)
         val backdrop = if (playerAmbient != null) {
             Modifier.adaptiveAmbientBackdrop(artwork, playback.currentPath, playerAmbient,
-                visible = !fullscreen && !immersiveVideo,
                 extraDim = playerAmbient.backgroundDim,
                 scrolling = queueListState.isScrollInProgress,
                 steady = playerAmbient.backgroundMode == com.local.listentomusic.data.AppBackgroundMode.AMBIENT,
@@ -522,15 +522,10 @@ fun NowPlayingScreen(
             )
         }
         if (playback.isVideo) {
-            val (pageBg, pageInsets) = if (immersiveVideo) {
-                Color.Black to WindowInsets(0)
-            } else {
-                // Portrait playback: gutters use the theme so light mode does not
-                // turn the whole page into a black slab. The video stage itself
-                // keeps its black backdrop below for letterboxing the frame.
-                Color.Transparent to playerStatusInsets()
-            }
-            val videoPageModifier = Modifier.fillMaxSize().background(pageBg)
+            // Native fullscreen video fills only its aspect-correct rectangle;
+            // leave the unused Fit margins open to the sampled Ambient below.
+            val pageInsets = if (immersiveVideo) WindowInsets(0) else playerStatusInsets()
+            val videoPageModifier = Modifier.fillMaxSize()
                 .windowInsetsPadding(pageInsets)
             Column(videoPageModifier) {
                 if (!immersiveVideo) {
@@ -554,6 +549,7 @@ fun NowPlayingScreen(
                     onSharedVideoReleased = onSharedVideoReleased,
                     frameAmbient = useFrameAmbient,
                     onFrameAmbientStage = { frameAmbientStage = it },
+                    onFullscreenToolbarBoundsChanged = onFullscreenToolbarBoundsChanged,
                     immersive = immersiveVideo,
                     onVideoBoundsChanged = onVideoBoundsChanged,
                     onHome = onHome,
@@ -751,6 +747,7 @@ private fun VideoPlayerStage(
     onVideoBoundsChanged: (Rect) -> Unit,
     frameAmbient: Boolean,
     onFrameAmbientStage: (Rect) -> Unit,
+    onFullscreenToolbarBoundsChanged: (androidx.compose.ui.geometry.Rect) -> Unit,
     onHome: () -> Unit,
     onClose: () -> Unit,
     onPictureInPicture: () -> Unit,
@@ -876,7 +873,7 @@ private fun VideoPlayerStage(
                 }
             }
             .inspectElement("VIDEO_STAGE", "Side double-tap seeks; pinch to zoom in fullscreen")
-            .background(if (frameAmbient) Color.Transparent else Color.Black)
+            .background(if (frameAmbient || immersive) Color.Transparent else Color.Black)
             .clipToBounds(),
         contentAlignment = Alignment.Center,
     ) {
@@ -1161,7 +1158,10 @@ private fun VideoPlayerStage(
                                         frameMode = frameMode,
                                         onToggleFrameMode = onToggleFrameMode,
                                         onLockAnchorBoundsChanged = onLockAnchorBoundsChanged,
-                                        onTopBarBoundsChanged = { toolbarWindowBounds = it },
+                                        onTopBarBoundsChanged = {
+                                            toolbarWindowBounds = it
+                                            onFullscreenToolbarBoundsChanged(it)
+                                        },
                                         modifier = Modifier.align(Alignment.TopCenter)
                                             // The video itself stays edge-to-edge; chrome must
                                             // avoid notches/camera cutouts on both orientations.
@@ -2646,7 +2646,8 @@ internal fun NowPlayingTopBar(
                 }
             }
         } else {
-            Row(chrome.height(52.dp), verticalAlignment = Alignment.CenterVertically) {
+            Row(chrome.height(52.dp), verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween) {
                 speedButton()
                 if (actions.floatingLauncher) PlayerToolbarAction(
                     onClick = onPictureInPicture,
@@ -2678,7 +2679,6 @@ internal fun NowPlayingTopBar(
                     inspectorId = "FLOATING_MODE_BUTTON",
                     inspectorDescription = "Switch floating playback mode: ${floatingModeLabel(language, selectedMode)}",
                 )
-                Spacer(Modifier.weight(1f))
                 rotateButton()
                 lockSlot()
                 frameModeButton()

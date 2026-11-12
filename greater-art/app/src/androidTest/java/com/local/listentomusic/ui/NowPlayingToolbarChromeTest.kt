@@ -16,6 +16,7 @@ import androidx.compose.ui.test.assertHasClickAction
 import androidx.compose.ui.test.assertHeightIsEqualTo
 import androidx.compose.ui.test.assertWidthIsEqualTo
 import androidx.compose.ui.test.captureToImage
+import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
@@ -27,6 +28,7 @@ import com.local.listentomusic.data.ThemeMode
 import com.local.listentomusic.ui.theme.GreaterArtTheme
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotEquals
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 
@@ -39,6 +41,14 @@ class NowPlayingToolbarChromeTest {
 
     @Test fun expandedToolbarIsTransparentAndRetainsItsActions() {
         showToolbar(overlay = false)
+        val buttons = compose.onAllNodes(hasClickAction()).fetchSemanticsNodes()
+            .sortedBy { it.boundsInRoot.left }
+        assertEquals("Keep all six top actions", 6, buttons.size)
+        val intervals = buttons.zipWithNext { left, right ->
+            right.boundsInRoot.center.x - left.boundsInRoot.center.x
+        }
+        assertTrue("Distribute every action evenly, not two clusters around a large spacer: $intervals",
+            intervals.max() - intervals.min() <= 1.01f)
         checkToolbarPixels { bitmap ->
             val centerX = bitmap.width / 2
             assertEquals("Expanded toolbar must show the shared background", backdrop,

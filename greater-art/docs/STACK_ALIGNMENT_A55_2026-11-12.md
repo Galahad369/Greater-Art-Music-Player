@@ -128,6 +128,14 @@ absent; do not claim a fresh installed-byte or permission recheck after that poi
 
 ## Preserve and continue
 
+Follow-up: [the independent backing-music diagnostics](STACK_BACKING_MUSIC_EVIDENCE_2026-11-12.md)
+test the earlier pitch-veto idea rather than treating it as a repair. Removing
+that veto alone still fails existing full-mix native confirmation when only the
+voice changes. A louder shared synthetic voice can also pass with different
+backing. A private check against syudou's public instrumental audition supplies
+independent timing clues for the actual six takes; it does not change the app or
+qualify a replacement matcher. Preserve its failed/outro regions and limits.
+
 Keep the approved rejection-only repair, one selected timing map per track,
 manual adjustments, saves, group readiness, full playback quality and separate
 sound/picture methods. Do not enable the unfinished shared-output prototype or

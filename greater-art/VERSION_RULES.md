@@ -16,7 +16,7 @@ This file is the authoritative version policy for Greater Art. If any handoff no
 ## Machine-checkable state
 
 
-Current source: **1.22.22 (code 343)**
+Current source: **1.22.23 (code 344)**
 Allowed consumed transition: **1.21.38 (code 261) -> 1.21.40 (code 263)**
 
 Retain PR174's original declared transition for eeb06d9. Its initial1.21.40
@@ -502,3 +502,4 @@ Previous baseline: 1.13.26 (code 115).
 - 1.22.20 (code 341): tighten Stack sound and picture confidence against missing sections, ambiguous offsets and distributed edits; require native attack confirmation for mono-only sound evidence and invalidate older pair decisions. Apply changed timing through the existing group readiness gate instead of letting the reference run during a companion seek. Use prepared Stack durations instead of stale unknown Library metadata for analysis. Clarify method-specific review, unchanged/unfinished tracks, timing/rate changes and manual Earlier/Later controls; allow explicit wider picture verification after successful Quick results. Preserve source quality, independent sound/picture selection, manual edits, saved Stacks and the exact tested 1.22.19 APK. SOURCE_ONLY pending current-build qualification; no universal or sample-perfect accuracy claim.
 - 1.22.21 (code 342): show a small dismissible Power saving notice in normal Now Playing. Explain reduced Ambient vividness without changing video quality, HDR routing or low-power lighting. Keep it below the measured toolbar, out of fullscreen/PiP, and avoid repeating it for each song. Preserve the local 1.22.20 alignment checkpoint and both prior optimized APKs. SOURCE_ONLY pending exact-build testing.
 - 1.22.22 (code 343): repair the actual Now Playing queue Add to list crash. Use the pinned Compose DialogProperties overlay window type for the Service-hosted playlist picker instead of requiring a nonexistent Activity token. Preserve Favorites/manual-playlist actions, dismissal, playback, alignment policy, source quality and previous APKs. SOURCE_ONLY: optimized local candidate passes exact A55 opening/Favorites/Done/Back/paused-continuity smoke,542 JVM tests and lint; original-signer release and wider alignment acceptance remain open. See docs/QUEUE_ADD_TO_LIST_1.22.22.md.
+- 1.22.23 (code 344): expose automatic sampled Ambient in native fullscreen Fit margins, restore the existing DEV summary/report and element inspector outside PiP, and evenly distribute Now Playing toolbar actions. Preserve the native HDR surface, Fit/Crop, zoom, pan, source quality, low-power policy, prior candidates and strict alignment gates. SOURCE_ONLY pending optimized assembly, exact-file checks and A55 acceptance; no publication or original-signer promotion.
