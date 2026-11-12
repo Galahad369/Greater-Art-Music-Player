@@ -1,6 +1,7 @@
 # Queue Add to list crash — 1.22.22/code343
 
-Status: local source fix; build and exact optimized A55 acceptance pending.
+Status: local crash repair passed the exact optimized A55 button flow. This is
+not full-app, acoustic, physical-phone or original-signer release acceptance.
 No push, merge, publication or replacement of earlier APKs.
 
 ## Reproduced failure
@@ -71,7 +72,58 @@ signing policy, player or matcher logic were removed or weakened. Documentation
 also preserves the preceding backing-music diagnostic; that is not a matcher
 change. The user-owned CodeGraph configuration is not staged.
 
-Do not claim the repair verified until the same native check passes on the exact
-new optimized APK. A successful assembly or a dialog-properties source check is
-not enough. Original historical signing and wider alignment acceptance remain
-separate open gates.
+## Exact optimized result
+
+Runtime source commit: `681f9465e6a186c45a37abac997b87abef92106c`.
+Android input SHA-256:
+`a2adf06602fbece3c03c3f2aa4237a623e8c97d89d70f000d50db45e77c43ece`.
+The mandatory gate assembled the optimized release in3m55s. Its historical-signer
+identity check correctly rejected the different global debug certificate; that
+failure and pin were retained. The assembled unsigned APK was then signed
+separately with the existing approved maintenance key, not a new key.
+
+Candidate:
+`App/output/queue-add-list-crash-20261112/optimized-local/GreaterArt-1.22.22.apk`,
+5579536bytes, SHA-256
+`c9c1da2f5e317e5175fdd92f72660ec2abf8629ba8c04fa2a5b55768ff8a52ba`.
+Package `com.local.listentomusic`, version1.22.22/code343, non-debuggable,
+non-test-only, certificate
+`0a7b9cebf928022c1930b64f2c47581c13def3007b0e97737bbb9ca3e53de6b7`.
+Identity, ZIP integrity and16KiB alignment passed. This key matches the previous
+local1.22.21 installation; the in-place update used no uninstall, downgrade or
+data wipe. It cannot update a historical-original-signer installation.
+
+The crash assertion and picker function are unchanged from the native red run.
+The first two positive attempts opened the dialog and retained Favorites but
+failed paused continuity: their own before-images still showed Pause, so the
+paused precondition was never established. Do not describe those as clean passes
+or as evidence that adding Favorites resumed playback.
+
+`Verify-A55QueueAddToList-Ready.ps1` strengthens only setup: wait for the actual
+Service player Pause control, tap it and require the Play acknowledgement before
+opening the picker. Original `baseline-native-03/queue-before.xml` already shows
+that same paused state. AST comparison confirms the exact
+`Open-QueueListPicker` function and final paused assertion were not changed.
+Final adapter SHA-256:
+`41c51c6c4679f0e9adf2e5016495a40729e0677c01db2816cc8475f5cb7613fe`.
+Preserve both original scripts and all failed setup evidence.
+
+The complete final driver exits0. `green-ready-native.log` records:
+
+- Same exact installed candidate hash before and after.
+- Add to list opens without crashing; Favorites saves and is checked on reopen.
+- Done and Android Back dismiss the picker; the player remains paused.
+- The original Favorites state is restored, and storage/overlay app-ops return
+  to their original default values.
+
+The final log SHA-256 is
+`2c761fd646f3201cbc6f26107e59231b848ecac515c6fd0d7782e2c3863d6484`.
+The actual picker and returned-player screenshots were visually inspected.
+A further read-only check confirms that installed bytes still match, microphone
+capture is ignored, Power saving stays0 and there is no media projection.
+The A55 configuration, user-owned `codegraph.json` and older1.22.19/21 APK hashes
+are unchanged. This test did not provision a manual playlist, so do not claim
+native custom-playlist persistence coverage from its Favorites result alone.
+
+Original historical signing and wider alignment acceptance remain separate open
+gates. Do not promote this focused local result to a universal crash-free claim.
