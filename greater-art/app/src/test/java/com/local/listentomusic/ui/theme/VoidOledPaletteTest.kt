@@ -33,8 +33,8 @@ class VoidOledPaletteTest {
         assertEquals(Color.Transparent, colors.surfaceTint)
     }
 
-    @Test fun spaceBlackAndExistingPreferencesRemainUnchanged() {
-        assertEquals(ColorTheme.FOREST, UserPreferences().colorTheme)
+    @Test fun oledIsDefaultAndExplicitOtherPalettesRemainUnchanged() {
+        assertEquals(ColorTheme.VOID, UserPreferences().colorTheme)
         assertTrue(ColorTheme.entries.contains(ColorTheme.VOID))
         assertNotEquals(Color.Black, appColorScheme(ColorTheme.MONOCHROME, true).background)
         assertNotEquals(Color.Black, appColorScheme(ColorTheme.FOREST, true).background)

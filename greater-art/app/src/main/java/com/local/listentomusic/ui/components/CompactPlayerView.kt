@@ -23,10 +23,13 @@ import com.local.listentomusic.playback.playbackRequested
 import com.local.listentomusic.playback.togglePlayback
 import androidx.compose.ui.graphics.toArgb
 import com.local.listentomusic.data.AppFont
+import com.local.listentomusic.data.ColorTheme
 import com.local.listentomusic.data.ThemeMode
 import com.local.listentomusic.data.UserPreferences
 import com.local.listentomusic.ui.uiText
 import com.local.listentomusic.ui.theme.appColorScheme
+import com.local.listentomusic.ui.theme.artworkAccentScheme
+import com.local.listentomusic.ui.theme.artworkThemePalette
 
 internal fun shouldRefreshCompactBinding(samePlayer: Boolean, samePresentation: Boolean): Boolean =
     !samePlayer || !samePresentation
@@ -52,6 +55,7 @@ class CompactPlayerView(context: Context) : FrameLayout(context) {
     private var pauseLabel = "Pause"
     private var nextLabel = "Next"
     private var appearanceKey: List<Any>? = null
+    private var appearanceSettings: UserPreferences? = null
     private var paletteBackground = Color.rgb(22, 30, 28)
     private var detached = false
     private var expanded = false
@@ -123,14 +127,18 @@ class CompactPlayerView(context: Context) : FrameLayout(context) {
         progress.progressTintList = ColorStateList.valueOf(accent)
     }
     fun appearance(settings: UserPreferences) {
+        appearanceSettings = settings
         if (miniSize != settings.miniWindowSize) { miniSize = settings.miniWindowSize; refresh() }
         val night = resources.configuration.uiMode and android.content.res.Configuration.UI_MODE_NIGHT_MASK == android.content.res.Configuration.UI_MODE_NIGHT_YES
         val font = if (settings.silianRail) AppFont.SILIAN_RAIL else settings.appFont
-        val key = listOf(settings.themeMode, settings.colorTheme, font, settings.appLanguage, night)
+        val key = listOf(settings.themeMode, settings.colorTheme, font, settings.appLanguage, night,
+            if (settings.colorTheme == ColorTheme.VIDEO) lastArtwork?.generationId ?: 0 else 0)
         if (appearanceKey == key) return
         appearanceKey = key
         val dark = settings.themeMode == ThemeMode.DARK || (settings.themeMode == ThemeMode.SYSTEM && night)
-        val palette = appColorScheme(settings.colorTheme, dark)
+        val base = appColorScheme(settings.colorTheme, dark)
+        val palette = if (settings.colorTheme == ColorTheme.VIDEO)
+            artworkAccentScheme(base, artworkThemePalette(lastArtwork), 1f, settings.colorTheme) else base
         colors(palette.surface.toArgb(), palette.onSurface.toArgb(), palette.secondary.toArgb())
         val lang = settings.appLanguage
         labels(uiText(lang, "Previous", "上一首"), uiText(lang, "Play", "播放"), uiText(lang, "Pause", "暫停"), uiText(lang, "Next", "下一首"))
@@ -158,6 +166,7 @@ class CompactPlayerView(context: Context) : FrameLayout(context) {
         if (lastArtwork === bitmap) return
         lastArtwork = bitmap
         if (bitmap == null) artwork.setImageResource(R.drawable.ic_launcher_foreground) else artwork.setImageBitmap(bitmap)
+        appearanceSettings?.takeIf { it.colorTheme == ColorTheme.VIDEO }?.let(::appearance)
     }
     private fun updateDetachedLayout() {
         // Keep the whole detached window transparent even after theme updates.

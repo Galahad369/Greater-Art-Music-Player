@@ -32,7 +32,7 @@ data class UserPreferences(
     val libraryRowSize: LibraryRowSize = LibraryRowSize.SMALL,
     val miniWindowSize: LibraryRowSize = LibraryRowSize.SMALL,
     val themeMode: ThemeMode = ThemeMode.DARK,
-    val colorTheme: ColorTheme = ColorTheme.FOREST,
+    val colorTheme: ColorTheme = ColorTheme.VOID,
     val showThumbnails: Boolean = true,
     val showFileDetails: Boolean = false,
     val resumePlayback: Boolean = true,
@@ -78,8 +78,9 @@ enum class ColorTheme(val label: String) {
     INDIGO("Astra"),
     ROSE("Nova"),
     MONOCHROME("Space Black"),
-    VOID("Void OLED"),
+    VOID("Black OLED"),
     HIGH_CONTRAST("High Contrast"),
+    VIDEO("Follow video colors"),
 }
 enum class FloatingWindowMode { COMPACT, FOLLOW_VIDEO, MINI_WINDOW, NONE }
 
@@ -197,7 +198,7 @@ class AppPreferences(private val context: Context) {
                 LibraryRowSize.SMALL,
             ),
             themeMode = enumValueOrDefault(prefs[Keys.themeMode], ThemeMode.DARK),
-            colorTheme = enumValueOrDefault(prefs[Keys.colorTheme], ColorTheme.FOREST),
+            colorTheme = enumValueOrDefault(prefs[Keys.colorTheme], ColorTheme.VOID),
             showThumbnails = prefs[Keys.showThumbnails] ?: true,
             showFileDetails = prefs[Keys.showFileDetails] ?: false,
             resumePlayback = prefs[Keys.resumePlayback] ?: true,

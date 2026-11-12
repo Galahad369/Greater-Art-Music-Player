@@ -245,8 +245,8 @@ fun SettingsScreen(
                     )
                     ChoiceSetting(
                         uiText(language, "Color theme", "色彩主題"),
-                        uiText(language, "Accent colours for controls. OLED uses true black; all other colours follow Light / Dark.", "控制按鈕的重點色。OLED 使用純黑底色；其他配色跟隨淺色／深色設定。"),
-                        ColorTheme.entries,
+                        uiText(language, "OLED keeps the base black. Video colors adapt controls to the current media; audio uses cover art.", "OLED 保持純黑底色。影片配色讓控制按鈕跟隨目前媒體；音訊使用封面色彩。"),
+                        colorThemeOptions(),
                         preferences.colorTheme,
                         {
                             when (it) {
@@ -256,7 +256,8 @@ fun SettingsScreen(
                                 ColorTheme.INDIGO -> uiText(language, "Indigo · violet", "靛藍 · 紫")
                                 ColorTheme.ROSE -> uiText(language, "Rose · pink", "玫瑰 · 粉")
                                 ColorTheme.MONOCHROME -> uiText(language, "Monochrome", "黑白")
-                                ColorTheme.VOID -> uiText(language, "OLED · true black", "OLED · 純黑")
+                                ColorTheme.VOID -> uiText(language, "Black OLED", "OLED 純黑")
+                                ColorTheme.VIDEO -> uiText(language, "Follow video colors", "跟隨影片色彩")
                                 ColorTheme.HIGH_CONTRAST -> when (language) {
                                     AppLanguage.ENGLISH -> "High contrast"
                                     AppLanguage.TRADITIONAL_CHINESE -> "高對比"

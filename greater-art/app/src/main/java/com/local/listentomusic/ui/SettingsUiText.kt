@@ -16,6 +16,9 @@ internal fun settingsUiText(language: AppLanguage, english: String): String? {
 }
 
 private val settingsTranslations = mapOf(
+    "Black OLED" to listOf("OLED 純黑", "OLED 純黑", "OLED ブラック", "OLED-Schwarz", "Noir OLED"),
+    "Follow video colors" to listOf("跟隨影片色彩", "跟影片配色", "動画の色に合わせる", "Videofarben folgen", "Suivre les couleurs de la vidéo"),
+    "OLED keeps the base black. Video colors adapt controls to the current media; audio uses cover art." to listOf("OLED 保持純黑底色。影片配色讓控制按鈕跟隨目前媒體；音訊使用封面色彩。", "OLED 用純黑底。影片配色會跟目前媒體改按鈕顏色；音訊用封面色。", "OLEDは黒い背景を保持。動画色は現在のメディアに操作色を合わせ、音声ではカバー画像を使います。", "OLED hält den Hintergrund schwarz. Videofarben passen die Bedienelemente an das aktuelle Medium an; Audio nutzt das Cover.", "OLED conserve le fond noir. Les commandes suivent les couleurs du média ; l’audio utilise la pochette."),
     "Local DEV panel for playback status. Nothing is sent." to listOf("本機 DEV 面板，查看播放狀態；不會傳送資料。", "本機 DEV 面板睇播放狀態，唔會傳資料。", "端末内のDEVパネルで再生状態を確認。送信しません。", "Lokales DEV-Panel für den Wiedergabestatus. Keine Übertragung.", "Panneau DEV local pour l’état de lecture. Aucun envoi."),
     "Choose the font used throughout the app." to listOf("選擇整個應用程式使用的字型。", "揀成個 App 用嘅字款。", "アプリ全体で使うフォントを選びます。", "Schriftart für die gesamte App auswählen.", "Choisissez la police utilisée dans toute l’application."),
     "Choose what appears behind Library, Nodes and Stack." to listOf("選擇音樂庫、節點及疊播頁面的背景。", "揀歌庫、節點同疊播頁面嘅背景。", "ライブラリ・ノード・スタックの背景を選びます。", "Hintergrund für Bibliothek, Knoten und Stack auswählen.", "Choisissez l’arrière-plan de Bibliothèque, Nœuds et Stack."),

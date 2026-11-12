@@ -16,7 +16,7 @@ This file is the authoritative version policy for Greater Art. If any handoff no
 ## Machine-checkable state
 
 
-Current source: **1.22.24 (code 345)**
+Current source: **1.22.25 (code 346)**
 Allowed consumed transition: **1.21.38 (code 261) -> 1.21.40 (code 263)**
 
 Retain PR174's original declared transition for eeb06d9. Its initial1.21.40
@@ -504,3 +504,4 @@ Previous baseline: 1.13.26 (code 115).
 - 1.22.22 (code 343): repair the actual Now Playing queue Add to list crash. Use the pinned Compose DialogProperties overlay window type for the Service-hosted playlist picker instead of requiring a nonexistent Activity token. Preserve Favorites/manual-playlist actions, dismissal, playback, alignment policy, source quality and previous APKs. SOURCE_ONLY: optimized local candidate passes exact A55 opening/Favorites/Done/Back/paused-continuity smoke,542 JVM tests and lint; original-signer release and wider alignment acceptance remain open. See docs/QUEUE_ADD_TO_LIST_1.22.22.md.
 - 1.22.23 (code 344): expose automatic sampled Ambient in native fullscreen Fit margins, restore the existing DEV summary/report and element inspector outside PiP, and evenly distribute Now Playing toolbar actions. Preserve the native HDR surface, Fit/Crop, zoom, pan, source quality, low-power policy, prior candidates and strict alignment gates. SOURCE_ONLY pending optimized assembly, exact-file checks and A55 acceptance; no publication or original-signer promotion.
 - 1.22.24 (code 345): fix A55-observed overlap after toolbar redistribution: move pull recognition from the sibling hit-stealing overlay to the toolbar parent, and place expanded DEV below the measured toolbar. Keep the central pull gesture, activation/resistance/return rules, all button callbacks and native fullscreen Ambient/HDR unchanged. Preserve the exact 1.22.23 candidate and failed center-tap evidence. SOURCE_ONLY pending the new optimized build and native acceptance.
+- 1.22.25 (code 346): make Black OLED the unset/reset default, present Follow video colors second without renaming stored palettes, reuse existing artwork/video color evidence for readable control accents, and remove only the normal Now Playing timeline/transport backplate. Preserve fixed controls, touch targets, Ambient, native HDR, video quality, surface ownership, alignment gates and all prior APKs. SOURCE_ONLY; optimized assembly and exact-build acceptance are recorded separately in docs/OLED_VIDEO_THEME_1.22.25.md.

@@ -1529,7 +1529,6 @@ private fun SecondaryControls(
             .padding(start = 12.dp, end = 12.dp, top = 0.dp, bottom = 0.dp),
         horizontalAlignment = Alignment.Start,
     ) {
-        val chromeShape = RoundedCornerShape(GaRadius.chrome)
         Box(
             Modifier.fillMaxWidth()
                 .testTag("CURRENT_MEDIA_HEADER_CONTAINER")
@@ -1578,13 +1577,7 @@ private fun SecondaryControls(
                 )
         Column(
             Modifier.fillMaxWidth()
-                .clip(chromeShape)
-                .background(MaterialTheme.colorScheme.surface.copy(alpha = NOW_PLAYING_AMBIENT_PANEL_ALPHA))
-                .border(
-                    1.dp,
-                    MaterialTheme.colorScheme.outlineVariant.copy(alpha = NOW_PLAYING_AMBIENT_OUTLINE_ALPHA),
-                    chromeShape,
-                )
+                .testTag("NOW_PLAYING_TRANSPORT_AREA")
                 .padding(horizontal = 8.dp, vertical = 4.dp),
         ) {
             Timeline(playback, onSeek)

@@ -8,7 +8,8 @@ class LanguageTest {
     @Test fun newSettingsCopyHasEverySupportedTranslation() {
         val keys = listOf("Tap to expand", "Tap to collapse", "Mini window size", "Ambient",
             "Forest · green", "Slate · blue", "Amber · gold", "Indigo · violet",
-            "Rose · pink", "Monochrome", "OLED · true black")
+            "Rose · pink", "Monochrome", "OLED · true black", "Black OLED", "Follow video colors",
+            "OLED keeps the base black. Video colors adapt controls to the current media; audio uses cover art.")
         AppLanguage.entries.filter { it != AppLanguage.ENGLISH }.forEach { language ->
             keys.forEach { key -> assertNotNull("$language: $key", settingsUiText(language, key)) }
         }
