@@ -1,7 +1,8 @@
 # Backing music, not singer timing — independent diagnostics
 
-Status: isolated host diagnostics only. Android remains1.22.22/code343;
-the production matcher, acceptance rules, player and APK are unchanged.
+Status: isolated host diagnostics. Initial trials used1.22.22/code343;
+the later presentation candidate is1.22.24/code345. These trials change neither
+the production matcher nor acceptance rules, player or exact candidate APK.
 This is evidence against calling sound alignment complete, not a release gate pass.
 
 ## A pitch-only repair is insufficient
@@ -237,15 +238,101 @@ folder (`android-37` instead of installed `android-37.0`) and the initial ADB
 missing-package setup failure. Neither installed or tested a changed Greater Art
 APK. They are not alignment, production compilation or runtime crash findings.
 
+## Missing-backing controls — November13 follow-up
+
+Three additional constructed cases cover all six distributed regions. They use
+the same unchanged production feature/map/native-confirmation gate and retain
+its five-of-six requirement and known700ms truth:
+
+| Constructed case | Raw input | Vocal-subtraction estimate |
+| --- | --- | --- |
+| Same designated vocal stem in both inputs, no added backing | Accepts700ms,6/6 anchors | Still accepts700ms,6/6 anchors, confidence0.906 |
+| Mixed primary versus designated vocal stem only | Accepts700ms,6/6 anchors | Rejects |
+| Same clean backing, no added voice | Accepts about700.401ms | Accepts about700.399ms |
+
+The negative means **no added backing**, not proven acoustically pure voice:
+the retained MUSDB vocal recording may contain bleed. Do not turn that fixture
+into an unsupported claim about complete vocal isolation. It still demonstrates
+that high separated correlation and fine timing agreement alone do not identify
+the intended musical component. The control expects a vocal-stem-only request
+to abstain; both raw and estimated inputs fail that contract. The clean-backing
+positive prevents solving the negative by rejecting everything.
+
+The new stem gate remains red (`rawTruthFailures=2`, `stemTruthFailures=1`).
+Do not weaken it or integrate the model by replacing input samples. Original
+sources, model, reference and production math were hashed unchanged. The trial
+reuses bit-identical retained mixtures where possible. These are bounded mono
+controls, not full-search or emitted-output acceptance.
+
+Private receipts under `App/output/stack-alignment-audit-20261111/`:
+
+| Receipt | SHA-256 |
+| --- | --- |
+| `separator-missing-backing-01/controls.json` | `9cdbe7746d62b814994cd7415f34586bfe2eee756b311f89720d900e568e8acb` |
+| `separator-missing-backing-gate-01.driver.log` — retained failing gate | `e14b1eacc5a2320fac7cffb0f7e5df73e7669602eafb11ed3b66d724dd054072` |
+
+The separately approved [process-output capture trial](STACK_PROCESS_CAPTURE_2026-11-13.md)
+passes owned Windows process isolation, but its A55 gain estimator fails and also
+reports leakage from an absent track. Do not interpret either capture method as
+qualified physical output or use it to invent six-singer timing acceptance.
+
+## Direct drum head — input substitution is still insufficient
+
+The retained, hash-verified author archive also contains a direct drum-estimation
+head. It was extracted locally, with no further model download, and tested
+against the two original and three missing-backing cases across all six regions.
+No model was added to the app. This is the standalone TrackA head, **not** the
+author's complete blended ensemble. The retained mono fixture inputs were
+duplicated to stereo for this probe; this does not test real stereo selection.
+
+The published FFT scale for drums gives NFFT4096, hop1024,2048 supplied frequency
+bins and512 time frames. DSP reconstruction error is1.19e-7. Forty-two distinct
+source windows take115.030s of host CPU inference in total, with about1.15GiB
+peak working set. These are inference-only host measurements, not an Android or
+complete-scan benchmark.
+
+| Constructed case | Unchanged gate on direct drum estimates |
+| --- | --- |
+| Same music, singer280ms late | Rejects the valid case |
+| Wrong music, same loud singer | Correctly rejects |
+| Same designated vocal stem, no added backing | Incorrectly accepts about697.349ms with6/6 anchors |
+| Mixed primary versus designated vocal stem only | Correctly rejects |
+| Clean same music | Correctly accepts about699.904ms |
+
+The combined gate is still red:4 raw truth failures and2 drum-input truth
+failures. Do not adjust its expectations, native guards or support denominator.
+
+After both vocal-subtraction and direct-drum input swaps failed, a separate
+waveform check challenged their common assumption: **does the estimated component
+actually retain the correct music timing in every region?** For the late-voice
+positive, native direct-drum peaks find700ms in four regions but about975.238ms
+in two regions, still near the singer. Vocal subtraction previously retained the
+correct local700ms peak in all six, although its production feature gate rejected
+the map. Neither result justifies a third blind input swap or a permissive
+waveform fallback. Separation quality and matcher compatibility are separate
+problems; component presence and independent whole-song evidence are still
+required. The bounded waveform check is not a full-range competitor search or
+a replacement acceptance gate.
+
+| Private receipt | SHA-256 |
+| --- | --- |
+| `separator-drum-controls-01/trial.json` | `3b6f9444c1760c7dbd69d38e071341dd9dd147cce39521db63cf44422b8c75da` |
+| `separator-drum-gate-01.driver.log` — retained failure | `ae1b0744fb5b525c20b37e4adf55626ff831b35a0a37c3779ce5206b10ae3d48` |
+| `drum-component-probe-01/report.json` | `59775bd856b54624d32dccafb0012c941d972264144340266dbd7bcf0e039d95` |
+
+The direct drum model SHA-256 is
+`40f586b7091934dd6f5563f0cba8f14bad57ce88440da1098bf388ea716c2901`.
+Original fixtures and current production math were checked unchanged.
+
 ## Decision and limits
 
 The backing-only reference is a useful independent QA oracle; it is not a viable
 requirement that every user supply an official instrumental. A new general
 music-first approach must identify backing evidence in **both** matching and
 confirmation. The owner approved the isolated model/runtime trial above, not an
-application policy change or integration. The tested model is **not ready to
-integrate as-is**: resource cost is high and the unchanged six-region gate is
-still red. Preserve the existing rejection-only repair and declined native-map
+application policy change or integration. Neither tested head is **ready to
+integrate as-is**: resource cost is high, and both unchanged six-region gates
+remain red. Preserve the existing rejection-only repair and declined native-map
 rescue; do not replace it with an unqualified stem-input swap.
 
 Do not substitute singer alignment for backing alignment, use picture timing as
