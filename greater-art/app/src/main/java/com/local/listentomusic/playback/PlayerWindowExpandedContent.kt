@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AlertDialog
@@ -75,6 +76,47 @@ internal fun PlayerWindowExpandedContent(
     val inspector = remember { UiInspectorState() }
     val density = LocalDensity.current.density
     var fullscreen by remember { mutableStateOf(false) }
+    var toolbarBottom by remember { mutableStateOf(0f) }
+    // Handle drags as the buttons' parent, not as an overlapping sibling that
+    // wins hit testing and swallows otherwise valid icon-centre taps.
+    val toolbarInput = Modifier.pointerInput(fullscreen, onPull, onPullEnd, onPullCancel, density) {
+        if (fullscreen) return@pointerInput
+        val activationPx = expandedPullActivationPx(density)
+        var activationTravelPx = 0f
+        var totalDownwardPx = 0f
+        var activated = false
+        var dragStartMs = 0L
+        var withinHandle = false
+        detectVerticalDragGestures(
+            onDragStart = { point ->
+                withinHandle = point.x in (size.width * .24f)..(size.width * .76f)
+                activationTravelPx = 0f
+                totalDownwardPx = 0f
+                activated = false
+                dragStartMs = SystemClock.uptimeMillis()
+            },
+            onVerticalDrag = drag@{ change, dragAmount ->
+                if (!withinHandle) return@drag
+                change.consume()
+                totalDownwardPx = (totalDownwardPx + dragAmount).coerceAtLeast(0f)
+                if (!activated) {
+                    activationTravelPx = (activationTravelPx + dragAmount).coerceAtLeast(0f)
+                    if (activationTravelPx >= activationPx) {
+                        activated = true
+                        val overflow = activationTravelPx - activationPx
+                        if (overflow > 0f) onPull(expandedPullResistedDelta(overflow))
+                    }
+                } else onPull(expandedPullResistedDelta(dragAmount))
+            },
+            onDragEnd = {
+                if (activated) {
+                    val elapsedMs = (SystemClock.uptimeMillis() - dragStartMs).coerceAtLeast(1L)
+                    onPullEnd(totalDownwardPx, totalDownwardPx * 1_000f / elapsedMs.toFloat())
+                } else onPullCancel()
+            },
+            onDragCancel = onPullCancel,
+        )
+    }
     var addToListFile by remember { mutableStateOf<com.local.listentomusic.model.MediaFile?>(null) }
     val artwork by key(playback.currentPath, settings.localOverrides[playback.currentPath]) {
         val path = playback.currentPath
@@ -159,70 +201,30 @@ internal fun PlayerWindowExpandedContent(
                                 onFullscreenChanged = { fullscreen = it; onFullscreen(it) },
                                 sharedVideoView = videoView,
                                 onSharedVideoReleased = onVideoReleased,
+                                onToolbarBoundsChanged = { toolbarBottom = it.bottom },
+                                toolbarInputModifier = toolbarInput,
                             )
                         }
                     }
                 }
 
-                // Keep the pull-to-Library gesture on a small dedicated top-center target.
-                // This works in short landscape windows without stealing vertical drags from
-                // the queue, waveform, lyrics or other Now Playing controls.
+                // Visual handle only. Its parent toolbar owns drag recognition;
+                // this layer must not intercept the buttons underneath it.
                 if (!fullscreen) {
                     Box(
                         Modifier
                             .align(Alignment.TopCenter)
                             .fillMaxWidth(0.52f)
                             .height(40.dp)
-                            .pointerInput(onPull, onPullEnd, onPullCancel, density) {
-                                val activationPx = expandedPullActivationPx(density)
-                                var activationTravelPx = 0f
-                                var totalDownwardPx = 0f
-                                var activated = false
-                                var dragStartMs = 0L
-                                detectVerticalDragGestures(
-                                    onDragStart = {
-                                        activationTravelPx = 0f
-                                        totalDownwardPx = 0f
-                                        activated = false
-                                        dragStartMs = SystemClock.uptimeMillis()
-                                    },
-                                    onVerticalDrag = { change, dragAmount ->
-                                        change.consume()
-                                        totalDownwardPx = (totalDownwardPx + dragAmount).coerceAtLeast(0f)
-                                        if (!activated) {
-                                            activationTravelPx =
-                                                (activationTravelPx + dragAmount).coerceAtLeast(0f)
-                                            if (activationTravelPx >= activationPx) {
-                                                activated = true
-                                                val overflow = activationTravelPx - activationPx
-                                                if (overflow > 0f) onPull(expandedPullResistedDelta(overflow))
-                                            }
-                                        } else {
-                                            onPull(expandedPullResistedDelta(dragAmount))
-                                        }
-                                    },
-                                    onDragEnd = {
-                                        if (activated) {
-                                            val elapsedMs =
-                                                (SystemClock.uptimeMillis() - dragStartMs).coerceAtLeast(1L)
-                                            val averageVelocity =
-                                                totalDownwardPx * 1_000f / elapsedMs.toFloat()
-                                            onPullEnd(totalDownwardPx, averageVelocity)
-                                        } else {
-                                            onPullCancel()
-                                        }
-                                    },
-                                    onDragCancel = onPullCancel,
-                                )
-                            }
                             .inspectElement(
                                 "EXPANDED_MINI_PULL_HANDLE",
                                 "Deliberate pull down to return to Library; activation gate + resistance",
                             ),
-                        contentAlignment = Alignment.Center,
+                        contentAlignment = Alignment.TopCenter,
                     ) {
                         Box(
                             Modifier
+                                .padding(top = 2.dp)
                                 .size(width = 64.dp, height = 4.dp)
                                 .background(
                                     MaterialTheme.colorScheme.onSurface.copy(alpha = 0.42f),
@@ -309,6 +311,7 @@ internal fun PlayerWindowExpandedContent(
                     warning = warnings.isNotEmpty() || com.local.listentomusic.ui.hasLocalFailure(failure),
                     inspector = inspector,
                     onDisableDeveloperMode = { viewModel.setDeveloperMode(false) },
+                    modifier = Modifier.padding(top = with(LocalDensity.current) { toolbarBottom.toDp() }),
                     systemOverlay = true,
                     language = settings.appLanguage,
                 )

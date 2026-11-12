@@ -130,7 +130,7 @@ class FullscreenVideoActivity : ComponentActivity() {
                     onShareQueue = {},
                     initialFullscreen = true,
                     onFullscreenChanged = { if (!it) finishTo("EXPANDED") },
-                    onFullscreenToolbarBoundsChanged = { toolbarBottom = it.bottom },
+                    onToolbarBoundsChanged = { toolbarBottom = it.bottom },
                 )
                 if (developerVisible) {
                     val engine by PlaybackDiagnostics.report.collectAsState()

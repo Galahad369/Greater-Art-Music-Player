@@ -403,7 +403,8 @@ fun NowPlayingScreen(
     sharedVideoView: PlayerView? = null,
     onSharedVideoReleased: () -> Unit = {},
     ambientPreferences: com.local.listentomusic.data.UserPreferences? = null,
-    onFullscreenToolbarBoundsChanged: (androidx.compose.ui.geometry.Rect) -> Unit = {},
+    onToolbarBoundsChanged: (androidx.compose.ui.geometry.Rect) -> Unit = {},
+    toolbarInputModifier: Modifier = Modifier,
 ) {
     androidx.compose.runtime.CompositionLocalProvider(
         LocalSystemPlayer provides systemOverlay,
@@ -539,7 +540,11 @@ fun NowPlayingScreen(
                                         onLock = { controlsLocked = !controlsLocked },
                                         locked = controlsLocked,
                                         onLockAnchorBoundsChanged = reportLockAnchor,
-                                        onTopBarBoundsChanged = { normalToolbarBounds = it },
+                                        onTopBarBoundsChanged = {
+                                            normalToolbarBounds = it
+                                            onToolbarBoundsChanged(it)
+                                        },
+                                        modifier = toolbarInputModifier,
                                     )
                                 }
                                 VideoPlayerStage(
@@ -549,7 +554,7 @@ fun NowPlayingScreen(
                     onSharedVideoReleased = onSharedVideoReleased,
                     frameAmbient = useFrameAmbient,
                     onFrameAmbientStage = { frameAmbientStage = it },
-                    onFullscreenToolbarBoundsChanged = onFullscreenToolbarBoundsChanged,
+                    onFullscreenToolbarBoundsChanged = onToolbarBoundsChanged,
                     immersive = immersiveVideo,
                     onVideoBoundsChanged = onVideoBoundsChanged,
                     onHome = onHome,
@@ -639,7 +644,11 @@ fun NowPlayingScreen(
                     onLock = { controlsLocked = !controlsLocked },
                     locked = controlsLocked,
                     onLockAnchorBoundsChanged = reportLockAnchor,
-                    onTopBarBoundsChanged = { normalToolbarBounds = it },
+                    onTopBarBoundsChanged = {
+                        normalToolbarBounds = it
+                        onToolbarBoundsChanged(it)
+                    },
+                    modifier = toolbarInputModifier,
                 )
                 AudioPlayer(
                     playback = playback.copy(appLanguage = language),
