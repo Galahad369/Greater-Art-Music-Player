@@ -79,6 +79,75 @@ The initial Android helper source and build are frozen in
 physical-absence controls. These are private test helpers, not Greater Art
 versions or alternative production players.
 
+## Known coded timing — additional qualification
+
+Four immutable12s PCM fixtures encode independent997Hz/2333Hz carriers with
+known amplitude patterns: zero offset,+1632 frames (37.006803ms),-3220 frames
+(-73.015873ms), and unrelated patterns. All use44.1kHz stereo PCM16. This is
+synthetic measurement qualification, not music matching or a playback-quality
+change. Before device use, the fixture manifest froze a2ms timing tolerance,
+positive correlation at least0.90 and negative correlation below0.45.
+
+Using existing SciPy filtering/correlation functions, the private complex
+demodulation check recovers all host source controls and synthetic shared-clock-warp controls. Checks also reject
+a sabotaged constant-zero timing result and forced acceptance of unrelated codes.
+Those host results do not establish the Android output chain.
+
+Repeated native Windows capture activation was checked separately: three5s
+captures of one continuously playing owned process retained RMS
+0.0151526..0.0151532. This rules out a general repeated-activation loss in that
+control, not every emulator-specific audio issue.
+
+The first A55 coded attempt played directly from the private Activity's creation
+without a visible play gesture or managed audio focus. Only the initial zero case
+had a useful signal; later captures were near silent and failed. Audio-hardening
+events were logged, but this API36 device says playback **would** be muted: that
+log alone does not prove enforcement or the silence's cause. Do not disable
+Android policy or attribute this result to Greater Art.
+
+The private version4 helper starts from its actual visible button after granted
+audio focus and finishes each signal naturally before the next case. The first
+driver attempt failed before audio testing because Android capitalized that
+button label. A package-scoped case-insensitive match repaired that harness
+lookup; the same helper APK and all timing assertions remained unchanged.
+
+The completed visible-entry run has these results:
+
+| Case | Truth | Measured | Correlation | Frozen check |
+| --- | --- | --- | --- | --- |
+| Zero |0ms|0.019ms|0.999765|Pass|
+| Late |37.006803ms|36.906ms|0.995127|Pass|
+| Early |-73.015873ms|-75.766ms|0.636473|**Fail**|
+| Unrelated |Reject|No valid timing|0.153621|Pass|
+
+The capture therefore remains **unqualified**. Do not widen2ms, lower0.90,
+discard the failed early case, or call3/4 complete. A separate comparison against
+the immutable source finds only0.609..0.699 correlations in that failed recording;
+the successful positive recordings generally exceed0.993. The weak matches do
+not uniquely identify whether rendering, capture or feature extraction caused
+the error. They also cannot establish a Stack-player timing defect. The original
+gain qualification is still red; the coded test does not override it.
+
+The exact Greater Art APK, profile and permission state matched before/after.
+The owned helper was force-stopped, then only the A55 instance started for these
+checks was stopped. No actual Stack audio was recorded after qualification
+failed. Retain the failed setup and signal evidence.
+
+| Private receipt | SHA-256 |
+| --- | --- |
+| `coded-timing-fixtures-01/fixtures.json` | `d1fb567ada99cdd16ab807cdbf46213a4178cd2ca2cf4c36879c028021c031c9` |
+| `process-sequential-controls-01/report.json` | `fe1cc90f223a940a660670fa7bca3e019415a1ab03b6317ffb75d87f064c3604` |
+| `coded-timing-a55-01/report.json` — near-silent failure | `b907f28becef8eaf93a8ebb484e63d767d20377cf50ab8b684c01172499b3b15` |
+| `coded-timing-a55-02/report.json` — button lookup failure | `c18bc4c2c92173d378c500cb675ee35f753a92e2c4b3c39e1719cff7a252a8de` |
+| `coded-timing-a55-03/report.json` — completed3/4 run | `f3ba8b0fa1bd132307d03d27a4be56f00b469848830e8ee767ca30d636d7202a` |
+| `coded-source-clock-01/report.json` | `4947156a719dd30fa4a269c904f004e7c3701080f2a4beba32ae613a450497a6` |
+
+References: [SciPy correlation](https://docs.scipy.org/doc/scipy/reference/generated/scipy.signal.correlate.html),
+[forward-backward SOS filtering](https://docs.scipy.org/doc/scipy/reference/generated/scipy.signal.sosfiltfilt.html),
+[Android audio focus](https://developer.android.com/media/optimize/audio-focus).
+No new third-party package was installed. The private helper's version4 identity
+is not an Android Greater Art version or a new release.
+
 ## Free-model review limits
 
 Three zero-price OpenRouter requests used manually sanitized numerical findings,
