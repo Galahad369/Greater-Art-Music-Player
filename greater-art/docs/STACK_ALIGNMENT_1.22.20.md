@@ -2,6 +2,12 @@
 
 Status: local work in qualification, not a verified release or a claim of perfect alignment.
 
+Follow-up: [12 November A55 and backing-music investigation](STACK_ALIGNMENT_A55_2026-11-12.md)
+records the completed six-track normal UI checks, native streaming capture limit
+and isolated pitch-consensus veto. It supersedes the earlier statement below
+that equivalent native streaming capture had not been calibrated; direct Media3
+Solo and physical-output acceptance remain open. No production matcher changed.
+
 ## Keep the three questions separate
 
 1. Does the file matcher find a supported timing map?

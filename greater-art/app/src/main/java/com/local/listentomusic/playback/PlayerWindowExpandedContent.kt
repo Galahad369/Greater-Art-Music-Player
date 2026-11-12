@@ -3,6 +3,7 @@ package com.local.listentomusic.playback
 import android.content.Intent
 import android.graphics.Rect
 import android.os.SystemClock
+import android.view.WindowManager
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectVerticalDragGestures
 import androidx.compose.foundation.layout.Box
@@ -32,6 +33,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.DialogProperties
 import androidx.media3.ui.PlayerView
 import com.local.listentomusic.MainViewModel
 import com.local.listentomusic.model.mediaFileFromSession
@@ -235,6 +237,8 @@ internal fun PlayerWindowExpandedContent(
                 val favourite = file.path in settings.favouritePaths
                 AlertDialog(
                     onDismissRequest = { addToListFile = null },
+                    // This player is hosted by a Service, not an Activity with a dialog token.
+                    properties = DialogProperties(windowType = WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY),
                     title = { Text(uiText(settings.appLanguage, "Add to list", "加入列表")) },
                     text = {
                         Column {
