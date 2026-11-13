@@ -76,11 +76,71 @@ Evidence root: `App/output/stack-picture-sampling-20261113/`.
   native export failed from a path typo; no missing-file result counted as a
   meaningful picture rejection.
 
+## Executed current-build checks
+
+Runtime commit: `e046dbcc1d4e4841d73af5ed8bb284649ed198bc`.
+
+- All552 JVM tests pass with no failures, errors or skips. Lint reports0 errors,
+  54 warnings and6 hints. Android test compilation passes; compilation is not
+  instrumentation execution. The unchanged translation challenge fails on the
+  old production math and passes after the repair. The source-bound checks were
+  refreshed after committing because the runner also binds Git HEAD/status.
+- Preflight and optimized `assembleRelease` pass from committed inputs,
+  SHA-256 `866220aa1153ee90c24d3a9c5fbf0cb58db1aea12a1f3345488bf2337cab23ab`.
+  The first sandbox attempt cannot open Gradle's existing cache lock; the native
+  retry uses that cache normally. Both logs remain. The original-certificate
+  identity check still fails correctly; its pin was not changed.
+- The separate local APK uses the existing maintenance certificate
+  `0a7b9cebf928022c1930b64f2c47581c13def3007b0e97737bbb9ca3e53de6b7`.
+  Package/version/code, non-debuggable/non-test flags, ZIP CRC and16KiB alignment
+  pass. Exact installed hashes match before and after the actual A55 tests.
+  The update from the exact25 APK succeeds without clearing data or changing keys.
+- Actual Settings/Library/dock/Now Playing passes OLED/video-color choice,
+  pause/resume, seeking and Home return. The screenshot was visually inspected:
+  the timeline and transport have no surrounding rounded fill or outline.
+  Control positions, touch targets, speed access and functions remain intact.
+- Through the normal six-track Stack UI, Quick finishes without its timeout flag
+  in40.325s and Wide finishes in285.770s. These are observed UI intervals including
+  automation, not storage-cold decoder benchmarks. Both reviews propose four
+  maps, reject Riona, keep unc/Forte/Morisray at0ms and put Yoshino at12.5ms Quick
+  or20.5ms Wide, inside the unchanged12–28ms corpus range. The full review list is
+  observed and captured. Applying four maps preserves paused state; resume reaches
+  `6/6 tracks playing` and pause works again. This is not acoustic sync proof.
+- The six-track adapter subsequently fails to locate an off-screen Yoshino row;
+  retain that failure and do not call the whole script a pass. A separate actual
+  two-track manual-control sequence passes Earlier1ms, Later1ms, Apply, reopen,
+  restore the original0ms, reopen and Cancel. It selects the observed track's own
+  button instead of guessing between multiple identically named controls. No app
+  change or APK rebuild was made for either private adapter repair.
+- OLED and both temporary app-ops are restored. The final crash buffer is empty
+  in this test, not evidence of universal crash freedom. The unchanged owned A55
+  is stopped after testing. Profile SHA-256 remains
+  `0387c814ba4ce319ceb37d88b5f48ee3fecaa3f027d03ccbb00381118edd1ae9`.
+  Exact24/25 APKs, verified1.21.93 and the user-owned untracked CodeGraph file
+  retain their hashes. No branch/worktree, push, merge or public release is added.
+
+**Exact local APK:**
+`App/output/stack-picture-sampling-20261113/optimized-local-26/GreaterArt-1.22.26.apk`
+—5,579,536bytes, SHA-256
+`0f34b8467201b09e1f7d2bedc9174e506ac3476a3b56a738a4e71901343289c3`.
+
+Actual Now Playing screenshot:
+`App/output/stack-picture-sampling-20261113/native-theme-26/now-playing-video-colors.png`.
+Evidence: `checks-26-committed/`, `release-26-native/build.json`,
+`optimized-local-26/identity.json`, `native-theme-26.log`, `native-six-26.log`,
+the per-track Quick/Wide review JSON/screenshots under `native-six-26/`, and
+`native-manual-26.log`. All are private local evidence under the task root above.
+
 ## Remaining acceptance
 
-Run the current-source JVM/lint/test-compilation suite, optimized release gate,
-maintenance-signer identity and actual installed A55 analysis/review/Apply smoke.
-Keep original-signer release, physical HDR/performance and acoustic acceptance
+This is a maintenance-key local candidate, not a promoted original-key release.
+The unchanged workflow's protected-release review requires an owner review;
+self-review is recorded honestly and does not bypass it. The historical private
+key remains unavailable, so the original-signer APK gate is not accepted. The
+maintenance key cannot update an original-signer installation. Preserve that
+distinction even though the focused exact-APK A55 checks above pass.
+
+Physical HDR/performance, full-app regression and acoustic acceptance remain
 separate. Backing-only sound isolation, its known false matches, Forte's possible
 key difference and emitted six-voice sync remain open. Do not mark the thread
 goal complete or claim1000% accuracy from this picture repair.
