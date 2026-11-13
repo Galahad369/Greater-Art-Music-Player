@@ -35,9 +35,62 @@ readiness-gated Apply, HDR and source resolution/FPS/bitrate are unchanged.
   Workflow challenge: `App/output/stack-backing-repair-20261113/native-support-red-02/`.
   The earlier sandbox/cache-access failure is retained separately; it is not the
   bug reproduction. No shared worktree was reset and no assertion was relaxed.
-- Final unit/lint, optimized assembly, exact identity and installed-APK results
-  are pending and must be recorded separately. Preflight passed with the existing
-  JDK21 and API37 SDK. The original historical signer is still unavailable.
+- The same frozen tests pass after repair: 555 JVM tests, no failures/errors/skips;
+  lint has 0 errors, 54 warnings and 6 hints; Android-test compilation passes. The
+  separate planned-count probe fails 4 of 7 assertions against retained baseline
+  classes and passes 7 of 7 against the repaired compiled app. A missing-class
+  harness attempt is retained separately, not reported as app behavior.
+- `native-support-review-01` records a source-bound self-review, not independent
+  review or release approval. It predates the commit below; do not reuse its
+  source-context fingerprint as a post-commit workflow-ready receipt.
+
+## Exact optimized candidate
+
+- Runtime source: `7749357c803a54b39ac54e08139990721b356fab`, 1.22.27/code348.
+- Preflight passed with the existing JDK21/API37 SDK. Frozen-source
+  `assembleRelease` passed in 3m12s. Build receipt:
+  `App/output/stack-backing-repair-20261113/native-support-release-01/build.json`.
+- APK: `App/output/stack-backing-repair-20261113/optimized-local-27/GreaterArt-1.22.27.apk`.
+  Size 5,579,536 bytes; SHA-256
+  `d29be1d8eb9dfab75f5d1889724e6a386962bd6680ee7a5ddda270a61b88e733`.
+- Existing maintenance certificate SHA-256:
+  `0a7b9cebf928022c1930b64f2c47581c13def3007b0e97737bbb9ca3e53de6b7`.
+  Exact package/version/signature, non-debug/non-test, ZIP and 16KiB-alignment
+  checks pass. No new key was made and no previous APK was overwritten.
+- The original-signer identity check remains failed and preserved. Cryptographic
+  signing with the maintenance key is not an original-key update or public
+  release. Keep the verified repository download at 1.21.93/code316.
+
+## Focused installed-A55 observations
+
+The exact candidate above was installed in place on the unchanged
+`GreaterArt_A55_API36` emulator. The original six video hashes matched; no
+uninstall, data wipe, renderer change or lowered media quality was used.
+
+- Normal six-song sound review completed in 8.875s with retained feature caches
+  and the new pair-map revision. This is not a cold performance benchmark.
+  Riona proposes +0.650ms and unc +83.216ms. Forte, Yoshino and Morisray remain
+  unchanged/rejected. These dispositions preserve the previous result; they do
+  not prove backing identity or output accuracy.
+- Live Apply while all six were playing regrouped 6/6. Riona Earlier/Later 1ms,
+  Apply/reopen and restoration of +0.650ms passed. These checks exercise manual
+  state persistence across the review, not a newly executed saved-Stack reload.
+- The normal Library/dock/Now Playing flow passed pause/resume, seek and Home
+  return. The observed elapsed labels advanced from 34 to 43s, and a paused 35%
+  seek landed at 66s of 188.058s. The two real-video screenshots were inspected:
+  frames and the seek position change, buttons remain visible, and no rounded
+  top or transport backplate appears. This is not a fullscreen/physical-HDR test.
+- Review screenshots are readable but have large per-track manual-button rows;
+  do not call the alignment UI finished or visually optimal.
+- Exact installed APK hashes matched before/after. Both temporary storage and
+  overlay app-ops were restored to default, and the test microphone permission
+  remains denied. A55 profile, previous26 APK and user-owned untracked work stay
+  unchanged. The owned A55 was gracefully stopped with its apps and data intact;
+  no other emulator was stopped. No push, merge or publication followed the tests.
+
+Private receipts/screenshots:
+`App/output/stack-backing-repair-20261113/native-support-a55-01/` and
+`App/output/stack-backing-repair-20261113/native27-presentation-01/`.
 
 ## Remaining acceptance
 
@@ -52,7 +105,8 @@ still has red checks. Those diagnostic results do not prove physical acoustic
 accuracy or make all six original songs pass. See the private investigation's
 `coded-stack-device-01/OUTPUT_COMPARISON.md` and retained raw recordings.
 
-Before release: test these exact new APK bytes through normal six-song sound
-review/Apply/manual/save flows on A55; retain uncertain tracks without silently
-changing their saved timing; complete output and real-media acceptance. A green
-unit count or successful R8 assembly is not evidence of universal accuracy.
+Before release: finish saved-Stack reload and full-function regression coverage,
+backing-only acceptance for all six original takes, and qualified emitted-output
+tests. Keep the uncertain tracks unchanged. The focused UI checks above do not
+close these gates or establish physical acoustic accuracy. A green unit count or
+successful R8 assembly is not evidence of universal accuracy.
