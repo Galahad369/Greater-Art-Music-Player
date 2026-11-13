@@ -44,17 +44,54 @@ The experiment notebookE25–E27 records failed as well as passing attempts.
 
 ## Build and release stages
 
-- Source review/local checkpoint: pending final commit.
+- Source review/local checkpoint: local commit
+  `3c8615fa9f50791766f4a01d6811a0a688ad270d`; no push or merge.
 - Current-source JVM:576tests,0failures/errors/skips with the default prototype
   flag absent. Lint:0errors,54warnings,6hints. Debug app/test assembly passes.
-  Optimized assembly remains mandatory and is recorded separately below.
+  Optimized assembly: PASS from that committed source. App-input fingerprint
+  `28c0e9807130af5b93caa45c59fde60714fd1acaf3da8c0e488e261b1a6148db`.
 - Original public signer: BLOCKED; never substitute a new key or uninstall a
   phone installation to bypass it.
 - Existing maintenance signer can test the matching A55 installation only.
   A private candidate is not an original-signer public update.
-- Exact optimized29 identity and normal-entry smoke: pending.
+- Exact optimized29 maintenance artifact: 5,579,536bytes, package
+  `com.local.listentomusic`, version1.22.29/code350, nondebug/non-test,
+  SHA-256 `1e48a37028302e2d4b91a1892df2c12e2aea65b5af7fa5892bf9eec67143be12`.
+  Existing maintenance certificate
+  `0a7b9cebf928022c1930b64f2c47581c13def3007b0e97737bbb9ca3e53de6b7`;
+  this is NOT the unavailable original public signer. Private path:
+  `App/output/overnight-alignment-20261114-0049/optimized-local-29/GreaterArt-1.22.29.apk`.
+- Exact-file A55 normal-entry smoke: PASS for Library→Now Playing, advancing
+  playback, pause, seek to67s, resume and Home→Library. Installed SHA matches
+  before/after. Actual playing/paused/Library screenshots inspected, temporary
+  access settings restored. This is not full-app, physical HDR or backing QA.
+- Exact29 normal manual/saved check: Earlier/Later preserves fractional values,
+  Apply/reopen and saved reload retain1.625ms, Miku remains primary, and the
+  new test fixture alone is removed after resetting its timing. The retained
+  first locator failures are not app failures: the same XML has Miku count0
+  when a fresh Windows PowerShell worker decodes ADB asIBM437, versus1 with
+  UTF-8. Set the private worker's console/input/output encoding explicitly;
+  preserve the same primary/card/value assertions and failed evidence.
+  Successful closeout: `manual-saved-optimized29-finish-03/report.json`.
 - Six-song backing, full shared-output function/quality parity and physical
   phone/HDR acceptance: incomplete. The prototype stays disabled.
+
+## Compilation-state falsification
+
+The same private debug APK and unchanged fractional192k gate fail in both
+installed-default and forced Android `speed` compilation:13and12underruns at
+the first failing assertion. Diagnostic traces show mean render4849.22us and
+4818.96us, with mean render CPU4509.78us and4524.09us. Both exceed the same
+4266.67us block budget. These single runs are not a speedup comparison, and
+diagnostic completion is not the zero-underrun assertion. This does not prove
+that compilation has no effect; it falsifies the proposed fix of relying on
+full compilation to make this observed failure pass. Do not repeat that loop.
+
+No app/matcher/quality/buffer/backend change follows. Preferences restore
+exactly; app-ops return to default; the optimized29 bytes are reinstalled and
+Android reports successful normal compilation-state reset. Private protocol,
+both failure logs, TSVs, dexopt states and analyses are retained under
+`art-compile-comparison29-01/`.
 
 ## What must happen next
 

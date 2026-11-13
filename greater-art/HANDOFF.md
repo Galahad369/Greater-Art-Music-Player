@@ -29,6 +29,18 @@ shared six-coded-source output passes24windows/60pairs at max0.110726ms, but
 fractional192k tempo still fails. Original-six waveform evidence is not a
 backing or absolute-gain pass. Quick/Wider picture tests pass35.439/247.988s
 after app-UID fixture preparation, with all expected ranges/rejections intact.
+Committed29 (`3c8615f`) also has a built optimized maintenance APK and actual
+A55 Library→Now Playing play/pause/seek/resume/Home smoke. Its exact file is
+`App/output/overnight-alignment-20261114-0049/optimized-local-29/GreaterArt-1.22.29.apk`,
+5,579,536bytes, SHA-256
+`1e48a37028302e2d4b91a1892df2c12e2aea65b5af7fa5892bf9eec67143be12`.
+Original public signing is still blocked; do not call this an update-compatible
+public release. A bounded ART comparison fails the same192k gate in default
+and fully compiled states; full compilation alone is not a repair. See E28.
+The exact29 fractional manual/save/reload/primary sequence also passes. Fresh
+Windows test workers must decode ADB asUTF-8; preserved IBM437 locator failures
+do not demonstrate lost app state. Temporary access settings and owned test
+fixture restore without deleting pre-existing saved Stacks.
 No push, merge, source-quality change or public release promotion. Private
 evidence: `App/output/overnight-alignment-20261114-0049/`.
 
@@ -134,7 +146,7 @@ does not verify saved-Stack reload or repair the earlier full-sequence failure.
 
 **Newest local picture/transparent-transport candidate:** `1.22.26 (code347)` — `App/output/stack-picture-sampling-20261113/optimized-local-26/GreaterArt-1.22.26.apk`,5,579,536bytes, SHA-256 `0f34b8467201b09e1f7d2bedc9174e506ac3476a3b56a738a4e71901343289c3`, runtime `e046dbc`. All552 JVM tests, lint/no-errors, Android test compilation, optimized assembly and maintenance-signer exact-file checks pass. Actual installed A55 Now Playing has no timeline/transport holder and retains its controls. Normal six-video picture Quick/Wide reviews finish in40.325/285.770s with all frozen corpus dispositions preserved; Apply, six-track resume and pause pass. A later private row-locator failure is retained; separate two-track manual Earlier/Later/Apply/reopen/restore passes. OLED/app-ops are restored and the unchanged owned A55 stopped. [Exact evidence and limits](docs/PICTURE_TIMING_1.22.26.md). This is not an original-key/public release or backing-music/acoustic acceptance. Keep every prior APK; no push/merge/publication.
 
-**Current source:** `1.22.29 (code 350)` — SOURCE_ONLY. [Pipeline receipt](docs/STACK_PCM_PIPELINE_1.22.29.md) distinguishes source, private diagnostics, optimized artifact and full acceptance. Native precision, exact window/float copies and the old-adapter byte checks pass; the final bounded192k fractional tempo gate still fails19underruns. Shared coded output passes its original2ms check, but does not establish full backing/function parity. Picture Quick/Wider and optimized28 manual/save/reload checks pass. Keep the prototype disabled, preserve original gates/quality/signers/APKs and the declined broader-native-fit decision. No production backend/default-policy change, push, merge or publication. See [28 repairs](docs/STACK_OVERNIGHT_REPAIR_2026-11-14.md) and notebookE21–E27 for original failures and limits.
+**Current source:** `1.22.29 (code 350)` — SOURCE_ONLY. [Pipeline receipt](docs/STACK_PCM_PIPELINE_1.22.29.md) binds commit3c8615f,576passing JVM tests, lint/no-errors, optimized assembly, exact maintenance-signed identity and actual A55 normal-entry smoke. Native precision, exact window/float copies and the old-adapter byte checks pass; the final bounded192k fractional tempo gate still fails19underruns. Full compilation also fails that unchanged gate. Shared coded output passes its original2ms check, but does not establish full backing/function parity. Picture Quick/Wider and optimized28 manual/save/reload checks pass. Keep the prototype disabled, preserve original gates/quality/signers/APKs and the declined broader-native-fit decision. No production backend/default-policy change, push, merge or publication. See [28 repairs](docs/STACK_OVERNIGHT_REPAIR_2026-11-14.md) and notebookE21–E28 for original failures and limits.
 
 **Preserved previous local candidate:** `1.22.27 (code 348)` — SOURCE_ONLY, runtime `7749357`. [Native sound-support repair and exact evidence](docs/STACK_NATIVE_SUPPORT_1.22.27.md) keeps missing native measurements in the planned-region support denominator and invalidates old pair decisions. The frozen challenge catches the original defect;555 JVM tests, lint/no-errors, Android-test compilation and optimized assembly pass. APK: `App/output/stack-backing-repair-20261113/optimized-local-27/GreaterArt-1.22.27.apk`,5,579,536bytes, SHA-256 `d29be1d8eb9dfab75f5d1889724e6a386962bd6680ee7a5ddda270a61b88e733`, existing maintenance signer. The exact installed A55 candidate passes six-song sound review, live Apply, manual Earlier/Later/Apply/reopen/restore and normal Now Playing controls. The8.875s sound review is cache-warm, not a cold benchmark: Riona+0.650ms, unc+83.216ms; the other three still reject. Actual screenshots were inspected. App-ops are restored; no full-app, backing-only, emitted-audio, saved-Stack reload or physical-HDR acceptance is claimed. This does not solve all six takes. Preserve the exact26 APK and all existing functions/quality. No push, merge or publication; the original-signer check remains failed and the verified download stays1.21.93.
 

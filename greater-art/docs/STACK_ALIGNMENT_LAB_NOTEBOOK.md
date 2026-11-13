@@ -914,6 +914,50 @@ Evidence: `shared-coded-output29-01/`, `shared-coded-output29-final/`, `shared-o
 `riona-picture-scenes-01/` and `free-backing-consult-01/`. All media/captures
 stay local. Original scorer files, source files and prior APKs remain intact.
 
+### E28 — Exact29 artifact and a compilation-state falsification
+
+Commit3c8615f retains29 as SOURCE_ONLY/default-off. The default-flag suite
+passes576JVM tests with0failures/errors/skips; lint reports0errors,54warnings
+and6hints. Preflight and optimized assembly pass from committed app inputs
+`28c0e9807130af5b93caa45c59fde60714fd1acaf3da8c0e488e261b1a6148db`.
+The private maintenance-signed APK is5,579,536bytes, SHA-256
+`1e48a37028302e2d4b91a1892df2c12e2aea65b5af7fa5892bf9eec67143be12`.
+Original public signing remains BLOCKED, not repaired by using another key.
+
+The exact installed29 file passes normal Library→Now Playing play/pause,
+seek/resume and Home return. Actual video and fixed controls are visible in
+the inspected playing/paused screenshots. Temporary access settings restore.
+No acoustic/backing/full-app/physical-HDR claim follows that smoke test.
+
+The exact29 normal manual/saved sequence retains fractional1.625ms after
+Apply/reopen and saved reload, preserves Miku as primary and removes only the
+new fixture after restoring its zero/unit map. Actual screenshots inspected.
+Two failed primary locators are retained: the same native XML yields0Miku
+matches under a fresh worker'sIBM437 decode, and1after explicit UTF-8. This
+disproves the assumption that the saved primary was lost. Fix private worker
+encoding, not app selection or assertions; the unchanged card/value checks
+then pass. Do not declare a UIAutomator freeze from a long driver loop alone.
+
+Before more PCM edits, directly test the compilation-cost assumption with
+the SAME private debug29/test bytes: one installed-default condition and one
+forced Android `speed` condition. The original fractional192k assertion fails
+at13and12underruns respectively. Corresponding active render means are4849.22
+and4818.96us; CPU4509.78and4524.09us, both above4266.67us/block. Tempo is
+bursty: its p95 is9838/9729us. Diagnostic trace completion is not acceptance.
+One pair of conditions cannot prove a performance difference or that ART is
+irrelevant, but full compilation alone does not fix this observed gate. Do
+not repeat warm-up/compiler variations or waive the cold/install-state gate.
+
+Preferences restore byte-for-byte, app-ops default and optimized29 file is
+restored with a successful normal compilation reset. Source, filters, source
+rate/precision, GPU, buffers, matcher and numerical gates are unchanged.
+Evidence: `optimized-local-29/identity.json`, `release29-build/build.json`,
+`optimized29-smoke-01/`, `ART_COMPILE_COMPARISON_PROTOCOL.md` and
+`art-compile-comparison29-01/` under the same private overnight evidence root.
+Manual closeout: `manual-saved-optimized29-finish-03/`; retain the first partial
+sequence, both failed locators and `ui-unicode-proof.json` as well.
+All original failures and prior APKs remain. No push, merge or publication.
+
 ## Next actions
 
 E11/E12 rule out two shortcuts: treating a relative library score as backing
