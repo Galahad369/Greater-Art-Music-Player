@@ -958,6 +958,62 @@ Manual closeout: `manual-saved-optimized29-finish-03/`; retain the first partial
 sequence, both failed locators and `ui-unicode-proof.json` as well.
 All original failures and prior APKs remain. No push, merge or publication.
 
+### E29 — Bounded parallel preparation, failed cadence and safe disposition
+
+Hypothesis: parallel prepare/mix and Sonic/output could avoid the measured
+serial stage sum without lowering source quality. One producer, one ready
+block and three reusable arrays retain exact FIFO/sample ownership. Lower-rate
+or slow runs stay serial; extra premixing is capped at25ms. Pure tests cover
+raw bits/final partial blocks, ownership/reuse/backpressure, level snapshot
+boundaries, cancellation/join, failed closure and protected waits.
+
+The source review finds an existing deadline defect: withTimeout2000 throws
+TimeoutCancellationException into the run's owner-cancel path, bypassing
+failure/legacy restoration. The new check fails against the old helper.
+withTimeoutOrNull2000 converts only its own data deadline into IOException;
+explicit owner cancel and an outer timeout remain cancellation. Buffered and
+closed channels still take the nonblocking path. All old sample/timeout gates
+remain; no production engine is enabled.
+
+The first actual candidate reports0underruns over six fractional half-second
+samples but advances only0.8004185requested media time and adds195ready pauses.
+Its later2× check fails42underruns. This directly falsifies treating every
+short empty-ready wait as an output starvation event or calling zero underruns
+alone continuity. Keep the failure, not a cherry-picked initial green interval.
+
+The revised candidate atomically waits only within observed queued headroom,
+leaving half the unchanged output buffer as guard, then pauses before the
+same2s wait. It still fails the original fractional gate at3underruns. The
+new cadence/no-extra-pauses check reports0.8544304requested progress,
+17underruns and461extra output pauses in6.003s. The other six original tests
+pass, not full parity. Stop pipeline performance variations here.
+
+One trace retains1127rows and ending28underruns; its stats snapshot reports27
+because publication is periodic. Producer mean wall3169.60us/CPU2582.81us,
+tempo wall2683.20us/CPU2598.87us, tempo p95wall11811us. Stage work overlaps;
+the sum is not serial latency or a causal/throughput proof. A new hypothesis
+would need direct producer-block/burst evidence, not another guessed buffer,
+backend, compiler or quality variation.
+
+The added high-rate EOF check initially reads inactive before asynchronous
+rendering starts, failing at432000seek frames. Require active advancing output
+before awaiting completion; exact576000frames/3000ms restore and0underruns
+then pass. This is a corrected test precondition, not a stress-gate repair.
+The original assertions remain intact.
+
+Disposition: preserve the experimental source behind separate default-off
+`stackPcmParallel=true`, also still requiring the debug shared-output opt-in.
+Ordinary prototype/release behavior does not adopt the failed pipeline. Both
+flags must be absent/false for normal delivery. Revised private-source JVM:
+591tests,0failures/errors/skips; lint0errors/54warnings/6hints. Final default
+source/build/identity/smoke stages are separate in the30 receipt.
+
+Evidence: `BOUNDED_PCM_PIPELINE_PROTOCOL.md`, `pipeline30-timeout-red.log/xml`,
+`prototype30-device-01/02/`, their exact identities and cadence observations,
+`prototype30-trace-02/` and `prototype30-eof-03/`. Preferences restore exactly
+per runner; default app-ops, microphone denial and exact optimized29 restore
+are checked. No push, merge, production enablement or source-quality reduction.
+
 ## Next actions
 
 E11/E12 rule out two shortcuts: treating a relative library score as backing

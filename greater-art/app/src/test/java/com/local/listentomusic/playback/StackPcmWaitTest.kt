@@ -1,6 +1,8 @@
 package com.local.listentomusic.playback
 
 import kotlinx.coroutines.CoroutineStart
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.coroutines.async
 import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.channels.Channel
@@ -11,8 +13,40 @@ import org.junit.Assert.assertFalse
 import org.junit.Assert.assertSame
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import java.io.IOException
 
 class StackPcmWaitTest {
+    @Test fun missingDataDeadlineIsFailureNotOwnerCancellation() = runBlocking {
+        val input = Channel<NativePcmBlock>(1)
+        var pauses = 0
+        try {
+            val failure = runCatching {
+                withTimeout(3000) { awaitStackPcmBlock(input) { pauses++ } }
+            }.exceptionOrNull()
+            assertTrue("A decoder deadline must enter failure cleanup, not silently retain its lease: $failure",
+                failure is IOException)
+            assertFalse(failure is CancellationException)
+            assertEquals(1, pauses)
+        } finally { input.cancel() }
+    }
+
+    @Test fun ownerCancellationStillCancelsAnEmptyWait() = runBlocking {
+        val input = Channel<NativePcmBlock>(1)
+        val receive = async(start = CoroutineStart.UNDISPATCHED) { awaitStackPcmBlock(input) {} }
+        receive.cancelAndJoin()
+        assertTrue(receive.isCancelled)
+        input.cancel()
+    }
+
+    @Test fun outerTimeoutIsStillOwnerCancellation() = runBlocking {
+        val input = Channel<NativePcmBlock>(1)
+        try {
+            val failure = runCatching { withTimeout(50) { awaitStackPcmBlock(input) {} } }.exceptionOrNull()
+            assertTrue(failure is TimeoutCancellationException)
+            assertFalse(failure is IOException)
+        } finally { input.cancel() }
+    }
+
     @Test fun pausesBeforeBlockingForMissingDecoderData() = runBlocking {
         val input = Channel<NativePcmBlock>(1)
         var pauses = 0

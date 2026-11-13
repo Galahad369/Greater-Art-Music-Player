@@ -131,6 +131,51 @@ class PcmTransportDeviceTest {
         }
     }
 
+    @Test fun fractional192kKeepsRequestedCadenceWithoutPauseMasking(): Unit = runBlocking {
+        exercise(192000, 12) { engine, source, _ ->
+            val slots = List(8) { index -> StackSlot(source.copy(path = "${source.path}#$index"),
+                alignmentOffsetUs = index * .37 * 1_000_000 / 192000) }
+            engine.parameters(1.25f, 1.5f)
+            assertTrue(engine.start(slots, slots.first().file.path))
+            engine.setLoop(false)
+            await(engine) { it.frame >= 19200 }
+            val first = engine.stats.value
+            val started = SystemClock.elapsedRealtime()
+            delay(6000)
+            val last = engine.stats.value
+            val elapsed = SystemClock.elapsedRealtime() - started
+            val expected = elapsed * 192000 * 1.25 / 1000
+            val ratio = (last.frame - first.frame) / expected
+            Log.i("PcmTransportDevice", "fractional cadence ratio=$ratio elapsedMs=$elapsed before=$first after=$last")
+            assertNull(last.error)
+            assertEquals(0, last.underruns)
+            // Preserve the existing sustained test's90% cadence minimum.
+            // Also reject hiding glitches by repeatedly pausing the output.
+            assertTrue("Requested media speed was not maintained: $ratio", ratio >= .90 && ratio <= 1.10)
+            assertEquals("Output pauses must not mask starvation", first.outputWaits, last.outputWaits)
+        }
+    }
+
+    @Test fun highRatePipelineDrainsPartialBlockTempoTailAndHardwareEof(): Unit = runBlocking {
+        exercise(192000, 3) { engine, source, restores ->
+            val slots = listOf(StackSlot(source.copy(path = "${source.path}#short", clipEndMs = 500)),
+                StackSlot(source.copy(path = "${source.path}#long"), alignmentOffsetUs = .37 * 1_000_000 / 192000))
+            engine.parameters(1.25f, 1.5f)
+            assertTrue(engine.start(slots, slots.first().file.path))
+            engine.setLoop(false)
+            engine.seek(2250)
+            // start/seek schedule rendering asynchronously. A pre-start inactive
+            // snapshot is not proof that Sonic and the hardware reached EOF.
+            await(engine) { it.active && it.playing && it.frame > 432000 }
+            await(engine) { !it.active }
+            assertNull(engine.stats.value.error)
+            assertEquals(0, engine.stats.value.underruns)
+            assertEquals(576000L, engine.stats.value.frame)
+            assertEquals(listOf(3000L), restores)
+            Log.i("PcmTransportDevice", "pipelined final partial EOF ${engine.stats.value}")
+        }
+    }
+
     @Test fun eightNative192kLanesKeepFloatTempoPitchAndDynamicTransport(): Unit = runBlocking {
         exercise(192000, 12) { engine, source, restores ->
             val slots = List(8) { index -> StackSlot(source.copy(path = "${source.path}#$index"),

@@ -11,9 +11,10 @@ android {
         applicationId = "com.local.listentomusic"
         minSdk = 26
         targetSdk = 37
-        versionCode = 350
-        versionName = "1.22.29"
+        versionCode = 351
+        versionName = "1.22.30"
         buildConfigField("boolean", "STACK_PCM_PROTOTYPE", (providers.gradleProperty("stackPcmPrototype").orNull == "true").toString())
+        buildConfigField("boolean", "STACK_PCM_PARALLEL", (providers.gradleProperty("stackPcmParallel").orNull == "true").toString())
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables.useSupportLibrary = true

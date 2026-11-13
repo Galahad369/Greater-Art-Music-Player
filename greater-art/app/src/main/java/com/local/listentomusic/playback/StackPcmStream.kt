@@ -12,6 +12,7 @@ import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.channels.ChannelResult
 import kotlinx.coroutines.channels.ReceiveChannel
 import java.io.File
+import java.io.IOException
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
 import kotlin.math.roundToLong
@@ -213,14 +214,18 @@ internal class StackPcmStream(scope: CoroutineScope, private val file: MediaFile
 }
 
 /** Decoder-wait boundary. Output protection must run before a missing block can exhaust the sink. */
-internal suspend fun awaitStackPcmBlock(blocks: ReceiveChannel<NativePcmBlock>, onWait: () -> Unit): ChannelResult<NativePcmBlock> {
+internal suspend fun <T> awaitStackPcmBlock(blocks: ReceiveChannel<T>, onWait: () -> Unit): ChannelResult<T> {
     currentCoroutineContext().ensureActive()
     val available = blocks.tryReceive()
     if (available.isSuccess || available.isClosed) return available
     // The output buffer is shorter than a decoder timeout. Pause before
     // suspending, not after queued audio has already run dry.
     onWait()
-    return withTimeout(2000) { blocks.receiveCatching() }
+    // Only this wait's own deadline becomes a data failure. Cancellation of
+    // the parent still propagates, including an outer timeout. Otherwise a
+    // decoder deadline bypasses failure cleanup and can retain the audio lease.
+    return withTimeoutOrNull(2000) { blocks.receiveCatching() }
+        ?: throw IOException("PCM data did not arrive within 2000ms")
 }
 
 /** Exact decoded samples, including zero outside the clip; no filtering or rate conversion. */
