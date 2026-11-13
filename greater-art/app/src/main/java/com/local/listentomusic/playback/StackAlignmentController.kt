@@ -16,6 +16,10 @@ import kotlinx.coroutines.launch
 
 enum class StackAlignmentMethod { SOUND, PICTURE }
 
+// Cancellation makes a job inactive before decoder cleanup and its final state
+// writes finish. A replacement must not share ownership during that interval.
+internal fun stackAlignmentRequestBusy(job: Job?): Boolean = job?.isCompleted == false
+
 data class StackAlignmentProgress(val running: Boolean = false, val completed: Int = 0,
     val total: Int = 0, val matched: Int? = null, val failed: Boolean = false,
     val primaryPath: String? = null, val paths: List<String> = emptyList(),
@@ -54,7 +58,7 @@ object StackAlignmentController {
     }
 
     private fun start(context: Context, method: StackAlignmentMethod, pictureSearch: StackPictureSearch) {
-        if (job?.isActive == true) return
+        if (stackAlignmentRequestBusy(job)) return
         val snapshot = StackPlayback.state.value
         val primary = snapshot.slots.firstOrNull { it.file.path == snapshot.primaryPath } ?: return
         if (method == StackAlignmentMethod.PICTURE && primary.file.kind != MediaKind.VIDEO) return

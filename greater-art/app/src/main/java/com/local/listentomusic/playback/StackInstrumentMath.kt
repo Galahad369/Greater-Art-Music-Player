@@ -247,7 +247,11 @@ internal fun stackSelectInstrumentEvidence(mono: StackAlignment, side: StackAlig
         if (mono.anchorCount < 4 || mono.correlation < .6 || mono.residualMs > 5) return null
         return StackInstrumentEvidence(mono, nativeMonoRequired = true)
     }
-    if (abs(mono.offsetUs - side.offsetUs) > 40_000 || abs((mono.timeScale - side.timeScale) * durationMs) > 40) return null
+    val offsetDeltaMs = (mono.offsetUs - side.offsetUs) / 1000
+    val rateDeltaMs = (mono.timeScale - side.timeScale) * durationMs
+    // Two individually acceptable errors can add at the end of the song.
+    // Keep both original guards as well as checking the composed timing map.
+    if (abs(offsetDeltaMs) > 40 || abs(rateDeltaMs) > 40 || abs(offsetDeltaMs + rateDeltaMs) > 40) return null
     return StackInstrumentEvidence(side, nativeMonoRequired = false)
 }
 

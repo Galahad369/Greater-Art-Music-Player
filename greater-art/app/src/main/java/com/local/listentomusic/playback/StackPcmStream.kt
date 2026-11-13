@@ -9,6 +9,8 @@ import com.local.listentomusic.data.MediaScanner
 import com.local.listentomusic.model.MediaFile
 import kotlinx.coroutines.*
 import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.channels.ChannelResult
+import kotlinx.coroutines.channels.ReceiveChannel
 import java.io.File
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
@@ -211,6 +213,17 @@ internal class StackPcmStream(scope: CoroutineScope, private val file: MediaFile
     suspend fun close() { job.cancelAndJoin(); blocks.cancel() }
 }
 
+/** Decoder-wait boundary. Output protection must run before a missing block can exhaust the sink. */
+internal suspend fun awaitStackPcmBlock(blocks: ReceiveChannel<NativePcmBlock>, onWait: () -> Unit): ChannelResult<NativePcmBlock> {
+    currentCoroutineContext().ensureActive()
+    val available = blocks.tryReceive()
+    if (available.isSuccess || available.isClosed) return available
+    // The output buffer is shorter than a decoder timeout. Pause before
+    // suspending, not after queued audio has already run dry.
+    onWait()
+    return withTimeout(2000) { blocks.receiveCatching() }
+}
+
 internal class PcmLane(private val stream: StackPcmStream, private val onWait: () -> Unit) {
     private val held = ArrayDeque<NativePcmBlock>()
     private var current: NativePcmBlock? = null
@@ -221,8 +234,7 @@ internal class PcmLane(private val stream: StackPcmStream, private val onWait: (
         }
         if (last < 0 || first >= stream.spec.durationFrames) return
         while (!ended && (held.lastOrNull()?.end ?: Long.MIN_VALUE) <= last) {
-            val next = withTimeoutOrNull(200) { stream.blocks.receiveCatching() }
-                ?: run { onWait(); withTimeout(2000) { stream.blocks.receiveCatching() } }
+            val next = awaitStackPcmBlock(stream.blocks, onWait)
             next.exceptionOrNull()?.let { throw it }
             val block = next.getOrNull()
             if (block == null) ended = true else {

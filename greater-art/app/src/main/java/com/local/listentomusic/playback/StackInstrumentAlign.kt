@@ -19,7 +19,7 @@ import kotlin.coroutines.coroutineContext
 import kotlin.math.abs
 
 internal data class StackInstrumentViews(val mono: StackInstrumentRegion, val side: StackInstrumentRegion?)
-private const val STACK_ALIGNMENT_MAP_REVISION = 10
+private const val STACK_ALIGNMENT_MAP_REVISION = 11
 
 internal class StackInstrumentAlign(private val context: Context) {
     private val cache = File(context.applicationContext.cacheDir, "stack-align-v7-instruments")

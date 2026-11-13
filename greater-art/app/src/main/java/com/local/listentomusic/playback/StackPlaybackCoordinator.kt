@@ -23,7 +23,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeoutOrNull
 import java.io.File
 
-private fun newStackAudioPlayer(context: Context): ExoPlayer =
+internal fun newStackAudioPlayer(context: Context): ExoPlayer =
     ExoPlayer.Builder(context, DefaultRenderersFactory(context).setEnableDecoderFallback(true))
         .setLoadControl(DefaultLoadControl.Builder().setBufferDurationsMs(1_500, 6_000, 100, 200)
             .setTargetBufferBytes(2 * 1024 * 1024).setPrioritizeTimeOverSizeThresholds(false).build())
@@ -51,6 +51,9 @@ internal class StackPlaybackCoordinator(
     private val scope: CoroutineScope,
     private val companionFactory: (Context) -> ExoPlayer = ::newStackAudioPlayer,
     private val onPrimaryBoundary: () -> Boolean = { false },
+    private val setRateParameters: (ExoPlayer, PlaybackParameters) -> Unit = { player, parameters ->
+        player.playbackParameters = parameters
+    },
     private val onLevelsChanged: () -> Unit,
 ) {
     private class Voice(var file: MediaFile, val player: ExoPlayer) {
@@ -295,7 +298,7 @@ internal class StackPlaybackCoordinator(
         val scale = slots.firstOrNull { it.file.path == voice.file.path }?.alignmentScale ?: 1.0
         val next = PlaybackParameters((base.speed * trim * scale).toFloat(), base.pitch)
         voice.rateTrim = trim
-        if (voice.player.playbackParameters != next) voice.player.playbackParameters = next
+        if (voice.player.playbackParameters != next) setRateParameters(voice.player, next)
     }
 
     /** Park a voice exactly on its target so the gate or entry logic can start it on time. */
@@ -604,12 +607,14 @@ internal class StackPlaybackCoordinator(
         publish()
     }
 
-    fun setPrimary(path: String): Boolean {
+    fun setPrimary(path: String): Boolean = setPrimary(path, requestedMasterMs = null)
+
+    private fun setPrimary(path: String, requestedMasterMs: Long?): Boolean {
         if (path == primaryPath) return true
         val target = slots.firstOrNull { it.file.path == path } ?: return false
         val replacement = voices.firstOrNull { it.file.path == path } ?: return false
         val old = slots.firstOrNull { it.file.path == primaryPath }?.file ?: return false
-        val now = position()
+        val now = requestedMasterMs ?: position()
         val promotedPosition = stackMappedPosition(now, target)
         if (promotedPosition < 0L) return false // The take has not started yet.
         val targetDuration = knownDuration(target.file)
@@ -700,6 +705,20 @@ internal class StackPlaybackCoordinator(
     private fun seekAll(targetMs: Long, primaryEvent: Boolean) {
         if (!active) return
         val plan = stackSeekPlan(targetMs, sessionDuration(), primaryEvent)
+        val primaryDuration = slots.firstOrNull { it.file.path == primaryPath }?.let { knownDuration(it.file) } ?: 0L
+        if (plan.seekPrimary && primaryDuration > 0L && plan.positionMs >= primaryDuration) {
+            val survivor = slots.asSequence().filter { it.file.path != primaryPath && it.error == null }
+                .filter { stackMappedPosition(plan.positionMs, it) >= 0L &&
+                    (knownDuration(it.file) <= 0L || stackMappedPosition(plan.positionMs, it) < knownDuration(it.file)) }
+                .maxByOrNull { stackTimelineEnd(it, knownDuration(it.file)) }
+            if (survivor != null) {
+                // Media3 clamps a seek past this primary's EOF. Promote using
+                // the requested timeline BEFORE that clamped clock can replace it.
+                if (setPrimary(survivor.file.path, plan.positionMs)) return
+                // Unsupported rebases must keep the old bounded seek fallback,
+                // not silently discard the action or clamp another slot's map.
+            }
+        }
         anchorMs = plan.positionMs
         tickerWake.trySend(Unit)
         anchorTimeMs = SystemClock.elapsedRealtime()
@@ -708,9 +727,9 @@ internal class StackPlaybackCoordinator(
             safePlayer { parkVoice(voice, anchorMs, nowMs, alwaysSeek = !primaryEvent) }
         }
         if (plan.seekPrimary) {
-            val primaryDuration = sessionDuration()
+            val duration = sessionDuration()
             internalMainChange = true
-            try { main.seekTo(boundedSeek(anchorMs, primaryDuration)) } finally { internalMainChange = false }
+            try { main.seekTo(boundedSeek(anchorMs, duration)) } finally { internalMainChange = false }
         }
         if (playing) armStartGate(plan.positionMs)
         publish()

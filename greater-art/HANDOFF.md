@@ -4,11 +4,135 @@ This file describes the **current repository state only**. Historical session no
 
 **Project:** `greater-art/` in the repository checkout
 
+**Alignment experiment notebook:** [What worked, what failed and what to test next](docs/STACK_ALIGNMENT_LAB_NOTEBOOK.md). Read this before repeating a Stack experiment. Keep original failures and distinguish app behavior, harness errors, diagnostic evidence and acceptance. The owner-approved isolated Audalign + Sync Toolbox benchmark now completes all74 cases in three baseline modes plus a documented key-change variant. Raw matching still follows the980ms singer instead of the700ms backing; negative controls also return matches/paths. Key-aware chroma improves coarse Forte timing but does not qualify backing identity or2ms output. No production tool/engine adoption, app change, push or merge followed these results.
+
 ## Current Android builds
+
+**Overnight14November — capture qualified, full goal still open:** Official
+scrcpy5.0.1 raw device-output capture passes the unchanged timing/gain/isolation/
+physical-absence suites twice. A single prospective first240000-frame interval
+repair addresses the frozen FFT scorer's variable-length scalloping; every
+native byte/overrun and the initial failures remain retained. No PCM repair or
+weaker numerical gate. Diagnosis closes01:19:50Taipei, inside its fixed45-minute
+cap. [Notebook E21/E22](docs/STACK_ALIGNMENT_LAB_NOTEBOOK.md) gives exact numbers
+and limits. Two exact1.22.27 six-independent-code Stack recordings fail output
+timing; the no-build repeat reaches17.501ms among valid pairs, while the premix
+control passes at most0.0906ms. This points to the multi-lane path, not a proven
+rate-trim/decoder cause. Normal original-six review/live Apply/seek/resume also
+produces a retained qualified-route20s recording; backing-only/full-song and
+per-singer output acceptance remain unproved. Do not conflate recording with
+passing synchronization, or call ambiguous codes absent voices. The source
+1.22.28/code349 repair is in progress: cancelled analysis retains cleanup
+ownership, and stereo timing maps must also agree at the song end. Original
+failures are caught by real-coroutine/whole-song tests. No push, merge, engine
+enablement, playback-quality change or release promotion. Private evidence:
+`App/output/overnight-alignment-20261114-0049/`.
+
+**Approved private source-rate diagnostic, November14:** A separate test app
+compares source rates without changing Greater Art or the original helper.
+Completed441 Hz captures fail the original absence floor at both44100Hz
+(0.006420) and48000Hz (0.003094), with about34-sample phase slips. Forcing the
+test source to48000 does not remove this failure; do not force production
+output rates or claim the full eight-case matrix passed. Setup and stream
+failures are retained, including a corrected packet-average inference. The
+new helper is removed, owned emulators exit, and original source/app/helper/
+profile/volume/app-ops remain intact. No new Greater Art APK, push or merge.
+See the capture diagnosis and private `rate-diagnostic-20261113-2355/` evidence.
+
+**Saved PCM follow-up:** Failed streaming/static captures contain short phase
+disturbances equivalent to about-34 samples; the retained clean733 Hz stream
+does not. This is a concrete diagnostic lead, not a proved Android/emulator
+defect or recorder qualification. Original checks, app and media stay unchanged.
+A private48 kHz source comparison was subsequently approved and partially
+executed as recorded above; it does not replace the failed original44.1 kHz
+gates. See the capture diagnosis.
+
+**Owner-directed repeat, November13 at23:28–23:34Taipei:** The requested fresh
+3GiB A55 run completes all six unchanged initial/warm qualification suites.
+Timing passes4/4 twice; gain and physical absence fail twice. Original scorers
+reproduce the saved WAV results. All629 inventoried source files, HEAD, exact
+1.22.27/code348 APK, stored4GiB profile and input pins stay unchanged during
+the run. Default app-ops/volume5 remain; the owned A55 exits before the23:54:47
+deadline. No further RAM gate, quality limit, new APK, push or merge. This is
+not a quiet-host or six-song acceptance. See the diagnosis and private
+`repair-window-20261113-1718/retry-3g-20261113-2324/` evidence.
+
+**Actual3GiB A55 retry, November13:** Owner directs the run despite limited
+headroom. A temporary3072MiB CLI allocation boots and executes all six original
+initial/warm suites; stored4GiB profile and exact1.22.27/code348 APK are unchanged.
+Timing passes4/4 twice; gain and physical absence fail both rounds. Original
+scorers reproduce saved results with no weaker checks or repaired PCM. This
+is an executed memory-pressure attempt, not a quiet-host, six-song output or
+new-release pass. Runtime tests/shutdown finish around20:47Taipei before the
+21:06cutoff; saved-data verification/closeout is late. The owned A55 exits,
+volume5/default app-ops remain, and no source-quality reduction, new APK,
+push or merge occurs. [Details and E18 evidence](docs/STACK_PCM_CAPTURE_DIAGNOSIS_2026-11-13.md).
+
+**Read-only capture follow-up:** Public AOSP audio glue identifies an emulator
+capture boundary, not direct app PCM. Its35.6.3 source is older than installed
+37.2.13 and does not prove an installed-version defect. Official release notes
+do not establish a Windows repair for these failures. Keep Android mixing versus
+emulator output unresolved; no extra audio run, SDK change or app edit follows.
+See the diagnosis's bounded upstream follow-up for primary sources and limits.
+
+**Offline packet check:** The unchanged capture client matches the installed
+SDK format. Its parser preserves saved PCM through four generated packet/chunk
+layouts, and catches a deliberately deleted stereo frame. This is not actual
+server-wire evidence or recorder qualification. The SDK real-time mode is
+input-only; packet wall-clock timestamps are not sample positions. No extra
+audio, app edit or APK follows. Gain/absence remain failed; see the diagnosis.
+
+**Quiet-host recheck, November13 — preflight only:** The owner approved a
+30-minute repeat, then instructed "Stop at preflight if still short." Native
+Windows availability was2401MiB at20:14Taipei, below the agreed5GiB pre-boot
+condition, with no emulator running. Stop without launching A55 or executing
+the suites. No quiet-host result, new APK or artifact reverification exists.
+Original checks/matcher/quality stay unchanged; no push/merge. Retain E16's
+unresolved capture findings. Private receipt: App/output/stack-backing-repair-
+20261113/repair-window-20261113-1718/quiet-host-20261113-2004/preflight.json.
+
+**Bounded synthetic PCM diagnosis, November13:** [Exact-source and capture
+boundary report](docs/STACK_PCM_CAPTURE_DIAGNOSIS_2026-11-13.md) shows that the
+FFT peak can report0.848828 gain on known equal-gain signals, while actual A55
+static-file and streaming captures contain variable spectral distortion. Both
+paths fail absent-source checks; one later733Hz stream passes only its case.
+Raw S16 conversion and file identities are exact. The frozen five-phase gain
+check stays red. Android mixing versus emulator output is not yet isolated;
+do not label this a Stack leak, fix it by weakening checks, or substitute band
+power for acceptance. Two experiments are recorded in notebook E16, including
+failed harness entries and a33s device-stop overrun. Source/version/APK,
+quality, signer, permissions and volume are unchanged. No push, merge or build.
+Next: seek approval for a controlled quiet-host repetition, not another matcher.
+
+**Bounded repair window, November13:** Exact1.22.27 normal A55 sound review
+again proposes Riona+0.650ms and unc+83.216ms, with the other three unchanged;
+live Apply and manual Earlier/Later/Apply/reopen/restore pass. The2.135s scan is
+cache-warm, not a cold benchmark or six-take alignment acceptance. One new
+emulator-native speaker-capture candidate passes all four frozen timing controls
+on two boots, but still fails the original gain and physically absent-source
+checks. Windows-only capture is therefore not a sufficient explanation. Do not
+infer a production gain bug or accept a real mixed recording from these results.
+See notebook E15 and private App/output/stack-backing-repair-20261113/
+repair-window-20261113-1718/. No app code, version, signing key, engine, matcher,
+test threshold or source media changes. No push, merge or publication.
+
+The same window's exact27 picture regressions reach Quick/Wider review in
+39.263/248.245s, preserving all frozen numerical ranges and dispositions.
+Apply and6/6 resume/pause pass; the full private adapter then fails at its
+Yoshino row locator, so it is not a full-sequence pass. Source-frame inspection
+at45/90/135s shows matching scenes/lyrics between Miku and Riona despite
+different illustrations and framing. Do not interpret Riona's unchanged result
+as proof that no matching visual evidence exists. Keep this distinction and
+the tall review-row layout issue open; neither is a sound-output acceptance.
+The separate Yoshino Earlier/Later1ms/Apply/reopen/restore check passes with
+the existing leaf-list locator; both temporary app-ops return to default. This
+does not verify saved-Stack reload or repair the earlier full-sequence failure.
 
 **Newest local picture/transparent-transport candidate:** `1.22.26 (code347)` — `App/output/stack-picture-sampling-20261113/optimized-local-26/GreaterArt-1.22.26.apk`,5,579,536bytes, SHA-256 `0f34b8467201b09e1f7d2bedc9174e506ac3476a3b56a738a4e71901343289c3`, runtime `e046dbc`. All552 JVM tests, lint/no-errors, Android test compilation, optimized assembly and maintenance-signer exact-file checks pass. Actual installed A55 Now Playing has no timeline/transport holder and retains its controls. Normal six-video picture Quick/Wide reviews finish in40.325/285.770s with all frozen corpus dispositions preserved; Apply, six-track resume and pause pass. A later private row-locator failure is retained; separate two-track manual Earlier/Later/Apply/reopen/restore passes. OLED/app-ops are restored and the unchanged owned A55 stopped. [Exact evidence and limits](docs/PICTURE_TIMING_1.22.26.md). This is not an original-key/public release or backing-music/acoustic acceptance. Keep every prior APK; no push/merge/publication.
 
-**Current source and focused local candidate:** `1.22.27 (code 348)` — SOURCE_ONLY, runtime `7749357`. [Native sound-support repair and exact evidence](docs/STACK_NATIVE_SUPPORT_1.22.27.md) keeps missing native measurements in the planned-region support denominator and invalidates old pair decisions. The frozen challenge catches the original defect;555 JVM tests, lint/no-errors, Android-test compilation and optimized assembly pass. APK: `App/output/stack-backing-repair-20261113/optimized-local-27/GreaterArt-1.22.27.apk`,5,579,536bytes, SHA-256 `d29be1d8eb9dfab75f5d1889724e6a386962bd6680ee7a5ddda270a61b88e733`, existing maintenance signer. The exact installed A55 candidate passes six-song sound review, live Apply, manual Earlier/Later/Apply/reopen/restore and normal Now Playing controls. The8.875s sound review is cache-warm, not a cold benchmark: Riona+0.650ms, unc+83.216ms; the other three still reject. Actual screenshots were inspected. App-ops are restored; no full-app, backing-only, emitted-audio, saved-Stack reload or physical-HDR acceptance is claimed. This does not solve all six takes. Preserve the exact26 APK and all existing functions/quality. No push, merge or publication; the original-signer check remains failed and the verified download stays1.21.93.
+**Current source:** `1.22.28 (code 349)` — SOURCE_ONLY. [Focused overnight repair receipt](docs/STACK_OVERNIGHT_REPAIR_2026-11-14.md): analysis cleanup ownership, composed song-end map agreement, short-primary seek promotion with safe rejected-rebase fallback, and missing-data wait protection in the disabled prototype. Original failures are retained;560 JVM tests/lint-no-errors and eight focused A55 transport/review cases pass. Optimized assembly, original signer, exact candidate smoke and full six-song backing/output are separate stages; no backend/default policy or media-quality change, push, merge or publication.
+
+**Preserved previous local candidate:** `1.22.27 (code 348)` — SOURCE_ONLY, runtime `7749357`. [Native sound-support repair and exact evidence](docs/STACK_NATIVE_SUPPORT_1.22.27.md) keeps missing native measurements in the planned-region support denominator and invalidates old pair decisions. The frozen challenge catches the original defect;555 JVM tests, lint/no-errors, Android-test compilation and optimized assembly pass. APK: `App/output/stack-backing-repair-20261113/optimized-local-27/GreaterArt-1.22.27.apk`,5,579,536bytes, SHA-256 `d29be1d8eb9dfab75f5d1889724e6a386962bd6680ee7a5ddda270a61b88e733`, existing maintenance signer. The exact installed A55 candidate passes six-song sound review, live Apply, manual Earlier/Later/Apply/reopen/restore and normal Now Playing controls. The8.875s sound review is cache-warm, not a cold benchmark: Riona+0.650ms, unc+83.216ms; the other three still reject. Actual screenshots were inspected. App-ops are restored; no full-app, backing-only, emitted-audio, saved-Stack reload or physical-HDR acceptance is claimed. This does not solve all six takes. Preserve the exact26 APK and all existing functions/quality. No push, merge or publication; the original-signer check remains failed and the verified download stays1.21.93.
 
 **Preserved picture source:** `1.22.26/code347` — [sampling and mixed-cadence evidence](docs/PICTURE_TIMING_1.22.26.md). Bounded nearest-frame selection and unbiased exactly tied peaks repair the old15ms translation error. The isolated six-take A55 candidate passes Quick twice (33.813/33.895s) and Wide (256.345s), with frozen dispositions unchanged. The exact optimized26 normal-UI results are recorded above. These are not backing-only or acoustic acceptance; no picture matcher or UI behavior changes in27.
 **Preserved fullscreen presentation-tested candidate:** `1.22.24 (code 345)` — `App/output/fullscreen-ambient-toolbar-20261112/optimized-local-24/GreaterArt-1.22.24.apk`,5,579,536bytes, SHA-256 `cd5f4d32a8f7252f9753566f0784bdbe68355b9dc026300eb9dbf808ebd0e026`, runtime `bf0ae87`. Same maintenance key; original-signer release remains blocked. All542 JVM tests, lint/no-errors, test compilation, R8 assembly and exact-file checks pass. The actual installed A55 APK passes normal-center fullscreen/Home, visible margin Ambient, existing DEV/inspection and pull-to-Library. Actual top-button spacing is171px throughout. Restore DEV/app-ops after testing; preserve the1.22.23 failed-center-tap candidate. [Receipt, screenshots and limits](docs/FULLSCREEN_AMBIENT_1.22.24.md). No full-app, landscape/PiP, physical HDR or acoustic claim; no push/merge/publication.
@@ -21,7 +145,9 @@ This file describes the **current repository state only**. Historical session no
 
 **Alignment work:** [1.22.20 repair and remaining acceptance](docs/STACK_ALIGNMENT_1.22.20.md) records false-confidence rejection, coordinated Apply, clearer review/manual controls,541 passing JVM tests and8 passing development A55 UI tests. Normal Library→Stack testing caught and repaired stale unknown-duration inputs: use the prepared slot duration for analysis, without preloading Library metadata. The unchanged Miku/Riona review check now passes with +0.650ms. Android Wide picture expectations pass; Quick still exceeds45s. Three sound takes still abstain, and the owner declined second-stage native recovery. Actual output accuracy and the optimized artifact remain separate gates. Do not replace the exact tested1.22.19 APK with a development build. Use the retained package-specific maintenance key, not the different global debug key.
 
-**Music-first investigation:** [The latest A55 and pitch-vote report](docs/STACK_ALIGNMENT_A55_2026-11-12.md) records the normal six-track sound review (2/5 proposals in 122.636s), failed Quick deadline and completed Wider picture review (4/5 in 341.251s; Riona unmatched, Yoshino +17ms). These are mixed-cache UI intervals, not cold benchmarks. A 9.308s retained-data probe isolates a pitch-vote veto of Yoshino's five time-consistent regions; it does not prove vocal causation or approve a replacement matcher. The target is shared backing music, not vocal phrasing. Keep the three uncertain sound takes unchanged under the owner's rejection-only decision until a separately agreed music-first change passes the false-match controls.
+**Output qualification, November13:** [Current recheck and preserved capture limits](docs/STACK_CAPTURE_CALIBRATION_2026-11-11.md#november13--exact12227-capture-recheck) uses the exact1.22.27 APK and unchanged A55/helper/fixtures. Fresh original timing passes4/4, but original gain and physically absent-track checks still fail. Raising only guest media volume5/15 to15/15 through Settings does not fix the gate;5/15 is restored. Earlier failed timing and the pre-playback volume-harness error remain retained. No scorer/threshold change or new real-song acceptance. Do not reuse the older Android static-track capture as post-gain output: it retained muted tones. Callback boxing is also not a mixer defect: source and actual compiled debug render bytecode show the production sample lambda is inline. Shared-output192kHz underrun/parity work remains open; no engine is enabled or replaced.
+
+**Music-first investigation:** [The earlier A55 and pitch-vote report](docs/STACK_ALIGNMENT_A55_2026-11-12.md) records the normal six-track sound review (2/5 proposals in 122.636s), its then-failed Quick deadline and completed Wider picture review (4/5 in 341.251s; Riona unmatched, Yoshino +17ms). The later1.22.26 Quick/Wide passes are recorded above. These are mixed-cache UI intervals, not cold benchmarks. A 9.308s retained-data probe isolates a pitch-vote veto of Yoshino's five time-consistent regions; it does not prove vocal causation or approve a replacement matcher. The target is shared backing music, not vocal phrasing. Keep the three uncertain sound takes unchanged under the owner's rejection-only decision until a separately agreed music-first change passes the false-match controls.
 
 **Backing-only follow-up:** [Controlled voice changes and an independent instrumental reference](docs/STACK_BACKING_MUSIC_EVIDENCE_2026-11-12.md) disprove a pitch-only repair: existing full-mix native confirmation can still reject identical backing when only the voice changes, and a common strong synthetic voice can pass with different backing. A private11.384s host comparison against syudou's public instrumental preview supports approximate backing timing in five distributed sections for Riona, unc, Yoshino and Morisray; Forte remains unresolved. The outro does not give a complete-song pass. Do not apply those host figures or call this A55/output acceptance. Android code, matcher rules, version and exact APK stay unchanged; a new backing-evidence policy needs the owner's agreement.
 

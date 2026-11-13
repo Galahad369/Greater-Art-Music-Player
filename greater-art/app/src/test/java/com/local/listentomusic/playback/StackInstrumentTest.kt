@@ -51,6 +51,28 @@ class StackInstrumentTest {
         assertNull(stackSelectInstrumentEvidence(mono.copy(residualMs = 5.1), weakSide, 180000))
     }
 
+    @Test fun productionStereoMapsMustAgreeAtBothEndsOfTheSong() {
+        val duration = 180000L
+        val mono = StackAlignment(700, .8, true, 1.0, 700000.0, 6, 1.0)
+        for (direction in listOf(-1, 1)) {
+            val side = mono.copy(offsetMs = 700 + direction * 30L,
+                offsetUs = mono.offsetUs + direction * 30000,
+                timeScale = 1.0 + direction * 30.0 / duration)
+            assertNull("Offset and rate disagreement add to60ms at the song end",
+                stackSelectInstrumentEvidence(mono, side, duration))
+
+            val cancelling = side.copy(timeScale = 1.0 - direction * 30.0 / duration)
+            assertEquals(cancelling, requireNotNull(
+                stackSelectInstrumentEvidence(mono, cancelling, duration)).alignment)
+            // Preserve the original parameter guards even when larger errors
+            // happen to cancel at the far endpoint.
+            val excessiveOffset = mono.copy(offsetMs = 700 + direction * 50L,
+                offsetUs = mono.offsetUs + direction * 50000,
+                timeScale = 1.0 - direction * 50.0 / duration)
+            assertNull(stackSelectInstrumentEvidence(mono, excessiveOffset, duration))
+        }
+    }
+
     @Test fun pairDecisionCachePreservesFractionalOffsetsAndRejectsMalformedData() {
         val value = StackAlignment(152, .8, true, .99998, 151820.0, 4, 1.7)
         val bytes = ByteArrayOutputStream().also { buffer ->

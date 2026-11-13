@@ -40,7 +40,7 @@ class StackAlignmentReviewTest {
         }
         compose.onNodeWithTag("STACK_ALIGNMENT_REFERENCE").assertTextContains("reference.mp4", substring = true)
         compose.onNodeWithTag("STACK_ALIGNMENT_METHOD").assertTextContains(
-            "Sound matching follows the shared backing track, not the singers' phrasing.")
+            "Sound estimates backing timing. Vocals can affect the result; review before applying.")
         compose.onNodeWithTag("STACK_ALIGNMENT_TIMING_/matched.mp4").assertTextContains(
             "-12.375 → +26 ms", substring = true)
         compose.onNodeWithTag("STACK_ALIGNMENT_SPEED_/matched.mp4").assertTextContains(
@@ -69,7 +69,7 @@ class StackAlignmentReviewTest {
             StackAlignmentReview(AppLanguage.ENGLISH, slots, progress, {}, {}, {}, {})
         }
         compose.onNodeWithTag("STACK_ALIGNMENT_METHOD").assertTextContains(
-            "Picture matching aligns images. It does not guarantee matching sound.")
+            "Picture timing is frame-limited. Matching images does not verify matching sound.")
         compose.onNodeWithTag("STACK_ALIGNMENT_REASON_/unmatched.mp4").assertTextContains(
             "Could not establish one consistent picture offset.", substring = true)
         compose.onNodeWithTag("STACK_ALIGNMENT_MANUAL_/unmatched.mp4").assertIsDisplayed()
