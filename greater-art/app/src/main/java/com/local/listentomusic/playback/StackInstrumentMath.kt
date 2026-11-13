@@ -252,11 +252,15 @@ internal fun stackSelectInstrumentEvidence(mono: StackAlignment, side: StackAlig
 }
 
 /** A mono-only decision requires independent native-rate attack agreement, not a relaxed score. */
-internal fun stackValidateNativeCorrections(coarse: StackAlignment, corrections: List<Double>, mandatory: Boolean): StackAlignment {
+internal fun stackValidateNativeCorrections(coarse: StackAlignment, corrections: List<Double>, mandatory: Boolean,
+    plannedRegions: Int = coarse.anchorCount): StackAlignment {
     val values = corrections.filter { it.isFinite() && abs(it) <= 12000 }.sorted()
     val cluster = values.indices.map { first -> values.drop(first).takeWhile { it - values[first] <= 4000 } }
         .maxByOrNull { it.size }.orEmpty()
-    if (!coarse.confident || cluster.size < 3 || cluster.size * 4 < values.size * 3)
+    // Failed native checks remain missing evidence; they must not shrink the
+    // planned-region denominator or turn partial support into a complete vote.
+    val supportCount = maxOf(plannedRegions, coarse.anchorCount, corrections.size)
+    if (!coarse.confident || cluster.size < 3 || cluster.size * 4 < supportCount * 3)
         return if (mandatory) StackAlignment(0, coarse.correlation, false) else coarse
     val correction = if (cluster.size % 2 == 0) (cluster[cluster.size / 2 - 1] + cluster[cluster.size / 2]) / 2
         else cluster[cluster.size / 2]

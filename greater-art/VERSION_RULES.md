@@ -16,7 +16,7 @@ This file is the authoritative version policy for Greater Art. If any handoff no
 ## Machine-checkable state
 
 
-Current source: **1.22.26 (code 347)**
+Current source: **1.22.27 (code 348)**
 Allowed consumed transition: **1.21.38 (code 261) -> 1.21.40 (code 263)**
 
 Retain PR174's original declared transition for eeb06d9. Its initial1.21.40
@@ -506,3 +506,4 @@ Previous baseline: 1.13.26 (code 115).
 - 1.22.24 (code 345): fix A55-observed overlap after toolbar redistribution: move pull recognition from the sibling hit-stealing overlay to the toolbar parent, and place expanded DEV below the measured toolbar. Keep the central pull gesture, activation/resistance/return rules, all button callbacks and native fullscreen Ambient/HDR unchanged. Preserve the exact 1.22.23 candidate and failed center-tap evidence. SOURCE_ONLY pending the new optimized build and native acceptance.
 - 1.22.25 (code 346): make Black OLED the unset/reset default, present Follow video colors second without renaming stored palettes, reuse existing artwork/video color evidence for readable control accents, and remove only the normal Now Playing timeline/transport backplate. Preserve fixed controls, touch targets, Ambient, native HDR, video quality, surface ownership, alignment gates and all prior APKs. SOURCE_ONLY; optimized assembly and exact-build acceptance are recorded separately in docs/OLED_VIDEO_THEME_1.22.25.md.
 - 1.22.26 (code 347): correct analysis-only picture admission with bounded nearest-frame selection and remove zero-biased timing within exactly tied mixed-cadence score peaks. Preserve original picture timestamps, all confidence/ambiguity/coverage gates, exact same-cadence offsets, sound/manual/saved timing, primary video/audio quality and the exact25 APK. Clarify that picture timing is frame-limited and vocals can affect sound estimates. SOURCE_ONLY; native prototype gates pass, with current-version optimized build and installed-app checks recorded separately in docs/PICTURE_TIMING_1.22.26.md.
+- 1.22.27 (code 348): retain all planned sound-analysis regions in the native-refinement support denominator instead of counting only successful corrections. Preserve the three-region minimum and existing75% quorum, keep stereo-confirmed timing unchanged when optional refinement lacks support, and invalidate older cached pair decisions. Preserve picture/manual/saved timing, native playback quality and all earlier APKs. SOURCE_ONLY; this partial-confidence repair does not establish backing-only matching, emitted-output synchronization or a verified release. See docs/STACK_NATIVE_SUPPORT_1.22.27.md.

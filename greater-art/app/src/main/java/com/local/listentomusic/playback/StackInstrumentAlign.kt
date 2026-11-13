@@ -19,7 +19,7 @@ import kotlin.coroutines.coroutineContext
 import kotlin.math.abs
 
 internal data class StackInstrumentViews(val mono: StackInstrumentRegion, val side: StackInstrumentRegion?)
-private const val STACK_ALIGNMENT_MAP_REVISION = 9
+private const val STACK_ALIGNMENT_MAP_REVISION = 10
 
 internal class StackInstrumentAlign(private val context: Context) {
     private val cache = File(context.applicationContext.cacheDir, "stack-align-v7-instruments")
@@ -169,7 +169,7 @@ internal class StackInstrumentAlign(private val context: Context) {
             }
             if (correction != null) corrections += correction
         }
-        val refined = stackValidateNativeCorrections(coarse, corrections, nativeMonoRequired)
+        val refined = stackValidateNativeCorrections(coarse, corrections, nativeMonoRequired, starts.size)
         if (com.local.listentomusic.BuildConfig.DEBUG)
             android.util.Log.d("StackAlignV8", "nativeRequired=$nativeMonoRequired correctionsUs=$corrections result=$refined")
         refined
