@@ -19,6 +19,31 @@ The corrected active-before-EOF test passes; performance gates remain failed.
 keep current source, private diagnostics, optimized artifact and full acceptance
 separate. No production enablement, quality reduction or backing-matcher change.
 
+**Exact30 private APK now built and smoke-tested:** commit75ae3c6, app-input
+fingerprinte7904de5b991c9f268ab62067970d70b8c6d5a4c4def4399eccd1cf41c5daaa0.
+Preflight/optimized assembly PASS;591JVM tests pass, lint0errors/54warnings/
+6hints. The unchanged default build has both experimental flagsfalse.
+`App/output/overnight-alignment-20261114-0049/optimized-local-30/GreaterArt-1.22.30.apk`
+is5,579,536bytes, SHA-256
+`2929ef6f567db1af5c614986aa60b8f91947b3da8959a31f1f7f08f8a1d80c05`.
+Actual exact-file A55 Library→Now Playing play/pause/seek/resume/Home and
+visually inspected screenshots PASS. This uses the existing private maintenance
+certificate0a7b9ceb…53de6b7, NOT the unavailable original public signer9e28eb45…d612fbf.
+It cannot be called an update-compatible public release or all-six backing pass.
+Original test package, default access app-ops, microphone denial, volume5/15
+and stored AVD profile are restored. Owned A55 stops06:51:16Taipei; no wipe,
+uninstall, new signer, GPU change, push or merge.
+
+**Backing-presence hypothesis stopped, not adopted:** E30 tests an absolute
+estimated-instrumental/input RMS floor alongside the old frozen bass NCC.
+It rejects six additional controlled residual-vocal false matches while keeping
+six delayed-backing positives. However, ALL five actual target companions fail
+the unchanged NCC boundary in the retained real-song query. Do not lower the
+threshold, call synthetic controls six-singer validation, or import this into
+production. Sound/picture remain separate. E30 records exact inputs, scores,
+limitations and the required next evidence. Full-song backing, actual mixed
+output and high-rate shared-output parity remain incomplete.
+
 **Overnight14November — capture qualified, full goal still open:** Official
 scrcpy5.0.1 raw device-output capture passes the unchanged timing/gain/isolation/
 physical-absence suites twice. A single prospective first240000-frame interval

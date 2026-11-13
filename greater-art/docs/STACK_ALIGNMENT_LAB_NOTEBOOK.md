@@ -1014,21 +1014,96 @@ Evidence: `BOUNDED_PCM_PIPELINE_PROTOCOL.md`, `pipeline30-timeout-red.log/xml`,
 per runner; default app-ops, microphone denial and exact optimized29 restore
 are checked. No push, merge, production enablement or source-quality reduction.
 
+Final30 default-source verification passes591JVM tests,0failures/errors/skips;
+lint0errors/54warnings/6hints and debug/test assembly pass. Committed source
+75ae3c6 also passes optimized assembly and private maintenance exact identity.
+The exact1.22.30/code351 APK is5,579,536bytes, SHA-256
+2929ef6f567db1af5c614986aa60b8f91947b3da8959a31f1f7f08f8a1d80c05.
+Actual A55 normal play/pause/seek67s/resume/Home passes with inspected screenshots,
+not a six-song/high-rate acceptance. Both experimental flags remainfalse.
+Original test package, access defaults, microphone denial, volume5 and stored
+profile hashes are restored; owned A55 exits06:51:16Taipei. Original public
+signer remains unavailable. See the30 receipt; do not rebuild/replace these
+bytes for documentation or call maintenance signing a public update.
+
+### E30 — Retained energy helps one control, but fails the actual-six target
+
+Distinct hypothesis: normalized correlation can hide weak coherent voice
+leakage. The existing separator returns input minus estimated vocals without
+output gain normalization; absolute full-mono instrumental/input RMS might
+add backing-presence evidence. Freeze0.20 BEFORE reading retention values,
+retain the old E13 bass-NCC boundary0.9801886008056108,40–180Hz filter and2ms
+synthetic timing check. This is a proposed amplitude heuristic, not semantic
+instrument identification, a calibrated confidence bound or an app change.
+
+The retained-data selection pass reports12/12 positives and18/18 negatives
+correct in0.649s. Importantly, all18 negatives
+already fail the old strict NCC boundary; this selection result alone proves
+no added discrimination. A fresh construction with the previously examined
+Gospel vocal stem provides the useful incremental check: all6 voice-only pairs
+have NCC0.980196–0.989517, above that old boundary, but RMS retention about
+0.067–0.073 rejects them. All6 delayed-vocal/shared-backing positives retain
+about0.226–0.249 and recover the known700ms. All6 wrong-backing negatives also
+reject.30 new separator calls complete18cases in113.781s; no model download.
+
+This is not a blind six-singer validation. The vocal excerpts overlap, use one
+backing and fixed synthetic gains, and the singer appeared in earlier work.
+"Voice-only" means no ADDED backing, not physically instrument-free ground
+truth. The floor may reject quiet genuine music. The held-out report's field
+`startedUtc` is mistakenly completion time; its monotonic113.781s is measured.
+Keep that original receipt and the reviewer caveat, not a fabricated start.
+
+Next use the exact cached original-six517120-frame stereo estimates from
+69.823s, verified against their original manifest/source hashes. Stereo-float
+interleaving and native44100Hz source windows are checked; no inference or
+resampling. The SAME fixed floor/NCC/filter rejects all5 target companions:
+
+| Companion | Best bass NCC | Candidate offset, not verified timing |
+| --- | ---: | ---: |
+| Riona |0.698631|+6.009ms|
+| unc |0.709939|+76.145ms|
+| Forte |0.109277|+5739.184ms|
+| Yoshino |0.515319|+19.025ms|
+| Morisray |0.677350|+21.927ms|
+
+All6 retention ratios pass0.20, approximately0.66–0.85, so the new energy
+floor does not repair actual-song similarity. The0.844s real-data check has
+no independent sample-accurate offset ground truth, searches only valid
+placements of one interior1–5s query and is NOT distributed/full-song or
+emitted-output proof. Forte's large weak peak is not an applied offset.
+The inherited helper fields `music700Ncc` and `voice980Ncc` sample fixed lags;
+their names do not establish music/vocal timing ground truth in the originals.
+
+STOP this candidate. Do not tune a new cutoff/band/model on these failures or
+enable separation in the app. Preserve the controlled improvement AND actual
+failure. A new material production approach needs a concrete reviewable plan
+and owner confirmation. No threshold/matcher/source-quality change, media
+upload, engine enablement, push or merge follows.
+
+Evidence under the private overnight root: `RETAINED_ENERGY_PROTOCOL.md`,
+`retained-energy-01/`, `retention-heldout-01/`, `REAL_RETENTION_PROTOCOL.md`,
+`retention-real-six-01/report.json` and their runners/input hashes. Independent
+read-only review confirms the controlled result's narrow scope, not runtime
+acceptance. Private licensed fixtures/models/captures stay outside Git.
+
 ## Next actions
 
 E11/E12 rule out two shortcuts: treating a relative library score as backing
 confidence, and assuming an estimated instrumental is voice-free. Use the
 per-region and known-component evidence before another model or matcher trial.
 
-1. Use E13/E14's low-band timing evidence only as a candidate observation.
-   Investigate explicit backing-presence evidence; do not tune a new NCC cutoff
-   on the failed singer or repeat another unconditional band/model swap.
+1. E30's RMS-presence candidate is STOPPED: controlled discrimination does not
+   overcome actual-six waveform mismatch. Establish independent backing-event
+   ground truth and false-match evidence before another production proposal;
+   do not tune the failed NCC/floor/band/model to these five originals.
 2. Present the concrete proposal and obtain owner confirmation before a material
    production change. Keep sound and picture estimates separate.
 3. Use E21's qualified raw route; preserve its original failed variable-length
    recordings and all old failed speaker paths. Trace E22's independent-player
    failure before accepting actual six-song output.
-4. Continue full-path shared-output profiling/parity without changing playback
-   quality or enabling the prototype. A math microbenchmark is not that gate.
+4. E29's pipeline performance variations are STOPPED. Any new investigation
+   needs a directly testable cause beyond summed overlapping stage times;
+   preserve all original cadence/high-rate/function gates and keep both flags
+   off. A math microbenchmark or zero-underrun paused output is not acceptance.
 
 No experiment in this notebook establishes universal or “1000%” accuracy.

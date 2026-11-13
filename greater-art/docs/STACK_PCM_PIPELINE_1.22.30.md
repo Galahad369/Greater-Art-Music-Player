@@ -69,7 +69,19 @@ no-extra-pause and high-rate partial/tempo EOF checks; all original gates remain
   restored-position checks pass at576000frames/3000ms with0underruns. This
   corrects a test precondition; it does not repair or waive the failed stress
   and cadence gates.
-- Current optimized assembly, exact identity and normal-entry smoke: pending.
+- Optimized assembly from commit75ae3c6: preflight and `assembleRelease` PASS.
+  App-input SHA-256 is
+  `e7904de5b991c9f268ab62067970d70b8c6d5a4c4def4399eccd1cf41c5daaa0`.
+  The retained private APK is1.22.30/code351,5,579,536bytes, SHA-256
+  `2929ef6f567db1af5c614986aa60b8f91947b3da8959a31f1f7f08f8a1d80c05`.
+  Package `com.local.listentomusic`, nondebuggable/not test-only, existing
+  maintenance certificate
+  `0a7b9cebf928022c1930b64f2c47581c13def3007b0e97737bbb9ca3e53de6b7`.
+  Exact-file identity and zip alignment PASS; no new key is created.
+- Those exact bytes pass actual A55 normal Library→Now Playing advancing
+  playback, pause, seek67s, resume and Home→Library. Installed hash is checked
+  before/after; playing and paused screenshots are visually inspected. This
+  is a normal playback smoke, NOT Stack/backing/full-app or physical-HDR proof.
 - Original public signer: unavailable. Existing maintenance signing is a
   separate private-test identity, not a public update-compatible release.
 - Original-six backing/output, nonidentity scales, production host/MediaSession
@@ -78,6 +90,19 @@ no-extra-pause and high-rate partial/tempo EOF checks; all original gates remain
 Private evidence root: `App/output/overnight-alignment-20261114-0049/`.
 Protocols, original failures, exact debug identities and future final receipts
 remain separate. Do not infer acceptance from a successful build or one chart.
+
+Exact APK: `optimized-local-30/GreaterArt-1.22.30.apk`. Separate chronological
+receipts are `release30-build/build.json`, `optimized-local-30/identity.json`,
+`optimized30-smoke-01/report.json` and `a55-final-restore.json`. The initial
+build receipt correctly says identity/device not yet run; the later receipts
+record the private maintenance-identity check and actual normal smoke. They
+do not unblock the original public signer or promote a verified public release.
+
+Final restoration: both temporary app-ops default, test microphone permission
+denied, music volume5/15 and original stored AVD profile hashes unchanged.
+Original test APK hash723825e70d25840217f5f27859ff21ad940d4059a8d4701abb8b5cedec487731
+is restored. The owned A55 exits gracefully at06:51:16Taipei on14November;
+the exact optimized30 remains installed. No phone or desktop app is changed.
 
 Retain `prototype30-device-01/02`, the first0.8004185cadence observation,
 `prototype30-trace-02/`, `prototype30-eof-03/` and every exact private identity.
