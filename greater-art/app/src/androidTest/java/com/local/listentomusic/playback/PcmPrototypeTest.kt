@@ -94,11 +94,20 @@ class PcmPrototypeTest {
             assertEquals(9600L, spec.durationFrames)
             val stream = StackPcmStream(scope, clip, spec, 3000)
             try {
-                val lane = PcmLane(stream) { fail("Native WAV unexpectedly starved") }
-                lane.prepare(3000, 3255)
+                // There is no playing sink here. A cold asynchronous first read
+                // may need data; exact sample checks below own precision, while
+                // the active-output device suites retain their zero-underrun gate.
+                var initialWaits = 0
+                val lane = PcmLane(stream) { initialWaits++ }
+                withTimeout(2000) { lane.prepare(3000, 3255) }
+                android.util.Log.i("PcmPrototypeTest", "native24 initialWaits=$initialWaits")
+                val copied = FloatArray(256 * 2)
+                lane.copyStereoWindow(3000, 256, copied)
                 for (frame in 3000..3255) for (channel in 0..1) {
                     assertEquals("24-bit seek/channel mismatch $frame/$channel",
                         value(3840 + frame, channel) / 8388608f, lane.sample(frame.toLong(), channel), 0f)
+                    assertEquals("24-bit copied seek/channel mismatch $frame/$channel",
+                        value(3840 + frame, channel) / 8388608f, copied[(frame - 3000) * 2 + channel], 0f)
                 }
             } finally { withTimeout(2000) { stream.close() } }
         } finally { scope.cancel(); file.delete() }

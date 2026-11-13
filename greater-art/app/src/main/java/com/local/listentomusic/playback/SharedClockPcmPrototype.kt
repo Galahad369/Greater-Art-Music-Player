@@ -28,9 +28,17 @@ internal data class PcmPrototypeStats(val active: Boolean = false, val playing: 
     val maxPrepareUs: Long = 0, val maxRenderUs: Long = 0, val bufferFrames: Int = 0,
     val speed: Float = 1f, val pitch: Float = 1f, val durationFrames: Long = 0)
 
+/** Opt-in diagnostic samples. The default path neither allocates nor reads CPU counters. */
+internal data class PcmRenderTrace(val frame: Long, val prepareUs: Long, val mixUs: Long,
+    val tempoUs: Long, val writeUs: Long, val prepareCpuUs: Long, val mixCpuUs: Long,
+    val tempoCpuUs: Long, val writeCpuUs: Long, val queuedBeforeFrames: Long,
+    val queuedBeforeWriteFrames: Long, val underrunsBefore: Int, val underrunsAfter: Int,
+    val outputStarted: Boolean)
+
 /** Default-off, debug-build prototype. No routing changes to production PlaybackService.
  * Explicit host lease + ONE output; unsupported cases restore legacy only after release. */
-internal class SharedClockPcmPrototype(context: Context, private val host: PcmPrototypeHost) {
+internal class SharedClockPcmPrototype(context: Context, private val host: PcmPrototypeHost,
+    private val renderObserver: ((PcmRenderTrace) -> Unit)? = null) {
     private val context = context.applicationContext
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
     private val renderDispatcher = Executors.newSingleThreadExecutor { work ->
@@ -260,6 +268,12 @@ internal class SharedClockPcmPrototype(context: Context, private val host: PcmPr
                         }
                         val blockFrames = minOf(PCM_BLOCK_FRAMES.toLong(), duration - next).toInt()
                         val levels = voices
+                        val observer = renderObserver
+                        val observing = observer != null
+                        val outputStarted = started
+                        val queuedBefore = if (observing) submittedOutputFrames - outputClock.position(track.playbackHeadPosition) else 0
+                        val underrunsBefore = if (observing) track.underrunCount else 0
+                        val prepareCpu = if (observing) android.os.Debug.threadCpuTimeNanos() else 0
                         val prepareStart = System.nanoTime()
                         levels.forEachIndexed { i, voice ->
                             val first = floor(pcmSourceFrame(next, rate, voice)).toLong() - PCM_SINC_RADIUS
@@ -268,25 +282,31 @@ internal class SharedClockPcmPrototype(context: Context, private val host: PcmPr
                             val window = windows[i]
                             check((last - first + 1) * 2 <= window.size) { "PCM window exceeds native-rate bound" }
                             windowStarts[i] = first
-                            // Gather once, rather than doing deque/cache lookup for
-                            // both channels of all 32 taps of every output frame.
-                            var index = 0
-                            for (sourceFrame in first..last) {
-                                window[index++] = lanes[i].sample(sourceFrame, 0)
-                                window[index++] = lanes[i].sample(sourceFrame, 1)
-                            }
+                            // Copy contiguous decoded ranges, not two lane/cache
+                            // lookups per frame. Mono expansion and clip zeros are exact.
+                            lanes[i].copyStereoWindow(first, (last - first + 1).toInt(), window)
                         }
                         ensureActive()
                         val mixStart = System.nanoTime()
+                        val mixCpu = if (observing) android.os.Debug.threadCpuTimeNanos() else 0
                         peakPrepareUs = maxOf(peakPrepareUs, (mixStart - prepareStart) / 1000)
-                        mixPcmBlockInto(next, rate, levels, blockFrames, mixed, gains) { i, sample, channel ->
-                            windows[i][((sample - windowStarts[i]) * 2 + channel).toInt()]
-                        }
-                        val mixUs = (System.nanoTime() - mixStart) / 1000
+                        mixPcmWindowBlockInto(next, rate, levels, blockFrames, mixed, gains, windows, windowStarts)
+                        val tempoStart = System.nanoTime()
+                        val tempoCpu = if (observing) android.os.Debug.threadCpuTimeNanos() else 0
+                        val mixUs = (tempoStart - mixStart) / 1000
                         peakMixUs = maxOf(peakMixUs, mixUs)
                         val processed = if (processor.active) processor.queue(mixed, blockFrames) else null
-                        peakRenderUs = maxOf(peakRenderUs, (System.nanoTime() - prepareStart) / 1000)
+                        val writeStart = System.nanoTime()
+                        val writeCpu = if (observing) android.os.Debug.threadCpuTimeNanos() else 0
+                        val queuedBeforeWrite = if (observing) submittedOutputFrames - outputClock.position(track.playbackHeadPosition) else 0
+                        peakRenderUs = maxOf(peakRenderUs, (writeStart - prepareStart) / 1000)
                         if (processed != null) submitBytes(processed) else submitFloats(blockFrames * 2)
+                        if (observer != null) observer(PcmRenderTrace(next,
+                            (mixStart - prepareStart) / 1000, mixUs, (writeStart - tempoStart) / 1000,
+                            (System.nanoTime() - writeStart) / 1000, (mixCpu - prepareCpu) / 1000,
+                            (tempoCpu - mixCpu) / 1000, (writeCpu - tempoCpu) / 1000,
+                            (android.os.Debug.threadCpuTimeNanos() - writeCpu) / 1000,
+                            queuedBefore, queuedBeforeWrite, underrunsBefore, track.underrunCount, outputStarted))
                         next += blockFrames
                         val now = android.os.SystemClock.elapsedRealtime()
                         if (now - lastReport >= 100) {

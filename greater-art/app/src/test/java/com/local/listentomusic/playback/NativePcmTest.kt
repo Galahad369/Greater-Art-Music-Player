@@ -5,9 +5,61 @@ import java.nio.ByteBuffer
 import java.nio.ByteOrder
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
+import org.junit.Assert.assertArrayEquals
 import org.junit.Test
 
 class NativePcmTest {
+    @Test fun isolatedWindowKernelMatchesDirectInlineRenderBitsAndGains() {
+        for (frame in listOf(0L, 400L, 4_300_000_000L)) for (rate in listOf(48000, 192000))
+            for (mixedRates in listOf(false, true)) for (selected in listOf(false, true)) {
+                val voices = List(8) { index -> PcmVoice(
+                    if (mixedRates && index % 2 == 1) 44100 else rate,
+                    if (index % 3 == 0) 0.0 else index * .37 * 1_000_000 / rate - 40,
+                    (index + 1) / 8f, muted = selected && index == 2, solo = selected && index == 3) }
+                val starts = LongArray(8) { kotlin.math.floor(pcmSourceFrame(frame, rate, voices[it])).toLong() - PCM_SINC_RADIUS }
+                val windows = Array(8) { voice ->
+                    val last = kotlin.math.ceil(pcmSourceFrame(frame + 1023, rate, voices[voice])).toLong() + PCM_SINC_RADIUS
+                    FloatArray(((last - starts[voice] + 1) * 2).toInt()) { index ->
+                        kotlin.math.sin((starts[voice] + index / 2) * .137 + voice + index % 2).toFloat() * 1e-7f }
+                }
+                val expected = FloatArray(2048)
+                val actual = FloatArray(2048)
+                val expectedGains = FloatArray(8)
+                val actualGains = FloatArray(8)
+                mixPcmBlockInto(frame, rate, voices, 1024, expected, expectedGains) { voice, sample, channel ->
+                    windows[voice][((sample - starts[voice]) * 2 + channel).toInt()]
+                }
+                mixPcmWindowBlockInto(frame, rate, voices, 1024, actual, actualGains, windows, starts)
+                assertArrayEquals("frame=$frame rate=$rate mixed=$mixedRates solo=$selected", expected, actual, 0f)
+                assertArrayEquals(expectedGains, actualGains, 0f)
+                for (index in expected.indices) assertEquals(expected[index].toRawBits(), actual[index].toRawBits())
+            }
+    }
+
+    @Test fun bulkFloatReadsMatchScalarBitsAndAdvanceOnlyTheRequestedSamples() {
+        val samples = floatArrayOf(-1f, -0f, 0f, Float.MIN_VALUE, 1e-9f, -1e-7f, .125f, 1f)
+        for (direct in listOf(false, true)) for (order in listOf(ByteOrder.LITTLE_ENDIAN, ByteOrder.BIG_ENDIAN)) {
+            val buffer = (if (direct) ByteBuffer.allocateDirect(8 + samples.size * 4)
+                else ByteBuffer.allocate(8 + samples.size * 4)).order(order)
+            buffer.putInt(123)
+            samples.forEach(buffer::putFloat)
+            buffer.putInt(456)
+            buffer.flip(); buffer.position(4)
+            val values = nativePcmSamples(buffer, C.ENCODING_PCM_FLOAT, samples.size)
+            assertArrayEquals(samples, values, 0f)
+            for (index in samples.indices) assertEquals(samples[index].toRawBits(), values[index].toRawBits())
+            assertEquals(4 + samples.size * 4, buffer.position())
+            assertEquals(456, buffer.int)
+        }
+    }
+    @Test fun bulkFloatInputStillRejectsEveryNonfiniteValue() {
+        for (bad in listOf(Float.NaN, Float.POSITIVE_INFINITY, Float.NEGATIVE_INFINITY)) {
+            val buffer = ByteBuffer.allocate(12).order(ByteOrder.LITTLE_ENDIAN)
+                .putFloat(1e-7f).putFloat(bad).putFloat(0f)
+            buffer.flip()
+            assertTrue(runCatching { nativePcmSamples(buffer, C.ENCODING_PCM_FLOAT, 3) }.isFailure)
+        }
+    }
     @Test fun pcm24LowBitsAndSignedExtremesSurviveExactly() {
         for (value in listOf(-8388608, -65537, -1, 0, 1, 65537, 8388607)) {
             val bytes = ByteBuffer.wrap(byteArrayOf(value.toByte(), (value shr 8).toByte(), (value shr 16).toByte()))

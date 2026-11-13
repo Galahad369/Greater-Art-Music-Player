@@ -807,6 +807,113 @@ before starvation is not permission to conceal stalls or weaken the original
 zero-underrun/performance checks. Evidence: `PCM_WAIT_PROTOCOL.md`,
 `pcm-wait-red.xml`, `pcm-wait-red.log`, `pcm-wait-green-full-jvm.log`.
 
+### E25 — Exact28 normal-entry and saved timing
+
+Local commit975a0f2 preserves the E23/E24 repairs as1.22.28/code349.
+Its optimized maintenance-signed APK is5,579,536bytes, SHA-256
+`834626430c0a89816e6be94d9440090b48d19620694e771f4d96f5f9c20df78c`.
+Exact installed bytes pass Library→Now Playing, play/pause/seek/resume/Home
+and inspected video/control geometry. Earlier/Later preserves fractional
+milliseconds; saving/reloading retains Riona1.625ms and Miku primary, then
+Reset restores0. Only the newly owned test preset is removed.
+
+Retain the failed driver receipts. One assumed an Activity survived restoring
+MANAGE_EXTERNAL_STORAGE, but Android's exit record identifies KILL_UID on that
+permission change. Another searched the wrong visible list/scroll position.
+A bounded180px scroll exposes the clipped primary and the complete normal
+sequence passes. Long downward overscroll can activate the intentional
+wallpaper-reveal gesture; do not call that state a proven app crash or remove
+the gesture to make a driver pass. The earlier background-only observation
+is retained, not retrospectively declared a confirmed cause.
+
+Evidence: `presentation-optimized28-01/`, `manual-saved-optimized28-01/`,
+`manual-saved-optimized28-finish-01..04/`, release28 receipts and exact APK
+under E21's private root. Original public signer is unavailable; this is not
+an update-compatible public release or full backing acceptance.
+
+### E26 — Native precision, full-path CPU and bounded copy trials
+
+The unchanged enabled-private28 suite passes ordinary eight-lane48/192k
+continuity, slow prefill/EOF and pause/seek/loop/solo, but fractional192k at
+1.25×/pitch1.5 fails with14underruns and no decoder waits. Thus E24's missing-
+data ordering protection does not explain this particular failure.
+
+The native24 test's initial fail-on-wait callback fires before any sample
+comparison and without an AudioTrack. It conflates asynchronous cold acquisition
+with active playback starvation. In29, count initial waits and retain the2s
+bound and every exact0f native24/channel/clip/seek assertion. The actual
+zero-underrun/cadence tests are not changed. Cold acquisition and float/native24
+precision checks pass; this is not a performance pass.
+
+An opt-in observer retains bounded per-block stage CPU/wall/headroom/counter
+data in memory and writes after pause, not during output. Initial active mean
+render5454.86us/CPU5264.75us exceeds the4266.67us block budget. Prepare is
+1661.21us, mix1445.20us and tempo2348.45us; mean off-CPU190.11us. At frame45056,
+sampled queued time5.021ms becomes a12.821ms render interval, an empty queue
+and underrun0→1. TSV213 within-row increments are not the full ending217counter.
+
+Exact contiguous windows, cached-overlap ownership, mono expansion and float
+bulk IO preserve sample bits. The independent old-adapter comparison preserves
+every Sonic output byte across18 native-rate/speed/pitch cases. A review catches
+the first copier's overlap-history discrepancy before commit; a repeated-halo
+regression now compares actual scalar current-block history. A separate
+non-suspending boundary retains the identical window kernel, gains and samples.
+
+These bounded trials do NOT pass the original stress gate:18,10and19underruns
+in the recorded successive candidates. Traced render means5054.30,5269.67and
+5015.07us still exceed the same4266.67us deadline. Independent peaks/counts
+must not be sold as an improvement or regression. No compiler/GC/Sonic cause
+is established by those totals; do not cycle more copy/backend/buffer changes
+under the same assumptions. Production route, source precision, filter length,
+rate/pitch, buffers, numerical gates and default-off status stay unchanged.
+
+Evidence: `prototype28-device-01/`, `prototype29-device-02/04/08/`,
+`prototype29-trace-01/02/04/08/`, their frozen protocols and analysis reports.
+See [29 pipeline scope and limits](STACK_PCM_PIPELINE_1.22.29.md).
+
+### E27 — Shared output, original waveforms and picture regression
+
+The private default-off common output passes the SAME frozen six-coded-source
+scorer that independent players failed:24source/windows,60pairs, maximum
+0.110726ms and minimum NCC0.999412; zero reported underruns. A repeat on the
+final isolated-kernel revision also passes all24windows/60pairs at maximum
+0.093078ms/minimum NCC0.999372. Keep both exact APK/source bindings; do not
+select the better run or imply they are the optimized default-off artifact. This is actual
+recorded output, not only positions, but it is synthetic unit/zero timing and
+not production-host/backing/full-parity acceptance.
+
+An additional private capture uses all six original files at60s and only the
+already observed sound maps0,+650,+83216,0,0,0us. No new content estimate or
+picture map. Source-waveform projection has predeclared synthetic omission,
+wrong-sign, gain-error and duplicate-source controls; they pass unchanged
+.90/.45/5%/.001 gates. All six original waveforms correlate0.980893–0.991268
+in fixed held-out2..6s and10..14s windows. However, nominal absolute gains
+fail by a common factor0.0232–0.0236. Existing media volume is5/15; its contribution
+is not independently calibrated here. No after-the-fact gain normalization or
+recorder repair is performed. This is not a proven app gain bug, full-gain pass,
+backing detector, whole-song result or permission to enable the prototype.
+
+The unchanged picture corpus initially fails its file-access precondition:
+the QA child directory belongs to shell UID2000 while the app is UID10216.
+run-as cannot provision that external-storage context. Preserve the original
+six files, then explicitly copy the same hash-verified public QA originals from
+inside instrumentation's actual app UID. No root/chmod/assertion relaxation.
+Quick then passes35.439s within45s; Wider passes247.988s. Expected offsets in
+companion order are Quick[null,0,0,12500,0]us and Wider[null,0,0,20500,0]us.
+All old ranges/rejections remain. The shell-owned copy is retained on the A55.
+
+Viewed fixed30/90/150s source scenes: Riona shares MV structure/lyric ideas but
+has different character art, framing and sometimes scene content. This explains
+why similar-looking material is not guaranteed a safe luma-patch match; it does
+not prove every scene differs. Riona remains unchanged, not silently aligned
+using sound. An optional free-model consultation stops before any model call
+because no usable existing credential is available; no paid fallback/config edit.
+
+Evidence: `shared-coded-output29-01/`, `shared-coded-output29-final/`, `shared-original-six29-01/`,
+`original-source-output-projection-01/`, `picture-corpus29-01..03/`,
+`riona-picture-scenes-01/` and `free-backing-consult-01/`. All media/captures
+stay local. Original scorer files, source files and prior APKs remain intact.
+
 ## Next actions
 
 E11/E12 rule out two shortcuts: treating a relative library score as backing

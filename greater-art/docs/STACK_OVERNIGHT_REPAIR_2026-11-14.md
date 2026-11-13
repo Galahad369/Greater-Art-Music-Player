@@ -53,11 +53,21 @@ See notebookE21 onward for frozen hashes, failed attempts, protocols and limits.
 
 ## Build and artifact stages
 
-- Versioned source commit/review: pending final local checkpoint.
-- Optimized assembly: mandatory; pending this source checkpoint.
+- Versioned source commit:975a0f2fb4c265497ef3e18d39b10bb11da98954, local only.
+- Optimized assembly:PASS; committed app-input fingerprint
+  `59587632857c752232da1822d853108f0e293ee7629981d8a100522dc3230827`.
 - Original public signer: unavailable. Do not replace it or claim that the
   existing maintenance signer can update original-signer installations.
-- Exact optimized1.22.28 APK and normal-entry A55 smoke: pending.
+- Exact optimized1.22.28 APK:5,579,536bytes, SHA-256
+  `834626430c0a89816e6be94d9440090b48d19620694e771f4d96f5f9c20df78c`.
+  Private path:`App/output/overnight-alignment-20261114-0049/optimized-local-28/GreaterArt-1.22.28.apk`.
+  Existing matching maintenance certificate
+  `0a7b9cebf928022c1930b64f2c47581c13def3007b0e97737bbb9ca3e53de6b7`;
+  not the missing original public certificate. Exact package
+  `com.local.listentomusic`, version1.22.28/code349.
+- Normal-entry A55 smoke:PASS for Library/Now Playing play, pause, seek, resume,
+  Home, fractional manual Earlier/Later, save/reload and primary retention.
+  Actual playing/paused screenshots inspected; not full app/fullscreen/phone QA.
 - Full six-song backing/output acceptance: FAILED/INCOMPLETE, not verified.
 - Publication: not authorized and not attempted.
 

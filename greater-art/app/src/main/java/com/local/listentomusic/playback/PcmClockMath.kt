@@ -61,6 +61,15 @@ internal inline fun mixPcmBlock(frame: Long, outputRate: Int, voices: List<PcmVo
     return mixed
 }
 
+/** Keep the CPU kernel outside the much larger suspending decoder/output state machine. */
+internal fun mixPcmWindowBlockInto(frame: Long, outputRate: Int, voices: List<PcmVoice>,
+    frames: Int, mixed: FloatArray, gains: FloatArray,
+    windows: Array<FloatArray>, windowStarts: LongArray) {
+    mixPcmBlockInto(frame, outputRate, voices, frames, mixed, gains) { voice, sample, channel ->
+        windows[voice][((sample - windowStarts[voice]) * 2 + channel).toInt()]
+    }
+}
+
 /** Reusable render buffers. No iterator, sample lambda boxing or per-block array allocation. */
 internal inline fun mixPcmBlockInto(frame: Long, outputRate: Int, voices: List<PcmVoice>,
     frames: Int, mixed: FloatArray, gains: FloatArray, crossinline sample: (Int, Long, Int) -> Float) {

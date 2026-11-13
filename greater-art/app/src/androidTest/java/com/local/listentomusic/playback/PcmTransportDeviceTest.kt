@@ -29,6 +29,77 @@ import kotlin.math.sin
 
 /** Transport/underrun evidence, not acoustic or video-surface acceptance. */
 class PcmTransportDeviceTest {
+    /** Diagnostic only: selected sound maps, not new backing estimates or picture timing. */
+    @Test fun traceSixOriginalSourcesOnSharedOutput(): Unit = runBlocking {
+        exercise(8000, 1) { engine, _, _ ->
+            val folder = File("/sdcard/Download/GreaterArt-Alignment-QA-20261111")
+            val names = listOf("Miku", "Riona", "unc", "Forte", "Yoshino", "Morisray")
+            val offsetsUs = listOf(0.0, 650.0, 83216.0, 0.0, 0.0, 0.0)
+            val slots = names.mapIndexed { index, name ->
+                val file = File(folder, "孤独毒毒-$name.mp4")
+                assertTrue("Missing original take", file.isFile && file.length() > 44)
+                StackSlot(MediaFile(file.canonicalPath, file.name, 188000, file.length(),
+                    file.lastModified(), MediaKind.VIDEO), alignmentOffsetUs = offsetsUs[index])
+            }
+            assertTrue(engine.start(slots, slots.first().file.path))
+            engine.setLoop(false)
+            engine.seek(60000)
+            await(engine) { it.playing && it.frame >= it.outputRate * 60L + it.outputRate / 10 }
+            Log.i("PcmTransportDevice", "SHARED_SONG_READY elapsedMs=${SystemClock.elapsedRealtime()} mapsUs=$offsetsUs")
+            delay(27000)
+            assertNull(engine.stats.value.error)
+            Log.i("PcmTransportDevice", "SHARED_SONG_FINISHED ${engine.stats.value}; no backing acceptance claim")
+        }
+    }
+
+    /** The host scorer, not this readiness test, decides emitted six-source timing. */
+    @Test fun traceSixCodedSourcesOnSharedOutput(): Unit = runBlocking {
+        exercise(44100, 32) { engine, _, _ ->
+            val folder = File("/sdcard/Download/GreaterArt-Output-Code-QA-20261113")
+            val slots = (1..6).map { index ->
+                val file = File(folder, "QA Stack Code %02d.wav".format(java.util.Locale.ROOT, index))
+                assertTrue("Missing frozen coded fixture", file.isFile && file.length() > 44)
+                StackSlot(MediaFile(file.canonicalPath, file.name, 30000, file.length(),
+                    file.lastModified(), MediaKind.AUDIO))
+            }
+            assertTrue(engine.start(slots, slots.first().file.path))
+            engine.setLoop(false)
+            await(engine) { it.playing && it.frame >= 4410 }
+            Log.i("PcmTransportDevice", "SHARED_OUTPUT_READY elapsedMs=${SystemClock.elapsedRealtime()}")
+            delay(27000)
+            assertNull(engine.stats.value.error)
+            Log.i("PcmTransportDevice", "SHARED_OUTPUT_FINISHED ${engine.stats.value}; raw scorer decides timing")
+        }
+    }
+
+    /** Measurement only. The unchanged zero-underrun/cadence tests remain the gates. */
+    @Test fun traceNative192kFractionalPipelineWithoutChangingPolicy(): Unit = runBlocking {
+        val traces = ArrayList<PcmRenderTrace>(4096)
+        exercise(192000, 12, { if (traces.size < 4096) traces.add(it) }) { engine, source, _ ->
+            val slots = List(8) { index -> StackSlot(source.copy(path = "${source.path}#$index"),
+                alignmentOffsetUs = index * .37 * 1_000_000 / 192000) }
+            engine.parameters(1.25f, 1.5f)
+            assertTrue(engine.start(slots, slots.first().file.path))
+            engine.setLoop(false)
+            delay(6000)
+            val beforePause = engine.stats.value
+            engine.pause()
+            assertTrue("No pipeline data", traces.isNotEmpty())
+            val context = InstrumentationRegistry.getInstrumentation().targetContext
+            val name = "ga-pcm-render-${UUID.randomUUID()}.tsv"
+            val destination = File(context.cacheDir, name)
+            assertTrue(destination.createNewFile())
+            destination.bufferedWriter().use { writer ->
+                writer.appendLine("frame\tprepareUs\tmixUs\ttempoUs\twriteUs\tprepareCpuUs\tmixCpuUs\ttempoCpuUs\twriteCpuUs\tqueuedBeforeFrames\tqueuedBeforeWriteFrames\tunderrunsBefore\tunderrunsAfter\toutputStarted")
+                traces.forEach { trace -> writer.appendLine(listOf(trace.frame, trace.prepareUs, trace.mixUs,
+                    trace.tempoUs, trace.writeUs, trace.prepareCpuUs, trace.mixCpuUs, trace.tempoCpuUs,
+                    trace.writeCpuUs, trace.queuedBeforeFrames, trace.queuedBeforeWriteFrames,
+                    trace.underrunsBefore, trace.underrunsAfter, trace.outputStarted).joinToString("\t")) }
+            }
+            Log.i("PcmTransportDevice", "TRACE_FILE cache/$name rows=${traces.size} stats=$beforePause")
+        }
+    }
+
     @Test fun slowPrefillFastPitchSeekAndLongerSurvivorReachExactEof(): Unit = runBlocking {
         exercise(8000, 2) { engine, source, restores ->
             val slots = listOf(StackSlot(source.copy(path = "${source.path}#primary", clipEndMs = 500)),
@@ -106,7 +177,7 @@ class PcmTransportDeviceTest {
         }
     }
 
-    private suspend fun exercise(rate: Int, seconds: Int,
+    private suspend fun exercise(rate: Int, seconds: Int, observer: ((PcmRenderTrace) -> Unit)? = null,
         test: suspend (SharedClockPcmPrototype, MediaFile, MutableList<Long>) -> Unit) {
         assumeTrue("Requires explicit debug prototype build", BuildConfig.DEBUG && BuildConfig.STACK_PCM_PROTOTYPE)
         val instrumentation = InstrumentationRegistry.getInstrumentation()
@@ -149,7 +220,7 @@ class PcmTransportDeviceTest {
                 }
                 source.writeBytes(bytes.array())
             }
-            val candidate = SharedClockPcmPrototype(context, host).also { engine = it }
+            val candidate = SharedClockPcmPrototype(context, host, observer).also { engine = it }
             val file = MediaFile(source.canonicalPath, source.name, seconds * 1000L, source.length(),
                 source.lastModified(), MediaKind.AUDIO)
             val began = SystemClock.elapsedRealtime()

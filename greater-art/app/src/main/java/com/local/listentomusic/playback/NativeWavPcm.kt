@@ -43,6 +43,19 @@ internal fun nativePcmSample(buffer: ByteBuffer, encoding: Int): Float = when (e
     else -> error("Unsupported native PCM precision: $encoding")
 }
 
+/** Bulk float IO keeps every source bit; integer formats retain their exact conversion. */
+internal fun nativePcmSamples(buffer: ByteBuffer, encoding: Int, count: Int): FloatArray {
+    val values = FloatArray(count)
+    if (encoding == C.ENCODING_PCM_FLOAT) {
+        buffer.asFloatBuffer().get(values)
+        buffer.position(buffer.position() + count * 4)
+        for (value in values) require(value.isFinite()) { "Nonfinite native PCM" }
+    } else {
+        for (index in values.indices) values[index] = nativePcmSample(buffer, encoding)
+    }
+    return values
+}
+
 /** Existing Media3 extractor, not Android's app-UID WAV converter. One bounded sample at a time.
  * No new parser/dependency, whole-file PCM cache, resampling or precision fallback. */
 internal class NativeWavPcm private constructor(private val source: DataSource, private val uri: Uri) : Closeable {
