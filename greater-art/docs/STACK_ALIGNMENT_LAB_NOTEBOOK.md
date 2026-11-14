@@ -1838,3 +1838,16 @@ route supplied E52's fader, allow changing either gate, justify boosting the
 production mixer, or fix backing detection. Keep recorder qualification, actual
 output, native parity and music-identity evidence separate. No new capture,
 PCM manipulation, qualification budget or app change follows this review.
+
+## E60 — optional free-model consultation unavailable; no advice adopted
+
+One bounded consultation is prepared with sanitized synthetic facts only, no
+media, app code, song names, private paths or chat archive. The shared skill's
+offline selftest passes. The live official catalog confirms three allowed
+zero-price model IDs; requests would also forbid paid fallback. The existing
+consultation key is unavailable from the single known local source, so the
+precondition stops BEFORE any completion request:0chat calls,0answers. No
+credential search, global configuration change, paid fallback or retry loop.
+No external advice, new backing approach or app change is claimed. This optional
+failure is not the cause of the already failed backing/gain/parity gates.
+Private evidence:`free-consult60-01/` and`E60-PROTOCOL.md` in the resumed folder.
