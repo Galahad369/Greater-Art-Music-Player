@@ -22,7 +22,7 @@ evidence folders, not in Git.
 
 | Question | Evidence-backed status | Decision |
 | --- | --- | --- |
-| Does sound alignment work for all six takes? | **No.** The exact 1.22.27 review proposes Riona +0.650 ms and unc +83.216 ms; Forte, Yoshino and Morisray remain unchanged. | Do not describe the two accepted estimates as a six-take success. |
+| Does sound alignment work for all six takes? | **No.** Exact1.22.27 and1.22.30 reviews propose Riona+0.650ms and unc+83.216ms; Forte, Yoshino and Morisray remain unchanged. | Do not describe the two accepted estimates as a six-take success. |
 | Is picture alignment usable on this corpus? | The 1.22.26 A55 Quick/Wide runs preserve the frozen dispositions; Riona still rejects. | Keep this separate from backing/audio accuracy. |
 | Is the capture instrument qualified? | **Yes, for the raw A55 device-output route in E21.** Original timing, gain/isolation and physical-absence suites pass twice. Old speaker/gRPC failures remain failed. | Use the qualified route and fixed prospective interval; do not claim physical-speaker or high-bit-depth fidelity. |
 | Do six independent players meet emitted timing? | **No.** Exact1.22.27 quiet output reaches17.501ms; premix passes0.0906ms. E23 unity restores code shape but leaves177.414ms offsets; static scheduling still fails2ms and startup correlation. | Keep default backend/correction unchanged; do not infer missing singers from ambiguous codes or tune gates. |
@@ -30,6 +30,8 @@ evidence folders, not in Git.
 | Is shared output ready? | No. Full transport/quality parity and the retained high-resolution underrun gate remain open. | Keep it disabled; do not lower quality to pass. |
 | Is the raw mixer loop the proven bottleneck? | No. Warmed actual-source math fits the synthetic A55 block budget; the full engine still has an unexplained large peak. | Profile preparation, startup and full transport before a mixer rewrite. |
 | Can an existing tool replace the matcher now? | **Not with the tested configurations.** All 74 cases ran with correlation, fingerprint and chroma/onset DTW; a separate key-change variant also ran. Raw matching still follows the singer in the controlled late-vocal case. | Keep the matcher unchanged. Reuse these tools as independent coarse references, not automatic production decisions. |
+| Does an independent instrumental reference help? | **Coarse identity: promising, not adopted.** E31 passes controlled backing/vocal discrimination and36/36host/A55 coarse key/offset comparisons; that is parity, not independent truth for the originals. Native primary/key-shift timing remains unqualified. E32 fine variants fail. | Keep the clean reference outside audible Stack slots and private media outside Git. Do not turn a coarse pass into an automatic2ms map. |
+| Is the new full-song actual mix accepted? | **No.** E33 retains210s of real output but disproves single-primary global clock registration even on a perfect six-mix control. The joint clock passes that control but fails on real output. | Keep actual gain/presence/drift and whole-song output conclusions open; never infer absent singers from an unqualified clock. |
 
 ## Evidence locations and artifact
 
@@ -45,13 +47,18 @@ Local roots below are relative to the user's `App` folder:
   E22 independent-player output failures and preserved source-fix challenges.
 
 Preserved production baseline is `7749357c803a54b39ac54e08139990721b356fab`,
-Android **1.22.27 / code348**. Focused source is now1.22.28/code349 with private
-debug A55 checks; optimized current-file acceptance is recorded separately.
+Android **1.22.27 / code348**. Focused source is now1.22.30/code351;28and29
+repairs/checks are retained below. Optimized current-file acceptance is recorded
+separately from backing/output and public-signing acceptance.
 Exact retained prior candidate:
 `output/stack-backing-repair-20261113/optimized-local-27/GreaterArt-1.22.27.apk`.
 SHA-256: `d29be1d8eb9dfab75f5d1889724e6a386962bd6680ee7a5ddda270a61b88e733`.
 It has focused A55 checks, not completed backing/output acceptance. Preserve it
 and all previous artifacts. The original-signer release gate remains separate.
+Current private optimized30 is
+`output/overnight-alignment-20261114-0049/optimized-local-30/GreaterArt-1.22.30.apk`,
+SHA-256`2929ef6f567db1af5c614986aa60b8f91947b3da8959a31f1f7f08f8a1d80c05`.
+It uses the existing maintenance certificate, not the unavailable original signer.
 
 ## Experiment ledger
 
@@ -1092,18 +1099,173 @@ E11/E12 rule out two shortcuts: treating a relative library score as backing
 confidence, and assuming an estimated instrumental is voice-free. Use the
 per-region and known-component evidence before another model or matcher trial.
 
-1. E30's RMS-presence candidate is STOPPED: controlled discrimination does not
-   overcome actual-six waveform mismatch. Establish independent backing-event
-   ground truth and false-match evidence before another production proposal;
-   do not tune the failed NCC/floor/band/model to these five originals.
+1. E31's independent-reference coarse identity is promising, but E32's fine
+   candidates are STOPPED at their frozen failures. Establish independently
+   falsifiable backing-event/transfer evidence before another fine architecture;
+   do not tune a failed NCC/floor/band/model to these five originals.
 2. Present the concrete proposal and obtain owner confirmation before a material
    production change. Keep sound and picture estimates separate.
 3. Use E21's qualified raw route; preserve its original failed variable-length
-   recordings and all old failed speaker paths. Trace E22's independent-player
-   failure before accepting actual six-song output.
+   recordings and all old failed speaker paths. E33's actual full-song clock is
+   not qualified: synthetic conditional projection is insufficient. Establish
+   a valid emitted-source clock before inferring actual voice gain/presence/drift;
+   retain E22's independently coded multi-player failure separately.
 4. E29's pipeline performance variations are STOPPED. Any new investigation
    needs a directly testable cause beyond summed overlapping stage times;
    preserve all original cadence/high-rate/function gates and keep both flags
    off. A math microbenchmark or zero-underrun paused output is not acceptance.
 
 No experiment in this notebook establishes universal or “1000%” accuracy.
+
+### E31 — Independent instrumental time/key reference, resumed14November
+
+**New hypothesis:** compare each raw cover with an independent backing reference,
+not another foreground singer. The known retained syudou instrumental is used
+only for private analysis; it is not bundled, redistributed or hardcoded in the
+app. No new model or media download. The [Unisoner paper](https://staff.aist.go.jp/m.goto/PAPER/ICMCSMC2014tsuzuki.pdf) supports joint time/key
+spectral registration, but its reported34.6ms median error is NOT our2ms proof.
+
+Use16kHz analysis copies,2048Hann FFT,100ms hop and95absolute-MIDI bins24–118,
+preserving octaves. Search13key shifts[-6,+6]. Source playback remains unchanged.
+The first30controlled cases have12/12correct700ms backing offsets rather than
+the980ms voice delay, with minimum positive score0.233357 and maximum negative
+0.128504 in1.063s. A selection-calibrated0.20coarse reference floor then passes
+all18retained Gospel cases and six actual-song estimated-vocal challenges in
+2.922s. Those estimated-vocal challenges may contain backing bleed: they are NOT
+physically instrument-free ground truth or a fresh independent corpus.
+
+All6originals have six distributed coarse observations. Miku/Riona/Morisray
+have key0 and coarse100ms; unc alternates100/200ms. Yoshino is+3semitones.
+Forte is mainly-3 with inconsistent late/outro estimates, including a-4key
+outro. These are analysis-reference-relative candidates, not applied offsets
+or a license to call the final two covers accurately timed.
+
+The standalone Java A55 core runs the same exact copied16kF32 inputs for all6
+sources:6.219s process wall, all36coarse keys/offsets match the host. This does
+NOT include decoding/resampling, SAF/native app entry, cancellation, media
+operations, native timing, or mixed-output acceptance. The actual Android
+decoder uses different analysis resampling, so parity cannot be assumed.
+No APK installed/removed, player ownership changed, or production route enabled.
+
+**Fine-stage failures led to a direct information check:** the original24
+short-query waveform test fails two late-voice cases; both failed queries have
+negligible known backing/mix RMS,0.0000469 and0.0002389. Do not force timing from
+them. Choose between the SAME100ms and5100ms0.8s queries using ONLY clean-reference
+RMS, before candidate loading; never retry a candidate-selected alternative.
+Preserve the old24-window failures, all6planned regions and at least5/6support.
+
+With that frozen selector, the known Gospel native map has6/6unique, correctly
+timed anchors; this qualifier does NOT require the full native0.45amplitude gate.
+Do not relabel it unchanged native acceptance. Its scale is
+0.9999999991803834, offset699.999855ms, max residual0.0010225ms. Periodic ambiguity,
+sign,4/6vs5/6and actual-anchor-center tests pass. A counterfactual coordinate
+regression uses region-center reference coordinates but selected-query candidate
+coordinates and creates3077.269ms endpoint error in its known-affine construction.
+This is not an observed old production defect. This geometry test does NOT
+prove actual time-stretch audio behavior or1%rate accuracy.
+
+Native original observations keep the existing0.45score and0.02distinct-lag
+gap, with every alternative more than2ms away considered. Only unc and Morisray
+have6/6reference-relative maps: offsets152.962813ms and99.239443ms, respectively;
+fit residuals0.008912ms and0.009844ms. **Fit residual is not independent timing
+truth.** Miku and Riona each have only two eligible regions and no qualified
+primary map. Do not subtract an uncertain primary map to publish a plausible
+companion offset. Forte/Yoshino native key-shift timing remains unqualified.
+
+Potential general product seam is an OPTIONAL local instrumental reference,
+outside audible Stack slots, with URI permission/provenance/cancel/stale-result
+handling. It is NOT implemented or approved as a production replacement here.
+The owner-declined broad native-fit rescue remains excluded.
+
+**Evidence:** private child
+`reference-spectrum-followup-20261114-1243/`: `PROTOCOL.md`, `control-report.json`,
+`holdout-02/`, `a55-core-01/`, `fine-01/`, `native-phase-01/`,
+`reference-information-01/` and `selected-native-01/`, with frozen runners and
+input hashes. Retain the initial metadata-field harness failure too.
+
+### E32 — Fine alternatives stopped at their frozen failures
+
+**Existing attack representation:** apply the app's unchanged positive
+abs-difference0.8ms-fast/8ms-slow envelope against the independent reference,
+with the same selected queries. Analytic different-carrier +/-3semitone events
+pass, and Gospel timing lands near700ms in all6regions, but only4/6have strict
+0.45eligibility. No original-six candidate adoption follows.
+
+**One phase-whitened test:** the inspected LCAV GCC-PHAT equation is tested on
+that SAME attack representation. It preserves sign/off-seed controls, but the
+analytic key-change controls choose the550/850ms search boundaries rather than
+700ms. All6Gospel delay values remain accurate, but their phase-domain scores
+do not meet the separately declared0.45observation gate. A PHAT peak is NOT
+amplitude NCC; do not silently relabel the metric or lower the guard to rescue
+the test. Stop this candidate, with no actual-six phase-whitened adoption.
+
+**Reusing the original fine spectrum after the information falsification:**
+keep its FFT/bins/1ms hop/radius unchanged and change ONLY to the already-frozen
+reference-only selector. One of6Gospel selected delays is697.816988ms, outside
+the unchanged2ms bound; all primary scores are below0.45. This stops before
+original-six observations. Do not relax2ms because the miss is only0.183ms past
+the boundary. This is selection-informed regression, not a fresh blind corpus.
+
+These failures do not justify another post-hoc band, threshold, query, model or
+backend variation. The coarse identity improvement does not solve native
+primary/key-shift timing. Before a new fine architecture, specify independently
+falsifiable backing-event/transfer assumptions and retain every negative control.
+
+**Evidence:** same private child: `reference-attack-01/`, `GCC_PROTOCOL.md`,
+`gcc-01/`, `SELECTED_SPECTRUM_PROTOCOL.md`, `selected-spectrum-01/`. No app,
+playback-quality, production matcher, new artifact, push or merge change.
+
+### E33 — Full-song actual output and clock-registration falsification
+
+The exact optimized1.22.30 default build, SHA2929ef6f…80c05, runs the real6
+originals through normal UI: Miku primary, sound Review/live Apply of the existing
+two proposals, pause, seek0, resume. Review is2.142s with warm retained data,
+not cold matcher timing. The qualified raw device-output route retains
+10,243,072native48k stereoS16 frames; the prospectively selected first210s has
+10,080,000frames, with every native tail frame preserved. Float measurement is
+EXACTLY nativeS16/32768. No resampling, repair, normalization, deletion or retiming
+of the actual recording. Capture completion does NOT establish synchronization.
+
+**Source-output measurement needs its own challenge.** The first fixed4..8s
+Miku-only training correlation is only0.1325, with another placement about0.12.
+Its conditional six-present/omission/wrong-sign/gain/duplicate controls pass,
+but those are constructed FROM the chosen source columns: they do not prove
+that the global source registration is correct. Therefore low real conditional
+coefficients do NOT establish absent singers, a gain bug, or per-player drift.
+Independent read-only review identified this circular-registration limitation.
+
+The raw prefix independently has65,536exact-zero frames already at readiness,
+and the first nonzero is frame215,040, capture4.48s. First nonzero is NOT source
+zero truth: the source can have its own silent intro. But the old valid search
+source0..12s with capture4..8s can only return origin[-4,+4]s, excluding a known
+-4.48s construction. Keep that original failure and do not trim the real capture.
+
+A prospectively declared8..12s registration corrects the search support. Its
+single-Miku clock STILL fails a perfect nominal six-source synthetic mix:
+-4.511854s instead of-4.48s,31.854ms wrong. This directly disproves the shared
+assumption that a single voice's waveform gives the global clock of this mixture.
+No real-output scoring follows that failed repair.
+
+A separately frozen joint-template clock uses the SUM of all6known sources at
+the existing UI offsets/gains, never per-voice lag/rate/gain fitting. It recovers
+the constructed-4.48s origin exactly, NCC0.999999996, and passes the unchanged
+synthetic held-out checks. However real joint training has NCC0.094879, below
+the frozen0.90gate, so real held-out presence/gain/drift/loop conclusions remain
+UNINTERPRETED. No post-hoc gain compensation or claim of a second recorder fault.
+The output clock/processing model needs independent evidence before another
+actual-song waveform acceptance claim. Original2ms/.90/.45/5%/.001gates remain.
+
+The reference-run cleanup receipt initially stops after an unexpected test-package
+query failure; it does not prove all restoration steps ran. Do not erase that
+failure. The later separately authorized fullscreen check snapshots the package
+query as already missing, verifies it unchanged, restores both temporary app-ops
+toDEFAULT, retains music volume5/15 and original profile hashes, and stops the
+owned A55 at07:57:26UTC. No package installed/removed in either resumed run.
+This does not invent an earlier package-restore success or physical-phone QA.
+
+**Evidence:** same private child: `actual-six30-fullsong-01/`,
+`FULL_MIX_PROTOCOL.md`, `full-mix-score-01/INTERPRETATION.md`,
+`capture-prefix-01/`, `PREFIX_REGISTRATION_PROTOCOL.md`, `full-mix-prefix-02/`,
+`JOINT_REGISTRATION_PROTOCOL.md`, `full-mix-joint-03/`. Later restoration is in
+`App/output/fullscreen-diagnosis-20261114/restoration.json`; that task's UI
+findings are separate from Stack acceptance. No full-goal pass or new APK.

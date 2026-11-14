@@ -8,6 +8,34 @@ This file describes the **current repository state only**. Historical session no
 
 ## Current Android builds
 
+**Resumed14November — independent backing reference remains analysis-only:**
+E31's octave-preserving time/key spectrum separates12controlled delayed-backing
+positives from18negatives, then passes18Gospel coarse cases and six
+estimated-vocal rejection challenges. All six originals run through a standalone
+A55 core in6.219s with host-matching coarse keys/offsets; this EXCLUDES decoding,
+app integration and native timing. The reference-only selected native queries
+pass the known700ms Gospel map, but only unc/Morisray have qualified
+reference-relative candidate maps. The Gospel qualifier checks uniqueness and
+known-map error, NOT the unchanged full native0.45gate. Miku/Riona do not have
+qualified original maps; Forte/Yoshino key-shift
+native timing remains unqualified. Do not compose a primary-relative map without
+a qualified primary. E32's attack, phase-whitened and selected-spectrum fine
+checks fail their frozen gates. No matcher or engine replacement follows.
+
+**Full-song capture is retained, not passed:** Exact optimized30's normal
+six-original Review/live Apply/pause/seek0/resume flow produces a complete210s
+raw device-output observation. It starts with4.48s of exact digital silence;
+the first global-Miku measurement window excludes the likely start. Even after
+fixing search coverage, that single-source registration misses a known perfect
+six-mix clock by31.854ms. A joint-template replacement passes the synthetic
+clock/held-out challenge, but real training NCC0.094879 is unqualified. Do not
+infer missing singers, gain faults or drift from the conditional projection
+failures. Original capture/scorers/gates remain unchanged; no output pass.
+See notebookE33 and private
+`App/output/overnight-alignment-20261114-0049/reference-spectrum-followup-20261114-1243/`.
+No app changes, new APK, push or merge in this resumed analysis. Original
+public signing, six-take backing/output and shared-output parity remain open.
+
 **Current30 experiment:** The default-off prototype now tests a bounded
 prepare/mix producer beside the unchanged Sonic/output worker. Its first
 candidate pauses too often (0.8004185requested cadence) and fails later2×
