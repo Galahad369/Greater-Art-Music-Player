@@ -8,7 +8,15 @@ This file describes the **current repository state only**. Historical session no
 
 ## Current Android builds
 
-**Current1.22.32/code353 — shared Follow video colors:**
+**Current1.22.33/code354 — disabled PCM window experiment:**
+[Scope and gates](docs/STACK_PCM_KERNEL_1.22.33.md). A same-rate contiguous window
+kernel preserves the exact32-tap Double arithmetic and final Float bits.900private
+comparisons and9original math tests pass; a one-tap-loss mutation fails. Two A55
+CPU-only paired trials show lower mean time, not output acceptance. Native stress,
+optimized assembly and exact-file smoke are pending. Shared output stays disabled,
+all original checks stay unchanged, and the normal player/matcher are untouched.
+
+**Retained tested1.22.32/code353 — shared Follow video colors:**
 [Scope and evidence](docs/VIDEO_THEME_1.22.32.md). One bounded numeric palette is
 shared across Library, expanded, fullscreen and compact controls. Live colors
 blend at a bounded cadence; Power saving freezes a representative cached color.
@@ -281,7 +289,7 @@ does not verify saved-Stack reload or repair the earlier full-sequence failure.
 
 **Newest local picture/transparent-transport candidate:** `1.22.26 (code347)` — `App/output/stack-picture-sampling-20261113/optimized-local-26/GreaterArt-1.22.26.apk`,5,579,536bytes, SHA-256 `0f34b8467201b09e1f7d2bedc9174e506ac3476a3b56a738a4e71901343289c3`, runtime `e046dbc`. All552 JVM tests, lint/no-errors, Android test compilation, optimized assembly and maintenance-signer exact-file checks pass. Actual installed A55 Now Playing has no timeline/transport holder and retains its controls. Normal six-video picture Quick/Wide reviews finish in40.325/285.770s with all frozen corpus dispositions preserved; Apply, six-track resume and pause pass. A later private row-locator failure is retained; separate two-track manual Earlier/Later/Apply/reopen/restore passes. OLED/app-ops are restored and the unchanged owned A55 stopped. [Exact evidence and limits](docs/PICTURE_TIMING_1.22.26.md). This is not an original-key/public release or backing-music/acoustic acceptance. Keep every prior APK; no push/merge/publication.
 
-**Current source:** `1.22.32 (code 353)` — SOURCE_ONLY. [Shared video theme](docs/VIDEO_THEME_1.22.32.md) records the approved live/Power saving change and its separate artifact gates. [Controls and diagnostics](docs/NOW_PLAYING_CONTROLS_1.22.31.md) and [30 experiment receipt](docs/STACK_PCM_PIPELINE_1.22.30.md) preserve earlier work and failures. Shared output and parallel preparation stay disabled. Preserve all original gates/quality/signers/APKs. No backing-matcher change, push, merge or publication.
+**Current source:** `1.22.33 (code 354)` — SOURCE_ONLY. [Disabled PCM window experiment](docs/STACK_PCM_KERNEL_1.22.33.md) records exact arithmetic and separate native/build gates. [Shared video theme](docs/VIDEO_THEME_1.22.32.md), [controls](docs/NOW_PLAYING_CONTROLS_1.22.31.md) and [30 experiment receipt](docs/STACK_PCM_PIPELINE_1.22.30.md) preserve earlier work and failures. Shared output and parallel preparation stay disabled. Preserve all original gates/quality/signers/APKs. No backing-matcher change, push, merge or publication.
 
 **Preserved exact29 checkpoint:** `1.22.29/code350`, commit3c8615f,576passing JVM tests, lint/no-errors, optimized assembly, exact maintenance-signed identity and actual A55 normal/manual/save/reload/primary checks. [29 receipt](docs/STACK_PCM_PIPELINE_1.22.29.md) retains its failed192k fractional gate and ART comparison, shared synthetic output pass, picture regressions and full acceptance limits. Its exact APK is not rebuilt or replaced by source30 work.
 

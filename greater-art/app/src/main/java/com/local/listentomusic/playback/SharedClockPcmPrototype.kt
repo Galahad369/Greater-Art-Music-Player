@@ -228,6 +228,7 @@ internal class SharedClockPcmPrototype(context: Context, private val host: PcmPr
                     val gains = FloatArray(slots.size)
                     val windows = Array(slots.size) { FloatArray((PCM_BLOCK_FRAMES + PCM_SINC_RADIUS * 2 + 2) * 2) }
                     val windowStarts = LongArray(slots.size)
+                    val windowMixer = PcmWindowMixer()
                     var outputWaits = 0
                     suspend fun prepareBlock(at: Long, count: Int, samples: FloatArray): PreparedPcmBlock {
                         val observing = renderObserver != null
@@ -246,7 +247,7 @@ internal class SharedClockPcmPrototype(context: Context, private val host: PcmPr
                         currentCoroutineContext().ensureActive()
                         val mixStart = System.nanoTime()
                         val mixCpu = if (observing) android.os.Debug.threadCpuTimeNanos() else 0
-                        mixPcmWindowBlockInto(at, rate, levels, count, samples, gains, windows, windowStarts)
+                        windowMixer.mix(at, rate, levels, count, samples, gains, windows, windowStarts)
                         val end = System.nanoTime()
                         val endCpu = if (observing) android.os.Debug.threadCpuTimeNanos() else 0
                         return PreparedPcmBlock(at, count, samples, (mixStart - prepareStart) / 1000,

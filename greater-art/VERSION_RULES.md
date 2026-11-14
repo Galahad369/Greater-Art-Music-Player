@@ -16,7 +16,7 @@ This file is the authoritative version policy for Greater Art. If any handoff no
 ## Machine-checkable state
 
 
-Current source: **1.22.32 (code 353)**
+Current source: **1.22.33 (code 354)**
 Allowed consumed transition: **1.21.38 (code 261) -> 1.21.40 (code 263)**
 
 Retain PR174's original declared transition for eeb06d9. Its initial1.21.40
@@ -512,3 +512,4 @@ Previous baseline: 1.13.26 (code 115).
 - 1.22.30 (code 351): investigate serial high-resolution prepare/mix and tempo CPU with a bounded, per-run PCM pipeline in the disabled prototype. Preserve the serial path at lower rates/slow speeds, exact samples/filters, native formats, output buffer and original acceptance gates. Distinguish a bounded missing-data failure from owner cancellation so cleanup can restore the legacy lease. SOURCE_ONLY; full backing, performance, function parity and original-signer release remain separate gates. No production enablement or publication.
 - 1.22.31 (code 352): put compact video-speed hints at the video bottom; require a deliberate reverse upward drag instead of stationary release to restore1x from held2x. Reserve the expanded pull handle's center gap and distribute both action groups without shrinking48dp targets. Align diagnostics/element inspection with the host theme, pin primary report actions and retain full selected-element context. Preserve temporary speed-button release, native video quality, HDR, Fit/Crop and default-off shared output. SOURCE_ONLY; exact optimized build/device and original-signer gates remain separate. No backing matcher replacement, push or merge.
 - 1.22.32 (code 353): share Follow video colors across Compose and compact presentations, blend live palettes at a bounded cadence, and freeze a cached representative video color in Power saving. Supply tiny real-RGB samples from the existing SDR Ambient texture without a second decoder or changing native HDR/quality. Preserve current colors on host re-entry, contrast, OLED surfaces, playback, alignment and prior APKs. SOURCE_ONLY; optimized assembly, exact-file/A55 checks and original-signer acceptance are separate gates.
+- 1.22.33 (code 354): use a contiguous same-rate PCM window kernel only inside the existing disabled shared-output experiment. Preserve the exact32-tap Double arithmetic, Float output bits, gain/mute/solo and mixed-rate fallback. No Sonic, buffer, matcher, quality, production enablement or test-gate changes. SOURCE_ONLY; native stress, optimized assembly, exact-file smoke and original-public signing are separate gates, not a completed backing-music fix.

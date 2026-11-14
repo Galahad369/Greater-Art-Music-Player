@@ -1396,3 +1396,41 @@ hashes are preserved; the owned A55 stops12:32:14UTC. The earlier host-suspended
 attempt stays recorded. This is not a fullscreen-shake repair, native tracer
 qualification or actual-six backing pass. Exact receipt:
 `App/output/now-playing-controls-20261114/a55-mini-retry-01/report.json`.
+
+## E37 — resumed private journal, native qualification not reached
+
+The owner explicitly resumed the goal14November14:35:17UTC. The new absolute
+8hour cutoff is22:35:17UTC/15November06:35:17Taipei. Do not reset it on retries.
+All original six-backing/output, quality, transport and rejection gates remain.
+
+The copied private SPSC trace adds an out-of-ring producer seal, exact drain,
+successful close and independent persisted ordinal/generation/digest/EOF checks.
+Original11plus11new JVM tests pass. An interrupt-ignoring blocked writer remains
+owner-held until a separate termination acknowledgement; timeout is not cleanup
+permission. Review still requires sticky owned-file verification failure and a
+deterministic initial-empty test before native adoption. Media3 output release/
+recreation also needs source/output/config binding beyond the flush hook.
+No native observer was built or adopted before this stage's16:00UTC stop. Accepted
+bytes are not emitted PCM. Do not reopen the qualified-recorder budget.
+
+## E38 — exact contiguous PCM windows, native parity still required
+
+New hypothesis: remove repeated long/indirect stereo addressing from same-rate
+32-tap mixing without changing filter/precision/order.900private Float-bit cases
+and all9original math tests pass on host and A55. A deliberate missing last tap
+fails at the intended exact-sample comparison. Mixed rates retain the old kernel.
+Desktop mean time is worse, so no cross-platform performance claim is made.
+
+Two same-process, alternating A55 kernel-only comparisons have old/new mean
+618.321/479.149us and425.516/346.060us; p95 values1220.8/1063.0us and777.9/746.7us.
+These are no-decoder/no-Sonic/no-AudioTrack arithmetic measurements, not the
+original zero-underrun/cadence or actual-music acceptance. A55 settings/profile,
+installed optimized32hash, test-package absence and volume are preserved; the
+owned A55 stops17:00:59UTC. No GPU override or package installation.
+
+1.22.33/code354 tries that exact kernel only inside the existing disabled
+shared-output experiment. All original native stress/quality/function gates stay
+unchanged. Optimized assembly and exact artifact/native checks remain separate.
+Both prototype flags stay off by default. No matcher or production engine change,
+push, merge or publication. Private stage cutoff18:00UTC; original goal cutoff
+22:35:17UTC remains. Evidence: `App/output/stack-resume-20261114-2235/`.
