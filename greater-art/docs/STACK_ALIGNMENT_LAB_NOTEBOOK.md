@@ -1487,3 +1487,57 @@ are unchanged. A future prospective output test must bind route/system fader
 before acquisition and retain original gain/omission controls. No recording
 qualification budget is reopened. Evidence: `shared-prediction-01/report.json`
 and `policy-gain-diagnostic.json` in the same private resumed-goal folder.
+
+## E40 — licensed RoFormer comparison blocked before model execution
+
+One different analysis-only model was researched: KimberleyJensen's explicitly
+MIT-licensed Mel-Band RoFormer, in a hash-pinned 931,054,408-byte FP32 ONNX release.
+The small code/license/manifest files are pinned and read. Sequential and bounded
+range acquisitions time out; a binary-runtime transfer also fails. Preserve the
+partial files, including the preallocated apparent-full-size file. No successful
+model hash receipt, driver unit run, model session, stem or app change exists.
+This is NOT a failed quality benchmark and does not justify integration.
+
+A fresh current-source baseline of the old bounded mono regional controls shows
+the raw positive confidently following 980 ms vocals instead of 700 ms backing, and
+accepting shared-vocal/wrong-backing raw input. Old estimated stems reject wrong
+backing but fail to admit the distributed true music. Earlier harness attempts
+fail from stale host classes, then a missing StackSlot dependency. The final
+private harness compiles the actual current matcher, includes only current DTO
+types, retains the original gate byte-for-byte and records its genuine failed
+assertion. No native/capture/matcher threshold is changed. Evidence:
+`baseline40-regional-current-03/`; source/model/driver receipts and failed download
+files are in the same resumed-goal folder. Stage closed; no download/model loop.
+
+## E41 — prospective volume test blocked before capture; cold start still fails
+
+The independently predicted common gain factor motivates one prospective check:
+use 15/15 (0 dB) on the A55 and keep the ORIGINAL unity-gain/scorer checks, rather
+than fit or scale saved audio. Both initial attempts stop before capture: first
+the APK is unresolved, then the requested volume still reads 5/15. No new PCM or
+gain/absence pass is produced. The closed recorder diagnosis budget stays closed.
+
+A read-only cold boot plus 30 s wait confirms retained version 354/appId 10216/inode
+565714 but `pkg=null`/ENOENT at its APK directory. The hardware-generated config
+resolves `<temp>` to the existing userdata image, so a template setting is not
+proof of disposable data. No disk corrupt/dirty flag is reported by metadata;
+that is not a complete filesystem check. The last missing codePath belongs to
+the final restore install, after the guest reboot tested an EARLIER codePath.
+QEMU arguments use cache=unsafe; durability remains a hypothesis, not a repair.
+
+Same-file, same-maintenance-certificate recovery preserves the app ID/data inode.
+The six original MP4 hashes are verified. Preferences restore exactly, original
+app-ops/test-package absence and the exact optimized33hash are restored before a
+later guest reboot/control hang. Standard ADB and console stop requests time out.
+Only the PID/start-time/path-verified owned QEMU process is stopped at 18:57:26 UTC;
+both profile hashes remain unchanged. Desktop apps and the physical phone stay
+untouched. Current cold-start/final-runtime restoration is NOT verified. Earlier
+smoke receipts remain historical; do not erase them or claim a new pass.
+
+Host checks show severe memory pressure. Resolve alone has about 10.6 GiB private
+commit/2.5 GiB resident memory. No unrelated process is stopped and no new 5 GiB
+waiting/question loop is started. No new app code, engine enablement, quality
+reduction, push, merge, release or cleanup follows. Read the
+[acceptance coverage checkpoint](STACK_ALIGNMENT_ACCEPTANCE_1.22.33.md) before
+resuming. Non-unit timing-scale and production-host parity are also unfinished,
+so even 9 green native tests would not establish a complete engine replacement.

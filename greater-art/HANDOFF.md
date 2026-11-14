@@ -24,6 +24,24 @@ data inode/app ID survive. No wipe, key replacement or profile/GPU change. Exact
 preferences/settings restore and the A55 stops17:49:03UTC. See the linked receipt
 for the three failed boot attempts and the limits; this is not a backing fix.
 
+**Later resumed-goal checkpoint:**
+[Full acceptance coverage and E40/E41 limits](docs/STACK_ALIGNMENT_ACCEPTANCE_1.22.33.md).
+The six-take backing/output goal is still incomplete. Fresh bounded mono controls
+confirm the raw matcher can follow the singer at 980 ms instead of known 700 ms music.
+A separately licensed RoFormer comparison is blocked at acquisition; no model
+ran or entered the app. The prospective unity-volume actual-output check stops
+before capture because Android still reports 5/15 after the requested 15/15.
+Cold boots again show missing APK code with retained package/data metadata.
+Same-key recovery preserves app ID/inode and preferences, but a later guest reboot
+hangs; current cold-start/restoration acceptance is NOT verified. After bounded
+graceful-stop failures, only the verified owned QEMU process is stopped at 18:57:26 UTC;
+profiles/GPU and desktop apps are untouched. Do not repeat blind reinstalls, model
+or recorder variants. Both shared-output flags remain false. The prototype also
+rejects non-unit timing scales and has no production coordinator host: passing
+the 9 native tests alone would still not establish complete replacement parity.
+The exact optimized 33 file and earlier smoke evidence are retained, not promoted
+to full verification. No app source/build change after d70bc830, push or merge.
+
 **Retained tested1.22.32/code353 — shared Follow video colors:**
 [Scope and evidence](docs/VIDEO_THEME_1.22.32.md). One bounded numeric palette is
 shared across Library, expanded, fullscreen and compact controls. Live colors

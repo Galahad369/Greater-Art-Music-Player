@@ -50,6 +50,15 @@ uninstall/clear app data or regenerate a key to conceal this failure.
 Preferences restore byte-for-byte; original access modes, volume5/15, absent test
 package and profile/GPU hashes are preserved. The owned A55 stops17:49:03UTC.
 
+**Later cold-start qualification:** those statements describe the recorded smoke
+at17:49, not a guarantee of later emulator persistence. A subsequent cold boot
+again loses the APK directory while retaining install metadata. The final restore
+install had occurred AFTER the previously tested guest reboot. A later same-key
+recovery and final-reboot attempt hangs; the owned QEMU process is stopped after
+bounded control timeouts. No new audio is captured and no current cold-boot pass
+is claimed. See [the full acceptance checkpoint](STACK_ALIGNMENT_ACCEPTANCE_1.22.33.md).
+Keep the original successful and failed receipts rather than overwriting either.
+
 Evidence root: `App/output/stack-resume-20261114-2235/`.
 E37's22queue/persistence checks do not qualify the native observer; its stage
 closed without app integration. The recorder qualification budget remains closed.
