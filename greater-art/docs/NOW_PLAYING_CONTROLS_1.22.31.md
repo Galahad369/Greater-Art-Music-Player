@@ -40,11 +40,55 @@ App APK SHA-256:`d162aa95393f4a88a80b5e0cb1f340cb0f610af6e2f71aa4b3b8f11318dda28
 test APK SHA-256:`f1690a8581bb15722924b8942afd18549c071975d29a86bfd7a403835d31b39b`.
 Both use the existing private maintenance certificate, NOT the unavailable
 original public signer. Source was uncommitted during these diagnostics; the
-same app-input fingerprint must be bound to the local source commit before the
-optimized build. Optimized assembly/exact-file native playback smoke remain pending.
+same app-input fingerprint is now bound to local commit
+`f6959b307a598dba5baec62d519c73ab49a13865`.
+
+## Exact optimized candidate and native UI
+
+Preflight and `assembleRelease` PASS. The normal release gate's signing operation
+completes, but its identity check FAILS against the original approved signer; do
+not call that a signed-public-release pass. The existing A55 maintenance key signs
+the same retained unsigned R8 output separately. No key is created or replaced.
+
+Private candidate: `App/output/now-playing-controls-20261114/optimized31-maintenance/GreaterArt-1.22.31.apk`.
+It is 5,595,920 bytes, version 1.22.31/code 352, non-debuggable/non-test, SHA-256
+`19658f77dbc8e237a41162a3b3fc410752380833b49eee64d23d7d672fe26039`.
+Maintenance certificate:
+`0a7b9cebf928022c1930b64f2c47581c13def3007b0e97737bbb9ca3e53de6b7`.
+The original public certificate remains
+`9e28eb45b3b171c3ea47d7da942d28d88b16538885e392a6971a80906d612fbf`;
+its private key is unavailable. This candidate is not update-compatible with
+installations signed by that original key and is not a public release.
+
+The installed APK hash matches those exact candidate bytes. Normal A55 Library
+video → expanded playback passes measured six 48 dp actions, a clear 72 dp center
+handle, stationary 2× hold/release, upward-only restore to 1×, video-bottom hint bounds,
+seek/pause/resume/frame advancement and Home return. Native Developer Mode passes
+Copy Bug Report, Pick, selected-element Copy/Close and disable. Actual Now Playing,
+hint, Developer and selected-element screenshots were visually inspected.
+The native report finishes at 11:32:23 UTC on 14 November with an empty crash buffer.
+
+An additional native portrait → landscape → expanded round trip stays in the
+same app process and passes. The following Mini check is NOT accepted: a window
+query times out, then even guest echo and emulator control stop responding.
+Windows inspection finds all 164 owned QEMU threads suspended; a single owned-process
+resume succeeds, but the emulator subsequently exits. Retain that failed receipt;
+it is not proof of an app crash, a fixed transition defect, or Mini acceptance.
+
+A cleanup-only restart of the same A55 restores both original access app-ops to
+DEFAULT and volume 5/15, removes only the hash-checked test package that was absent
+at baseline, preserves the optimized installed app, and stops normally at
+11:44:19 UTC. Original AVD profile hashes and GPU configuration are unchanged.
+The successful native flow already restored Developer Mode off and original 1×.
+
+Receipts: `optimized31-native-smoke-01/report.json`,
+`optimized31-native-transitions-01/report.json`, `owned-emulator-resume.json`, and
+`a55-restore-01/restoration.json` under the private evidence root below.
 
 Private evidence: `App/output/now-playing-controls-20261114/`.
 The earlier exact30 screenshot is an observed baseline, not an image of this build.
+The public download remains the earlier verified 1.21.93. No source or artifact
+has been pushed, merged, published or promoted as a completed backing repair.
 
 ## Preserve
 

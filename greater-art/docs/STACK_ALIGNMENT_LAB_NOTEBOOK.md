@@ -1286,3 +1286,17 @@ component checks pass after retained touch-target/test-fixture failures. Native
 optimized delivery is separate. The original six-take backing/output acceptance,
 primary/key-shift reference maps, shared-output high-resolution parity and
 original public signer remain incomplete. No push, merge or full-goal pass.
+
+**31UI delivery evidence, separate from alignment:** local source commitf6959b3
+has the same355ba93d…e93d2fd app-input fingerprint as the27passing component tests.
+Optimized assembly passes. Exact maintenance-signed APK SHA19658f77…fe26039
+passes normal A55 native video advancement, seek/pause/resume/Home, bottom hint,
+upward2x unlock, center handle spacing and the actual Developer report/picker.
+Screenshots were visually inspected. One additional fullscreen round trip passes;
+the later Mini check remains interrupted/unaccepted after all164QEMU threads
+are observed suspended in Windows. One owned-process resume is recorded, then
+the emulator exits. Do not relabel it an app crash or a Mini pass. Cleanup-only
+same-profile boot restores original DEFAULT app-ops, volume5/15 and test-package
+absence, verifies stored profile hashes and stops11:44:19UTC. Original signing
+and the full backing/output goal remain open. Private receipts are under
+`App/output/now-playing-controls-20261114/`.

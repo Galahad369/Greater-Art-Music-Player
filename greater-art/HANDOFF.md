@@ -19,8 +19,19 @@ element's geometry.595JVM tests pass; lint has0errors/54warnings/6hints and
 instrumentation compiles. The first private A55 run passes23/27; after correcting
 the real40dp Copy target and the toolbar fixture's mistaken capture target, the
 unchanged27-case suite passes with0skips and an empty crash buffer. Source
-fingerprint355ba93d…e93d2fd binds those diagnostic bytes; exact optimized
-assembly/native playback smoke remain pending, not a verified release.
+fingerprint355ba93d…e93d2fd binds those diagnostic bytes to commitf6959b3.
+Optimized assembly and exact-file A55 native video/gesture/Dev-panel smoke now
+PASS. The5,595,920-byte private candidate is
+`App/output/now-playing-controls-20261114/optimized31-maintenance/GreaterArt-1.22.31.apk`,
+SHA-256`19658f77dbc8e237a41162a3b3fc410752380833b49eee64d23d7d672fe26039`.
+It uses the existing maintenance signer0a7b9ceb…53de6b7. The original public
+signer identity gate FAILS; that key remains unavailable. Do not call this an
+update-compatible public release. Actual screenshots were visually inspected.
+The added fullscreen portrait/landscape/return check passes, but its subsequent
+Mini check is interrupted by host-suspended QEMU/ADB and remains unverified.
+Retain that failure. A cleanup-only restart restores DEFAULT access app-ops,
+volume5/15 and original test-package absence, preserves the installed optimized
+app/profile/GPU, then stops the owned A55 at11:44:19UTC14November.
 The six-take backing/output goal remains incomplete and unchanged. The private
 post-DSP observation tracer is preserved outside the app with its flush assertion
 still red; it is not integrated. The separate fullscreen switching diagnosis
@@ -51,7 +62,8 @@ infer missing singers, gain faults or drift from the conditional projection
 failures. Original capture/scorers/gates remain unchanged; no output pass.
 See notebookE33 and private
 `App/output/overnight-alignment-20261114-0049/reference-spectrum-followup-20261114-1243/`.
-No app changes, new APK, push or merge in this resumed analysis. Original
+No matcher/app changes or new APK resulted from that resumed analysis; the
+separately requested31UI build above is distinct. No push or merge. Original
 public signing, six-take backing/output and shared-output parity remain open.
 
 **Current30 experiment:** The default-off prototype now tests a bounded
