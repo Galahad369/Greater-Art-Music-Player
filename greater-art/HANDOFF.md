@@ -15,8 +15,19 @@ blend at a bounded cadence; Power saving freezes a representative cached color.
 Re-entry and late artwork cannot reset an existing video palette. The SDR renderer
 supplies sparse RGB from the existing texture; native HDR and video quality stay
 unchanged. The retained31APK fails the later-frame theme check and the32diagnostic
-passes both live/re-entry tests.603JVM tests pass, lint0errors. Optimized assembly,
-exact-file A55 acceptance and original public signing remain separate gates.
+passes both live/re-entry tests.603JVM tests pass, lint0errors. Optimized assembly
+and exact-file A55 live/Power saving/Mini/Library re-entry and fullscreen Fit checks
+now PASS. The private5,595,920-byte candidate is
+`App/output/video-theme-20261114/optimized32-maintenance/GreaterArt-1.22.32.apk`,
+SHA-256`b96627cb9ff55f226005b6d1cc1e128f799a243151da4394b1122788f9fa2d4a`.
+It uses the EXISTING maintenance signer0a7b9ceb…53de6b7, not the missing original
+public identity. That original-signer gate FAILS; public download/release status
+is unchanged. Source commitfa30c0c and app-input076a2cb1…e2ba9d bind the candidate.
+Actual screenshots were inspected; the separate failed debug/harness runs remain.
+The private consolidated receipt is
+`App/output/video-theme-20261114/final-verification.json`. Power saving, battery,
+Black OLED preference, volume, app-ops and test-package absence are restored;
+profile/GPU are unchanged and the owned A55 is stopped. No push or merge.
 The paused Stack backing/output task is not resumed or declared complete.
 
 **1.22.31/code352 — requested controls and diagnostics update:**
