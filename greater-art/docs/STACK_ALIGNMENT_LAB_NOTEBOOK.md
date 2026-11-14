@@ -18,11 +18,11 @@ evidence folders, not in Git.
 - Record the source/artifact, hypothesis, unchanged check, observation, decision
   and next test. Distinguish a harness error from an app failure.
 
-## Current decision board — 14 November 2026
+## Current decision board — 14–15 November 2026
 
 | Question | Evidence-backed status | Decision |
 | --- | --- | --- |
-| Does sound alignment work for all six takes? | **No.** Exact1.22.27 and1.22.30 reviews propose Riona+0.650ms and unc+83.216ms; Forte, Yoshino and Morisray remain unchanged. | Do not describe the two accepted estimates as a six-take success. |
+| Does sound alignment work for all six takes? | **No.** Exact1.22.27 and1.22.30 reviews propose Riona+0.650ms and unc+83.216ms; Forte, Yoshino and Morisray remain unchanged. E53's exact optimized33normal sound action still shows2/5proposals. | Do not describe two accepted estimates or three rejected valid takes as a six-take success. |
 | Is picture alignment usable on this corpus? | The 1.22.26 A55 Quick/Wide runs preserve the frozen dispositions; Riona still rejects. | Keep this separate from backing/audio accuracy. |
 | Is the capture instrument qualified? | **Yes, for the raw A55 device-output route in E21.** Original timing, gain/isolation and physical-absence suites pass twice. Old speaker/gRPC failures remain failed. | Use the qualified route and fixed prospective interval; do not claim physical-speaker or high-bit-depth fidelity. |
 | Do six independent players meet emitted timing? | **No.** Exact1.22.27 quiet output reaches17.501ms; premix passes0.0906ms. E23 unity restores code shape but leaves177.414ms offsets; static scheduling still fails2ms and startup correlation. | Keep default backend/correction unchanged; do not infer missing singers from ambiguous codes or tune gates. |
@@ -32,6 +32,10 @@ evidence folders, not in Git.
 | Can an existing tool replace the matcher now? | **Not with the tested configurations.** All 74 cases ran with correlation, fingerprint and chroma/onset DTW; a separate key-change variant also ran. Raw matching still follows the singer in the controlled late-vocal case. | Keep the matcher unchanged. Reuse these tools as independent coarse references, not automatic production decisions. |
 | Does an independent instrumental reference help? | **Coarse identity: promising, not adopted.** E31 passes controlled backing/vocal discrimination and36/36host/A55 coarse key/offset comparisons; that is parity, not independent truth for the originals. Native primary/key-shift timing remains unqualified. E32 fine variants fail. | Keep the clean reference outside audible Stack slots and private media outside Git. Do not turn a coarse pass into an automatic2ms map. |
 | Is the new full-song actual mix accepted? | **No.** E33 retains210s of real output but disproves single-primary global clock registration even on a perfect six-mix control. The joint clock passes that control but fails on real output. | Keep actual gain/presence/drift and whole-song output conclusions open; never infer absent singers from an unqualified clock. |
+| Is later shared-output interval evidence accepted? | **No.** E52 retains a new raw six-source capture. Both held-out mixture and all12source correlations pass, but every original absolute-gain check fails. E55 finds a separate default-device5/speaker15policy counterexample, not an active-route proof. | Keep failed gains and full-song/backing limits. No PCM scaling, changed expected gains or renewed recorder-route matrix. |
+| Do normal manual/save/primary controls work? | E48/E50 actual six-file optimized33journeys pass fractional manual/cancel, process-restart save/reload, pause/resume and primary rebasing. E53 misses analysis cancellation because analysis already completed. | Separate these observed function passes from unverified live cancellation, complete-song loop and actual output after each action. |
+| Is automatic Sound Apply/save fully checked? | **Partial.** E58 reads all five review rows and Apply sets the inspected Riona0.65ms/unc83.216ms; Forte stays0. A private scroll-area ambiguity stops the remaining checks before saved automatic-map reload. | Keep the failed aggregate result. Correctly copying a proposal is not backing accuracy, and the unobserved values/reload remain unverified. |
+| Is the final A55 state preserved? | E54 read-only cold start verifies exact optimized33APK/appId/inode and normal Library entry. E58 later restores exact APK/preferences/access/volume5/test absence, then guest shutdown passes at21:18:23UTC. | Keep the earlier E53 forced-shutdown failure. No root, wipe or GPU/profile change is a repair here. |
 
 ## Evidence locations and artifact
 
@@ -45,9 +49,12 @@ Local roots below are relative to the user's `App` folder:
   benchmark, isolated environment, dependencies, inputs and results.
 - `output/overnight-alignment-20261114-0049/`: E21 qualified raw capture,
   E22 independent-player output failures and preserved source-fix challenges.
+- `output/stack-resume-20261114-2235/`: source33 disabled kernel, native failures,
+  E39–E55 backing/model/UI/output and preservation evidence. Latest coverage is
+  [the33acceptance checkpoint](STACK_ALIGNMENT_ACCEPTANCE_1.22.33.md).
 
 Preserved production baseline is `7749357c803a54b39ac54e08139990721b356fab`,
-Android **1.22.27 / code348**. Focused source is now1.22.30/code351;28and29
+Android **1.22.27 / code348**. Current source is1.22.33/code354;28through32
 repairs/checks are retained below. Optimized current-file acceptance is recorded
 separately from backing/output and public-signing acceptance.
 Exact retained prior candidate:
@@ -55,10 +62,15 @@ Exact retained prior candidate:
 SHA-256: `d29be1d8eb9dfab75f5d1889724e6a386962bd6680ee7a5ddda270a61b88e733`.
 It has focused A55 checks, not completed backing/output acceptance. Preserve it
 and all previous artifacts. The original-signer release gate remains separate.
-Current private optimized30 is
+Retained private optimized30 is
 `output/overnight-alignment-20261114-0049/optimized-local-30/GreaterArt-1.22.30.apk`,
 SHA-256`2929ef6f567db1af5c614986aa60b8f91947b3da8959a31f1f7f08f8a1d80c05`.
 It uses the existing maintenance certificate, not the unavailable original signer.
+Current private optimized33is
+`output/stack-resume-20261114-2235/optimized33-01/GreaterArt-1.22.33.apk`, SHA-256
+`79cc0106017f814e9bbaa7fa5912e4fea0f9a0b1fc7df73d1922fb33fde191d3`.
+It remains SOURCE_ONLY; shared output stays default-off. This is not a completed
+backing fix or public release.
 
 ## Experiment ledger
 
@@ -1107,9 +1119,11 @@ per-region and known-component evidence before another model or matcher trial.
    production change. Keep sound and picture estimates separate.
 3. Use E21's qualified raw route; preserve its original failed variable-length
    recordings and all old failed speaker paths. E33's actual full-song clock is
-   not qualified: synthetic conditional projection is insufficient. Establish
-   a valid emitted-source clock before inferring actual voice gain/presence/drift;
-   retain E22's independently coded multi-player failure separately.
+   not qualified: synthetic conditional projection is insufficient. E39/E52
+   independently qualify a shared clock only in short shared-output intervals;
+   their original absolute gains FAIL. Keep E55's native-policy consistency
+   separate from active-route causality and leave complete-song output open.
+   The recorder diagnosis budget is CLOSED; no new route/helper/volume matrix.
 4. E29's pipeline performance variations are STOPPED. Any new investigation
    needs a directly testable cause beyond summed overlapping stage times;
    preserve all original cadence/high-rate/function gates and keep both flags
@@ -1541,3 +1555,286 @@ reduction, push, merge, release or cleanup follows. Read the
 [acceptance coverage checkpoint](STACK_ALIGNMENT_ACCEPTANCE_1.22.33.md) before
 resuming. Non-unit timing-scale and production-host parity are also unfinished,
 so even 9 green native tests would not establish a complete engine replacement.
+
+## E42 — direct instrument heads find backing, but fail unchanged admission
+
+An existing local Torch2.7.1 runtime is verified and reused READ-ONLY, avoiding
+another runtime install. The official Open-Unmix HQ publisher API explicitly
+licenses the weights under MIT. Four35,637,796-byte author files download in
+25.25s and match published MD5 and filename SHA-256 prefixes; full SHA receipts
+are retained. Source is pinned to fb672c9584997c2b05e148eeaa65b4c23ed4693b.
+No model, package or environment change enters the app or another application.
+
+This tests a distinct hypothesis: sum directly estimated drums/bass/other,
+rather than subtract estimated vocals. Author defaults remain:44.1k stereo
+Float32,4096FFT/1024hop, all four heads, one Wiener iteration and300-frame
+filter blocks. The existing mono controls are duplicated into two channels;
+this is analysis only, not replacement playback or a stereo/mobile quality test.
+
+The initial strict load catches three legacy preprocessing entries. Their
+scalar44,100 and exact4096-point Hann windows are verified, then only those
+duplicate metadata entries are excluded; every learned weight still loads
+strictly. No arbitrary key suppression, model/filter change or unsafe pickle
+loading. The unused torchaudio import alone is omitted by the private adapter.
+Three exact-length transform round trips have max error1.49e-7 or less.
+
+The SHA-bound Gospel controls, original2ms tolerance,40–180Hz filter,NCC boundary
+0.9801886008056108 and retention floor0.20 remain unchanged. Both tested positive
+regions correctly find700ms backing, not980ms vocals, with NCC0.999559/0.999084.
+All four tested wrong-music/voice-only negatives are rejected. However, the second
+positive's retention is0.1997119974, below0.20, so that REQUIRED case FAILS.
+The run stops after6of18 checks in9.125s. Do not round this to a pass or lower
+the floor. Later regions, the production regional gate and six original takes
+are deliberately NOT run after that stop. This is promising limited timing
+evidence, not a qualified separator or completed backing alignment.
+
+Evidence:`App/output/stack-resume-20261114-2235/E42-PROTOCOL.md`,
+`unmix42-model-01/`, failed`unmix42-worker.log`, corrected
+`unmix42-controls-02/report.json` and`unmix42-worker-02-receipt.json`.
+All30 raw controls and the frozen scorer remain byte-identical. No app source,
+matcher, threshold, quality, recorder, engine flag, APK, push or merge changes.
+Stage closed: no cutoff, precision, head, band or model tuning after failure.
+
+## E43 — exact APK survives two cold starts; use the actual launcher
+
+The existing A55 is booted at temporary3072MiB with unchanged GPU/profile. The
+previously restored optimized33APK is already present with its exact79cc… hash,
+appId10216 and data inode565714. No recovery install, wipe or key change is needed.
+The first private harness mistakenly targets non-exported MainActivity. Keep the
+failed attempt: ordinary external entry must use the resolved MAIN/LAUNCHER
+component, LauncherActivity, not bypass that existing security boundary.
+
+With only that harness correction, two cold boots both resolve and launch the
+exported component, reach Library and retain exact APK/data identity. Screenshots
+are inspected: the first shows Library; the second is still dimmed during entry,
+so no broad appearance/animation acceptance is claimed. Android sync and guest
+power shutdown finish on both runs with launcher exit0, without forced stopping.
+This is persistence/normal-entry evidence, not proof of the earlier disk cause.
+
+The aggregate harness report remains FALSE: an overbroad final process query sees
+the emulator's automatic `-kill <oldPid> -sleep20` shutdown watchdog beyond a5s
+poll. Preserve that report. Independent later process inspection and E44's
+preflight confirm no emulator remains and both stored profile hashes are
+unchanged. No desktop app is stopped. Future cleanup checks must distinguish
+that owned shutdown watchdog from a running AVD and allow its documented wait.
+Evidence:`a55-guest-shutdown43-01/` and`a55-guest-shutdown43-02/` under the resumed
+goal folder. No app, matcher, permissions, output route or scorer changes.
+
+## E44 — volume wait hypothesis disproved before any capture
+
+The same optimized33file/data identity again survives cold start. A prospective
+unity-volume observation retains the actual legacy volume command's stdout and
+stderr: exit0 says it will set15, but nine reads over5s all remain5/15. This is
+not just an immediate asynchronous read. Stop BEFORE installing diagnostics or
+recording audio. No new PCM, original-six trace or output-gate pass is produced.
+
+The requested5/15 restoration is observed; exact APK/data, app-ops and original
+test-package absence are checked. Android sync/shutdown completes, profile
+hashes remain and the shutdown watchdog finishes within the longer final wait.
+No owned emulator remains at20:00:25UTC. The failed requested15is not treated as
+applied and no saved audio is rescaled. Evidence:`actual-six33-unity-volume44-01/`.
+Before another command attempt, test the caller/package or fixed-volume-policy
+assumption from native service evidence. Do not repeat an unobserved set request.
+
+## E45 — caller hypothesis remains unproved; preserve the failed wrapper
+
+The legacy shell package/UID explanation is a hypothesis from the inspected
+Android16 source, not an observed cause. The E45 native-log precondition does
+not identify that cause, so the planned alternative public audio command is
+NEVER tried. No diagnostic install, setting change or capture follows. A private
+restoration wrapper also asserts the wrong expected15 when restoring5; retain
+that failure. Actual reads remain5 throughout. E46's subsequent complete
+restoration evidence is independent, not a rewrite of this failed report.
+Evidence:`actual-six33-unity-volume45-01/` and`E45-PROTOCOL.md`.
+
+## E46 — unchanged manual/review/transport checks pass on the A55
+
+The exact source-bound diagnostic33/test pair runs the existing manual dialog,
+alignment review and three non-recording transport clock tests. All11 pass,
+0skips, in31.63s. These are callback/fixture checks, not the complete real-six
+normal-UI journey or emitted-audio verification. Preferences restore byte-for-
+byte, access app-ops, original volume5, test-package absence and exact optimized
+APK/appId/data inode restore. Guest shutdown completes and no emulator remains
+20:14:06UTC. Evidence:`alignment-controls46-01/`, unchanged test source hashes
+and`E46-PROTOCOL.md`. No app, matcher, scorer or release change.
+
+## E47 — retained-model evidence confirms actual backing loss
+
+No new inference or cutoff search. In the SAME frozen synthetic controls,
+raw primary minus its separately retained exact voice contribution establishes
+the known music, with only the original Float representation error. Its second
+positive backing/input RMS is.233756, above the unchanged.20 floor, whereas the
+rejected model estimate/input is.199712. Model/truth RMS.854361, unshifted truth
+NCC.897136 and direct error/truth RMS.443821 expose real evidence loss. The first
+region has model/truth.955113 and truth NCC.965686. No gain fit, lag rescue,
+rescaling or gate change follows. E42 remains failed, not a rounding casualty.
+Evidence:`retention47-diagnosis.json`, `Diagnose-Retention47.py` and its protocol.
+
+## E48 — actual optimized manual/save/primary flow passes, with a counterexample
+
+Normal exported LauncherActivity and accessibility-resolved taps on the EXACT
+optimized33APK, without session injection or instrumentation. Verify all six
+original MP4 SHA-256s; choose them in the real picker. Miku starts primary.
+Apply Riona+17.375ms, edit999thenCancel, reopen and confirm17.375. Save, force-stop,
+normal relaunch and reload: six files and the fractional map persist. Play,
+pause/resume, choose Riona primary: Miku rebases to−17.375ms. A second save and
+process-restart reload preserves that map. The207.656s function flow passes.
+
+Visually inspect all five actual screenshots. The playing screenshot shows3/6
+after the prior XML6/6check. That is a counterexample to treating a one-point
+label as continuous six-source acceptance; keep it. Do not call this acoustic,
+backing or complete-song acceptance. Exact preferences/settings/APK/data restore,
+guest shutdown completes and no emulator remains20:24:26UTC. Evidence:
+`stack-normal-ui48-01/normal-ui-report.json`, XML/screenshots and`E48-PROTOCOL.md`.
+
+## E50 — stronger quiet observation narrows the transient, not acoustic timing
+
+Repeat the same exact optimized real-six function flow. After the first6/6,
+perform NO UIAutomator polling for15s; take native AudioFlinger/media-session
+snapshots at2/5/10/15s. Each contains six active app44.1k stereo tracks with
+0per-track underruns and advancing server frames. The next nine UI samples,
+17.516–36.891s after ready, all show6/6. The rest of the manual/save/rebase flow
+also passes. This does not prove why E48 showed3/6: startup timing, display delay
+and an actual transient remain distinct possibilities. No speculative app race
+or decoder fix is made. Track counts/positions still cannot prove mixed audio.
+Preferences, settings, exact APK/data/profile restore; no emulator remains
+20:32:32UTC. Evidence:`stack-sustain50-01/`, native text and`E50-PROTOCOL.md`.
+
+## E51/E52 — complete new six-source capture; original absolute gains still fail
+
+The normal Android Sound Media volume slider, identified by its actual label/
+SeekBar ancestry and bounds, reaches15 immediately. The same UI restores5.
+Native AudioService/getter agree, with no hardening, DND, sound-dose, shell
+app-op or root-policy changes. Do not claim the earlier no-op command's cause.
+
+E51 completes actual native raw recording but fails its private receipt writer:
+the isolated capture context omitted `hashlib`. Preserve raw files and failed
+report. E52 first challenges that old context, detects the EXACT dependency and
+validates every corrected global before device work. The frozen capture-function
+body is unchanged (ed42470c…bd666). This is not another qualification route or
+helper matrix; the closed45-minute recorder budget is not reset.
+
+E52 observes volume15 before AND after the original-six shared-output trace.
+The original trace test passes1test/33.357s with maps[0,650,83216,0,0,0]us. Those
+selected offsets are not newly qualified backing maps. The raw48k S16 stereo
+recording has995,328frames. Its first960,000frames are represented losslessly as
+Float20s; ALL35,328tail frames remain in the native file. No resampling, repair,
+gap filling, time warp or gain normalization. Native WAV SHA-256
+`a33bb127b2465be6e0aa05f5da882b2457ace9cea602355cc220e59f3fb06807`;
+measurement SHA-256
+`8f1b88b04e94573e9856fde904c65dc1021d1182b48b6ff52ae66c176a3e387f`.
+
+The original joint predictor/scorers, gates and source bindings remain unchanged.
+A private adapter substitutes ONLY the new capture/receipt/output paths and
+this observation's start deadline; old E39reports remain immutable. Known-clock,
+all omission, wrong-sign,10%-gain-fault and duplicate-column controls pass before
+real interpretation. Common training origin62.640583s has NCC.996048 versus
+competing.188657. Disjoint[2,6]/[14,18]mix NCCs are.995299/.996177. All12individual
+source correlations pass, range.963820–.985922. ALL12absolute gain checks FAIL,
+range.023145–.023555 rather than unity±5%. Positive correlations alone are not
+an actual-output pass, independently measured2ms error or full-song alignment.
+
+Before/after native media policy records speaker15 and default-device5. This
+disproves the simple assumption that the visible stream getter proves all
+device indices are15, but does not identify the active fader during recording.
+Do not rescale PCM, alter expected gains or declare a production volume bug from
+that lead. No further volume/backend/recorder variant follows this failure.
+
+Complete acquisition and restoration pass: original364-byte preferences,
+volume5, app-ops, test-package absence, exact optimized APK/appId10216/inode565714
+and stored AVD profile/GPU restore. Guest shutdown leaves no emulator
+20:41:19UTC. Full backing, format/function parity and public signing still fail
+or remain unverified; both shared-output flags stay off. Evidence:
+`actual-six33-system-volume51-01/` (FAILED),
+`capture-context52-check.json`, `actual-six33-system-volume52-02/`,
+`shared-prospective52-score-01/`, E51/E52protocols and adapter receipts.
+
+## E53/E54 — cancellation precondition fails; final read-only state passes
+
+E53 uses the same exact optimized six-file journey and inserts a real sound
+analysis cancellation sequence. The first post-tap hierarchy already shows
+Suggested offsets2/5and Review offsets; it does not expose running-analysis
+Cancel. The required running-state observation times out, so the test FAILS.
+The screenshot is inspected. This is not proof of a broken Cancel or an app
+hang; do not weaken the test into a completion-only pass or claim cancellation
+was exercised. The prior manual and first save/reload steps pass; later steps
+are not reached. Keep the complete failed XML/screenshot/report.
+
+Exact preferences, volume5, app-ops, absent test package, APK/appId/inode restore
+before shutdown. Guest sync succeeds, but the power-shutdown command times out
+and console stop also fails. Only the PID/start-time/path-bound owned emulator
+and QEMU are force-stopped; no desktop apps or phone are touched. Aggregate
+restoration/shutdown remains FALSE despite the earlier successful checks.
+
+E54 performs one READ-ONLY cold boot afterward: no install, recovery, analysis,
+capture or setting writes. Exact optimized79cc…APK/appId10216/inode565714,
+original access/volume5 and test-package absence survive. The normal exported
+launcher reaches Library; the actual screenshot is inspected. Guest sync/
+shutdown and final process absence pass at21:00:25UTC; stored profile/GPU hashes
+remain unchanged. This later preservation pass does not rewrite E53's failure
+or establish complete function/audio acceptance. Evidence:`stack-cancel53-01/`,
+`a55-final-readonly54-01/` and E53/E54protocols.
+
+## E55 — offline device-volume counterexample, never a gain rescue
+
+No new recording or device run. Both E52policy dumps show speaker15 and default
+device5on the media group. Reuse the independently pinned E39 AOSP formula,
+without fitting any audio. The index5prediction is−32.525dB/.0236455815655linear;
+all12NEW measured coefficients differ by at most2.1161%. Independent4/6/15
+predictions all fail the original5%comparison. Inputs/scorer/captured PCM remain
+byte-identical. All original unity-gain checks stay failed; fullGoalPass is false.
+
+This falsifies treating the stream getter15as proof that all device indices
+are15. It supports a common-policy-term explanation, not an individual muted
+singer or proven production gain bug. Policy was recorded around, not during,
+the active route: causal attribution remains unverified. No route/volume/model/
+threshold follow-up or retrospective acceptance follows. Evidence:
+`policy55-counterexample.json`, unchanged-formula binding and`E55-PROTOCOL.md`.
+
+## E57/E58 — automatic Apply observed in part; keep the full check failed
+
+This is a DIFFERENT check from E53cancellation. The exact optimized real-six
+Sound Review shows Riona current17.375→proposed0.65ms, unc0→83.216ms, with
+Forte/Yoshino/Morisray kept0. Actual screenshots are inspected. E57's private
+reader expects semantic parent containers, but Compose flattens the review text
+into siblings. It returns no rows and stops BEFORE Apply. No app failure is
+inferred. Preserve that failed program/report and its successful restoration.
+
+E58 makes one private reader repair, first replaying every retained E57XML and
+requiring all SAME five rows/exact values. No app, matcher, test equality or
+acceptance threshold changes. The actual Review/Apply retry reads those five
+rows and taps Apply timing(2). All six resume. Opening normal manual dialogs
+confirms Riona0.65ms, unc83.216ms and rejected Forte0. The next step encounters
+multiple exposed scroll areas; the guard stops rather than guessing. Aggregate
+test FAILS, Yoshino/Morisray applied values and new automatic-map save/reload
+are NOT verified, and later primary steps are not reached. Do not convert the
+three correct displayed values into a five-track/function/backing pass.
+
+The screenshot also records a non-unit Riona speed fit. A future full sequence
+must restore the earlier rate as well as offset before reusing old primary-
+rebase assertions; editing the offset alone intentionally preserves the rate.
+Do not misdiagnose a mismatched test setup as a primary-rebasing defect.
+
+No more private parser/geometry retries in this bounded experiment. Both runs
+restore exact preferences/APK/appId/inode, original app-ops, volume5 and test
+absence. E58sync/guest shutdown and profile checks pass, with no emulator
+21:18:23UTC. This later restoration pass does not turn the function check green.
+Evidence:`stack-sound-apply57-01/`, `apply58-reader-replay.json`,
+`stack-sound-apply58-01/` and E57/E58protocols/unchanged-source adapter bindings.
+
+## Gain-contract clarification — source review only, not another recorder run
+
+The frozen `Test-A55GainQualification.py::frozen_gain_assertions` compares
+off/solo and combined/solo ratios at one fader, including the.001absence and5%
+combined-gain limits. Its useful-output minimum is.0001. It does NOT assert that
+the system fader itself equals unity. The frozen six-original scorer instead
+checks each recovered source coefficient against fixedGAIN1/6with±5%absolute
+tolerance. Both implementations are read directly, not changed or rerun here.
+
+A common nonzero system attenuation cancels in the former ratios but not in the
+latter coefficient. Therefore E21's relative-gain qualification and E52's failed
+absolute unity gains are not contradictory. This does not prove which live
+route supplied E52's fader, allow changing either gate, justify boosting the
+production mixer, or fix backing detection. Keep recorder qualification, actual
+output, native parity and music-identity evidence separate. No new capture,
+PCM manipulation, qualification budget or app change follows this review.

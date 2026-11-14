@@ -25,7 +25,7 @@ preferences/settings restore and the A55 stops17:49:03UTC. See the linked receip
 for the three failed boot attempts and the limits; this is not a backing fix.
 
 **Later resumed-goal checkpoint:**
-[Full acceptance coverage and E40/E41 limits](docs/STACK_ALIGNMENT_ACCEPTANCE_1.22.33.md).
+[Full acceptance coverage and later experiment limits](docs/STACK_ALIGNMENT_ACCEPTANCE_1.22.33.md).
 The six-take backing/output goal is still incomplete. Fresh bounded mono controls
 confirm the raw matcher can follow the singer at 980 ms instead of known 700 ms music.
 A separately licensed RoFormer comparison is blocked at acquisition; no model
@@ -41,6 +41,74 @@ rejects non-unit timing scales and has no production coordinator host: passing
 the 9 native tests alone would still not establish complete replacement parity.
 The exact optimized 33 file and earlier smoke evidence are retained, not promoted
 to full verification. No app source/build change after d70bc830, push or merge.
+
+**E42 analysis-only follow-up:** a verified existing local Torch runtime permits
+one smaller, explicitly MIT-licensed Open-Unmix HQ instrument-head benchmark.
+The two tested positives find700ms backing instead of980ms vocals; all four
+tested negatives are rejected. The second positive nevertheless FAILS the
+unchanged retention floor (0.1997119974<0.20). The run stops after6of18 checks;
+the later production/six-original gates do not run. No threshold rounding,
+model/head/band tuning, app integration, quality change or APK replacement.
+Read the notebook and linked acceptance checkpoint before repeating this work.
+
+**E43/E44 device follow-up (historical):** the same optimized33APK/data identity is later
+observed across two A55 cold starts with normal exported launcher entry and
+guest shutdown, without reinstalling. The aggregate E43report still fails on an
+automatic shutdown watchdog; later process absence is checked separately. E44
+again preserves exact identity but nine volume reads over5s remain5/15 after a
+requested15. It stops BEFORE diagnostic install/capture. Volume5, app-ops,
+test-package absence and exact optimized/data identity are observed restored;
+profiles remain and no emulator remains at20:00:25UTC. Do not turn this into a
+whole-player visual, actual-mix or full backing pass; preserve prior failures.
+
+**E45–E52 later checks:** the volume-command caller hypothesis is not confirmed;
+do not treat a shell exit0 as a setting change. The normal Android Media volume
+slider does reach15/15 and restore5/15, without security-policy changes. E51's
+first actual capture has a private report-writer dependency failure; keep it
+failed. E52 repairs only that harness dependency and retains a complete new raw
+six-original shared-output capture, unchanged scorer and before/after policy.
+Both held-out windows identify all six sources (NCC0.963820–0.985922), but ALL12
+absolute gain checks fail (0.023145–0.023555 of expected). Speaker15/default-device5
+are distinct in the native dumps; this is a policy lead, not proof of the active
+capture route or permission to rescale audio. Full backing/output remains failed.
+
+E46 passes11 unchanged A55 manual/review/transport tests with0skips. E48 exercises
+the EXACT optimized33normal exported launcher and six real files: manual17.375ms,
+Cancel, save/reload after process restart, play/pause/resume, Riona primary and
+Miku rebasing to−17.375ms pass. Its transient3/6screenshot is retained rather than
+hidden by the earlier6/6label. E50's stronger quiet observation has four native
+six-active AudioTrack samples with0track underruns, followed by nine6/6UI samples;
+this narrows the symptom, not its cause or emitted sample accuracy. E47 separately
+confirms real backing-evidence attenuation in the rejected instrument model.
+Original preferences, volume5, app-ops, test-package absence, exact optimizedAPK,
+appId/data inode and stored profile/GPU configuration are restored. E52 leaves
+no emulator at20:41:19UTC. Sources, APK, matcher, thresholds and engine flags stay
+unchanged. Read the acceptance checkpoint/notebook; no push, merge or release.
+
+**Latest E53–E55:** the real sound-analysis cancellation test fails its running-
+state precondition: analysis has already completed with2/5proposals before the
+first hierarchy read. Cancellation is NOT verified, and no app freeze is inferred.
+After exact restoration, that run's guest shutdown hangs and needs a verified
+owned-process stop; keep the aggregate failure. E54 then cold-boots READ-ONLY,
+confirms exact APK/data/access/volume5/test absence and normal Library entry,
+and exits via guest shutdown, with no emulator at21:00:25UTC. E55's offline
+native-policy check predicts the measured common attenuation from default index5
+(within2.1161%); index4/6/15controls do not. This is not active-route proof or
+permission to change the original failed unity gains. No further app/code,
+recorder, model, quality, version, APK or release change.
+
+**E57/E58 actual Sound Apply remains PARTIAL:** the review confirms two proposals
+(Riona17.375→0.65ms, unc0→83.216ms), three unchanged tracks and a non-unit Riona
+rate fit. A private flattened-hierarchy reader fails before Apply; one repaired
+reader is first proved on retained XML. The retry applies through the real button
+and verifies Riona0.65/unc83.216/Forte0in normal manual dialogs, then stops on
+ambiguous scroll containers. The full check stays FAILED; remaining applied
+values, automatic-map save/reload and later primary steps are not claimed.
+There is no app or assertion change. Original preferences/settings/APK/data
+restore and normal guest shutdown pass; no emulator remains21:18:23UTC. No more
+parser/geometry retries. The notebook also records why frozen relative recorder
+gain tests and absolute actual-source gain tests are different contracts; both
+remain unchanged and this does not rescue failed backing/output acceptance.
 
 **Retained tested1.22.32/code353 — shared Follow video colors:**
 [Scope and evidence](docs/VIDEO_THEME_1.22.32.md). One bounded numeric palette is
@@ -62,7 +130,8 @@ The private consolidated receipt is
 `App/output/video-theme-20261114/final-verification.json`. Power saving, battery,
 Black OLED preference, volume, app-ops and test-package absence are restored;
 profile/GPU are unchanged and the owned A55 is stopped. No push or merge.
-The paused Stack backing/output task is not resumed or declared complete.
+That theme-only run did not resume or complete the Stack backing/output task;
+the later resumed-goal evidence is recorded above.
 
 **1.22.31/code352 — requested controls and diagnostics update:**
 [Scope and verification](docs/NOW_PLAYING_CONTROLS_1.22.31.md). Smaller speed hints
