@@ -11,10 +11,18 @@ This file describes the **current repository state only**. Historical session no
 **Current1.22.33/code354 — disabled PCM window experiment:**
 [Scope and gates](docs/STACK_PCM_KERNEL_1.22.33.md). A same-rate contiguous window
 kernel preserves the exact32-tap Double arithmetic and final Float bits.900private
-comparisons and9original math tests pass; a one-tap-loss mutation fails. Two A55
-CPU-only paired trials show lower mean time, not output acceptance. Native stress,
-optimized assembly and exact-file smoke are pending. Shared output stays disabled,
-all original checks stay unchanged, and the normal player/matcher are untouched.
+comparisons and9original math tests pass; a one-tap-loss mutation fails.604JVM tests
+pass, lint0errors/54warnings/6hints. Two A55 CPU-only paired trials show lower mean
+time, but native stress passes only6of9: fractional runs still underrun. Shared
+output stays disabled; all original checks and the normal player/matcher remain.
+Optimized assembly and exact-file normal Miku playback/pause/fullscreen smoke pass.
+Private APK: `App/output/stack-resume-20261114-2235/optimized33-01/GreaterArt-1.22.33.apk`,
+SHA-256`79cc0106017f814e9bbaa7fa5912e4fea0f9a0b1fc7df73d1922fb33fde191d3`.
+Original-public signing still fails. A retained cold-boot package/code failure is
+recovered with the same verified maintenance certificate and full-file install-r;
+data inode/app ID survive. No wipe, key replacement or profile/GPU change. Exact
+preferences/settings restore and the A55 stops17:49:03UTC. See the linked receipt
+for the three failed boot attempts and the limits; this is not a backing fix.
 
 **Retained tested1.22.32/code353 — shared Follow video colors:**
 [Scope and evidence](docs/VIDEO_THEME_1.22.32.md). One bounded numeric palette is

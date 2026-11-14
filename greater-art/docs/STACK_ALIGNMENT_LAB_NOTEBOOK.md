@@ -1434,3 +1434,56 @@ unchanged. Optimized assembly and exact artifact/native checks remain separate.
 Both prototype flags stay off by default. No matcher or production engine change,
 push, merge or publication. Private stage cutoff18:00UTC; original goal cutoff
 22:35:17UTC remains. Evidence: `App/output/stack-resume-20261114-2235/`.
+
+**E38 native/final outcome:**604JVM tests pass; lint0errors/54warnings/6hints.
+The unchanged9native checks have6passes/3failures: fractional cadence14underruns
+with205output waits despite0.9733requested progress, fractional tempo2underruns,
+and partial-block EOF1underrun. Faster kernel arithmetic alone does not fix the
+real path. Stop these performance variants; both engine flags remain off.
+Optimized assembly and exact-file Miku video/pause/fullscreen smoke pass, not
+full Stack acceptance. The existing maintenance-signed33APK is5,595,920bytes,
+SHA79cc0106…de191d3; source d70bc830, app-input ccfd3a35…58fae1d. Original-public
+signing still fails. Full identities and failed native logs are linked in
+[the33receipt](STACK_PCM_KERNEL_1.22.33.md); previous APKs are untouched.
+
+Three failed cold-boot checks establish `pkg=null`with installed metadata but
+missing APK code, not a proven app crash or merely slow readiness. Before the
+recovery install, the retained Android Signature hash8954724ais independently
+matched to the verified maintenance certificate's public DER bytes. Same-file
+non-incremental/non-streaming install-r preserves app ID10216and data inode565714;
+the exact79cc… APK survives a guest reboot and normal entry. No wipe/uninstall,
+data migration, root, key replacement or GPU change. Prior install transport is
+not logged, so incremental-install causality remains a hypothesis. Preserve the
+failed evidence; record future full-file install stdout and cold-boot identity.
+Preferences restore exactly, original access/volume/test-package state and profile
+hashes remain. Owned A55 stops17:49:03UTC. Actual screenshots were inspected.
+
+## E39 — joint predictor qualifies on saved shared output, absolute gain fails
+
+E33's corrected joint-source clock was only tested against the LEGACY full-song
+mix; E29's saved actual SHARED six-source capture had only the disproved single-
+Miku registration. Reuse that untouched20s capture and independent6PCM references
+with the recorded offsets, one common4s training interval[8,12]and disjoint
+[2,6]/[14,18]held-outs. A known61.234567s origin, omissions, wrong sign,10%gain
+fault and duplicate-source controls pass before actual interpretation. No new
+recording, matcher, recorder/scorer change or per-voice retiming/gain rescue.
+
+The common origin61.64325s has training NCC0.997500with competing0.176688. Held-out
+whole-mix NCCs are0.997229/0.997478; all12individual source correlations are
+0.980893–0.990089. This is useful evidence that the six-source common-clock path
+can predict these real inputs, NOT proof that the selected offsets align backing,
+meet an independently measured2ms rule, work for the whole song, or pass parity.
+
+ALL original absolute gain checks remain failed: coefficients have nearly the
+same0.023206–0.023614factor rather than expected unity. A separate READ-ONLY native
+audio-policy dump shows media volume5/15and the current AOSP curve predicts
+-32.525dB/amplitude0.02364558without fitting audio. All12coefficients lie within
+the original5%of that independent current-policy prediction; adjacent index4/6
+controls do not. This supports a missing common-volume term in the diagnostic
+model, not individual muted singers. Historical capture fader/route was not
+contemporaneously bound, so do NOT retroactively change its gain gates or claim
+historical physical-gain acceptance. The failed scorer, capture and thresholds
+are unchanged. A future prospective output test must bind route/system fader
+before acquisition and retain original gain/omission controls. No recording
+qualification budget is reopened. Evidence: `shared-prediction-01/report.json`
+and `policy-gain-diagnostic.json` in the same private resumed-goal folder.
