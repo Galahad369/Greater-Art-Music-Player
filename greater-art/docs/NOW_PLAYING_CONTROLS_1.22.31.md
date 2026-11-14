@@ -98,6 +98,9 @@ the private evidence root below. `preservation-schema-corrected.json` verifies
 577unchanged original files and41unchanged baseline absences. Its retained first
 checker incorrectly treated `absent=true` sparse-worktree entries as newly lost
 APKs; no previously present file is missing and no APK restoration was attempted.
+`final-verification.json` consolidates the exact APK, committed app-input binding,
+debug component checks, optimized native UI/Mini results, restoration and release
+limits. It does not replace the retained failed receipts or sign a CI attestation.
 
 Private evidence: `App/output/now-playing-controls-20261114/`.
 The earlier exact30 screenshot is an observed baseline, not an image of this build.

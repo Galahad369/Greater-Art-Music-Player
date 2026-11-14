@@ -48,6 +48,14 @@ they do NOT qualify an actual native format or the unfinished observer.
 The separate fullscreen switching diagnosis
 reproduces a visual handoff defect but no crash; no transition repair is included.
 
+**Run boundary:** the resumed window started04:43UTC14November and has its
+owner-requested eight-hour cutoff at12:43UTC(20:43Taipei). At this closing
+checkpoint the full backing/output goal is still incomplete. Do not reset the
+deadline on an automatic continuation or present the31UI work as an alignment
+release. No further native run or production adoption is planned in this window.
+The exact current receipt is private
+`App/output/now-playing-controls-20261114/final-verification.json`.
+
 **Resumed14November — independent backing reference remains analysis-only:**
 E31's octave-preserving time/key spectrum separates12controlled delayed-backing
 positives from18negatives, then passes18Gospel coarse cases and six
