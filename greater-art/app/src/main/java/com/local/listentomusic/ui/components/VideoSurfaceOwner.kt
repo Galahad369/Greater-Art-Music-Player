@@ -40,7 +40,8 @@ object VideoSurfaceOwner {
     internal fun ambientSource(): Pair<String, android.view.View>? {
         if (!foreground && !systemOverlayActive && !fullscreenActivity) return null
         val view = active.get() ?: return null
-        if (view is com.local.listentomusic.ambient.FrameAmbientPlayerView) return null
+        if (view is com.local.listentomusic.ambient.FrameAmbientPlayerView &&
+            !com.local.listentomusic.ui.theme.VideoThemeColors.requested) return null
         val player = view.player ?: return null
         if (!player.isPlaying || player.videoSize.width <= 0) return null
         val id = player.currentMediaItem?.mediaId ?: return null

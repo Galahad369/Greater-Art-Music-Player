@@ -17,6 +17,7 @@ import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.Consumer;
 import javax.microedition.khronos.egl.EGLConfig;
 import javax.microedition.khronos.opengles.GL10;
 
@@ -109,6 +110,11 @@ public final class FrameAmbientView extends GLSurfaceView implements GLSurfaceVi
     private Surface input;
     private FrameProgram composite;
     private FrameProgram analysis;
+    private FrameProgram paletteProgram;
+    private int paletteTexture;
+    private int paletteFramebuffer;
+    private final ByteBuffer palettePixels = ByteBuffer.allocateDirect(16 * 16 * 4);
+    private Consumer<int[]> paletteRequest;
     private int frameTexture;
     private int beamTexture;
     private int beamFramebuffer;
@@ -188,6 +194,12 @@ public final class FrameAmbientView extends GLSurfaceView implements GLSurfaceVi
     public String failure() { return failure; }
     public int renderedFrames() { return renderedFrames; }
     public String rendererName() { return rendererName; }
+    /** Request on main; sample a subsequent latched frame on GL, never on the UI thread. */
+    public void requestPalette(Consumer<int[]> callback) {
+        if (closed || failure != null) { callback.accept(null); return; }
+        queueEvent(() -> paletteRequest = callback);
+        requestRender();
+    }
     public boolean hasDrawnViewport(int viewWidth, int viewHeight) {
         return drawnViewport == ((long) viewWidth << 32 | (viewHeight & 0xffffffffL));
     }
@@ -207,6 +219,9 @@ public final class FrameAmbientView extends GLSurfaceView implements GLSurfaceVi
         try {
             rendererName = GLES20.glGetString(GLES20.GL_RENDERER);
             analysis = new FrameProgram(FrameAmbientShaders.ANALYZE);
+            paletteProgram = null;
+            paletteTexture = 0;
+            paletteFramebuffer = 0;
             composite = new FrameProgram(FrameAmbientShaders.COMPOSITE);
             GLES20.glUniform1i(GLES20.glGetUniformLocation(composite.id, "uBeams"), 1);
             heldLocation = GLES20.glGetUniformLocation(composite.id, "uHeldGlow");
@@ -310,6 +325,12 @@ public final class FrameAmbientView extends GLSurfaceView implements GLSurfaceVi
             drawnViewport = (long) width << 32 | (height & 0xffffffffL);
             if (fresh) {
                 renderedFrames++;
+                if (paletteRequest != null) {
+                    Consumer<int[]> callback = paletteRequest;
+                    paletteRequest = null;
+                    int[] colors = readPalette();
+                    main.post(() -> { if (!closed) callback.accept(colors); });
+                }
                 if (diagnose) {
                     int foreground = readPixel(width / 2, Math.round(stage[1] + stage[3] / 2));
                     int glow = readPixel(width / 2, height / 5);
@@ -350,6 +371,52 @@ public final class FrameAmbientView extends GLSurfaceView implements GLSurfaceVi
             }
         } finally {
             GLES20.glBindFramebuffer(GLES20.GL_FRAMEBUFFER, 0);
+        }
+    }
+
+    private int[] readPalette() {
+        if (paletteProgram == null) {
+            paletteProgram = new FrameProgram(FrameAmbientShaders.PALETTE);
+            int[] names = new int[1];
+            GLES20.glGenTextures(1, names, 0);
+            paletteTexture = names[0];
+            GLES20.glActiveTexture(GLES20.GL_TEXTURE1);
+            GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, paletteTexture);
+            GLES20.glTexParameteri(GLES20.GL_TEXTURE_2D, GLES20.GL_TEXTURE_MIN_FILTER, GLES20.GL_NEAREST);
+            GLES20.glTexParameteri(GLES20.GL_TEXTURE_2D, GLES20.GL_TEXTURE_MAG_FILTER, GLES20.GL_NEAREST);
+            GLES20.glTexImage2D(GLES20.GL_TEXTURE_2D, 0, GLES20.GL_RGBA, 16, 16, 0,
+                    GLES20.GL_RGBA, GLES20.GL_UNSIGNED_BYTE, null);
+            GLES20.glGenFramebuffers(1, names, 0);
+            paletteFramebuffer = names[0];
+        }
+        GLES20.glBindFramebuffer(GLES20.GL_FRAMEBUFFER, paletteFramebuffer);
+        try {
+            GLES20.glFramebufferTexture2D(GLES20.GL_FRAMEBUFFER, GLES20.GL_COLOR_ATTACHMENT0,
+                    GLES20.GL_TEXTURE_2D, paletteTexture, 0);
+            if (GLES20.glCheckFramebufferStatus(GLES20.GL_FRAMEBUFFER) != GLES20.GL_FRAMEBUFFER_COMPLETE)
+                return null;
+            GLES20.glViewport(0, 0, 16, 16);
+            GLES20.glActiveTexture(GLES20.GL_TEXTURE0);
+            GLES20.glBindTexture(GLES11Ext.GL_TEXTURE_EXTERNAL_OES, frameTexture);
+            useFrameProgram(paletteProgram);
+            drawQuad(paletteProgram);
+            palettePixels.position(0);
+            GLES20.glReadPixels(0, 0, 16, 16, GLES20.GL_RGBA, GLES20.GL_UNSIGNED_BYTE, palettePixels);
+            if (GLES20.glGetError() != GLES20.GL_NO_ERROR) return null;
+            int[] colors = new int[256];
+            for (int i = 0; i < colors.length; i++) {
+                int offset = i * 4;
+                colors[i] = 0xff000000 | ((palettePixels.get(offset) & 255) << 16) |
+                        ((palettePixels.get(offset + 1) & 255) << 8) | (palettePixels.get(offset + 2) & 255);
+            }
+            return colors;
+        } finally {
+            GLES20.glBindFramebuffer(GLES20.GL_FRAMEBUFFER, 0);
+            GLES20.glViewport(0, 0, width, height);
+            // The compositor owns texture unit1's beam map on the next video frame.
+            GLES20.glActiveTexture(GLES20.GL_TEXTURE1);
+            GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, beamTexture);
+            GLES20.glActiveTexture(GLES20.GL_TEXTURE0);
         }
     }
 

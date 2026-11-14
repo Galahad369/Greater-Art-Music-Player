@@ -12,7 +12,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlin.coroutines.resume
 
-data class VideoAmbientSample(val mediaId: String = "", val pixels: List<Int> = emptyList())
+data class VideoAmbientSample(val mediaId: String = "", val pixels: List<Int> = emptyList(), val capturedAtMs: Long = 0L)
 
 /** Read the displayed frame sparsely; never decode a proxy or constrain playback. */
 object VideoAmbientColors {
@@ -34,7 +34,7 @@ object VideoAmbientColors {
                     } catch (_: RuntimeException) { null }
                     val sourceAfterCopy = VideoSurfaceOwner.ambientSource()
                     if (pixels != null && sourceAfterCopy?.first == id && sourceAfterCopy.second === view)
-                        mutable.value = VideoAmbientSample(id, pixels.toList())
+                        mutable.value = VideoAmbientSample(id, pixels.toList(), android.os.SystemClock.uptimeMillis())
                 }
                 // No playing video surface: nothing to sample, so poll slowly.
                 delay(if (candidate != null) 900L else 2_000L)
@@ -43,6 +43,13 @@ object VideoAmbientColors {
     }
     private suspend fun copyPixels(view: View): IntArray? {
         if (!view.isShown || view.width == 0 || view.height == 0) return null
+        if (view is com.local.listentomusic.ambient.FrameAmbientView) {
+            return withTimeoutOrNull(1_500) {
+                suspendCancellableCoroutine { continuation ->
+                    view.requestPalette { pixels -> if (continuation.isActive) continuation.resume(pixels) }
+                }
+            }
+        }
         val bitmap = Bitmap.createBitmap(24, 24, Bitmap.Config.ARGB_8888)
         return suspendCancellableCoroutine { continuation ->
             var finished = false

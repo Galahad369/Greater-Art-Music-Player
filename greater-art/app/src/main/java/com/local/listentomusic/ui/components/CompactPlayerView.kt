@@ -30,6 +30,11 @@ import com.local.listentomusic.ui.uiText
 import com.local.listentomusic.ui.theme.appColorScheme
 import com.local.listentomusic.ui.theme.artworkAccentScheme
 import com.local.listentomusic.ui.theme.artworkThemePalette
+import com.local.listentomusic.ui.theme.VideoThemeColors
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.launch
 
 internal fun shouldRefreshCompactBinding(samePlayer: Boolean, samePresentation: Boolean): Boolean =
     !samePlayer || !samePresentation
@@ -56,6 +61,8 @@ class CompactPlayerView(context: Context) : FrameLayout(context) {
     private var nextLabel = "Next"
     private var appearanceKey: List<Any>? = null
     private var appearanceSettings: UserPreferences? = null
+    private var videoThemeJob: Job? = null
+    private var artworkPalette = emptyList<Int>()
     private var paletteBackground = Color.rgb(22, 30, 28)
     private var detached = false
     private var expanded = false
@@ -128,6 +135,7 @@ class CompactPlayerView(context: Context) : FrameLayout(context) {
     }
     fun appearance(settings: UserPreferences) {
         appearanceSettings = settings
+        updateVideoThemeSubscription()
         if (miniSize != settings.miniWindowSize) { miniSize = settings.miniWindowSize; refresh() }
         val night = resources.configuration.uiMode and android.content.res.Configuration.UI_MODE_NIGHT_MASK == android.content.res.Configuration.UI_MODE_NIGHT_YES
         val font = if (settings.silianRail) AppFont.SILIAN_RAIL else settings.appFont
@@ -137,8 +145,11 @@ class CompactPlayerView(context: Context) : FrameLayout(context) {
         appearanceKey = key
         val dark = settings.themeMode == ThemeMode.DARK || (settings.themeMode == ThemeMode.SYSTEM && night)
         val base = appColorScheme(settings.colorTheme, dark)
+        if (settings.colorTheme == ColorTheme.VIDEO && artworkPalette.isEmpty())
+            artworkPalette = artworkThemePalette(lastArtwork)
         val palette = if (settings.colorTheme == ColorTheme.VIDEO)
-            artworkAccentScheme(base, artworkThemePalette(lastArtwork), 1f, settings.colorTheme) else base
+            artworkAccentScheme(base, VideoThemeColors.colors(player?.currentMediaItem?.mediaId.orEmpty())
+                .ifEmpty { artworkPalette }, 1f, settings.colorTheme) else base
         colors(palette.surface.toArgb(), palette.onSurface.toArgb(), palette.secondary.toArgb())
         val lang = settings.appLanguage
         labels(uiText(lang, "Previous", "上一首"), uiText(lang, "Play", "播放"), uiText(lang, "Pause", "暫停"), uiText(lang, "Next", "下一首"))
@@ -165,6 +176,7 @@ class CompactPlayerView(context: Context) : FrameLayout(context) {
     fun setArtwork(bitmap: Bitmap?) {
         if (lastArtwork === bitmap) return
         lastArtwork = bitmap
+        artworkPalette = if (appearanceSettings?.colorTheme == ColorTheme.VIDEO) artworkThemePalette(bitmap) else emptyList()
         if (bitmap == null) artwork.setImageResource(R.drawable.ic_launcher_foreground) else artwork.setImageBitmap(bitmap)
         appearanceSettings?.takeIf { it.colorTheme == ColorTheme.VIDEO }?.let(::appearance)
     }
@@ -225,6 +237,7 @@ class CompactPlayerView(context: Context) : FrameLayout(context) {
     }
     private fun refresh() {
         val p = player ?: return
+        updateVideoAccent()
         title.text = p.mediaMetadata.title ?: p.currentMediaItem?.mediaId?.substringAfterLast('/')
         previous.isEnabled = p.hasPreviousMediaItem()
         next.isEnabled = p.hasNextMediaItem()
@@ -260,10 +273,48 @@ class CompactPlayerView(context: Context) : FrameLayout(context) {
         }
     }
     fun release() {
+        videoThemeJob?.cancel()
+        videoThemeJob = null
+        VideoThemeColors.release(this)
         removeCallbacks(ticker)
         player?.removeListener(listener)
         VideoSurfaceOwner.detach(video)
         player = null
+    }
+
+    override fun onAttachedToWindow() {
+        super.onAttachedToWindow()
+        updateVideoThemeSubscription()
+    }
+
+    override fun onDetachedFromWindow() {
+        videoThemeJob?.cancel()
+        videoThemeJob = null
+        VideoThemeColors.release(this)
+        super.onDetachedFromWindow()
+    }
+
+    private fun updateVideoThemeSubscription() {
+        if (!isAttachedToWindow || appearanceSettings?.colorTheme != ColorTheme.VIDEO) {
+            videoThemeJob?.cancel()
+            videoThemeJob = null
+            VideoThemeColors.release(this)
+        } else if (videoThemeJob == null) {
+            VideoThemeColors.retain(context, this)
+            videoThemeJob = CoroutineScope(Dispatchers.Main.immediate).launch {
+                VideoThemeColors.state.collect { updateVideoAccent() }
+            }
+        }
+    }
+
+    private fun updateVideoAccent() {
+        val settings = appearanceSettings?.takeIf { it.colorTheme == ColorTheme.VIDEO } ?: return
+        val night = resources.configuration.uiMode and android.content.res.Configuration.UI_MODE_NIGHT_MASK == android.content.res.Configuration.UI_MODE_NIGHT_YES
+        val base = appColorScheme(settings.colorTheme, settings.themeMode == ThemeMode.DARK ||
+            (settings.themeMode == ThemeMode.SYSTEM && night))
+        val palette = VideoThemeColors.colors(player?.currentMediaItem?.mediaId.orEmpty()).ifEmpty { artworkPalette }
+        val scheme = artworkAccentScheme(base, palette, 1f, settings.colorTheme)
+        colors(scheme.surface.toArgb(), scheme.onSurface.toArgb(), scheme.secondary.toArgb())
     }
 
     internal fun inspectionBounds(): List<Pair<String, android.graphics.Rect>> = listOf(
