@@ -18,7 +18,7 @@ after the [disabled window-kernel experiment](STACK_PCM_KERNEL_1.22.33.md).
 | Non-unit timing scale | `SharedClockPcmPrototype.start` explicitly rejects `alignmentScale != 1.0`; no pitch-shifting substitute is used. | Qualified per-track pitch-preserving tempo correction before a shared-output replacement can preserve this existing function. Nine green native tests alone would not establish parity. |
 | Normal UI/shared-output ownership | Current source constructs the prototype in instrumentation hosts, not the production Stack coordinator. Both release flags are false. | A separately approved production host, native video/surface ownership and all normal UI transitions still need verification after the independent engine gates. |
 | Apply, manual Earlier/Later, save/reload, seek, primary change and loop | E46 passes11 unchanged A55 callback/transport checks. E48/E50 manual/restart/save/reload/pause/primary flows pass. E58 reads five automatic-review rows and Apply sets the three inspected values correctly before its private scroll guard stops. | E58 aggregate remains FAILED; the other automatic applied values and saved reload are unverified. State/UI observations are not backing or mixed-output acceptance after every action. Whole-song loop/Apply/seek output remains incomplete. |
-| Sound/picture separation | Controller methods and distinct result state remain unchanged. Earlier Quick/Wider evidence is retained. | Picture regression does not rescue sound failure; keep Riona's visual evidence and all existing deadlines/ranges separate. |
+| Sound/picture separation | E65 current 1.22.33 A55 Quick/Wide tests pass unchanged native assertions in 40.327 s / 268.794 s. Riona still rejects; all original ranges and the Quick 45 s budget remain. | Diagnostic engine tests are not optimized normal-button or whole-scene acceptance. Picture success cannot rescue sound failure or establish that every Riona scene differs. |
 | Signing and artifact | Optimized33 bytes and maintenance identity remain preserved. | The original public signing key remains unavailable. This candidate is not an original-public update-compatible release. |
 | Current A55 environment | Later cold starts and normal entry preserve exact APK/data identity. E46/E48/E50/E52 restore original preferences, volume, app-ops, test absence, APK/data and profile hashes; owned guest shutdown completes. | Preserve E41/E43/E45/E51 failed harness/environment reports. Later success does not prove their root causes, physical hardware quality or complete app acceptance. |
 
@@ -220,6 +220,23 @@ why qualification need not imply absolute unity, not the actual active route.
 Neither gate changes and the failed actual gains/full goal stay failed.
 
 ## Preservation and next authorized step
+
+Latest E62–E69 coverage is additional evidence, not a completed fix. Stereo input
+inspection finds a nonzero side component in all six sources, without labeling
+it backing. A clean-reference 32-tap transfer passes 18 known numeric controls but
+does not qualify the six originals: Miku 3/6 and Riona 4/6 support, only unc/Morisray
+limited reference fits, key-shifted covers unresolved. No uncertain primary
+subtraction or app timing follows. E69 also disproves strict within-clip holdout
+independence and the frozen separate-region model fails a true positive. Raw
+validation catches reference replay that would otherwise falsely pass about
+0.999995 NCC after backing is changed/removed. Do not lower gates, tune another
+variant or advertise the 18 passes as independent backing proof.
+
+Current picture regression and exact restoration now have fresh E65 evidence;
+source/optimized APK/signers/default-off flags remain unchanged. Read notebook
+E62–E69 and private `picture65-current33-01/`, `stereo-information62-02/`,
+`reference-transfer67-01/`, `original-reference-transfer68-01/` and
+`reference-independence69-01/` before selecting any future architecture.
 
 Private evidence is under `App/output/stack-resume-20261114-2235/`: E40/E41
 protocols, `baseline40-regional-current-03/`, failed acquisitions,

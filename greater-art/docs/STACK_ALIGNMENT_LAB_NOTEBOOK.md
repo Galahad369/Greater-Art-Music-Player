@@ -35,7 +35,8 @@ evidence folders, not in Git.
 | Is later shared-output interval evidence accepted? | **No.** E52 retains a new raw six-source capture. Both held-out mixture and all12source correlations pass, but every original absolute-gain check fails. E55 finds a separate default-device5/speaker15policy counterexample, not an active-route proof. | Keep failed gains and full-song/backing limits. No PCM scaling, changed expected gains or renewed recorder-route matrix. |
 | Do normal manual/save/primary controls work? | E48/E50 actual six-file optimized33journeys pass fractional manual/cancel, process-restart save/reload, pause/resume and primary rebasing. E53 misses analysis cancellation because analysis already completed. | Separate these observed function passes from unverified live cancellation, complete-song loop and actual output after each action. |
 | Is automatic Sound Apply/save fully checked? | **Partial.** E58 reads all five review rows and Apply sets the inspected Riona0.65ms/unc83.216ms; Forte stays0. A private scroll-area ambiguity stops the remaining checks before saved automatic-map reload. | Keep the failed aggregate result. Correctly copying a proposal is not backing accuracy, and the unobserved values/reload remain unverified. |
-| Is the final A55 state preserved? | E54 read-only cold start verifies exact optimized33APK/appId/inode and normal Library entry. E58 later restores exact APK/preferences/access/volume5/test absence, then guest shutdown passes at21:18:23UTC. | Keep the earlier E53 forced-shutdown failure. No root, wipe or GPU/profile change is a repair here. |
+| Does reference-conditioned separation solve backing? | **No.** E67 passes 18 known numeric controls, but E69 disproves strict within-clip holdout independence and the frozen cross-region transfer fails a true positive. E68 observes all six originals but only unc/Morisray get candidate reference maps; Miku remains unqualified. | No production adoption, uncertain-primary subtraction, key rescue or threshold tuning. Reference-prediction NCC alone can hallucinate music; retain raw independent-region checks. |
+| Is the final A55 state preserved? | E54 read-only cold start verifies exact optimized33APK/appId/inode and normal Library entry. E65 later restores the exact APK/preferences/access/volume 5/test absence, then guest shutdown passes at 21:52:08 UTC. | Keep the earlier E53 forced-shutdown failure. No root, wipe or GPU/profile change is a repair here. |
 
 ## Evidence locations and artifact
 
@@ -1851,3 +1852,114 @@ credential search, global configuration change, paid fallback or retry loop.
 No external advice, new backing approach or app change is claimed. This optional
 failure is not the cause of the already failed backing/gain/parity gates.
 Private evidence:`free-consult60-01/` and`E60-PROTOCOL.md` in the resumed folder.
+
+## E62 — stereo information exists, but it is not a backing label
+
+Directly inspect the SAME six SHA-bound 44.1 kHz stereo analysis PCMs across the
+six fixed 6 s regions. The mid/side energy identity passes; all six files retain
+side information. Side-energy ranges are Miku 2.789–10.982%, Riona 3.205–12.765%,
+unc 2.304–13.593%, Forte 10.721–38.100%, Yoshino 3.986–15.251%, Morisray 1.972–10.799%.
+Thus mono averaging does discard a nonzero component, but these numbers do NOT
+identify it as music or establish successful center-voice removal. Stereo
+subtraction also removes centered instruments; no stereo-only fallback/adoption.
+The original mono positives, false-match gates, player and media remain unchanged.
+
+The first synthetic-only precheck incorrectly requires a Float64 fraction of
+exactly 1 and gets 1.0000000000000007. Its failed program is retained. Applying
+the already declared 1e-12 algebra tolerance fixes only that private precheck
+before media use. The corrected measurement takes 1.25 s.
+Evidence: `stereo-information62-01/` (failure), `stereo-information62-02/`,
+fixed sources and `E62-PROTOCOL.md`.
+
+## E64/E65 — original current-source A55 picture regressions pass
+
+E64 stops BEFORE tests because private shell run-as cannot read the app external
+fixture path. Keep that access-context failure; it is not a proven app access or
+picture-matcher defect. One private correction reads the SAME files with normal
+ADB shell, without root/chmod/provisioning/copies or altered permissions. All six
+hashes match. The unchanged tests themselves check app-UID File/decoder access.
+
+On the exact 1.22.33 diagnostic/test pair, Quick-first and Wider each pass one
+test with zero skips. Native Quick: 40327 ms, offsetsUs [null,0,0,12500,0];
+native Wide: 268794 ms, offsetsUs [null,0,0,20500,0]. The original 45 s Quick
+limit, Riona rejection, unc/Forte/Morisray ±2 ms and Yoshino +12..+28 ms
+assertions remain. Host instrumentation wall times 45.641 s / 270.953 s include
+test overhead. This is current native picture
+regression, not optimized normal-button acceptance or sound accuracy. Riona's
+defined matching check rejects; do not infer all scenes differ from this alone.
+
+Original preferences/volume 5/app-ops/test absence, exact optimized 1.22.33 APK,
+appId/inode and profile/GPU are restored. Guest shutdown completes with no
+emulator at 21:52:08 UTC. Evidence: `picture64-current33-01/` (preflight failure),
+`picture65-current33-01/`, native logs and E64/E65 protocols. No app/scorer changes.
+
+## E66/E67 — reference-transfer numeric controls pass; not independent acceptance
+
+Test a different analysis mechanism: a short 32-tap linear path from an independent
+instrumental, rather than a learned vocal separator. This is analogous to the
+known-reference path in [echo cancellation](https://speex.org/docs/manual/speex-manual/node7.html),
+whose linear-path assumption is a limitation, not a guarantee on covers.
+Fit alternating 250 ms blocks and search a delay with training-masked correlation;
+fixed rcond 1e-6, other blocks used for prediction checks. No new package/model,
+band/tap/threshold search or original audio/gate change.
+
+The first receipt fails on undefined 0/0 pair NCC for explicitly rejected zero
+stems. Preserve the failed program/stems/partial JSON. E67 evaluates the SAME
+retention AND condition first: below 0.20 means explicit abstention/null score,
+not acceptance through NaN. Above the floor the unchanged scorer must be finite.
+An adapter selector also fails before execution on Python's separate tuple
+assignment nodes; its source is retained and the typed assignment selector is
+corrected. These are private harness defects, not an estimator parameter change.
+
+E67 then completes all 18 known constructed checks in 10.703 s. Six music
+positives find 699.977–700.091 ms rather than 980 ms vocals, minimum pair NCC
+0.9999706. All 12 wrong-music/shared-voice/voice-only negatives abstain. Original
+NCC 0.9801886008056108, retention >0.20 and 2 ms remain. The controls are
+selection-informed, not a fresh corpus. E69 below reveals that the claimed
+within-clip independence is too strong. Do not advertise these 18 results as a
+qualified separator or music-identity proof. Evidence: `reference-transfer66-01/`
+(failed receipt), `reference-transfer67-01/`, unchanged core and E66/E67 protocols.
+
+## E68 — all six original observations still fail the full target
+
+Use the SAME estimator in a broad ±15 s search, retaining its competing-offset/
+raw-prediction decision. A local ≤8 s scene uses the original 6/8 s energy scope;
+it cannot rescue a rejected broad match. All 36 fixed observations finish in
+24.375 s. Evidence support: Miku 3/6, Riona 4/6, unc 5/6, Forte 0/6, Yoshino 2/6,
+Morisray 5/6. Only unc/Morisray form limited reference-relative fits,
+152.967929 ms / 99.245147 ms, maximum fit residuals 0.000278 ms / 0.001328 ms.
+Those residuals are NOT timing truth.
+
+Miku remains unqualified, so NO primary subtraction or applied companion map.
+Riona's admitted candidates vary between about 73.4 and 83.3 ms; a single confident
+map is not established. Key-shift/late-section problems remain; no per-take
+pitch/key or confidence rescue. These are host observations, not Android cost or
+new actual-mix evidence. All six voices/source playback and old timing stay
+untouched. Evidence: `original-reference-transfer68-01/` and `E68-PROTOCOL.md`.
+
+## E69 — stronger independence audit rejects premature confidence
+
+An index counterexample disproves strict within-clip independence: ALL samples
+called held out at a 700 ms selected lag appear in the training mask at the 950 ms
+alternative. Fitting at the chosen lag excludes those samples, but selecting
+that lag has already consulted them under another hypothesis. Correct the
+E66/E67 claim: their block prediction is selection-conditional, not untouched
+validation. Do not silently redefine those 18 numeric passes as independent proof.
+
+Fit ONLY region 0, observe/freeze its two filters/delays with a return trace, then
+apply them to separate 36 s-spaced regions WITHOUT re-fitting or lag searching.
+The first two held-out positive regions pass. The third true-positive primary
+has explained fraction −0.0174894 (worse than zero predicted music), so that REQUIRED
+region FAILS and the test stops, retaining its negatives too. All six tested changed-
+backing/removed-backing transitions reject. Without raw validation, the replayed
+reference would falsely pass their original NCC/retention checks, with pair NCC
+about 0.999995. The raw-evidence guard catches that deliberate unsafe replay.
+
+No parameter, window, threshold or reference-loopback rescue follows. This
+candidate is not ready for production. Keep all known numeric passes, genuine
+cross-region failure and actual-six limits distinct. Original solver/scorers,
+source quality, offsets, APKs and default-off engine flags remain unchanged.
+Evidence: `reference-independence69-01/`, source/index counterexample and
+`E69-PROTOCOL.md`. The next architecture needs genuinely independent backing
+evidence plus all six originals/key/tempo and output gates, not another tighter
+drift loop or self-generated-reference correlation.

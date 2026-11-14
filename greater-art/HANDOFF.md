@@ -26,6 +26,20 @@ for the three failed boot attempts and the limits; this is not a backing fix.
 
 **Later resumed-goal checkpoint:**
 [Full acceptance coverage and later experiment limits](docs/STACK_ALIGNMENT_ACCEPTANCE_1.22.33.md).
+**Latest E62–E69:** current 1.22.33 A55 picture Quick/Wide tests pass unchanged
+assertions in 40.327 s / 268.794 s. Exact optimized APK/settings/data restoration
+and guest shutdown pass at 21:52:08 UTC. Riona still rejects in the defined picture corpus; no general
+scene/normal-button acceptance is inferred. A different host-only clean-reference
+FIR approach passes 18 known numeric controls, but an independence audit exposes
+lag-selection leakage and a frozen cross-region test FAILS a true positive.
+All-six observations support only unc/Morisray reference candidates; Miku and
+Riona remain unqualified, key-shifted takes unresolved. No primary subtraction,
+new app timing, model/engine adoption, quality change, build/version or APK change.
+The earlier 18 results are NOT independent backing acceptance. Keep raw validation:
+self-generated reference predictions can correlate almost perfectly when music
+has changed or disappeared. Notebook E62–E69 and private protocols preserve the
+failed harnesses, numerical passes and stronger failures; no push or merge.
+
 The six-take backing/output goal is still incomplete. Fresh bounded mono controls
 confirm the raw matcher can follow the singer at 980 ms instead of known 700 ms music.
 A separately licensed RoFormer comparison is blocked at acquisition; no model
