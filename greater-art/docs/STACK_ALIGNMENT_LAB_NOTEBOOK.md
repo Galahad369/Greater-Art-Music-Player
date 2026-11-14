@@ -1300,3 +1300,50 @@ same-profile boot restores original DEFAULT app-ops, volume5/15 and test-package
 absence, verifies stored profile hashes and stops11:44:19UTC. Original signing
 and the full backing/output goal remain open. Private receipts are under
 `App/output/now-playing-controls-20261114/`.
+
+## E35 — private post-DSP trace accounting, not native output acceptance
+
+After the requested31UI work and its cleanup, the parked four Java files are
+reused ONLY in a new private `post-dsp-flush-01/` child of E31's evidence folder.
+No app source, package, playback path, matcher, threshold, format or APK changes.
+The existing Media3 1.11.1/JUnit class files and JDK21 run a bounded JVM check.
+
+The original THREE assertions reproduce exactly the original flush-generation
+failure, then pass unchanged after per-record epoch metadata and a zero-byte
+flush event recorded only AFTER successful delegation. Existing accepted bytes
+remain retained and discardable; no output timestamp is invented. Six added
+format/capacity/failure checks expose three genuine accounting failures: a writer,
+audio write or flush exception can leave the trace marked healthy. All NINE pass
+after invalidation while preserving original exception and buffer behavior.
+
+The independent read-only source review identifies that the first concurrency
+fixture never wraps its ring. The revised fixture reuses16slots for1001records
+and checks owned-byte publication and epoch order. Only the TEST caller paces its
+batches; the queue does not wait on the audio thread. A false write result that
+still accepts bytes, followed by an empty retry, also preserves original PTS and
+does not duplicate data. All ELEVEN checks pass. Original red receipts and all
+earlier sources remain intact; this is not native performance evidence.
+
+Important limits remain: `isComplete()` is only a no-recorded-failure predicate,
+not producer sealing, writer drain, file integrity or emitted audio. Final counts
+need producer quiescence/happens-before and persisted ordinal reconciliation.
+Native configuration/encoding/rate/channels/offload and serialized write/flush
+ownership are not proved. Audio-thread copy overhead is not measured. The next
+test-only native instrument must predict a known premix with observer on/off on
+the SAME qualified raw device-output route under unchanged2ms/.90/.45/5%/.001
+checks. No new recorder route/budget, per-voice fitting or repaired media follows.
+Do not copy this incomplete diagnostic into production or claim actual-six sync.
+
+Independent source reviewer: existing `pipeline_readonly_review`; no builds or
+device operations by the reviewer. Evidence: `post-dsp-flush-01/RESULT.md`, the
+original/same-three red-green logs, added-control failures and
+`eleven-pass-through-green-03/receipt.json`. Final private source SHA-256:
+
+- `AcceptedPcmTraceQueue.java`: `b91932166244a8a4967c018a29107c49e4f7746c3ae45e97339e50be924e3a58`
+- `AcceptedPcmTraceQueueTest.java`: `40ecf5068543e095976a83854b576419d9ad304d96ffcedcd86b4f763b364c56`
+- `ObservedAudioOutput.java`: `b54c8f10ffcfe9981717893cc35abbc17f84bda79b9c53f53961ae7023935a0b`
+- `ObservedAudioOutputTest.java`: `9d71323b951c62dc01e1bf56ec48f18e3aeba7c64291ff6567363f145c3ce134`
+
+The committed app-input fingerprint stays355ba93d…e93d2fd and exact31APK remains
+SHA19658f77…fe26039. No new APK, app version, branch, worktree, push, merge or
+production adoption. The full original backing/output goal remains incomplete.

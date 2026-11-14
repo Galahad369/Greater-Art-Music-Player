@@ -33,8 +33,12 @@ Retain that failure. A cleanup-only restart restores DEFAULT access app-ops,
 volume5/15 and original test-package absence, preserves the installed optimized
 app/profile/GPU, then stops the owned A55 at11:44:19UTC14November.
 The six-take backing/output goal remains incomplete and unchanged. The private
-post-DSP observation tracer is preserved outside the app with its flush assertion
-still red; it is not integrated. The separate fullscreen switching diagnosis
+original post-DSP observation tracer is preserved outside the app with its flush
+assertion still red. E35's separate private follow-up now passes 11 JVM byte-copy,
+flush, exception and concurrent-ring checks; it is NOT a qualified native
+instrument and is not integrated. Format/ownership, sealing/drain, native cadence
+and known-premix prediction remain required before any production adoption.
+The separate fullscreen switching diagnosis
 reproduces a visual handoff defect but no crash; no transition repair is included.
 
 **Resumed14November — independent backing reference remains analysis-only:**
