@@ -44,11 +44,16 @@ class NowPlayingToolbarChromeTest {
         val buttons = compose.onAllNodes(hasClickAction()).fetchSemanticsNodes()
             .sortedBy { it.boundsInRoot.left }
         assertEquals("Keep all six top actions", 6, buttons.size)
-        val intervals = buttons.zipWithNext { left, right ->
-            right.boundsInRoot.center.x - left.boundsInRoot.center.x
+        val gap = compose.onNodeWithTag("EXPANDED_TOOLBAR_HANDLE_GAP").fetchSemanticsNode().boundsInRoot
+        assertTrue("Reserve at least 72dp for the handle", gap.width >= 72f * (buttons.first().boundsInRoot.width / 48f) - 1f)
+        for (button in buttons) assertTrue("No action may occupy the handle gap",
+            button.boundsInRoot.right <= gap.left + 1 || button.boundsInRoot.left >= gap.right - 1)
+        for (group in buttons.chunked(3)) {
+            val intervals = group.zipWithNext { left, right ->
+                right.boundsInRoot.center.x - left.boundsInRoot.center.x
+            }
+            assertTrue("Distribute each side evenly: $intervals", intervals.max() - intervals.min() <= 1.01f)
         }
-        assertTrue("Distribute every action evenly, not two clusters around a large spacer: $intervals",
-            intervals.max() - intervals.min() <= 1.01f)
         checkToolbarPixels { bitmap ->
             val centerX = bitmap.width / 2
             assertEquals("Expanded toolbar must show the shared background", backdrop,
@@ -91,8 +96,10 @@ class NowPlayingToolbarChromeTest {
                             onFullscreen = { clicks += "Fullscreen" },
                             onClose = { clicks += "Close player" },
                             onLock = { clicks += "Lock player controls" },
+                            modifier = Modifier.testTag("toolbar-content"),
                             overlay = overlay,
                             fullscreen = overlay,
+                            reservePullHandle = !overlay,
                         )
                     }
                 }
@@ -101,7 +108,7 @@ class NowPlayingToolbarChromeTest {
     }
 
     private fun checkToolbarPixels(check: (Bitmap) -> Unit) {
-        val bitmap = compose.onNodeWithTag("toolbar-fixture").assertHeightIsEqualTo(64.dp)
+        val bitmap = compose.onNodeWithTag("toolbar-content").assertHeightIsEqualTo(64.dp)
             .captureToImage().asAndroidBitmap()
         try { check(bitmap) }
         finally { bitmap.recycle() }

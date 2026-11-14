@@ -1269,3 +1269,20 @@ This does not invent an earlier package-restore success or physical-phone QA.
 `JOINT_REGISTRATION_PROTOCOL.md`, `full-mix-joint-03/`. Later restoration is in
 `App/output/fullscreen-diagnosis-20261114/restoration.json`; that task's UI
 findings are separate from Stack acceptance. No full-goal pass or new APK.
+
+## E34 — post-DSP observation tracer remains incomplete; separate requested UI work
+
+A private debug-only byte-copy tracer reproduces then passes buffer-lifetime and
+partial/zero-write assertions. Its new flush-generation assertion is STILL RED;
+it is not qualified or integrated. The four source/test files are preserved
+byte-for-byte with failed receipts under the private E31 child
+`post-dsp-observer-01/paused-src/` and `PARKED.md`. Do not mistake submitted bytes
+for emitted samples or restart recorder-route qualification.
+
+The owner then explicitly adds bottom/smaller speed hints, reverse upward unlock,
+a clear expanded pull-handle gap, and app-themed useful diagnostics. Android31
+is this separate UI scope, not a backing-engine change.595JVM checks and27A55
+component checks pass after retained touch-target/test-fixture failures. Native
+optimized delivery is separate. The original six-take backing/output acceptance,
+primary/key-shift reference maps, shared-output high-resolution parity and
+original public signer remain incomplete. No push, merge or full-goal pass.

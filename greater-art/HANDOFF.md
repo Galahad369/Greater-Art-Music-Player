@@ -8,6 +8,24 @@ This file describes the **current repository state only**. Historical session no
 
 ## Current Android builds
 
+**1.22.31/code352 — requested controls and diagnostics update:**
+[Scope and verification](docs/NOW_PLAYING_CONTROLS_1.22.31.md). Smaller speed hints
+sit at the video bottom. When already at2x, a stationary hold/release keeps2x;
+hold and pull upward to restore1x. Initial temporary video/speed-button holds and
+downward locking remain. Expanded toolbar groups leave a real center pull-handle
+gap, retaining six actions/48dp targets. Developer Mode follows the current app
+theme; Pick/Copy/Close remain accessible, and full Copy includes the selected
+element's geometry.595JVM tests pass; lint has0errors/54warnings/6hints and
+instrumentation compiles. The first private A55 run passes23/27; after correcting
+the real40dp Copy target and the toolbar fixture's mistaken capture target, the
+unchanged27-case suite passes with0skips and an empty crash buffer. Source
+fingerprint355ba93d…e93d2fd binds those diagnostic bytes; exact optimized
+assembly/native playback smoke remain pending, not a verified release.
+The six-take backing/output goal remains incomplete and unchanged. The private
+post-DSP observation tracer is preserved outside the app with its flush assertion
+still red; it is not integrated. The separate fullscreen switching diagnosis
+reproduces a visual handoff defect but no crash; no transition repair is included.
+
 **Resumed14November — independent backing reference remains analysis-only:**
 E31's octave-preserving time/key spectrum separates12controlled delayed-backing
 positives from18negatives, then passes18Gospel coarse cases and six
@@ -210,7 +228,7 @@ does not verify saved-Stack reload or repair the earlier full-sequence failure.
 
 **Newest local picture/transparent-transport candidate:** `1.22.26 (code347)` — `App/output/stack-picture-sampling-20261113/optimized-local-26/GreaterArt-1.22.26.apk`,5,579,536bytes, SHA-256 `0f34b8467201b09e1f7d2bedc9174e506ac3476a3b56a738a4e71901343289c3`, runtime `e046dbc`. All552 JVM tests, lint/no-errors, Android test compilation, optimized assembly and maintenance-signer exact-file checks pass. Actual installed A55 Now Playing has no timeline/transport holder and retains its controls. Normal six-video picture Quick/Wide reviews finish in40.325/285.770s with all frozen corpus dispositions preserved; Apply, six-track resume and pause pass. A later private row-locator failure is retained; separate two-track manual Earlier/Later/Apply/reopen/restore passes. OLED/app-ops are restored and the unchanged owned A55 stopped. [Exact evidence and limits](docs/PICTURE_TIMING_1.22.26.md). This is not an original-key/public release or backing-music/acoustic acceptance. Keep every prior APK; no push/merge/publication.
 
-**Current source:** `1.22.30 (code 351)` — SOURCE_ONLY. [30 experiment receipt](docs/STACK_PCM_PIPELINE_1.22.30.md) records bounded queue ownership, timeout cleanup and failed performance/cadence acceptance. Shared output and the separately guarded parallel preparation both stay disabled by default. Preserve all original gates/quality/signers/APKs. No production routing, backing-matcher change, push, merge or publication.
+**Current source:** `1.22.31 (code 352)` — SOURCE_ONLY. [Controls and diagnostics](docs/NOW_PLAYING_CONTROLS_1.22.31.md) records the focused UI scope and pending exact-artifact gates. [30 experiment receipt](docs/STACK_PCM_PIPELINE_1.22.30.md) retains the failed performance/cadence acceptance. Shared output and parallel preparation stay disabled. Preserve all original gates/quality/signers/APKs. No production routing, backing-matcher change, push, merge or publication.
 
 **Preserved exact29 checkpoint:** `1.22.29/code350`, commit3c8615f,576passing JVM tests, lint/no-errors, optimized assembly, exact maintenance-signed identity and actual A55 normal/manual/save/reload/primary checks. [29 receipt](docs/STACK_PCM_PIPELINE_1.22.29.md) retains its failed192k fractional gate and ART comparison, shared synthetic output pass, picture regressions and full acceptance limits. Its exact APK is not rebuilt or replaced by source30 work.
 

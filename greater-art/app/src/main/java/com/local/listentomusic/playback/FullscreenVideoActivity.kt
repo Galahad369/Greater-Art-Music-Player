@@ -76,7 +76,7 @@ class FullscreenVideoActivity : ComponentActivity() {
             var toolbarBottom by remember { mutableStateOf(0f) }
             val developerVisible = settings.developerMode && !pipVisible
             MediaAdaptiveTheme(settings, playback.currentPath, artwork) {
-                UiInspectorHost(enabled = developerVisible, state = inspector) {
+                UiInspectorHost(enabled = developerVisible, state = inspector, language = settings.appLanguage) {
                 NowPlayingScreen(
                     floatingWindowMode = settings.floatingWindowMode,
                     onFloatingWindowModeChange = viewModel::setFloatingWindowMode,

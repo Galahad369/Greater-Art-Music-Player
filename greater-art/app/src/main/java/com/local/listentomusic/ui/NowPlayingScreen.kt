@@ -224,19 +224,48 @@ internal fun nowPlayingMetadataLine(file: MediaFile?): String =
 
 internal fun shouldLockHeldDoubleSpeed(dragAfterHoldPx: Float, thresholdPx: Float): Boolean =
     thresholdPx > 0f && dragAfterHoldPx >= thresholdPx
+internal fun heldDoubleSpeedUnlockRequested(armed: Boolean, dragAfterHoldPx: Float, thresholdPx: Float): Boolean =
+    armed && thresholdPx > 0f && dragAfterHoldPx <= -thresholdPx
 internal fun isDoubleSpeed(speed: Float): Boolean = kotlin.math.abs(speed - 2f) <= 0.01f
 
 /** The video speed banner is gesture feedback, not a permanent 2× status display. */
-internal enum class VideoSpeedHint { RELEASE_FOR_NORMAL, PULL_TO_LOCK, LOCK_CONFIRMED }
+internal enum class VideoSpeedHint { PULL_UP_FOR_NORMAL, PULL_TO_LOCK, LOCK_CONFIRMED }
 
 internal fun videoSpeedHint(
     unlockArmed: Boolean, temporaryDoubleSpeed: Boolean,
     lockConfirmationVisible: Boolean, speed: Float,
 ): VideoSpeedHint? = when {
-    unlockArmed -> VideoSpeedHint.RELEASE_FOR_NORMAL
+    unlockArmed -> VideoSpeedHint.PULL_UP_FOR_NORMAL
     temporaryDoubleSpeed -> VideoSpeedHint.PULL_TO_LOCK
     lockConfirmationVisible && isDoubleSpeed(speed) -> VideoSpeedHint.LOCK_CONFIRMED
     else -> null
+}
+
+internal fun videoSpeedHintText(language: AppLanguage, hint: VideoSpeedHint): String = when (hint) {
+    VideoSpeedHint.PULL_UP_FOR_NORMAL -> when (language) {
+        AppLanguage.ENGLISH -> "2× · Pull up for 1×"
+        AppLanguage.TRADITIONAL_CHINESE -> "2× · 上拉回到 1×"
+        AppLanguage.CANTONESE -> "2× · 向上拉返 1×"
+        AppLanguage.JAPANESE -> "2× · 上にスワイプして1×"
+        AppLanguage.GERMAN -> "2× · Nach oben für 1×"
+        AppLanguage.FRENCH -> "2× · Glisser vers le haut pour 1×"
+    }
+    VideoSpeedHint.PULL_TO_LOCK -> when (language) {
+        AppLanguage.ENGLISH -> "2× · Pull down to lock"
+        AppLanguage.TRADITIONAL_CHINESE -> "2× · 下拉鎖定"
+        AppLanguage.CANTONESE -> "2× · 向下拉鎖定"
+        AppLanguage.JAPANESE -> "2× · 下にスワイプして固定"
+        AppLanguage.GERMAN -> "2× · Nach unten zum Sperren"
+        AppLanguage.FRENCH -> "2× · Glisser vers le bas pour verrouiller"
+    }
+    VideoSpeedHint.LOCK_CONFIRMED -> when (language) {
+        AppLanguage.ENGLISH -> "2× · Locked"
+        AppLanguage.TRADITIONAL_CHINESE -> "2× · 已鎖定"
+        AppLanguage.CANTONESE -> "2× · 鎖定咗"
+        AppLanguage.JAPANESE -> "2× · 固定中"
+        AppLanguage.GERMAN -> "2× · Gesperrt"
+        AppLanguage.FRENCH -> "2× · Verrouillé"
+    }
 }
 
 internal fun shouldShowPlayerLock(immersiveVideo: Boolean, videoControlsVisible: Boolean): Boolean =
@@ -544,6 +573,7 @@ fun NowPlayingScreen(
                                             normalToolbarBounds = it
                                             onToolbarBoundsChanged(it)
                                         },
+                                        reservePullHandle = systemOverlay,
                                         modifier = toolbarInputModifier,
                                     )
                                 }
@@ -648,6 +678,7 @@ fun NowPlayingScreen(
                         normalToolbarBounds = it
                         onToolbarBoundsChanged(it)
                     },
+                    reservePullHandle = systemOverlay && !fullscreen,
                     modifier = toolbarInputModifier,
                 )
                 AudioPlayer(
@@ -881,6 +912,7 @@ private fun VideoPlayerStage(
                     onControlsVisibilityChange(true)
                 }
             }
+            .testTag("VIDEO_STAGE")
             .inspectElement("VIDEO_STAGE", "Side double-tap seeks; pinch to zoom in fullscreen")
             .background(if (frameAmbient || immersive) Color.Transparent else Color.Black)
             .clipToBounds(),
@@ -982,6 +1014,7 @@ private fun VideoPlayerStage(
                 var holdActivated = false
                 var lockedThisGesture = false
                 var unlockArmed = false
+                var unlockedThisGesture = false
 
                 fun tryLockCurrentHold() {
                     if (!holdActivated || lockedThisGesture || multiTouch || videoScale > 1.01f) return
@@ -998,6 +1031,7 @@ private fun VideoPlayerStage(
                     delay(HOLD_2X_ACTIVATION_MS)
                         if (multiTouch || videoScale > 1.01f) return@launch
                         if (startedAtDoubleSpeed) {
+                            activationY = currentY
                             unlockArmed = true
                             unlockDoubleSpeedArmed = true
                             haptics.performHapticFeedback(HapticFeedbackType.LongPress)
@@ -1023,7 +1057,16 @@ private fun VideoPlayerStage(
                             maxMovement = maxOf(maxMovement, dx, dy)
                             if (!multiTouch && dy > 4f) onControlsVisibilityChange(true)
                             tryLockCurrentHold()
-                            if (!multiTouch && (holdActivated || unlockArmed || dy > viewConfiguration.touchSlop)) {
+                            if (!multiTouch && videoScale <= 1.01f &&
+                                heldDoubleSpeedUnlockRequested(unlockArmed, currentY - activationY, lockThresholdPx)) {
+                                onSpeed(1f)
+                                unlockedThisGesture = true
+                                unlockArmed = false
+                                unlockDoubleSpeedArmed = false
+                                lockConfirmationVisible = false
+                                haptics.performHapticFeedback(HapticFeedbackType.LongPress)
+                            }
+                            if (!multiTouch && (holdActivated || unlockArmed || unlockedThisGesture || dy > viewConfiguration.touchSlop)) {
                                 change.consume()
                             }
                         }
@@ -1042,10 +1085,7 @@ private fun VideoPlayerStage(
                     return@awaitEachGesture
                 }
 
-                if (startedAtDoubleSpeed && unlockArmed) {
-                    lockConfirmationVisible = false
-                    onSpeed(1f)
-                    haptics.performHapticFeedback(HapticFeedbackType.LongPress)
+                if (startedAtDoubleSpeed && (unlockArmed || unlockedThisGesture)) {
                     lastSeekSide = null
                     lastSeekTapMs = 0L
                     return@awaitEachGesture
@@ -1104,31 +1144,41 @@ private fun VideoPlayerStage(
                 }
             }
         })
-        val speedGestureLabel = when (videoSpeedHint(
+        val speedGestureLabel = videoSpeedHint(
             unlockDoubleSpeedArmed, temporaryDoubleSpeed, lockConfirmationVisible, playback.speed
-        )) {
-            VideoSpeedHint.RELEASE_FOR_NORMAL ->
-                uiText(playback.appLanguage, "Release for 1×", "放開回到 1×")
-            VideoSpeedHint.PULL_TO_LOCK ->
-                uiText(playback.appLanguage, "2× · Pull down to lock", "2× · 下拉鎖定")
-            VideoSpeedHint.LOCK_CONFIRMED ->
-                uiText(playback.appLanguage, "2× · Locked", "2× · 已鎖定")
-            null -> null
+        )?.let { videoSpeedHintText(playback.appLanguage, it) }
+        val fittedVideo = com.local.listentomusic.ui.components.aspectPreservingVideoSize(
+            lastViewportSize.width, lastViewportSize.height, playback.videoAspectRatio,
+            immersive && frameMode == FullscreenFrameMode.CROP,
+        )
+        val videoBottomInsetPx = fittedVideo?.let {
+            ((lastViewportSize.height - it.height) / 2f).coerceAtLeast(0f)
+        } ?: 0f
+        val visibleControlsInsetPx = if (immersive && controlsVisible) {
+            safeBottomPx + with(density) {
+                (if (canShowTransport) 120.dp else if (canShowTimeline) 64.dp else 0.dp).toPx()
+            }
+        } else 0f
+        val speedHintBottomPadding = with(density) {
+            maxOf(videoBottomInsetPx, visibleControlsInsetPx)
+                .coerceAtMost((lastViewportSize.height - 48.dp.toPx()).coerceAtLeast(0f)).toDp() + 8.dp
         }
         AnimatedVisibility(
             visible = speedGestureLabel != null,
             enter = fadeIn(tween(100)),
             exit = fadeOut(tween(120)),
-            modifier = Modifier.align(Alignment.TopCenter)
-                .offset { IntOffset(0, (toolbarBottomPx + with(density) { 8.dp.toPx() }).roundToInt()) },
+            modifier = Modifier.align(Alignment.BottomCenter)
+                .padding(start = GaSpacing.sm, end = GaSpacing.sm, bottom = speedHintBottomPadding),
         ) {
             Text(
                 speedGestureLabel.orEmpty(),
                 color = GaVideoOverlay.foreground,
-                style = MaterialTheme.typography.labelLarge,
-                fontWeight = FontWeight.Bold,
-                modifier = Modifier.clip(CircleShape).background(GaVideoOverlay.scrim)
-                    .padding(horizontal = GaSpacing.md, vertical = GaSpacing.sm),
+                style = MaterialTheme.typography.labelSmall,
+                fontWeight = FontWeight.Medium,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.testTag("VIDEO_SPEED_HINT").clip(CircleShape).background(GaVideoOverlay.scrim)
+                    .padding(horizontal = GaSpacing.md, vertical = GaSpacing.xs),
             )
         }
         SeekFeedback(
@@ -2481,6 +2531,7 @@ internal fun NowPlayingTopBar(
     onClose: () -> Unit,
     modifier: Modifier = Modifier,
     overlay: Boolean = false,
+    reservePullHandle: Boolean = false,
     frameLit: Boolean = false,
     fullscreen: Boolean = false,
     speed: Float = 1f,
@@ -2506,8 +2557,10 @@ internal fun NowPlayingTopBar(
         val density = LocalDensity.current
         // Round the combined inset once. At 420dpi, independently rounded
         // 12dp + 4dp pads steal two pixels from six exact 48dp targets.
-        val outerPx = with(density) { 12.dp.roundToPx() }
-        val insetPx = with(density) { 16.dp.roundToPx() }
+        val hasPullHandle = reservePullHandle && !fullscreen
+        val outerPadding = if (hasPullHandle) GaSpacing.sm else GaSpacing.md
+        val outerPx = with(density) { outerPadding.roundToPx() }
+        val insetPx = with(density) { (if (hasPullHandle) GaSpacing.sm else GaSpacing.lg).roundToPx() }
         val innerPadding = with(density) { (insetPx - outerPx).toDp() }
         val slots = toolbarAvailableSlots(constraints.maxWidth,
             with(density) { GaControl.touchTarget.roundToPx() }, insetPx * 2)
@@ -2519,7 +2572,7 @@ internal fun NowPlayingTopBar(
         val oneColumn = slots < 2
         val shape = RoundedCornerShape(GaRadius.chrome)
         val chrome = Modifier.fillMaxWidth()
-            .padding(horizontal = 12.dp, vertical = 6.dp)
+            .padding(horizontal = outerPadding, vertical = 6.dp)
             .then(if (overlay) {
                 Modifier.clip(shape)
                     .background(backgroundColor)
@@ -2620,7 +2673,73 @@ internal fun NowPlayingTopBar(
                 inspectorDescription = "Closes Now Playing without stopping playback",
             )
         }
-        if (compact) {
+        val floatingLauncherButton: @Composable () -> Unit = {
+            PlayerToolbarAction(
+                onClick = onPictureInPicture,
+                glyph = Icons.Rounded.PictureInPictureAlt,
+                description = uiText(language, "Open floating player", "開啟浮動播放器"),
+                foreground = foregroundColor,
+                inspectorId = "FLOATING_PLAYER_BUTTON",
+                inspectorDescription = "Opens the selected floating-player mode",
+            )
+        }
+        val homeButton: @Composable () -> Unit = {
+            PlayerToolbarAction(
+                onClick = onHome,
+                glyph = Icons.Rounded.Home,
+                description = uiText(language, "Home", "首頁"),
+                foreground = foregroundColor,
+                inspectorId = "HOME_BUTTON",
+                inspectorDescription = "Returns to Library",
+            )
+        }
+        val floatingModeButton: @Composable () -> Unit = {
+            val selectedMode = LocalFloatingMode.current
+            val onModeChange = LocalFloatingModeChange.current
+            PlayerToolbarAction(
+                onClick = { onModeChange(selectedMode.nextFloatingMode()) },
+                glyph = when (selectedMode) {
+                    FloatingWindowMode.MINI_WINDOW -> Icons.Rounded.PictureInPictureAlt
+                    FloatingWindowMode.FOLLOW_VIDEO, FloatingWindowMode.COMPACT -> Icons.Rounded.OndemandVideo
+                    FloatingWindowMode.NONE -> Icons.Rounded.Block
+                },
+                description = floatingModeDescription(language, selectedMode),
+                foreground = foregroundColor,
+                inspectorId = "FLOATING_MODE_BUTTON",
+                inspectorDescription = "Switch floating playback mode: ${floatingModeLabel(language, selectedMode)}",
+            )
+        }
+        if (hasPullHandle) {
+            val left = listOf(floatingLauncherButton, homeButton, floatingModeButton)
+            val right = listOf(lockSlot, fullscreenButton, closeButton)
+            val touchPx = with(density) { GaControl.touchTarget.roundToPx() }
+            val handlePx = with(density) { com.local.listentomusic.playback.EXPANDED_PULL_HANDLE_WIDTH_DP.dp.roundToPx() }
+            if (constraints.maxWidth < insetPx * 2 + touchPx * 2 + handlePx) {
+                Column(chrome, horizontalAlignment = Alignment.CenterHorizontally) {
+                    Spacer(Modifier.fillMaxWidth().height(52.dp).testTag("EXPANDED_TOOLBAR_HANDLE_GAP"))
+                    (left + right).forEach { it() }
+                }
+            } else {
+                val gapPx = handlePx
+                val perSide = ((constraints.maxWidth - insetPx * 2 - gapPx) / 2 / touchPx).coerceIn(1, 3)
+                Row(chrome, verticalAlignment = Alignment.Top) {
+                    Column(Modifier.weight(1f)) {
+                        left.chunked(perSide).forEach { row ->
+                            Row(Modifier.fillMaxWidth().height(52.dp), verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.SpaceEvenly) { row.forEach { it() } }
+                        }
+                    }
+                    Spacer(Modifier.width(with(density) { gapPx.toDp() })
+                        .height(52.dp * ((3 + perSide - 1) / perSide)).testTag("EXPANDED_TOOLBAR_HANDLE_GAP"))
+                    Column(Modifier.weight(1f)) {
+                        right.chunked(perSide).forEach { row ->
+                            Row(Modifier.fillMaxWidth().height(52.dp), verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.SpaceEvenly) { row.forEach { it() } }
+                        }
+                    }
+                }
+            }
+        } else if (compact) {
             Column(chrome, horizontalAlignment = Alignment.CenterHorizontally) {
                 if (hasSpeed) Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Start) { speedButton() }
                 if (oneColumn) {
@@ -2651,36 +2770,9 @@ internal fun NowPlayingTopBar(
             Row(chrome.height(52.dp), verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween) {
                 speedButton()
-                if (actions.floatingLauncher) PlayerToolbarAction(
-                    onClick = onPictureInPicture,
-                    glyph = Icons.Rounded.PictureInPictureAlt,
-                    description = uiText(language, "Open floating player", "開啟浮動播放器"),
-                    foreground = foregroundColor,
-                    inspectorId = "FLOATING_PLAYER_BUTTON",
-                    inspectorDescription = "Opens the selected floating-player mode",
-                )
-                if (actions.home) PlayerToolbarAction(
-                    onClick = onHome,
-                    glyph = Icons.Rounded.Home,
-                    description = uiText(language, "Home", "首頁"),
-                    foreground = foregroundColor,
-                    inspectorId = "HOME_BUTTON",
-                    inspectorDescription = "Returns to Library",
-                )
-                val selectedMode = LocalFloatingMode.current
-                val onModeChange = LocalFloatingModeChange.current
-                if (actions.floatingMode) PlayerToolbarAction(
-                    onClick = { onModeChange(selectedMode.nextFloatingMode()) },
-                    glyph = when (selectedMode) {
-                        FloatingWindowMode.MINI_WINDOW -> Icons.Rounded.PictureInPictureAlt
-                        FloatingWindowMode.FOLLOW_VIDEO, FloatingWindowMode.COMPACT -> Icons.Rounded.OndemandVideo
-                        FloatingWindowMode.NONE -> Icons.Rounded.Block
-                    },
-                    description = floatingModeDescription(language, selectedMode),
-                    foreground = foregroundColor,
-                    inspectorId = "FLOATING_MODE_BUTTON",
-                    inspectorDescription = "Switch floating playback mode: ${floatingModeLabel(language, selectedMode)}",
-                )
+                if (actions.floatingLauncher) floatingLauncherButton()
+                if (actions.home) homeButton()
+                if (actions.floatingMode) floatingModeButton()
                 rotateButton()
                 lockSlot()
                 frameModeButton()

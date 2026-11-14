@@ -5,6 +5,8 @@ import android.content.ClipboardManager
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -28,7 +30,10 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
-import com.local.listentomusic.ui.theme.GaInspectorPalette
+import com.local.listentomusic.data.AppLanguage
+import com.local.listentomusic.ui.theme.inspectorThemeColors
+import com.local.listentomusic.ui.theme.GaRadius
+import com.local.listentomusic.ui.theme.GaControl
 
 internal data class InspectorRegion(
     val label: String,
@@ -116,6 +121,18 @@ internal class UiInspectorState {
         selectedMatchIndex = (selectedMatchIndex + 1) % matchingRegions.size
         selected = matchingRegions[selectedMatchIndex]
     }
+
+    fun selectionReport(density: Float): String? = selected?.let { region ->
+        buildString {
+            appendLine(region.label)
+            if (region.detail.isNotBlank()) appendLine(region.detail)
+            appendLine("boundsPx=${region.bounds.left.toInt()},${region.bounds.top.toInt()} → ${region.bounds.right.toInt()},${region.bounds.bottom.toInt()}")
+            appendLine("sizePx=${region.bounds.width.toInt()}×${region.bounds.height.toInt()}")
+            appendLine("touchPx=${lastTouch.x.toInt()},${lastTouch.y.toInt()}")
+            if (matchingRegions.isNotEmpty()) appendLine("stack=${selectedMatchIndex + 1}/${matchingRegions.size}")
+            append("sizeDp=${(region.bounds.width / density).toInt()}×${(region.bounds.height / density).toInt()}")
+        }
+    }
 }
 
 internal val LocalUiInspector = compositionLocalOf<UiInspectorState?> { null }
@@ -131,14 +148,15 @@ internal fun Modifier.inspectElement(label: String, detail: String = ""): Modifi
 internal fun UiInspectorHost(
     enabled: Boolean,
     state: UiInspectorState,
+    language: AppLanguage = AppLanguage.ENGLISH,
     content: @Composable () -> Unit,
 ) {
     val density = LocalDensity.current
     val context = LocalContext.current
-    // Inspector colors are independent of the selected app theme. Debug text must
-    // remain readable even when a custom background or broken palette is under it.
-    val inspectorError = GaInspectorPalette.error
-    val inspectorAccent = GaInspectorPalette.accent
+    val colors = inspectorThemeColors(MaterialTheme.colorScheme)
+    val inspectorError = colors.error
+    val inspectorAccent = colors.accent
+    fun text(key: String) = diagnosticsText(language, key)
     LaunchedEffect(enabled) { if (!enabled) state.clear() }
     BackHandler(enabled && state.armed) { state.cancel() }
     CompositionLocalProvider(LocalUiInspector provides if (enabled) state else null) {
@@ -152,13 +170,14 @@ internal fun UiInspectorHost(
                 )
                 Surface(
                     modifier = Modifier.align(Alignment.TopCenter).statusBarsPadding().padding(12.dp).zIndex(101f),
-                    color = Color.Black.copy(alpha = 0.90f),
-                    shape = RoundedCornerShape(10.dp),
+                    color = colors.surface,
+                    contentColor = colors.foreground,
+                    shape = RoundedCornerShape(GaRadius.compact),
                 ) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text("TAP AN ELEMENT", Modifier.padding(horizontal = 12.dp), color = Color.White,
-                            fontFamily = FontFamily.Monospace, style = MaterialTheme.typography.labelLarge)
-                        IconButton(onClick = state::cancel) { Icon(Icons.Rounded.Close, "Cancel inspector", tint = Color.White) }
+                        Text(text("Tap an element"), Modifier.padding(horizontal = 12.dp),
+                            style = MaterialTheme.typography.labelLarge)
+                        IconButton(onClick = state::cancel) { Icon(Icons.Rounded.Close, text("Cancel inspector")) }
                     }
                 }
             }
@@ -172,44 +191,42 @@ internal fun UiInspectorHost(
                     drawLine(inspectorAccent, Offset(state.lastTouch.x, state.lastTouch.y - 10.dp.toPx()),
                         Offset(state.lastTouch.x, state.lastTouch.y + 10.dp.toPx()), 1.dp.toPx())
                 }
-                val report = remember(region, state.lastTouch, density.density) {
-                    buildString {
-                        appendLine(region.label)
-                        if (region.detail.isNotBlank()) appendLine(region.detail)
-                        appendLine("boundsPx=${region.bounds.left.toInt()},${region.bounds.top.toInt()} → ${region.bounds.right.toInt()},${region.bounds.bottom.toInt()}")
-                        appendLine("sizePx=${region.bounds.width.toInt()}×${region.bounds.height.toInt()}")
-                        appendLine("touchPx=${state.lastTouch.x.toInt()},${state.lastTouch.y.toInt()}")
-                        if (state.matchingRegions.isNotEmpty()) appendLine("stack=${state.selectedMatchIndex + 1}/${state.matchingRegions.size}")
-                        append("sizeDp=${(region.bounds.width / density.density).toInt()}×${(region.bounds.height / density.density).toInt()}")
-                    }
+                val report = remember(region, state.lastTouch, density.density, state.selectedMatchIndex) {
+                    state.selectionReport(density.density).orEmpty()
                 }
+                BoxWithConstraints(Modifier.matchParentSize().zIndex(99f)) {
                 Surface(
                     // Library's detached-size dock is a separate WindowManager
                     // surface. Keep the inspector's actions above that dock.
                     modifier = Modifier.align(Alignment.BottomCenter).navigationBarsPadding()
-                        .padding(start = 12.dp, end = 12.dp, bottom = 76.dp).zIndex(99f),
-                    color = GaInspectorPalette.surface.copy(alpha = 0.98f),
-                    contentColor = Color.White,
-                    shape = RoundedCornerShape(14.dp),
+                        .padding(start = 12.dp, end = 12.dp, bottom = 76.dp)
+                        .heightIn(max = (maxHeight - 76.dp).coerceAtLeast(1.dp)),
+                    color = colors.surface,
+                    contentColor = colors.foreground,
+                    shape = RoundedCornerShape(GaRadius.control),
                     tonalElevation = 6.dp,
                 ) {
                     Column(Modifier.fillMaxWidth().padding(start = 14.dp, top = 10.dp, end = 6.dp, bottom = 6.dp)) {
-                        Text(report, Modifier.fillMaxWidth(), color = Color.White,
+                        Text(report, Modifier.fillMaxWidth().weight(1f, fill = false).verticalScroll(rememberScrollState()),
                             fontFamily = FontFamily.Monospace, style = MaterialTheme.typography.labelSmall)
                         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End,
                             verticalAlignment = Alignment.CenterVertically) {
                             if (state.matchingRegions.size > 1) {
-                                TextButton(onClick = state::selectNextMatch) {
-                                    Text("NEXT ${state.selectedMatchIndex + 1}/${state.matchingRegions.size}", color = inspectorAccent)
+                                TextButton(onClick = state::selectNextMatch,
+                                    modifier = Modifier.weight(1f).sizeIn(minHeight = GaControl.touchTarget)) {
+                                    Text("${text("Next match")} ${state.selectedMatchIndex + 1}/${state.matchingRegions.size}")
                                 }
                             }
-                            TextButton(onClick = {
+                            TextButton(modifier = Modifier.sizeIn(minHeight = GaControl.touchTarget), onClick = {
                                 context.getSystemService(ClipboardManager::class.java)
                                     ?.setPrimaryClip(ClipData.newPlainText("Greater Art element", report))
-                            }) { Text("COPY", color = inspectorAccent) }
-                            IconButton(onClick = state::clearSelection) { Icon(Icons.Rounded.Close, "Close selection", tint = Color.White) }
+                            }) { Text(text("Copy")) }
+                            IconButton(onClick = state::clearSelection, modifier = Modifier.size(GaControl.touchTarget)) {
+                                Icon(Icons.Rounded.Close, text("Close selection"))
+                            }
                         }
                     }
+                }
                 }
             }
         }

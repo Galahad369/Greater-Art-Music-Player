@@ -1,7 +1,7 @@
 package com.local.listentomusic.ui.theme
 
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.darkColorScheme
+import androidx.compose.material3.ColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
@@ -62,7 +62,7 @@ internal object GaVideoOverlay {
     val inactiveTrack = Color.White.copy(alpha = 0.36f)
 }
 
-/** Diagnostics must remain legible even when inspecting a broken/custom theme. */
+/** Retained contrast fixture; runtime diagnostics use the active app palette below. */
 internal object GaInspectorPalette {
     val surface = Color(0xFF080C0D)
     val raised = Color(0xFF141A1C)
@@ -71,15 +71,22 @@ internal object GaInspectorPalette {
     val error = Color(0xFFFF5C68)
 }
 
+internal data class InspectorThemeColors(
+    val surface: Color,
+    val raised: Color,
+    val foreground: Color,
+    val accent: Color,
+    val error: Color,
+)
+
+internal fun inspectorThemeColors(scheme: ColorScheme): InspectorThemeColors = InspectorThemeColors(
+    scheme.surface, scheme.surfaceContainerHigh, scheme.onSurface, scheme.primary, scheme.error,
+)
+
 @Composable
 internal fun GaInspectorTheme(content: @Composable () -> Unit) {
-    MaterialTheme(colorScheme = darkColorScheme(
-        primary = GaInspectorPalette.accent, onPrimary = GaInspectorPalette.surface,
-        secondary = GaInspectorPalette.accent, onSecondary = GaInspectorPalette.surface,
-        surface = GaInspectorPalette.surface, onSurface = GaInspectorPalette.foreground,
-        onSurfaceVariant = GaInspectorPalette.foreground,
-        error = GaInspectorPalette.error, onError = GaInspectorPalette.surface,
-    ), content = content)
+    // Retain the host's palette, typography and shapes, including OLED/light mode.
+    MaterialTheme(content = content)
 }
 
 @Composable

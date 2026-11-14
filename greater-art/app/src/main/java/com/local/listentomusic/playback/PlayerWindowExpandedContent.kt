@@ -2,16 +2,15 @@ package com.local.listentomusic.playback
 
 import android.content.Intent
 import android.graphics.Rect
-import android.os.SystemClock
 import android.view.WindowManager
 import androidx.compose.foundation.background
-import androidx.compose.foundation.gestures.detectVerticalDragGestures
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -31,7 +30,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.DialogProperties
@@ -79,44 +77,7 @@ internal fun PlayerWindowExpandedContent(
     var toolbarBottom by remember { mutableStateOf(0f) }
     // Handle drags as the buttons' parent, not as an overlapping sibling that
     // wins hit testing and swallows otherwise valid icon-centre taps.
-    val toolbarInput = Modifier.pointerInput(fullscreen, onPull, onPullEnd, onPullCancel, density) {
-        if (fullscreen) return@pointerInput
-        val activationPx = expandedPullActivationPx(density)
-        var activationTravelPx = 0f
-        var totalDownwardPx = 0f
-        var activated = false
-        var dragStartMs = 0L
-        var withinHandle = false
-        detectVerticalDragGestures(
-            onDragStart = { point ->
-                withinHandle = point.x in (size.width * .24f)..(size.width * .76f)
-                activationTravelPx = 0f
-                totalDownwardPx = 0f
-                activated = false
-                dragStartMs = SystemClock.uptimeMillis()
-            },
-            onVerticalDrag = drag@{ change, dragAmount ->
-                if (!withinHandle) return@drag
-                change.consume()
-                totalDownwardPx = (totalDownwardPx + dragAmount).coerceAtLeast(0f)
-                if (!activated) {
-                    activationTravelPx = (activationTravelPx + dragAmount).coerceAtLeast(0f)
-                    if (activationTravelPx >= activationPx) {
-                        activated = true
-                        val overflow = activationTravelPx - activationPx
-                        if (overflow > 0f) onPull(expandedPullResistedDelta(overflow))
-                    }
-                } else onPull(expandedPullResistedDelta(dragAmount))
-            },
-            onDragEnd = {
-                if (activated) {
-                    val elapsedMs = (SystemClock.uptimeMillis() - dragStartMs).coerceAtLeast(1L)
-                    onPullEnd(totalDownwardPx, totalDownwardPx * 1_000f / elapsedMs.toFloat())
-                } else onPullCancel()
-            },
-            onDragCancel = onPullCancel,
-        )
-    }
+    val toolbarInput = Modifier.expandedPlayerPullInput(!fullscreen, density, onPull, onPullEnd, onPullCancel)
     var addToListFile by remember { mutableStateOf<com.local.listentomusic.model.MediaFile?>(null) }
     val artwork by key(playback.currentPath, settings.localOverrides[playback.currentPath]) {
         val path = playback.currentPath
@@ -129,7 +90,7 @@ internal fun PlayerWindowExpandedContent(
     }
 
     MediaAdaptiveTheme(settings, playback.currentPath, artwork) {
-        UiInspectorHost(settings.developerMode, inspector) {
+        UiInspectorHost(settings.developerMode, inspector, settings.appLanguage) {
             Box(Modifier.fillMaxSize()) {
                 Surface(
                     modifier = Modifier.fillMaxSize(),
@@ -214,8 +175,8 @@ internal fun PlayerWindowExpandedContent(
                     Box(
                         Modifier
                             .align(Alignment.TopCenter)
-                            .fillMaxWidth(0.52f)
-                            .height(40.dp)
+                            .width(EXPANDED_PULL_HANDLE_WIDTH_DP.dp)
+                            .height(52.dp)
                             .inspectElement(
                                 "EXPANDED_MINI_PULL_HANDLE",
                                 "Deliberate pull down to return to Library; activation gate + resistance",

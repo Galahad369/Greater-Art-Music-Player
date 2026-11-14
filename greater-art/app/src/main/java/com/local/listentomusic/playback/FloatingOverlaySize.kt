@@ -5,6 +5,7 @@ internal data class FloatingOverlaySize(val widthPx: Int, val heightPx: Int)
 
 internal const val EXPANDED_PULL_ACTIVATION_DP = 24f
 internal const val EXPANDED_PULL_RESISTANCE = 0.72f
+internal const val EXPANDED_PULL_HANDLE_WIDTH_DP = 72f
 internal const val EXPANDED_PULL_FAST_FLING_MIN_DP = 56f
 internal const val EXPANDED_PULL_FAST_FLING_VELOCITY_DP_PER_SEC = 1400f
 
@@ -13,6 +14,10 @@ internal fun expandedPullActivationPx(density: Float): Float =
 
 internal fun expandedPullResistedDelta(deltaPx: Float): Float =
     deltaPx * EXPANDED_PULL_RESISTANCE
+
+internal fun expandedPullHandleContains(xPx: Float, widthPx: Float, density: Float): Boolean =
+    widthPx > 0f && density > 0f &&
+        kotlin.math.abs(xPx - widthPx / 2f) <= EXPANDED_PULL_HANDLE_WIDTH_DP * density / 2f
 
 internal fun expandedPullFastFlingReached(
     totalDragPx: Float,
