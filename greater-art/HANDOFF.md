@@ -27,9 +27,13 @@ SHA-256`19658f77dbc8e237a41162a3b3fc410752380833b49eee64d23d7d672fe26039`.
 It uses the existing maintenance signer0a7b9ceb…53de6b7. The original public
 signer identity gate FAILS; that key remains unavailable. Do not call this an
 update-compatible public release. Actual screenshots were visually inspected.
-The added fullscreen portrait/landscape/return check passes, but its subsequent
-Mini check is interrupted by host-suspended QEMU/ADB and remains unverified.
-Retain that failure. A cleanup-only restart restores DEFAULT access app-ops,
+The added fullscreen portrait/landscape/return check passes. Its subsequent Mini
+check is interrupted by host-suspended QEMU/ADB; retain that failure. A clean
+bounded Mini-only retry on the SAME APK now PASSES: same PID, position12,988→31,268ms
+over18.281seconds, actual Mini/expanded screenshots and empty crash buffer.
+The final owned A55 stops12:32:14UTC14November with DEFAULT access app-ops,
+volume5/15, original test-package absence and profile/GPU unchanged.
+The earlier cleanup-only restart also restores DEFAULT access app-ops,
 volume5/15 and original test-package absence, preserves the installed optimized
 app/profile/GPU, then stops the owned A55 at11:44:19UTC14November.
 The six-take backing/output goal remains incomplete and unchanged. The private
@@ -38,6 +42,9 @@ assertion still red. E35's separate private follow-up now passes 11 JVM byte-cop
 flush, exception and concurrent-ring checks; it is NOT a qualified native
 instrument and is not integrated. Format/ownership, sealing/drain, native cadence
 and known-premix prediction remain required before any production adoption.
+E36's five isolated tests confirm the existing pinned Media3 forwarder's
+configuration/object/exception delegation through192k float and offload/tunneling;
+they do NOT qualify an actual native format or the unfinished observer.
 The separate fullscreen switching diagnosis
 reproduces a visual handoff defect but no crash; no transition repair is included.
 

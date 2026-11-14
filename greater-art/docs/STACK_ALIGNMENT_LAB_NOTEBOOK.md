@@ -1347,3 +1347,52 @@ original/same-three red-green logs, added-control failures and
 The committed app-input fingerprint stays355ba93d…e93d2fd and exact31APK remains
 SHA19658f77…fe26039. No new APK, app version, branch, worktree, push, merge or
 production adoption. The full original backing/output goal remains incomplete.
+
+## E36 — existing Media3 provider compatibility and retained source-binding scope
+
+No new provider implementation or app integration. The pinned Media3 1.11.1
+`ForwardingAudioOutputProvider` is tested with its real configuration objects and
+fake outputs. Sixteen PCM encoding/rate combinations through192k float retain
+support/config/output identity, as do offload/tunneling requests. Buffer/session/
+virtual-device/playback-parameter flags and original exception identity remain.
+A deliberately48k/S16-coercing fixture fails the SAME check specifically for
+encoding. This embedded negative control cannot pass from a missing-class error.
+
+The first run does have missing-class failures: the selected transformed Guava
+JAR contains only Maven metadata. Substitute the existing full pinned cached JAR
+and failureaccess dependency, without changing assertions or versions. All FIVE
+methods pass. The independent read-only reviewer finds no assertion false-pass,
+but catches the copied runner's unused red-mode branch expecting the old flush
+test. Remove that unsupported branch and bind the runner hash. All FIVE pass
+again. No separate provider red launch, native negotiation/cadence or emitted-
+sample qualification is claimed. This supports reusing the existing maintained
+forwarder rather than rebuilding configs or forcing a lower-quality PCM route.
+
+The native instrument remains incomplete and outside production. Evidence:
+E31 child `post-dsp-provider-api-01/RESULT.md`, initial class-loading failures,
+`full-cached-guava-02/receipt.json`, `provider-runner-fixed-03/receipt.json`.
+Test SHA-256:`76d5d508605bcaab6fface0db043e05d97ae4e6938a945c318b608deed9066da`.
+Independent read-only reviewer: existing `overnight_alignment_review`, not a
+native tester. No app/source-quality, matcher, capture-route, APK, device, push,
+merge or production change follows this isolated check.
+
+A bounded read of E33's retained provenance finds no demonstrated wrong-file
+cause: its adapter checks all6QA MP4 SHA-256 values against the six-entry media
+manifest before normal UI selection. Its source-scoring scripts also bind all
+6host PCM hashes to the earlier identifiability receipt. Those facts prove file
+presence/retained measurement inputs, NOT which decoded samples each native
+lane actually emits. No new decode, waveform fit or scorer follows. Future
+post-DSP observation still needs an output-instance-to-source/config binding;
+do not reinterpret E33's unqualified coefficients as missing singers or a gain
+bug. Full original-six backing/output and native high-resolution parity remain
+incomplete; unchanged app31 and private artifacts remain preserved.
+
+**Final31UI Mini retry, separate from Stack:** the same optimized APK
+SHA19658f77…fe26039 passes a clean targeted expanded → Mini → expanded flow.
+PID1781stays alive; position advances12,988→31,268ms over18.281seconds with an
+empty crash buffer. Actual Mini/returned-expanded screenshots are inspected.
+DEFAULT access app-ops, volume5/15, baseline test-package absence and profile
+hashes are preserved; the owned A55 stops12:32:14UTC. The earlier host-suspended
+attempt stays recorded. This is not a fullscreen-shake repair, native tracer
+qualification or actual-six backing pass. Exact receipt:
+`App/output/now-playing-controls-20261114/a55-mini-retry-01/report.json`.

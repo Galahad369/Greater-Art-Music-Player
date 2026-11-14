@@ -81,9 +81,23 @@ at baseline, preserves the optimized installed app, and stops normally at
 11:44:19 UTC. Original AVD profile hashes and GPU configuration are unchanged.
 The successful native flow already restored Developer Mode off and original 1×.
 
+The separate, bounded Mini-only retry now PASSES on those SAME optimized bytes.
+Normal Library video → expanded → Mini → expanded stays in PID1781. Position
+advances from12,988ms to31,268ms over18.281seconds, without reset or unexpected
+jump. The actual Mini bounds are[33,975]→[312,1132]px; its screenshot and the
+returned expanded view are visually inspected. Crash buffer stays empty.
+Both DEFAULT app-ops, original volume5/15, test-package absence and stored profile
+hashes remain intact. The owned A55 stops normally at12:32:14UTC14November.
+Retain the earlier host-interrupted attempt; this clean retry does not repair or
+qualify every fullscreen handoff, physical device or Stack output scenario.
+
 Receipts: `optimized31-native-smoke-01/report.json`,
 `optimized31-native-transitions-01/report.json`, `owned-emulator-resume.json`, and
-`a55-restore-01/restoration.json` under the private evidence root below.
+`a55-restore-01/restoration.json` plus final `a55-mini-retry-01/report.json` under
+the private evidence root below. `preservation-schema-corrected.json` verifies
+577unchanged original files and41unchanged baseline absences. Its retained first
+checker incorrectly treated `absent=true` sparse-worktree entries as newly lost
+APKs; no previously present file is missing and no APK restoration was attempted.
 
 Private evidence: `App/output/now-playing-controls-20261114/`.
 The earlier exact30 screenshot is an observed baseline, not an image of this build.
