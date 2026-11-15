@@ -8,18 +8,25 @@ This file describes the **current repository state only**. Historical session no
 
 ## Current Android builds
 
-**Current 1.22.37/code358 — hidden-window focus/dim correction, SOURCE_ONLY:**
+**Current 1.22.37/code 358 — hidden-window focus/dim correction, SOURCE_ONLY:**
 [Cause, regression and resume](docs/PLAYER_WINDOW_POLICY_1.22.37.md). The retained
-host must not keep focus or14% dim while transparent in fullscreen.37applies the
+host must not keep focus or 14% dim while transparent in fullscreen. 37 applies the
 visibility/input/dim policy at every native layout update, including rotation and
 sharing, preserving geometry/awake flags and the existing player. The focused
-test catches the old hidden dim0.14instead of0; four policy tests cover hidden,
-normal Expanded, Mini and1,000hide/show updates. Complete37checks, optimized assembly,
+test catches the old hidden dim 0.14 instead of 0; four policy tests cover hidden,
+normal Expanded, Mini and 1,000 hide/show updates. Complete 37 checks, optimized assembly,
 same-key/exact-file identity and A55 smoke remain distinct. Keep the owner's other
 work running and use lower-priority host checks. No push, merge or cleanup.
-**37host results:610JVM tests pass; lint zero errors/54warnings; debug/test assembly
-passes in8m7s.** New A55 acceptance remains unverified after the earlier startup ANR;
-the latest resource check has only about1.55GiB free RAM, so no repeated boot is run.
+**37 host results: 610 JVM tests pass; lint zero errors/54 warnings; debug/test assembly
+passes in 8m 7s.** New A55 acceptance remains unverified after the earlier startup ANR;
+the latest resource check has only about 1.55 GiB free RAM, so no repeated boot is run.
+Optimized 37 assembly also passes. The exact same-maintenance-key private candidate
+is `App/output/icon-theme-20261115/optimized37-maintenance/GreaterArt-1.22.37.apk`,
+5,604,312 bytes, SHA-256 `d59b222542d0fdbafe8964d528639f661d20683769e0fe4fe9d5ad76581cd8e5`.
+Version/package/certificate, ZIP CRC and 16 KiB alignment pass; the icon license is
+bundled. Original-public identity still fails and exact 37 A55 smoke is NOT RUN.
+This is not a verified release. Its exact executable source is 85c14c9; subsequent
+artifact-documentation edits do not rebuild it.
 
 **Superseded 1.22.36/code357 — transition repairs and matching native icons:**
 [Cause, evidence and exact resume](docs/PLAYER_TRANSITIONS_1.22.36.md). Mode taps
