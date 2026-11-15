@@ -8,7 +8,20 @@ This file describes the **current repository state only**. Historical session no
 
 ## Current Android builds
 
-**Current 1.22.36/code357 — transition repairs and matching native icons, SOURCE_ONLY:**
+**Current 1.22.37/code358 — hidden-window focus/dim correction, SOURCE_ONLY:**
+[Cause, regression and resume](docs/PLAYER_WINDOW_POLICY_1.22.37.md). The retained
+host must not keep focus or14% dim while transparent in fullscreen.37applies the
+visibility/input/dim policy at every native layout update, including rotation and
+sharing, preserving geometry/awake flags and the existing player. The focused
+test catches the old hidden dim0.14instead of0; four policy tests cover hidden,
+normal Expanded, Mini and1,000hide/show updates. Complete37checks, optimized assembly,
+same-key/exact-file identity and A55 smoke remain distinct. Keep the owner's other
+work running and use lower-priority host checks. No push, merge or cleanup.
+**37host results:610JVM tests pass; lint zero errors/54warnings; debug/test assembly
+passes in8m7s.** New A55 acceptance remains unverified after the earlier startup ANR;
+the latest resource check has only about1.55GiB free RAM, so no repeated boot is run.
+
+**Superseded 1.22.36/code357 — transition repairs and matching native icons:**
 [Cause, evidence and exact resume](docs/PLAYER_TRANSITIONS_1.22.36.md). Mode taps
 cycle the stored preference atomically. Video requests the real fullscreen Activity
 without a local fullscreen resize; the hidden expanded host is retained instead of
@@ -21,6 +34,8 @@ checks; lint has zero errors/54warnings; diagnostic assembly passes.** The origi
 acceptance remain separate gates. Leave the owner's other work alone; do not repeat
 blind cold boots or weaken checks. Keep the private unqualified visible-pause probe
 separate; production pause policy is unchanged. No quality, Stack, cleanup, push or merge.
+Its optimized assembly later passes in `optimized36-gate-01`, but original-public
+identity fails; the subsequent hidden-window policy finding prevents promotion.
 
 **Retained 1.22.35/code356 — normal-player queue icon coverage:**
 [Scope](docs/PLAYER_ICON_THEME_1.22.35.md). Queue/search/list and Sleep Timer controls

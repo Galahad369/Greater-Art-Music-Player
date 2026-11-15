@@ -61,6 +61,11 @@ class FullscreenServiceHandoffTest {
             fullscreen = monitor.waitForActivityWithTimeout(10_000L) as? FullscreenVideoActivity
             assertTrue("The fullscreen button did not open the real Activity", fullscreen != null)
             await { VideoSurfaceOwner.state.value.owner == "NOW_PLAYING" && VideoSurfaceOwner.state.value.firstFrame }
+            var focused = false
+            await {
+                instrumentation.runOnMainSync { focused = fullscreen!!.hasWindowFocus() }
+                focused
+            }
             instrumentation.runOnMainSync {
                 assertEquals("Fullscreen must retain the expanded host, not tear it down into Detached", PlayerWindowMode.EXPANDED, MiniWindowOverlayService.modeSnapshot.value)
                 assertEquals(playerIdentity, VideoSurfaceOwner.state.value.player)

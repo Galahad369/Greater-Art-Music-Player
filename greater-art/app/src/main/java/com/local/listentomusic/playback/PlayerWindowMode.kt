@@ -1,10 +1,24 @@
 package com.local.listentomusic.playback
 
+import android.view.WindowManager
+
 /** One overlay window, three geometries. Playback and its PlayerView outlive mode changes. */
 internal enum class PlayerWindowMode { DOCKED, DETACHED, EXPANDED }
 
 /** A full-size expanded player keeps the display awake; Mini Window never does. */
 internal fun playerWindowScreenAwakeFlags(flags: Int, mode: PlayerWindowMode): Int {
-    val keepAwake = android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON
+    val keepAwake = WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON
     return if (mode == PlayerWindowMode.EXPANDED) flags or keepAwake else flags and keepAwake.inv()
 }
+
+/** Alpha alone does not release a window's input focus or background dim. */
+internal fun playerWindowInputFlags(flags: Int, expanded: Boolean, visible: Boolean): Int {
+    val touchFlags = if (visible) flags and WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE.inv()
+        else flags or WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE
+    return if (expanded && visible)
+        (touchFlags and WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE.inv()) or WindowManager.LayoutParams.FLAG_DIM_BEHIND
+    else (touchFlags or WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE) and WindowManager.LayoutParams.FLAG_DIM_BEHIND.inv()
+}
+
+internal fun playerWindowDimAmount(expanded: Boolean, visible: Boolean): Float =
+    if (expanded && visible) .14f else 0f

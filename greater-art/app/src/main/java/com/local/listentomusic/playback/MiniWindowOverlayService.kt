@@ -740,6 +740,22 @@ class MiniWindowOverlayService : Service(), LifecycleOwner, ViewModelStoreOwner,
     private fun updateRootLayout() {
         val view = root ?: return
         val layout = params ?: return
+        // Rotation, resize and share restoration also update this same window.
+        // Apply visibility at this common boundary so none can resurrect a
+        // hidden overlay's focus, touches or dim behind the fullscreen Activity.
+        val allowExternalMini = mode != PlayerWindowMode.DETACHED ||
+            selectedFloatingMode == FloatingWindowMode.MINI_WINDOW
+        val visible = !sharing && allowExternalMini && com.local.listentomusic.ui.components.shouldShowPlayerWindow(
+            ready = ready,
+            fullscreenActivity = com.local.listentomusic.ui.components.VideoSurfaceOwner.fullscreenActivityActive,
+            expanded = expanded,
+            docked = docked,
+            dockedVisible = PlayerWindowVisibility.dockedVisible.value,
+            detachedVisible = PlayerWindowVisibility.detachedVisible.value,
+        )
+        layout.alpha = if (visible) 1f else 0f
+        layout.flags = playerWindowInputFlags(layout.flags, expanded, visible)
+        layout.dimAmount = playerWindowDimAmount(expanded, visible)
         runCatching { wm?.updateViewLayout(view, layout) }
     }
 
@@ -909,24 +925,7 @@ class MiniWindowOverlayService : Service(), LifecycleOwner, ViewModelStoreOwner,
         }
     }
 
-    private fun updateVisibility() {
-        val allowExternalMini = mode != PlayerWindowMode.DETACHED ||
-            selectedFloatingMode == FloatingWindowMode.MINI_WINDOW
-        val visible = allowExternalMini && com.local.listentomusic.ui.components.shouldShowPlayerWindow(
-            ready = ready,
-            fullscreenActivity = com.local.listentomusic.ui.components.VideoSurfaceOwner.fullscreenActivityActive,
-            expanded = expanded,
-            docked = docked,
-            dockedVisible = PlayerWindowVisibility.dockedVisible.value,
-            detachedVisible = PlayerWindowVisibility.detachedVisible.value,
-        )
-        params?.let {
-            it.alpha = if (visible) 1f else 0f
-            it.flags = if (visible) it.flags and WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE.inv()
-                else it.flags or WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE
-        }
-        updateRootLayout()
-    }
+    private fun updateVisibility() = updateRootLayout()
 
     private fun updateMiniWindowSize() {
         val layout = params ?: return
