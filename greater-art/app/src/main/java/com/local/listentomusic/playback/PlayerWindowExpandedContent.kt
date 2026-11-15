@@ -102,7 +102,7 @@ internal fun PlayerWindowExpandedContent(
                         Box(Modifier.fillMaxWidth().weight(1f)) {
                             NowPlayingScreen(
                                 floatingWindowMode = settings.floatingWindowMode,
-                                onFloatingWindowModeChange = viewModel::setFloatingWindowMode,
+                                onFloatingWindowModeChange = { viewModel.cycleFloatingWindowMode() },
                                 playback = playback,
                                 artwork = artwork,
                                 ambientPreferences = settings,
@@ -159,7 +159,12 @@ internal fun PlayerWindowExpandedContent(
                                     }
                                 },
                                 systemOverlay = true,
-                                onFullscreenChanged = { fullscreen = it; onFullscreen(it) },
+                                onFullscreenChanged = {
+                                    // Video entry is an Activity request, not a
+                                    // fullscreen state of this retained overlay.
+                                    if (!playback.isVideo) fullscreen = it
+                                    onFullscreen(it)
+                                },
                                 sharedVideoView = videoView,
                                 onSharedVideoReleased = onVideoReleased,
                                 onToolbarBoundsChanged = { toolbarBottom = it.bottom },

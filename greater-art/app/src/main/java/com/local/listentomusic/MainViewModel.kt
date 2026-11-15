@@ -685,6 +685,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     fun setAutoPictureInPicture(value: Boolean) = updatePreference { preferences.setAutoPictureInPicture(value) }
     fun setFloatingWindowMode(value: FloatingWindowMode) =
         updatePreference { preferences.setFloatingWindowMode(value) }
+    fun cycleFloatingWindowMode() = updatePreference { preferences.cycleFloatingWindowMode() }
     fun setAppLanguage(value: AppLanguage) = updatePreference { preferences.setAppLanguage(value) }
     fun setBackgroundMode(value: AppBackgroundMode) =
             updatePreference { preferences.setBackgroundMode(value) }

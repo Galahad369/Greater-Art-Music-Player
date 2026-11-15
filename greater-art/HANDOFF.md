@@ -8,15 +8,25 @@ This file describes the **current repository state only**. Historical session no
 
 ## Current Android builds
 
-**Current 1.22.35/code356 — complete normal-player icon coverage, NOT BUILT:**
-[Scope and resume](docs/PLAYER_ICON_THEME_1.22.35.md). Queue search/locate/close,
-Add to list, overflow/reorder/remove and Sleep Timer use the same control accent.
-The retained34actual screenshot catches the queue mismatch before this correction.
-The35native test compiles, but its baseline device run stops at low disk space;
-the source correction still needs compile/tests/lint, optimized assembly and
-exact-file A55 acceptance. Release preflight is BLOCKED below8GiB; last observed
-free space is about6.46GiB. No35player APK exists. Keep the tested34APK, source35and all
-failed evidence distinct. No test weakening, quality change, cleanup, push or merge.
+**Current 1.22.36/code357 — transition repairs and matching native icons, SOURCE_ONLY:**
+[Cause, evidence and exact resume](docs/PLAYER_TRANSITIONS_1.22.36.md). Mode taps
+cycle the stored preference atomically. Video requests the real fullscreen Activity
+without a local fullscreen resize; the hidden expanded host is retained instead of
+collapsing to Detached. Mini/widget transport uses matching22dp Rounded vectors with
+unchanged targets/actions. Add1,000-cycle connection/surface checks and focused native
+regressions. Retained34reproduces dropped mode taps and the intermediate relayout;
+three normal round trips alone do not establish visual quality. Later A55 testing
+stops before tests with a startup ANR. **606JVM tests pass, including both1,000-cycle
+checks; lint has zero errors/54warnings; diagnostic assembly passes.** The original-public key and exact36device
+acceptance remain separate gates. Leave the owner's other work alone; do not repeat
+blind cold boots or weaken checks. Keep the private unqualified visible-pause probe
+separate; production pause policy is unchanged. No quality, Stack, cleanup, push or merge.
+
+**Retained 1.22.35/code356 — normal-player queue icon coverage:**
+[Scope](docs/PLAYER_ICON_THEME_1.22.35.md). Queue/search/list and Sleep Timer controls
+complete the accent wiring. Its later optimized assembly passes in the private
+`optimized35-gate-03` receipt, but its original-public identity check fails. There is
+no newly verified35APK. Keep it separate from tested34and the current36source.
 
 **Retained 1.22.34/code355 — Now Playing action-icon tints:**
 [Scope and verification](docs/PLAYER_ICON_THEME_1.22.34.md). Normal toolbar,

@@ -79,7 +79,7 @@ class FullscreenVideoActivity : ComponentActivity() {
                 UiInspectorHost(enabled = developerVisible, state = inspector, language = settings.appLanguage) {
                 NowPlayingScreen(
                     floatingWindowMode = settings.floatingWindowMode,
-                    onFloatingWindowModeChange = viewModel::setFloatingWindowMode,
+                    onFloatingWindowModeChange = { viewModel.cycleFloatingWindowMode() },
                     playback = playback,
                     artwork = artwork,
                     ambientPreferences = settings,

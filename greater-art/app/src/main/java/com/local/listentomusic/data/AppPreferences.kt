@@ -203,16 +203,7 @@ class AppPreferences(private val context: Context) {
             showFileDetails = prefs[Keys.showFileDetails] ?: false,
             resumePlayback = prefs[Keys.resumePlayback] ?: true,
             autoPictureInPicture = prefs[Keys.autoPictureInPicture] ?: true,
-            floatingWindowMode = enumValueOrDefault(
-                prefs[Keys.floatingWindowMode],
-                FloatingWindowMode.MINI_WINDOW,
-            ).let { savedMode ->
-                // Existing installs inherited Compact without choosing it. Migrate that
-                // old default once; future explicit Compact selections remain respected.
-                if (prefs[Keys.floatingWindowDefaultV2] != true &&
-                    savedMode == FloatingWindowMode.COMPACT
-                ) FloatingWindowMode.MINI_WINDOW else savedMode
-            },
+            floatingWindowMode = floatingWindowMode(prefs),
             appLanguage = enumValueOrDefault(prefs[Keys.appLanguage], AppLanguage.ENGLISH),
             backgroundMode = enumValueOrDefault(
                 prefs[Keys.backgroundMode],
@@ -351,6 +342,18 @@ class AppPreferences(private val context: Context) {
     suspend fun setFloatingWindowMode(value: FloatingWindowMode) = edit {
         it[Keys.floatingWindowMode] = value.name
         it[Keys.floatingWindowDefaultV2] = true
+    }
+    suspend fun cycleFloatingWindowMode() = edit {
+        // Read and advance in the same transaction. Two taps before the UI's
+        // next preference emission must not both write the same stale value.
+        it[Keys.floatingWindowMode] = floatingWindowMode(it).nextFloatingMode().name
+        it[Keys.floatingWindowDefaultV2] = true
+    }
+    private fun floatingWindowMode(prefs: androidx.datastore.preferences.core.Preferences): FloatingWindowMode {
+        val savedMode = enumValueOrDefault(prefs[Keys.floatingWindowMode], FloatingWindowMode.MINI_WINDOW)
+        // Preserve the original one-time migration of the legacy Compact default.
+        return if (prefs[Keys.floatingWindowDefaultV2] != true && savedMode == FloatingWindowMode.COMPACT)
+            FloatingWindowMode.MINI_WINDOW else savedMode
     }
     suspend fun setAppLanguage(value: AppLanguage) = edit { it[Keys.appLanguage] = value.name }
     suspend fun setBackgroundMode(value: AppBackgroundMode) =

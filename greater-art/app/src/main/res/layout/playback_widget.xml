@@ -1,7 +1,7 @@
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android" android:layout_width="match_parent" android:layout_height="match_parent" android:orientation="horizontal" android:gravity="center_vertical" android:padding="12dp" android:background="#151C1A">
     <ImageView android:id="@+id/widget_art" android:layout_width="48dp" android:layout_height="48dp" android:src="@drawable/ic_launcher_foreground" android:contentDescription="Artwork" />
     <TextView android:id="@+id/widget_title" android:layout_width="0dp" android:layout_weight="1" android:layout_height="wrap_content" android:text="Greater Art" android:textColor="#FFFFFF" android:maxLines="2" android:ellipsize="end" android:padding="8dp" />
-    <ImageButton android:id="@+id/widget_previous" android:layout_width="48dp" android:layout_height="48dp" android:src="@android:drawable/ic_media_previous" android:background="@android:color/transparent" android:contentDescription="Previous" />
+    <ImageButton android:id="@+id/widget_previous" android:layout_width="48dp" android:layout_height="48dp" android:src="@drawable/ic_skip_previous" android:background="@android:color/transparent" android:contentDescription="Previous" />
     <ImageButton android:id="@+id/widget_toggle" android:layout_width="48dp" android:layout_height="48dp" android:src="@drawable/ic_play" android:background="@android:color/transparent" android:contentDescription="Play or pause" />
-    <ImageButton android:id="@+id/widget_next" android:layout_width="48dp" android:layout_height="48dp" android:src="@android:drawable/ic_media_next" android:background="@android:color/transparent" android:contentDescription="Next" />
+    <ImageButton android:id="@+id/widget_next" android:layout_width="48dp" android:layout_height="48dp" android:src="@drawable/ic_skip_next" android:background="@android:color/transparent" android:contentDescription="Next" />
 </LinearLayout>

@@ -447,8 +447,14 @@ fun NowPlayingScreen(
     // Crop trims edges when the user explicitly selects screen fill.
     var fullscreenFrameMode by rememberSaveable { mutableStateOf(FullscreenFrameMode.FIT) }
     val toggleFullscreen = {
-        if (!fullscreen) fullscreenLandscape = false
-        fullscreen = !fullscreen
+        if (systemOverlay && playback.isVideo && !fullscreen) {
+            // The real Activity owns fullscreen geometry. Keep the current
+            // overlay stable while it opens instead of resizing video twice.
+            onFullscreenChanged(true)
+        } else {
+            if (!fullscreen) fullscreenLandscape = false
+            fullscreen = !fullscreen
+        }
     }
     var controlsLocked by rememberSaveable { mutableStateOf(false) }
     // The lock and the fullscreen video chrome share one visibility source.

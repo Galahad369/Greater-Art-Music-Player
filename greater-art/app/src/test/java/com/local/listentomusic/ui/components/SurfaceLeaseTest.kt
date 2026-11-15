@@ -198,6 +198,27 @@ class SurfaceLeaseTest {
             assertTrue(state.firstFrame)
         }
     }
+    @Test fun repeatedFullscreenReturnsIgnoreLateReleasesAndOldFrameCallbacks() {
+        var lease = SurfaceLease()
+        var clock = 100L
+        repeat(1_000) { index ->
+            val oldView = lease.view
+            val currentView = index + 1
+            val owner = if (index % 2 == 0) "MINI_WINDOW" else "NOW_PLAYING"
+            lease = lease.attach(owner, currentView, clock, 7)
+            val generation = lease.generation
+            lease = lease.detach(oldView, clock + 1L)
+            lease = lease.frame(clock - 1L, true)
+            assertEquals(owner, lease.owner)
+            assertEquals(currentView, lease.view)
+            assertEquals(generation, lease.generation)
+            assertFalse("An old frame cannot satisfy the new surface", lease.firstFrame)
+            lease = lease.frame(clock + 2L, true)
+            assertTrue(lease.firstFrame)
+            assertTrue(lease.warnings(owner, true, clock + 3_000L).isEmpty())
+            clock += 4_000L
+        }
+    }
     @Test fun warningReasonsAllowTransitionGraceTime() {
         val state = SurfaceLease().attach("LIBRARY_MINI", 1, 100)
         assertTrue(state.warnings("NOW_PLAYING", true, 200).isEmpty())

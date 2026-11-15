@@ -47,9 +47,9 @@ class CompactPlayerView(context: Context) : FrameLayout(context) {
     // foreground output HDR-capable, not on the decorative TextureView layout.
     val video: PlayerView = AspectPreservingPlayerView(context)
     private val title = TextView(context)
-    private val previous = button(android.R.drawable.ic_media_previous)
-    private val toggle = button(android.R.drawable.ic_media_play)
-    private val next = button(android.R.drawable.ic_media_next)
+    private val previous = button(R.drawable.ic_skip_previous)
+    private val toggle = button(R.drawable.ic_play)
+    private val next = button(R.drawable.ic_skip_next)
     private val progress = ProgressBar(context, null, android.R.attr.progressBarStyleHorizontal)
     private var player: Player? = null
     private var miniSize = com.local.listentomusic.data.LibraryRowSize.SMALL
@@ -242,7 +242,7 @@ class CompactPlayerView(context: Context) : FrameLayout(context) {
         previous.isEnabled = p.hasPreviousMediaItem()
         next.isEnabled = p.hasNextMediaItem()
         val pause = playbackRequested(p)
-        toggle.setImageResource(if (pause) android.R.drawable.ic_media_pause else android.R.drawable.ic_media_play)
+        toggle.setImageResource(if (pause) R.drawable.ic_pause else R.drawable.ic_play)
         toggle.contentDescription = if (pause) pauseLabel else playLabel
         val isVideo = p.currentMediaItem?.mediaMetadata?.mediaType == androidx.media3.common.MediaMetadata.MEDIA_TYPE_VIDEO ||
             p.currentMediaItem?.mediaId?.substringAfterLast('.')?.lowercase() in setOf("mp4", "mkv", "webm", "mov", "m4v", "avi", "3gp", "ts", "mpeg", "mpg", "flv")

@@ -163,7 +163,8 @@ class MiniWindowOverlayService : Service(), LifecycleOwner, ViewModelStoreOwner,
     private val systemHome = object : BroadcastReceiver() {
         override fun onReceive(context: Context?, intent: Intent?) {
             if (intent?.action == Intent.ACTION_CLOSE_SYSTEM_DIALOGS &&
-                shouldShrinkForSystemReason(intent.getStringExtra("reason")) && expanded) {
+                shouldShrinkForSystemReason(intent.getStringExtra("reason")) && expanded &&
+                !com.local.listentomusic.ui.components.VideoSurfaceOwner.fullscreenActivityActive) {
                 if (autoFloatingEnabled && selectedFloatingMode.usesAndroidPip() &&
                     viewModel.playback.value.isVideo && viewModel.playback.value.isPlaying) {
                     openNativePictureInPicture()
@@ -1009,7 +1010,9 @@ class MiniWindowOverlayService : Service(), LifecycleOwner, ViewModelStoreOwner,
             startActivity(Intent(this, FullscreenVideoActivity::class.java).apply {
                 addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_NO_ANIMATION)
             })
-            switchMode(PlayerWindowMode.DETACHED)
+            // Retain the expanded host and its live surface while the Activity
+            // registers its replacement. Visibility hides this window; collapsing
+            // it here reparents/disposes the outgoing renderer before the handoff.
             updateVisibility()
         }.onFailure {
             com.local.listentomusic.ui.components.VideoSurfaceOwner.setFullscreenActivityVisible(false)
