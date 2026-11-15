@@ -8,7 +8,17 @@ This file describes the **current repository state only**. Historical session no
 
 ## Current Android builds
 
-**Current 1.22.34/code355 — Now Playing action-icon tints:**
+**Current 1.22.35/code356 — complete normal-player icon coverage, NOT BUILT:**
+[Scope and resume](docs/PLAYER_ICON_THEME_1.22.35.md). Queue search/locate/close,
+Add to list, overflow/reorder/remove and Sleep Timer use the same control accent.
+The retained34actual screenshot catches the queue mismatch before this correction.
+The35native test compiles, but its baseline device run stops at low disk space;
+the source correction still needs compile/tests/lint, optimized assembly and
+exact-file A55 acceptance. Release preflight is BLOCKED below8GiB; last observed
+free space is about6.46GiB. No35player APK exists. Keep the tested34APK, source35and all
+failed evidence distinct. No test weakening, quality change, cleanup, push or merge.
+
+**Retained 1.22.34/code355 — Now Playing action-icon tints:**
 [Scope and verification](docs/PLAYER_ICON_THEME_1.22.34.md). Normal toolbar,
 current-media and transport action icons use the current Material control accent,
 including live Follow video colors. Filled Play/Pause and foreground-video
@@ -17,8 +27,14 @@ video/audio quality, sampling/cache or Stack code changed. The new rendered-icon
 check catches the retained33 white-toolbar failure on the A55. Both new tint
 checks and two existing toolbar checks pass. Two broader320dp compact fixtures
 fail; retain their failed assertions and the documented fixture/state findings.
-604 JVM tests pass, lint has zero errors/54warnings. Optimized, final restoration
-and signing results remain separate pending gates. SOURCE_ONLY; the
+604 JVM tests pass, lint has zero errors/54warnings. Optimized assembly and the
+exact-file normal-entry A55 smoke pass for Home/Fullscreen/Favourite/Search/Share
+and changing live colors. Actual screenshots were inspected. Preferences, data
+inode/appId, permissions, volume and profile restore; the exact optimized34is left
+installed and the owned A55 stops. The5,595,920-byte private APK is
+`App/output/icon-theme-20261115/optimized34-maintenance/GreaterArt-1.22.34.apk`,
+SHA-256`ce3c239a146417919b7bd13506954b0f364a4818382ce837699dbb2c1b57e350`.
+It uses the unchanged maintenance signer0a7b9ceb…53de6b7. SOURCE_ONLY; the
 original-public signing key is still unavailable. No push or merge.
 
 **Retained1.22.33/code354 — disabled PCM window experiment:**

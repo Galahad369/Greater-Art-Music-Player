@@ -50,7 +50,34 @@ frame rate, bit depth, HDR, seek, speed, surface ownership or Stack engine chang
   the authorized355 upgrade. Preference bytes restore exactly; the final
   installed355 identity/settings check remains pending. No downgrade is allowed.
 -604 JVM tests pass; lint reports zero fatal/errors and54 warnings. Diagnostic
-  assembly passes. Optimized assembly and exact-file smoke are pending.
+  and optimized assembly pass.
+- The exact optimized34 normal-entry A55 smoke passes. Four actual screenshots
+  show Home, Fullscreen, Favourite, Search and Share matching the filled control's
+  changing accent while the real video advances. Pause works and Share presents
+  both original options. Screenshots were visually inspected.
+- The later355 metadata check confirms the original appId/data inode, exact
+  original preferences, volume, app-ops and test-package absence. After the smoke,
+  original preferences/settings are restored and the exact optimized34 remains
+  installed, without a downgrade. Guest shutdown completes; no emulator remains;
+  stored A55 profile/GPU hashes are unchanged. Earlier false aggregates remain.
+
+## Retained optimized artifact and follow-up
+
+- Source commit: `bfed54eaa00d0ef58d3622af50a46fb54e079fe7`.
+- App-input SHA-256: `f4e0def5c1371bbdc4257ec5ebdc0d954f6a5332ce030ff28d0dd6a055e9252e`.
+- APK: `App/output/icon-theme-20261115/optimized34-maintenance/GreaterArt-1.22.34.apk`.
+- Version/code:1.22.34/355; optimized/non-debug/non-test;5,595,920bytes.
+- APK SHA-256: `ce3c239a146417919b7bd13506954b0f364a4818382ce837699dbb2c1b57e350`.
+- Existing maintenance certificate:
+  `0a7b9cebf928022c1930b64f2c47581c13def3007b0e97737bbb9ca3e53de6b7`.
+- Private identity, ZIP CRC and16KiB alignment pass. Original-public certificate
+  verification FAILS; that missing-key gate is unchanged, not waived.
+- Exact smoke receipt: `optimized-smoke34-01/report.json`. Earlier failures and
+  the two compact fixtures remain separate from this focused normal-entry pass.
+
+The actual screenshot also shows neutral queue overflow icons. The follow-up
+[1.22.35 source correction](PLAYER_ICON_THEME_1.22.35.md) completes that normal
+player coverage. The tested34APK does NOT contain that later queue correction.
 
 Private evidence: `App/output/icon-theme-20261115/`. The content baseline and
 previous release hashes are retained. Existing user changes remain outside the

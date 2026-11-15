@@ -1661,6 +1661,7 @@ private fun NowPlayingQueue(
     onLocateCurrent: () -> Unit,
 ) {
     var query by rememberSaveable { mutableStateOf("") }
+    val actionColors = IconButtonDefaults.iconButtonColors(contentColor = MaterialTheme.colorScheme.secondary)
     val searchFocus = remember { FocusRequester() }
     val keyboard = LocalSoftwareKeyboardController.current
     LaunchedEffect(searchOpen) {
@@ -1721,6 +1722,7 @@ private fun NowPlayingQueue(
             // Dedicated targets on opposite ends minimize accidental Locate/Close taps.
             IconButton(
                 onClick = { query = ""; onLocateCurrent() },
+                colors = actionColors,
                 enabled = stack.active || currentQueueIndex in queue.indices,
                 modifier = Modifier.size(GaControl.touchTarget)
                     .inspectElement("LOCATE_CURRENT_BUTTON", "Reveal and locate the playing song"),
@@ -1738,6 +1740,7 @@ private fun NowPlayingQueue(
             Spacer(Modifier.width(4.dp))
             IconButton(
                 onClick = { if (query.isNotEmpty()) query = "" else onCloseSearch() },
+                colors = actionColors,
                 modifier = Modifier.size(GaControl.touchTarget)
                     .inspectElement("QUEUE_SEARCH_CLEAR_CLOSE", "Clear the filter or close search"),
             ) {
@@ -1834,6 +1837,7 @@ private fun NowPlayingQueue(
                                 openActionsKey = null
                                 onAddQueueItemToList(file)
                             },
+                            colors = actionColors,
                             modifier = Modifier.align(Alignment.CenterEnd).size(actionSize)
                                 .drawWithContent content@{
                                     // The underlay never moves. Reveal only the strip exposed
@@ -1898,18 +1902,19 @@ private fun NowPlayingQueue(
                             }
                             IconButton(
                                 onClick = { openActionsKey = if (actionsOpen) null else entry.stableKey },
+                                colors = actionColors,
                                 modifier = Modifier.size(GaControl.touchTarget).inspectElement("QUEUE_MORE_BUTTON", "Actions for ${file.name}"),
                             ) {
                                 Icon(Icons.Rounded.MoreVert, uiText(language, "Actions", "操作"))
                             }
                             if (editableQueue) {
-                                IconButton(onClick = { onMoveQueueItem(index, index - 1) }, enabled = index > 0) {
+                                IconButton(onClick = { onMoveQueueItem(index, index - 1) }, enabled = index > 0, colors = actionColors) {
                                     Icon(Icons.Rounded.KeyboardArrowUp, uiText(language, "Move up", "上移"))
                                 }
-                                IconButton(onClick = { onMoveQueueItem(index, index + 1) }, enabled = index < queue.lastIndex) {
+                                IconButton(onClick = { onMoveQueueItem(index, index + 1) }, enabled = index < queue.lastIndex, colors = actionColors) {
                                     Icon(Icons.Rounded.KeyboardArrowDown, uiText(language, "Move down", "下移"))
                                 }
-                                IconButton(onClick = { onRemoveQueueItem(index) }, enabled = queue.size > 1) {
+                                IconButton(onClick = { onRemoveQueueItem(index) }, enabled = queue.size > 1, colors = actionColors) {
                                     Icon(Icons.Rounded.RemoveCircleOutline, uiText(language, "Remove", "移除"))
                                 }
                             }
@@ -2400,7 +2405,6 @@ private fun SecondaryControlRow(
 ) {
     val practice by com.local.listentomusic.playback.PracticeLoop.state.collectAsState()
     var sleepMenuOpen by remember { mutableStateOf(false) }
-    val outline = MaterialTheme.colorScheme.outline
     val activeColor = MaterialTheme.colorScheme.secondary
     val controlColors = ButtonDefaults.buttonColors(
         containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.46f),
@@ -2432,7 +2436,7 @@ private fun SecondaryControlRow(
                 Icon(
                     Icons.Rounded.Bedtime,
                     null,
-                    tint = if (sleepTimer.active) activeColor else outline,
+                    tint = activeColor,
                     modifier = Modifier.size(23.dp),
                 )
                 Spacer(Modifier.width(4.dp))

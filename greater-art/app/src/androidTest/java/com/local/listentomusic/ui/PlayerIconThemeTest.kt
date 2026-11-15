@@ -17,6 +17,7 @@ import androidx.compose.ui.test.ForcedSize
 import androidx.compose.ui.test.captureToImage
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
+import androidx.compose.ui.test.onAllNodesWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.unit.DpSize
@@ -120,6 +121,7 @@ class PlayerIconThemeTest {
             for (label in listOf("Add to Favorites", "Search current queue", "Share", "Previous", "Next")) {
                 assertIconTint(label, scheme.secondary)
             }
+            assertIconTint("Actions", scheme.secondary, index = 0)
         }
         compose.onNodeWithContentDescription("Add to Favorites").performClick()
         compose.onNodeWithContentDescription("Previous").performClick()
@@ -134,9 +136,10 @@ class PlayerIconThemeTest {
         }
     }
 
-    private fun assertIconTint(label: String, color: Color) {
-        val image = compose.onNodeWithContentDescription(label, useUnmergedTree = true)
-            .captureToImage().asAndroidBitmap()
+    private fun assertIconTint(label: String, color: Color, index: Int? = null) {
+        val node = if (index == null) compose.onNodeWithContentDescription(label, useUnmergedTree = true)
+            else compose.onAllNodesWithContentDescription(label, useUnmergedTree = true)[index]
+        val image = node.captureToImage().asAndroidBitmap()
         val expected = color.toArgb()
         val rgb = listOf(16, 8, 0).map { (expected ushr it) and 255 }
         var matches = 0
