@@ -112,6 +112,7 @@ import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.TextButton
@@ -2207,6 +2208,7 @@ internal fun PlayerBottomControls(
 ) {
     var speedMenuOpen by remember { mutableStateOf(false) }
     val accent = MaterialTheme.colorScheme.secondary
+    val actionColors = IconButtonDefaults.iconButtonColors(contentColor = accent)
     val cycleLabel = when {
         playback.stackCount > 0 && playback.repeatMode == Player.REPEAT_MODE_ALL ->
             uiText(playback.appLanguage, "Loop", "循環")
@@ -2225,6 +2227,7 @@ internal fun PlayerBottomControls(
     ) {
         IconButton(
                     onClick = onRepeat,
+                    colors = actionColors,
                     modifier = Modifier.size(GaControl.touchTarget)
                         .inspectElement(
                             "REPEAT_BUTTON",
@@ -2248,12 +2251,13 @@ internal fun PlayerBottomControls(
                                 if (stackLoop) if (stackLoopOn) "循環" else "不循環" else "重複模式",
                             ),
                             Modifier.size(GaControl.icon).testTag("PLAYER_TRANSPORT_ICON"),
-                            tint = if (stackLoop && !stackLoopOn) MaterialTheme.colorScheme.onSurfaceVariant else accent,
+                            tint = if (stackLoop && !stackLoopOn) accent.copy(alpha = .62f) else accent,
                         )
                         Text(cycleLabel, style = MaterialTheme.typography.labelSmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
                     }
                 }
         IconButton(onClick = onPrevious, enabled = playback.hasPrevious || playback.positionMs > 4_000L,
+            colors = actionColors,
             modifier = Modifier.size(GaControl.touchTarget).inspectElement("PREVIOUS_BUTTON", "Previous media or restart current")) {
             Icon(Icons.Rounded.SkipPrevious, uiText(playback.appLanguage, "Previous", "上一首"), modifier = Modifier.size(GaControl.icon).testTag("PLAYER_TRANSPORT_ICON"))
         }
@@ -2278,7 +2282,7 @@ internal fun PlayerBottomControls(
                 tint = MaterialTheme.colorScheme.onSecondary,
             )
         }
-        IconButton(onClick = onNext, enabled = playback.hasNext, modifier = Modifier.size(GaControl.touchTarget).inspectElement("NEXT_BUTTON", "Next media")) {
+        IconButton(onClick = onNext, enabled = playback.hasNext, colors = actionColors, modifier = Modifier.size(GaControl.touchTarget).inspectElement("NEXT_BUTTON", "Next media")) {
             Icon(Icons.Rounded.SkipNext, uiText(playback.appLanguage, "Next", "下一首"), modifier = Modifier.size(GaControl.icon).testTag("PLAYER_TRANSPORT_ICON"))
         }
         Box {
@@ -2316,6 +2320,7 @@ private fun CurrentMediaHeader(
     onSearch: () -> Unit,
 ) {
     var shareMenuOpen by remember { mutableStateOf(false) }
+    val actionColors = IconButtonDefaults.iconButtonColors(contentColor = MaterialTheme.colorScheme.secondary)
 
     Column(Modifier.fillMaxWidth()) {
         // The primary keeps the ordinary Now Playing header. Stack context is
@@ -2348,21 +2353,23 @@ private fun CurrentMediaHeader(
             }
             IconButton(
                 onClick = onToggleFavourite,
+                colors = actionColors,
                 modifier = Modifier.size(GaControl.touchTarget).inspectElement("FAVOURITE_BUTTON", "Stores the current file in the local Favorites list"),
             ) {
                 Icon(
                     if (isFavourite) Icons.Rounded.Favorite else Icons.Rounded.FavoriteBorder,
                     uiText(playback.appLanguage, if (isFavourite) "Remove from Favorites" else "Add to Favorites", if (isFavourite) "從我的最愛移除" else "加入我的最愛"),
-                    tint = if (isFavourite) MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.outline,
+                    tint = MaterialTheme.colorScheme.secondary,
                     modifier = Modifier.size(GaControl.icon).testTag("PLAYER_HEADER_ACTION_ICON"),
                 )
             }
-            IconButton(onClick = onSearch, modifier = Modifier.size(GaControl.touchTarget).inspectElement("QUEUE_SEARCH_BUTTON", "Search the current list")) {
+            IconButton(onClick = onSearch, colors = actionColors, modifier = Modifier.size(GaControl.touchTarget).inspectElement("QUEUE_SEARCH_BUTTON", "Search the current list")) {
                 Icon(Icons.Rounded.Search, uiText(playback.appLanguage, "Search current queue", "搜尋目前播放佇列"), Modifier.size(GaControl.icon).testTag("PLAYER_HEADER_ACTION_ICON"))
             }
             Box {
                 IconButton(
                     onClick = { shareMenuOpen = true },
+                    colors = actionColors,
                     modifier = Modifier.size(GaControl.touchTarget).inspectElement("SHARE_BUTTON", "Choose the current file or an M3U8 queue"),
                 ) {
                     Icon(Icons.Rounded.Share, uiText(playback.appLanguage, "Share", "分享"), Modifier.size(GaControl.icon).testTag("PLAYER_HEADER_ACTION_ICON"))
@@ -2532,7 +2539,7 @@ internal fun NowPlayingTopBar(
     modifier: Modifier = Modifier,
     overlay: Boolean = false,
     reservePullHandle: Boolean = false,
-    frameLit: Boolean = false,
+    @Suppress("UNUSED_PARAMETER") frameLit: Boolean = false,
     fullscreen: Boolean = false,
     speed: Float = 1f,
     onSpeed: ((Float) -> Unit)? = null,
@@ -2548,7 +2555,9 @@ internal fun NowPlayingTopBar(
     onLockAnchorBoundsChanged: (androidx.compose.ui.geometry.Rect) -> Unit = {},
     onTopBarBoundsChanged: (androidx.compose.ui.geometry.Rect) -> Unit = {},
 ) {
-    val foregroundColor = if (overlay || frameLit) GaVideoOverlay.foreground else MaterialTheme.colorScheme.onSurface
+    // Ambient behind normal chrome is not foreground video. Do not let it
+    // bypass the shared live accent. Actual video overlays keep their contrast palette.
+    val foregroundColor = if (overlay) GaVideoOverlay.foreground else MaterialTheme.colorScheme.secondary
     val backgroundColor = if (overlay) GaVideoOverlay.scrim else Color.Transparent
     BoxWithConstraints(modifier.fillMaxWidth()
         .onGloballyPositioned { onTopBarBoundsChanged(it.boundsInWindow()) }) {

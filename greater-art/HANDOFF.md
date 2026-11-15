@@ -8,7 +8,20 @@ This file describes the **current repository state only**. Historical session no
 
 ## Current Android builds
 
-**Current1.22.33/code354 — disabled PCM window experiment:**
+**Current 1.22.34/code355 — Now Playing action-icon tints:**
+[Scope and verification](docs/PLAYER_ICON_THEME_1.22.34.md). Normal toolbar,
+current-media and transport action icons use the current Material control accent,
+including live Follow video colors. Filled Play/Pause and foreground-video
+overlays retain their contrasting symbol palettes. No sizes, holders, callbacks,
+video/audio quality, sampling/cache or Stack code changed. The new rendered-icon
+check catches the retained33 white-toolbar failure on the A55. Both new tint
+checks and two existing toolbar checks pass. Two broader320dp compact fixtures
+fail; retain their failed assertions and the documented fixture/state findings.
+604 JVM tests pass, lint has zero errors/54warnings. Optimized, final restoration
+and signing results remain separate pending gates. SOURCE_ONLY; the
+original-public signing key is still unavailable. No push or merge.
+
+**Retained1.22.33/code354 — disabled PCM window experiment:**
 [Scope and gates](docs/STACK_PCM_KERNEL_1.22.33.md). A same-rate contiguous window
 kernel preserves the exact32-tap Double arithmetic and final Float bits.900private
 comparisons and9original math tests pass; a one-tap-loss mutation fails.604JVM tests

@@ -4,7 +4,8 @@ Greater Art is a native Kotlin/Jetpack Compose player for local music and video.
 
 ## Current Android builds
 
-- Latest source: **1.22.33 / code 354 — SOURCE_ONLY**. [Disabled PCM window experiment](docs/STACK_PCM_KERNEL_1.22.33.md) preserves exact32-tap/sample arithmetic.604JVM tests, lint, optimized assembly and exact-file A55 Miku playback/pause/fullscreen smoke pass. Native stress passes only6of9checks; shared output stays disabled. [The tested1.22.32 video theme](docs/VIDEO_THEME_1.22.32.md), prior APKs, native quality/HDR and all controls remain intact. Full backing/output acceptance and original-public signing remain incomplete. No production engine replacement or completed backing fix.
+- Latest source: **1.22.34 / code 355 — SOURCE_ONLY**. [Now Playing icon-theme repair](docs/PLAYER_ICON_THEME_1.22.34.md) applies the live control accent to normal toolbar, current-media and transport actions. Foreground-video overlays retain their contrast palette. Full playback quality, sampling/cache and existing functions are unchanged; build/device/signing gates are separate.
+- The retained [1.22.33 disabled PCM experiment](docs/STACK_PCM_KERNEL_1.22.33.md) and its incomplete backing/output/parity gates remain unchanged. No production engine replacement, public release, push or merge.
 - [Later acceptance checkpoint](docs/STACK_ALIGNMENT_ACCEPTANCE_1.22.33.md): current A55 picture Quick/Wide regressions pass. A different clean-reference sound experiment passes 18 known numeric controls but fails a stronger independent-region check and the six-original target. Earlier actual-mix gain failures remain. No production adoption, full backing or release acceptance.
 - Verified repository download: [GreaterArt-1.21.93.apk](releases/GreaterArt-1.21.93.apk), code 316. See the [release receipt](docs/RELEASE_1.21.93.md) for signing and test limits.
 
