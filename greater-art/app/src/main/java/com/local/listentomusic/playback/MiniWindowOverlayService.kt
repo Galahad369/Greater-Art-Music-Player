@@ -276,11 +276,10 @@ class MiniWindowOverlayService : Service(), LifecycleOwner, ViewModelStoreOwner,
         }
         connect()
         scope.launch {
-            com.local.listentomusic.ui.components.VideoSurfaceOwner.fullscreenFrameReady.collect { rendered ->
+            com.local.listentomusic.ui.components.VideoSurfaceOwner.fullscreenFrameReady.fullscreenFrameCommits().collect {
                 // Keep the outgoing pixels until the native destination has a frame.
                 // Commit the visual cut on a display frame, without delaying playback.
-                if (rendered) root?.postOnAnimation { updateVisibility() }
-                else updateVisibility()
+                root?.postOnAnimation { updateVisibility() }
             }
         }
         scope.launch {

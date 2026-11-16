@@ -8,7 +8,17 @@ This file describes the **current repository state only**. Historical session no
 
 ## Current Android builds
 
-**Current 1.22.39/code 360 — frame-ready fullscreen handoff, SOURCE_ONLY:**
+**Current 1.22.40/code 361 — frame-ready return correction, SOURCE_ONLY:**
+[Cause and checks](docs/FULLSCREEN_FRAME_HANDOFF_1.22.40.md). Keep the complete
+39 visual handoff, but observe only true frame-ready events. A readiness reset
+must not restore Expanded before the return action chooses Mini. Two additional
+same-check regressions fail against the original observer behavior, then pass.
+40 host checks pass: 618 JVM tests, lint zero errors/54 warnings, debug and
+instrumentation APK assembly. Optimized assembly is next; exact-A55 acceptance
+is unverified. Do not
+promote the superseded 39 build or alter its consumed version identity.
+
+**Retained 1.22.39/code 360 — frame-ready fullscreen handoff, SOURCE_ONLY:**
 [Cause, acceptance and resume](docs/FULLSCREEN_FRAME_HANDOFF_1.22.39.md). Separate
 the outgoing window's pixels from its input ownership: keep the last picture until
 the new native fullscreen generation renders, then commit the visual cut on a

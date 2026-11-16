@@ -1,11 +1,22 @@
 package com.local.listentomusic.playback
 
 import android.view.WindowManager
+import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.toList
+import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class PlayerWindowPolicyTest {
+    @Test fun clearingReadinessCannotRestoreAnExpandedWindowBeforeReturnSelectsMini() = runBlocking {
+        assertEquals(emptyList<Boolean>(), flowOf(false).fullscreenFrameCommits().toList())
+    }
+
+    @Test fun onlyNewRenderedFramesCommitAcrossRepeatedFullscreenVisits() = runBlocking {
+        assertEquals(listOf(true, true), flowOf(false, true, false, true, false).fullscreenFrameCommits().toList())
+    }
+
     @Test fun expandedFrameCoversFullscreenStartupWithoutTakingInput() {
         assertEquals("Keep the outgoing frame until the destination renders",
             1f, playerWindowVisualAlpha(visible = false, expanded = true,
