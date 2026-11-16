@@ -65,10 +65,10 @@ class Release1114Test {
         assertNull(videoSpeedHint(false, false, false, 1f))
         assertNull(videoSpeedHint(false, false, true, 1f))
         assertEquals(VideoSpeedHint.PULL_TO_LOCK, videoSpeedHint(false, true, false, 2f))
-        assertEquals(VideoSpeedHint.RELEASE_FOR_NORMAL, videoSpeedHint(true, false, false, 2f))
+        assertEquals(VideoSpeedHint.PULL_UP_FOR_NORMAL, videoSpeedHint(true, false, false, 2f))
         assertEquals(VideoSpeedHint.LOCK_CONFIRMED, videoSpeedHint(false, false, true, 2f))
         // Active user gestures take precedence even during the confirmation window.
-        assertEquals(VideoSpeedHint.RELEASE_FOR_NORMAL, videoSpeedHint(true, true, true, 2f))
+        assertEquals(VideoSpeedHint.PULL_UP_FOR_NORMAL, videoSpeedHint(true, true, true, 2f))
         assertEquals(VideoSpeedHint.PULL_TO_LOCK, videoSpeedHint(false, true, true, 2f))
     }
 

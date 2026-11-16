@@ -6,6 +6,10 @@ import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import kotlin.math.PI
+import kotlin.math.cos
+import kotlin.math.sin
+import kotlin.math.sqrt
 import kotlin.random.Random
 
 class StackPictureAlignmentTest {
@@ -55,6 +59,79 @@ class StackPictureAlignmentTest {
         }
     }
 
+    @Test fun distributedQuarterSecondEditsInvalidateAGlobalOffset() {
+        val primary = pictures(1, count = 432, framesPerScene = 12)
+        for (shift in listOf(-6, 6)) {
+            val edited = primary.mapIndexed { index, frame ->
+                if (index % 144 < 72) frame
+                else primary[(index + shift).coerceIn(0, primary.lastIndex)].copy(timeUs = frame.timeUs)
+            }
+            for (search in StackPictureSearch.entries) {
+                assertNull("Distributed timing edits are not one offset ($search, $shift)",
+                    estimateStackPictureOffset(primary, edited, search))
+            }
+        }
+    }
+
+    @Test fun unrelatedSectionsInEveryRegionDoNotBecomeAConfidentOffset() {
+        val primary = pictures(1, count = 432, framesPerScene = 12)
+        val different = pictures(2, count = 432, framesPerScene = 12)
+        val partial = primary.mapIndexed { index, frame ->
+            if (index % 144 < 84) frame else different[index]
+        }
+        for (search in StackPictureSearch.entries) {
+            assertNull("Matching only part of every region is not whole-track evidence ($search)",
+                estimateStackPictureOffset(primary, partial, search))
+        }
+    }
+
+    @Test fun someUnusablePicturesPreserveAdequatelySupportedTiming() {
+        val primary = pictures(1, count = 432, framesPerScene = 12)
+        // Feature rejection can omit an occluded or flat scene without changing
+        // its timeline. Ordered pairs still support the same shift in all parts.
+        val companion = primary.filterIndexed { index, _ -> index / 12 % 8 != 3 }
+            .map { it.copy(timeUs = it.timeUs + 250_000L) }
+        for (search in StackPictureSearch.entries) {
+            val result = requireNotNull(estimateStackPictureOffset(primary, companion, search))
+            assertEquals("Missing pictures are not contradictory timing ($search)",
+                250_000.0, result.offsetUs, 0.0)
+        }
+    }
+
+    @Test fun resolvableNearRepeatedMotionDoesNotChooseAnArbitraryOffset() {
+        val primary = List(1_296) { index ->
+            // A four-Hz overlay repeats at 250 ms while the background changes
+            // slowly. That nearby alternative is genuinely similar, not a
+            // second list of frames with overlapping presentation timestamps.
+            val luma = FloatArray(STACK_PICTURE_GRID * STACK_PICTURE_GRID) { pixel ->
+                (128 + 60 * sqrt(.88) * sin(1.3 * index / 24 + pixel * 1.7) +
+                    60 * sqrt(.12) * sin(8 * PI * index / 24 + pixel * 2.3)).toFloat()
+            }
+            requireNotNull(stackPictureFrame(index * 1_000_000L / 24, luma))
+        }
+        for (search in StackPictureSearch.entries) {
+            assertNull("Similar offsets separated by several frames must abstain ($search)",
+                estimateStackPictureOffset(primary, primary, search))
+        }
+    }
+
+    @Test fun detectableSpeedChangeInMovingPicturesDoesNotBecomeAConstantOffset() {
+        val primary = List(720) { index ->
+            val luma = FloatArray(STACK_PICTURE_GRID * STACK_PICTURE_GRID) { pixel ->
+                (128 + 35 * sin(5.0 * index / 24 + pixel * 1.7) +
+                    35 * cos(8.17 * index / 24 + pixel * 2.3)).toFloat()
+            }
+            requireNotNull(stackPictureFrame(index * 1_000_000L / 24, luma))
+        }
+        val drifted = primary.map { it.copy(timeUs = (it.timeUs * 1.003).toLong()) }
+        for (search in StackPictureSearch.entries) {
+            val control = requireNotNull(estimateStackPictureOffset(primary, primary, search))
+            assertEquals(0.0, control.offsetUs, 0.0)
+            assertNull("Separated motion peaks expose a nonconstant timeline ($search)",
+                estimateStackPictureOffset(primary, drifted, search))
+        }
+    }
+
     @Test fun quickSearchOnlyMatchesNearOffsetsAndWideCanFindEitherSign() {
         val primary = pictures(1)
         for (offset in listOf(-2_300_000L, 2_300_000L, -27_000_000L, 27_000_000L)) {
@@ -89,11 +166,11 @@ class StackPictureAlignmentTest {
         assertEquals(listOf(StackPictureWindow(0, 210_000_000L)), stackPictureWindows(300_000_000L, StackPictureSearch.WIDE))
     }
 
-    @Test fun widerRetryIsOnlyOfferedAfterIncompleteQuickPictureResults() {
+    @Test fun widerVerificationIsAvailableAfterAnyCompletedQuickPictureResult() {
         val quick = StackAlignmentProgress(method = StackAlignmentMethod.PICTURE, total = 2)
         assertFalse(quick.canRetryPictureWider)
         assertFalse(quick.copy(running = true, matched = 1).canRetryPictureWider)
-        assertFalse(quick.copy(matched = 2).canRetryPictureWider)
+        assertTrue(quick.copy(matched = 2).canRetryPictureWider)
         assertTrue(quick.copy(matched = 0).canRetryPictureWider)
         assertTrue(quick.copy(matched = 1, quickPictureTimedOut = true).canRetryPictureWider)
         assertFalse(quick.copy(matched = 1, widePictureSearch = true).canRetryPictureWider)

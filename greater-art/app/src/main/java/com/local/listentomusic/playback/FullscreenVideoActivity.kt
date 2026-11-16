@@ -7,22 +7,33 @@ import android.os.Bundle
 import android.util.Rational
 import android.view.WindowManager
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.activity.viewModels
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
 import androidx.core.view.ViewCompat
 import androidx.lifecycle.lifecycleScope
 import com.local.listentomusic.MainActivity
 import com.local.listentomusic.MainViewModel
+import com.local.listentomusic.BuildConfig
 import com.local.listentomusic.data.FloatingWindowMode
 import com.local.listentomusic.data.usesAndroidPip
 import com.local.listentomusic.ui.NowPlayingScreen
+import com.local.listentomusic.ui.DeveloperDiagnostics
+import com.local.listentomusic.ui.DeveloperSummary
+import com.local.listentomusic.ui.UiInspectorHost
+import com.local.listentomusic.ui.UiInspectorState
+import com.local.listentomusic.ui.hasLocalFailure
 import com.local.listentomusic.ui.enforceImmersiveWindow
 import com.local.listentomusic.ui.components.VideoSurfaceOwner
 import com.local.listentomusic.ui.theme.MediaAdaptiveTheme
@@ -54,17 +65,21 @@ class FullscreenVideoActivity : ComponentActivity() {
             val controller by viewModel.controller.collectAsState()
             val settings by viewModel.settings.collectAsState()
             val artwork by produceState<android.graphics.Bitmap?>(null, playback.currentPath,
-                settings.backgroundMode, settings.localOverrides[playback.currentPath]) {
+                settings.localOverrides[playback.currentPath]) {
                 value = null
-                if (settings.backgroundMode in listOf(com.local.listentomusic.data.AppBackgroundMode.ADAPTIVE_DYNAMIC,
-                    com.local.listentomusic.data.AppBackgroundMode.AMBIENT))
-                    value = viewModel.loadCurrentArtwork(playback.currentPath, cachedOnly = true)
+                // Player Ambient is independent of the browsing wallpaper. Use
+                // cached artwork until native video-color samples are available.
+                value = viewModel.loadCurrentArtwork(playback.currentPath, cachedOnly = true)
             }
             val sleepTimer by viewModel.sleepTimer.collectAsState()
+            val inspector = remember { UiInspectorState() }
+            var toolbarBottom by remember { mutableStateOf(0f) }
+            val developerVisible = settings.developerMode && !pipVisible
             MediaAdaptiveTheme(settings, playback.currentPath, artwork) {
+                UiInspectorHost(enabled = developerVisible, state = inspector, language = settings.appLanguage) {
                 NowPlayingScreen(
                     floatingWindowMode = settings.floatingWindowMode,
-                    onFloatingWindowModeChange = viewModel::setFloatingWindowMode,
+                    onFloatingWindowModeChange = { viewModel.cycleFloatingWindowMode() },
                     playback = playback,
                     artwork = artwork,
                     ambientPreferences = settings,
@@ -115,7 +130,45 @@ class FullscreenVideoActivity : ComponentActivity() {
                     onShareQueue = {},
                     initialFullscreen = true,
                     onFullscreenChanged = { if (!it) finishTo("EXPANDED") },
+                    onToolbarBoundsChanged = { toolbarBottom = it.bottom },
                 )
+                if (developerVisible) {
+                    val engine by PlaybackDiagnostics.report.collectAsState()
+                    val failure by com.local.listentomusic.diagnostics.CrashReports.latest.collectAsState()
+                    val surface by VideoSurfaceOwner.state.collectAsState()
+                    val stack by StackPlayback.state.collectAsState()
+                    val warnings = surface.warnings(VideoSurfaceOwner.expectedOwner,
+                        playback.isVideo && playback.isPlaying && controller?.playbackState == androidx.media3.common.Player.STATE_READY,
+                        android.os.SystemClock.elapsedRealtime(), playback.videoFrameRendered) +
+                        listOfNotNull(if (playback.errorMessage != null) "PLAYBACK_ERROR" else null)
+                    DeveloperDiagnostics(
+                        summaryLines = DeveloperSummary(
+                            version = BuildConfig.VERSION_NAME, screen = "FULLSCREEN",
+                            playing = playback.isPlaying, video = playback.isVideo,
+                            queueSize = queue.size, stackTracks = stack.slots.size,
+                            surfaceOwner = surface.owner, warnings = warnings,
+                            hasFailure = hasLocalFailure(failure),
+                        ).lines(settings.appLanguage),
+                        detailReport = "version=${BuildConfig.VERSION_NAME}\nscreen=FULLSCREEN\n" +
+                            "playing=${playback.isPlaying} playerWindowMode=FULLSCREEN\n" +
+                            "controllerId=${System.identityHashCode(controller)}\n" +
+                            "position=${playback.positionMs} duration=${playback.durationMs} queue=${queue.size}\n" +
+                            VideoSurfaceOwner.describe() + "\nAUDIO ENGINE\n" + engine + "\n" + failure,
+                        regions = inspector.regions.values.map { "${it.label}: ${it.detail}" },
+                        warning = warnings.isNotEmpty() || hasLocalFailure(failure),
+                        inspector = inspector,
+                        onDisableDeveloperMode = { viewModel.setDeveloperMode(false) },
+                        // Follow the measured toolbar, including cutouts and its
+                        // narrow-screen wrapping, without covering its controls.
+                        modifier = Modifier.padding(top = with(LocalDensity.current) { toolbarBottom.toDp() }),
+                        language = settings.appLanguage,
+                    )
+                }
+                BackHandler(developerVisible && (inspector.armed || inspector.selected != null)) {
+                    inspector.cancel()
+                    inspector.clearSelection()
+                }
+                }
             }
         }
     }
@@ -230,13 +283,16 @@ class FullscreenVideoActivity : ComponentActivity() {
     private fun completeFullscreenHandoff() {
         handoffCompletionJob?.cancel()
         handoffCompletionJob = lifecycleScope.launch {
-            // The launch handoff only bridges the old overlay surface to this Activity.
-            // Once the fullscreen PlayerView has produced a frame, explicit fullscreen
-            // ownership keeps NOW_PLAYING authoritative without leaving a stale handoff.
-            withTimeoutOrNull(1_500L) {
-                VideoSurfaceOwner.state.first { it.owner == "NOW_PLAYING" && it.firstFrame }
+            // Normal entry commits immediately on the destination's first frame.
+            // A failed/blocked surface returns safely instead of covering the Activity
+            // forever or revealing an unrendered destination on a fixed timer.
+            val rendered = withTimeoutOrNull(8_000L) {
+                VideoSurfaceOwner.fullscreenFrameReady.first { it }
+            } == true
+            if (!returnDispatched) {
+                if (rendered) VideoSurfaceOwner.finishHandoff("NOW_PLAYING")
+                else finishTo(returnDestination)
             }
-            if (!returnDispatched) VideoSurfaceOwner.finishHandoff("NOW_PLAYING")
         }
     }
 

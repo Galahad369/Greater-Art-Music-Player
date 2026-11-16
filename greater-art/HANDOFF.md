@@ -4,11 +4,602 @@ This file describes the **current repository state only**. Historical session no
 
 **Project:** `greater-art/` in the repository checkout
 
+**Alignment experiment notebook:** [What worked, what failed and what to test next](docs/STACK_ALIGNMENT_LAB_NOTEBOOK.md). Read this before repeating a Stack experiment. Keep original failures and distinguish app behavior, harness errors, diagnostic evidence and acceptance. The owner-approved isolated Audalign + Sync Toolbox benchmark now completes all74 cases in three baseline modes plus a documented key-change variant. Raw matching still follows the980ms singer instead of the700ms backing; negative controls also return matches/paths. Key-aware chroma improves coarse Forte timing but does not qualify backing identity or2ms output. No production tool/engine adoption, app change, push or merge followed these results.
+
 ## Current Android builds
 
-**Current source:** `1.22.19 (code 340)` — SOURCE_ONLY. Normal Now Playing toolbar buttons sit on Ambient without a separate backplate; inactive queue rows remain transparent. Compatible SDR Now Playing follows one coherent streak beyond the video edge in its sampled color; uncertain directions retain the soft glow. Android Power saving keeps the automatic low-power glow. Android builds use Android Gradle plugin 9.5.1; CI uses the official Setup Java v6.2.0 and CodeQL v4.39.3 pins with the existing `setup-gradle` cache. The local AVC decoder supports quick Stack picture analysis on compatible x86-64 Android emulators. The latest immutable verified download remains 1.21.93.
-**Newest local device-tested APK:** `1.22.19 (code 340)` — `App/output/android-toolbar-1.22.19-20261111/release/candidate/GreaterArt-1.22.19.apk`, SHA-256 `79328f13b443a543c655cb321360cc6feec6afdcda086332572bf43eb4a2886e`. The exact installed APK passed A55 native playback, pause/resume, fullscreen geometry, Mini and Library-return checks. Real-video Now Playing captures were inspected; the toolbar has no rounded backplate. [Local candidate receipt and limits](docs/LOCAL_CANDIDATE_1.22.19.md).
+**Current 1.22.43/code 364 — focused picture-decoder reliability, SOURCE_ONLY:**
+[Scope, causes and gates](docs/STACK_PICTURE_RELIABILITY_1.22.43.md). Bounded adaptive
+IDR probes, per-window platform fallback retaining completed evidence, typed
+per-track/reference failures, explicit Wide timeout retry and decoder diagnostics.
+The unchanged new regression checks catch the original fixed-probe and repeated-
+window behavior. Keep matcher/sampler/confidence, Quick 45 s, original corpus
+assertions, sound alignment, 42 UI and playback quality unchanged. Preflight and
+629 JVM tests pass; lint has zero errors/54 warnings; debug/test APKs compile.
+All 11 A55 decoder/review tests pass, including identical 360-frame timestamp/luma
+evidence across local/platform decoders. The unchanged original-six corpus passes:
+five fresh-process Quick runs take 28.197–31.282 s and Wide takes 224.854 s. Same
+guest/filesystem cache; not five cold-VM benchmarks. Riona's different video still
+abstains; this is NOT sound/backing-music acceptance. Optimized assembly passes
+from `a5bf26e730015c940514ffc57a034dbbde3f05ce`; app-input SHA-256
+`a40272cfcfb29c3f90f3d396fb1db415aed0a7bd7a90ad637577dcb62c15447d`.
+Exact private APK: `App/output/picture-reliability-20261116/optimized43-maintenance/GreaterArt-1.22.43.apk`,
+5,620,696 bytes, SHA-256 `f453f0bedf9ead91e891d363c8539f23af7395b0196184520e9046e74f867f77`.
+The existing maintenance signer, actual version, ZIP CRC and 16 KiB alignment pass.
+Exact optimized Library/Now Playing video advancement, pause/resume, fullscreen,
+explicit landscape rotation and return pass; screenshots are inspected. Preserve
+`a55-43-01/`'s passed native/corpus evidence and failed smoke timing; `a55-43-02/`
+retries only the smoke on unchanged APK bytes with normal auto-hide/reveal timing.
+Preferences restore byte-for-byte; app ID/data inode, app ops and AVD profile stay
+unchanged. Public identity remains blocked by the unavailable original signer;
+keep SOURCE_ONLY and the verified public download intact. Put the pinned JDK 21
+first on PATH for the artifact verifier; the Windows Java 8 launcher timed out.
+Preserve the owner's separate Stack documents and original artifacts. No push/merge/publication.
+
+**Retained 1.22.42/code 363 — on-screen native ripple acceptance, SOURCE_ONLY:**
+[Full cause, tests and artifact](docs/PLAYER_ICON_COLORS_1.22.41.md). Keeps the four
+41 production repairs unchanged. 620 JVM tests pass, lint zero errors/54 warnings,
+and debug/test APKs compile. All nine A55 rendered/native color tests PASS, including
+the same on-screen check rejecting the injected old mint ripple. Optimized assembly
+passes in 3m 9s from `d3fa3a40955e4cf023d96f3d33d10d5cc0df07ff`; app-input SHA-256
+`78190301dc7096cf3d78d9a1ec0b8c0ee0298a1228153a4dbe0cc8e20a81453b`.
+Exact private APK: `App/output/icon-colors-20261116/optimized42-maintenance/GreaterArt-1.22.42.apk`,
+5,604,312 bytes, SHA-256 `f8fcea1f1a6b9b525b678a3d899d6eb3fa02849dbaa21a41ac3c47a056954d13`.
+The unchanged maintenance signer, package/version, ZIP CRC and 16 KiB alignment pass.
+The exact installed APK passes normal Library/Now Playing video advancement,
+pause/resume, native fullscreen, explicit landscape rotation and return. Actual
+screenshots are inspected. Original preferences are recovered/restored byte-for-byte;
+app ID/data inode, app-op restoration and AVD profile are preserved. Sync the guest
+filesystem before stopping it. Evidence: `App/output/icon-colors-20261116/a55-42-03/`
+(nine tests) and `a55-42-04/` (exact optimized smoke). Keep earlier failures.
+Only local main and one worktree remain; the deleted merged toolbar tracking ref
+is pruned. Retain open #242's unique Gradle update and the existing Windows stash.
+Original-public signing remains blocked, so no public release/VERIFIED ledger claim.
+No push or merge; preserve the separate Stack files and prior APKs.
+
+**Retained 1.22.41/code 362 — player icon colors, SOURCE_ONLY:**
+[Scope and acceptance](docs/PLAYER_ICON_COLORS_1.22.41.md). Repair local fullscreen
+transport contrast and disabled glyphs, native Ambient artwork accent parity,
+and theme-colored dock press ripples. Preserve button sizes/spacing, toolbar,
+Lock, video pixels/quality, surface ownership and existing functions. Preflight
+passes; the new unchanged contrast assertion catches the original failure.
+620 JVM tests pass; lint has zero errors/54 warnings; debug and instrumentation
+APKs compile. Optimized assembly and exact-A55 acceptance are pending. Keep the
+private maintenance identity separate from the unavailable original-public key.
+No push, merge, public release or changes to the separate Stack experiments.
+
+**Retained 1.22.40/code 361 — frame-ready return correction, SOURCE_ONLY:**
+[Cause and checks](docs/FULLSCREEN_FRAME_HANDOFF_1.22.40.md). Keep the complete
+39 visual handoff, but observe only true frame-ready events. A readiness reset
+must not restore Expanded before the return action chooses Mini. Two additional
+same-check regressions fail against the original observer behavior, then pass.
+40 host checks pass: 618 JVM tests, lint zero errors/54 warnings, debug and
+instrumentation APK assembly. Optimized assembly passes in 3m 47s from
+`acb1c6245e5b113aec4a8c94113ea9b609b8df5b`, app-input SHA-256
+`91d68327011c433e486a521489ac0809599fae3fbef71df01057b8647803028d`.
+The exact private maintenance-key APK is
+`App/output/fullscreen-ready-20261116/optimized40-maintenance/GreaterArt-1.22.40.apk`,
+5,604,312 bytes, SHA-256
+`cf47837986a3b2d0351c6112c042e9d719b2e72d1e36e82d45ba98f4761fb529`.
+Version/package/pinned-maintenance-certificate, ZIP CRC and 16 KiB alignment pass.
+Original-public identity still fails; exact-A55 acceptance is unverified. One owned
+3 GiB boot reached Android, but the UI bridge returned a null root before any APK
+install. The emulator was stopped; no wipe, GPU/profile edit or app install occurred,
+and the two profile hashes match. Do not label this as an app crash or a device pass.
+Do not
+promote the superseded 39 build or alter its consumed version identity.
+
+**Retained 1.22.39/code 360 — frame-ready fullscreen handoff, SOURCE_ONLY:**
+[Cause, acceptance and resume](docs/FULLSCREEN_FRAME_HANDOFF_1.22.39.md). Separate
+the outgoing window's pixels from its input ownership: keep the last picture until
+the new native fullscreen generation renders, then commit the visual cut on a
+display frame. No focus, touches, dim or accessibility actions on that cover.
+There is no fixed delay on successful entry. No destination frame within eight
+seconds returns to the original destination instead of exposing a blank/stuck UI.
+Preflight passes. The original policy check fails as intended, then passes after
+the repair. Full host checks pass: 616 JVM tests, lint zero errors/54 warnings,
+debug and instrumentation APK assembly. Optimized assembly is next. Native A55
+visual acceptance remains unverified; the new readiness assertion is compiled,
+not device-run. Keep existing frame-attribution limits explicit.
+
+**Retained 1.22.38/code 359 — clearer Lock state, SOURCE_ONLY:**
+[Scope, checks and resume](docs/PLAYER_LOCK_FEEDBACK_1.22.38.md). The owner approved
+the local filled selection, 24dp closed padlock, brief lock haptic/message and a
+blocked-tap reminder. Other icons, 48dp touch targets, toolbar/handle spacing,
+auto-hide and playback quality stay unchanged. Preflight and host checks pass:
+610 JVM tests, zero lint errors/54 warnings, debug and instrumentation assembly.
+The new device tests are compiled, not run. Optimized assembly passes in 5m 35s
+from `96ef7c1`; app-input SHA-256 is
+`ee2cb6c2321036e0eb3e2d907d34274ade669d56363ed6c2e159665654f2ed3b`.
+The private same-maintenance-key APK is
+`App/output/lock-state-20261116/optimized38-maintenance/GreaterArt-1.22.38.apk`,
+5,604,312 bytes, SHA-256
+`ed2f8c8986cb615eaa2a33d3250f644453903b89b75245571f92e040bb0f0f25`.
+Version/package/certificate, ZIP CRC and 16 KiB alignment pass. Exact-current A55
+smoke is NOT RUN; original-public identity still fails. No verified release claim.
+Do not touch the user's separate Stack experiment files or push/merge.
+
+**Retained 1.22.37/code 358 — hidden-window focus/dim correction, SOURCE_ONLY:**
+[Cause, regression and resume](docs/PLAYER_WINDOW_POLICY_1.22.37.md). The retained
+host must not keep focus or 14% dim while transparent in fullscreen. 37 applies the
+visibility/input/dim policy at every native layout update, including rotation and
+sharing, preserving geometry/awake flags and the existing player. The focused
+test catches the old hidden dim 0.14 instead of 0; four policy tests cover hidden,
+normal Expanded, Mini and 1,000 hide/show updates. Complete 37 checks, optimized assembly,
+same-key/exact-file identity and A55 smoke remain distinct. Keep the owner's other
+work running and use lower-priority host checks. No push, merge or cleanup.
+**37 host results: 610 JVM tests pass; lint zero errors/54 warnings; debug/test assembly
+passes in 8m 7s.** New A55 acceptance remains unverified after the earlier startup ANR;
+the latest resource check has only about 1.55 GiB free RAM, so no repeated boot is run.
+Optimized 37 assembly also passes. The exact same-maintenance-key private candidate
+is `App/output/icon-theme-20261115/optimized37-maintenance/GreaterArt-1.22.37.apk`,
+5,604,312 bytes, SHA-256 `d59b222542d0fdbafe8964d528639f661d20683769e0fe4fe9d5ad76581cd8e5`.
+Version/package/certificate, ZIP CRC and 16 KiB alignment pass; the icon license is
+bundled. Original-public identity still fails and exact 37 A55 smoke is NOT RUN.
+This is not a verified release. Its exact executable source is 85c14c9; subsequent
+artifact-documentation edits do not rebuild it.
+
+**Superseded 1.22.36/code357 — transition repairs and matching native icons:**
+[Cause, evidence and exact resume](docs/PLAYER_TRANSITIONS_1.22.36.md). Mode taps
+cycle the stored preference atomically. Video requests the real fullscreen Activity
+without a local fullscreen resize; the hidden expanded host is retained instead of
+collapsing to Detached. Mini/widget transport uses matching22dp Rounded vectors with
+unchanged targets/actions. Add1,000-cycle connection/surface checks and focused native
+regressions. Retained34reproduces dropped mode taps and the intermediate relayout;
+three normal round trips alone do not establish visual quality. Later A55 testing
+stops before tests with a startup ANR. **606JVM tests pass, including both1,000-cycle
+checks; lint has zero errors/54warnings; diagnostic assembly passes.** The original-public key and exact36device
+acceptance remain separate gates. Leave the owner's other work alone; do not repeat
+blind cold boots or weaken checks. Keep the private unqualified visible-pause probe
+separate; production pause policy is unchanged. No quality, Stack, cleanup, push or merge.
+Its optimized assembly later passes in `optimized36-gate-01`, but original-public
+identity fails; the subsequent hidden-window policy finding prevents promotion.
+
+**Retained 1.22.35/code356 — normal-player queue icon coverage:**
+[Scope](docs/PLAYER_ICON_THEME_1.22.35.md). Queue/search/list and Sleep Timer controls
+complete the accent wiring. Its later optimized assembly passes in the private
+`optimized35-gate-03` receipt, but its original-public identity check fails. There is
+no newly verified35APK. Keep it separate from tested34and the current36source.
+
+**Retained 1.22.34/code355 — Now Playing action-icon tints:**
+[Scope and verification](docs/PLAYER_ICON_THEME_1.22.34.md). Normal toolbar,
+current-media and transport action icons use the current Material control accent,
+including live Follow video colors. Filled Play/Pause and foreground-video
+overlays retain their contrasting symbol palettes. No sizes, holders, callbacks,
+video/audio quality, sampling/cache or Stack code changed. The new rendered-icon
+check catches the retained33 white-toolbar failure on the A55. Both new tint
+checks and two existing toolbar checks pass. Two broader320dp compact fixtures
+fail; retain their failed assertions and the documented fixture/state findings.
+604 JVM tests pass, lint has zero errors/54warnings. Optimized assembly and the
+exact-file normal-entry A55 smoke pass for Home/Fullscreen/Favourite/Search/Share
+and changing live colors. Actual screenshots were inspected. Preferences, data
+inode/appId, permissions, volume and profile restore; the exact optimized34is left
+installed and the owned A55 stops. The5,595,920-byte private APK is
+`App/output/icon-theme-20261115/optimized34-maintenance/GreaterArt-1.22.34.apk`,
+SHA-256`ce3c239a146417919b7bd13506954b0f364a4818382ce837699dbb2c1b57e350`.
+It uses the unchanged maintenance signer0a7b9ceb…53de6b7. SOURCE_ONLY; the
+original-public signing key is still unavailable. No push or merge.
+
+**Retained1.22.33/code354 — disabled PCM window experiment:**
+[Scope and gates](docs/STACK_PCM_KERNEL_1.22.33.md). A same-rate contiguous window
+kernel preserves the exact32-tap Double arithmetic and final Float bits.900private
+comparisons and9original math tests pass; a one-tap-loss mutation fails.604JVM tests
+pass, lint0errors/54warnings/6hints. Two A55 CPU-only paired trials show lower mean
+time, but native stress passes only6of9: fractional runs still underrun. Shared
+output stays disabled; all original checks and the normal player/matcher remain.
+Optimized assembly and exact-file normal Miku playback/pause/fullscreen smoke pass.
+Private APK: `App/output/stack-resume-20261114-2235/optimized33-01/GreaterArt-1.22.33.apk`,
+SHA-256`79cc0106017f814e9bbaa7fa5912e4fea0f9a0b1fc7df73d1922fb33fde191d3`.
+Original-public signing still fails. A retained cold-boot package/code failure is
+recovered with the same verified maintenance certificate and full-file install-r;
+data inode/app ID survive. No wipe, key replacement or profile/GPU change. Exact
+preferences/settings restore and the A55 stops17:49:03UTC. See the linked receipt
+for the three failed boot attempts and the limits; this is not a backing fix.
+
+**Later resumed-goal checkpoint:**
+[Full acceptance coverage and later experiment limits](docs/STACK_ALIGNMENT_ACCEPTANCE_1.22.33.md).
+**Latest E62–E69:** current 1.22.33 A55 picture Quick/Wide tests pass unchanged
+assertions in 40.327 s / 268.794 s. Exact optimized APK/settings/data restoration
+and guest shutdown pass at 21:52:08 UTC. Riona still rejects in the defined picture corpus; no general
+scene/normal-button acceptance is inferred. A different host-only clean-reference
+FIR approach passes 18 known numeric controls, but an independence audit exposes
+lag-selection leakage and a frozen cross-region test FAILS a true positive.
+All-six observations support only unc/Morisray reference candidates; Miku and
+Riona remain unqualified, key-shifted takes unresolved. No primary subtraction,
+new app timing, model/engine adoption, quality change, build/version or APK change.
+The earlier 18 results are NOT independent backing acceptance. Keep raw validation:
+self-generated reference predictions can correlate almost perfectly when music
+has changed or disappeared. Notebook E62–E69 and private protocols preserve the
+failed harnesses, numerical passes and stronger failures; no push or merge.
+
+The six-take backing/output goal is still incomplete. Fresh bounded mono controls
+confirm the raw matcher can follow the singer at 980 ms instead of known 700 ms music.
+A separately licensed RoFormer comparison is blocked at acquisition; no model
+ran or entered the app. The prospective unity-volume actual-output check stops
+before capture because Android still reports 5/15 after the requested 15/15.
+Cold boots again show missing APK code with retained package/data metadata.
+Same-key recovery preserves app ID/inode and preferences, but a later guest reboot
+hangs; current cold-start/restoration acceptance is NOT verified. After bounded
+graceful-stop failures, only the verified owned QEMU process is stopped at 18:57:26 UTC;
+profiles/GPU and desktop apps are untouched. Do not repeat blind reinstalls, model
+or recorder variants. Both shared-output flags remain false. The prototype also
+rejects non-unit timing scales and has no production coordinator host: passing
+the 9 native tests alone would still not establish complete replacement parity.
+The exact optimized 33 file and earlier smoke evidence are retained, not promoted
+to full verification. No app source/build change after d70bc830, push or merge.
+
+**E42 analysis-only follow-up:** a verified existing local Torch runtime permits
+one smaller, explicitly MIT-licensed Open-Unmix HQ instrument-head benchmark.
+The two tested positives find700ms backing instead of980ms vocals; all four
+tested negatives are rejected. The second positive nevertheless FAILS the
+unchanged retention floor (0.1997119974<0.20). The run stops after6of18 checks;
+the later production/six-original gates do not run. No threshold rounding,
+model/head/band tuning, app integration, quality change or APK replacement.
+Read the notebook and linked acceptance checkpoint before repeating this work.
+
+**E43/E44 device follow-up (historical):** the same optimized33APK/data identity is later
+observed across two A55 cold starts with normal exported launcher entry and
+guest shutdown, without reinstalling. The aggregate E43report still fails on an
+automatic shutdown watchdog; later process absence is checked separately. E44
+again preserves exact identity but nine volume reads over5s remain5/15 after a
+requested15. It stops BEFORE diagnostic install/capture. Volume5, app-ops,
+test-package absence and exact optimized/data identity are observed restored;
+profiles remain and no emulator remains at20:00:25UTC. Do not turn this into a
+whole-player visual, actual-mix or full backing pass; preserve prior failures.
+
+**E45–E52 later checks:** the volume-command caller hypothesis is not confirmed;
+do not treat a shell exit0 as a setting change. The normal Android Media volume
+slider does reach15/15 and restore5/15, without security-policy changes. E51's
+first actual capture has a private report-writer dependency failure; keep it
+failed. E52 repairs only that harness dependency and retains a complete new raw
+six-original shared-output capture, unchanged scorer and before/after policy.
+Both held-out windows identify all six sources (NCC0.963820–0.985922), but ALL12
+absolute gain checks fail (0.023145–0.023555 of expected). Speaker15/default-device5
+are distinct in the native dumps; this is a policy lead, not proof of the active
+capture route or permission to rescale audio. Full backing/output remains failed.
+
+E46 passes11 unchanged A55 manual/review/transport tests with0skips. E48 exercises
+the EXACT optimized33normal exported launcher and six real files: manual17.375ms,
+Cancel, save/reload after process restart, play/pause/resume, Riona primary and
+Miku rebasing to−17.375ms pass. Its transient3/6screenshot is retained rather than
+hidden by the earlier6/6label. E50's stronger quiet observation has four native
+six-active AudioTrack samples with0track underruns, followed by nine6/6UI samples;
+this narrows the symptom, not its cause or emitted sample accuracy. E47 separately
+confirms real backing-evidence attenuation in the rejected instrument model.
+Original preferences, volume5, app-ops, test-package absence, exact optimizedAPK,
+appId/data inode and stored profile/GPU configuration are restored. E52 leaves
+no emulator at20:41:19UTC. Sources, APK, matcher, thresholds and engine flags stay
+unchanged. Read the acceptance checkpoint/notebook; no push, merge or release.
+
+**Latest E53–E55:** the real sound-analysis cancellation test fails its running-
+state precondition: analysis has already completed with2/5proposals before the
+first hierarchy read. Cancellation is NOT verified, and no app freeze is inferred.
+After exact restoration, that run's guest shutdown hangs and needs a verified
+owned-process stop; keep the aggregate failure. E54 then cold-boots READ-ONLY,
+confirms exact APK/data/access/volume5/test absence and normal Library entry,
+and exits via guest shutdown, with no emulator at21:00:25UTC. E55's offline
+native-policy check predicts the measured common attenuation from default index5
+(within2.1161%); index4/6/15controls do not. This is not active-route proof or
+permission to change the original failed unity gains. No further app/code,
+recorder, model, quality, version, APK or release change.
+
+**E57/E58 actual Sound Apply remains PARTIAL:** the review confirms two proposals
+(Riona17.375→0.65ms, unc0→83.216ms), three unchanged tracks and a non-unit Riona
+rate fit. A private flattened-hierarchy reader fails before Apply; one repaired
+reader is first proved on retained XML. The retry applies through the real button
+and verifies Riona0.65/unc83.216/Forte0in normal manual dialogs, then stops on
+ambiguous scroll containers. The full check stays FAILED; remaining applied
+values, automatic-map save/reload and later primary steps are not claimed.
+There is no app or assertion change. Original preferences/settings/APK/data
+restore and normal guest shutdown pass; no emulator remains21:18:23UTC. No more
+parser/geometry retries. The notebook also records why frozen relative recorder
+gain tests and absolute actual-source gain tests are different contracts; both
+remain unchanged and this does not rescue failed backing/output acceptance.
+
+**Retained tested1.22.32/code353 — shared Follow video colors:**
+[Scope and evidence](docs/VIDEO_THEME_1.22.32.md). One bounded numeric palette is
+shared across Library, expanded, fullscreen and compact controls. Live colors
+blend at a bounded cadence; Power saving freezes a representative cached color.
+Re-entry and late artwork cannot reset an existing video palette. The SDR renderer
+supplies sparse RGB from the existing texture; native HDR and video quality stay
+unchanged. The retained31APK fails the later-frame theme check and the32diagnostic
+passes both live/re-entry tests.603JVM tests pass, lint0errors. Optimized assembly
+and exact-file A55 live/Power saving/Mini/Library re-entry and fullscreen Fit checks
+now PASS. The private5,595,920-byte candidate is
+`App/output/video-theme-20261114/optimized32-maintenance/GreaterArt-1.22.32.apk`,
+SHA-256`b96627cb9ff55f226005b6d1cc1e128f799a243151da4394b1122788f9fa2d4a`.
+It uses the EXISTING maintenance signer0a7b9ceb…53de6b7, not the missing original
+public identity. That original-signer gate FAILS; public download/release status
+is unchanged. Source commitfa30c0c and app-input076a2cb1…e2ba9d bind the candidate.
+Actual screenshots were inspected; the separate failed debug/harness runs remain.
+The private consolidated receipt is
+`App/output/video-theme-20261114/final-verification.json`. Power saving, battery,
+Black OLED preference, volume, app-ops and test-package absence are restored;
+profile/GPU are unchanged and the owned A55 is stopped. No push or merge.
+That theme-only run did not resume or complete the Stack backing/output task;
+the later resumed-goal evidence is recorded above.
+
+**1.22.31/code352 — requested controls and diagnostics update:**
+[Scope and verification](docs/NOW_PLAYING_CONTROLS_1.22.31.md). Smaller speed hints
+sit at the video bottom. When already at2x, a stationary hold/release keeps2x;
+hold and pull upward to restore1x. Initial temporary video/speed-button holds and
+downward locking remain. Expanded toolbar groups leave a real center pull-handle
+gap, retaining six actions/48dp targets. Developer Mode follows the current app
+theme; Pick/Copy/Close remain accessible, and full Copy includes the selected
+element's geometry.595JVM tests pass; lint has0errors/54warnings/6hints and
+instrumentation compiles. The first private A55 run passes23/27; after correcting
+the real40dp Copy target and the toolbar fixture's mistaken capture target, the
+unchanged27-case suite passes with0skips and an empty crash buffer. Source
+fingerprint355ba93d…e93d2fd binds those diagnostic bytes to commitf6959b3.
+Optimized assembly and exact-file A55 native video/gesture/Dev-panel smoke now
+PASS. The5,595,920-byte private candidate is
+`App/output/now-playing-controls-20261114/optimized31-maintenance/GreaterArt-1.22.31.apk`,
+SHA-256`19658f77dbc8e237a41162a3b3fc410752380833b49eee64d23d7d672fe26039`.
+It uses the existing maintenance signer0a7b9ceb…53de6b7. The original public
+signer identity gate FAILS; that key remains unavailable. Do not call this an
+update-compatible public release. Actual screenshots were visually inspected.
+The added fullscreen portrait/landscape/return check passes. Its subsequent Mini
+check is interrupted by host-suspended QEMU/ADB; retain that failure. A clean
+bounded Mini-only retry on the SAME APK now PASSES: same PID, position12,988→31,268ms
+over18.281seconds, actual Mini/expanded screenshots and empty crash buffer.
+The final owned A55 stops12:32:14UTC14November with DEFAULT access app-ops,
+volume5/15, original test-package absence and profile/GPU unchanged.
+The earlier cleanup-only restart also restores DEFAULT access app-ops,
+volume5/15 and original test-package absence, preserves the installed optimized
+app/profile/GPU, then stops the owned A55 at11:44:19UTC14November.
+The six-take backing/output goal remains incomplete and unchanged. The private
+original post-DSP observation tracer is preserved outside the app with its flush
+assertion still red. E35's separate private follow-up now passes 11 JVM byte-copy,
+flush, exception and concurrent-ring checks; it is NOT a qualified native
+instrument and is not integrated. Format/ownership, sealing/drain, native cadence
+and known-premix prediction remain required before any production adoption.
+E36's five isolated tests confirm the existing pinned Media3 forwarder's
+configuration/object/exception delegation through192k float and offload/tunneling;
+they do NOT qualify an actual native format or the unfinished observer.
+The separate fullscreen switching diagnosis
+reproduces a visual handoff defect but no crash; no transition repair is included.
+
+**Run boundary:** the resumed window started04:43UTC14November and has its
+owner-requested eight-hour cutoff at12:43UTC(20:43Taipei). At this closing
+checkpoint the full backing/output goal is still incomplete. Do not reset the
+deadline on an automatic continuation or present the31UI work as an alignment
+release. No further native run or production adoption is planned in this window.
+The exact current receipt is private
+`App/output/now-playing-controls-20261114/final-verification.json`.
+
+**Resumed14November — independent backing reference remains analysis-only:**
+E31's octave-preserving time/key spectrum separates12controlled delayed-backing
+positives from18negatives, then passes18Gospel coarse cases and six
+estimated-vocal rejection challenges. All six originals run through a standalone
+A55 core in6.219s with host-matching coarse keys/offsets; this EXCLUDES decoding,
+app integration and native timing. The reference-only selected native queries
+pass the known700ms Gospel map, but only unc/Morisray have qualified
+reference-relative candidate maps. The Gospel qualifier checks uniqueness and
+known-map error, NOT the unchanged full native0.45gate. Miku/Riona do not have
+qualified original maps; Forte/Yoshino key-shift
+native timing remains unqualified. Do not compose a primary-relative map without
+a qualified primary. E32's attack, phase-whitened and selected-spectrum fine
+checks fail their frozen gates. No matcher or engine replacement follows.
+
+**Full-song capture is retained, not passed:** Exact optimized30's normal
+six-original Review/live Apply/pause/seek0/resume flow produces a complete210s
+raw device-output observation. It starts with4.48s of exact digital silence;
+the first global-Miku measurement window excludes the likely start. Even after
+fixing search coverage, that single-source registration misses a known perfect
+six-mix clock by31.854ms. A joint-template replacement passes the synthetic
+clock/held-out challenge, but real training NCC0.094879 is unqualified. Do not
+infer missing singers, gain faults or drift from the conditional projection
+failures. Original capture/scorers/gates remain unchanged; no output pass.
+See notebookE33 and private
+`App/output/overnight-alignment-20261114-0049/reference-spectrum-followup-20261114-1243/`.
+No matcher/app changes or new APK resulted from that resumed analysis; the
+separately requested31UI build above is distinct. No push or merge. Original
+public signing, six-take backing/output and shared-output parity remain open.
+
+**Current30 experiment:** The default-off prototype now tests a bounded
+prepare/mix producer beside the unchanged Sonic/output worker. Its first
+candidate pauses too often (0.8004185requested cadence) and fails later2×
+transport; retain that failure. The headroom-budgeted revision also fails
+(0.8544304cadence/17underruns in its added check). Keep it behind the separate
+default-off `stackPcmParallel` property, not in the ordinary private prototype.
+The corrected active-before-EOF test passes; performance gates remain failed.
+[30 scope and gates](docs/STACK_PCM_PIPELINE_1.22.30.md)
+keep current source, private diagnostics, optimized artifact and full acceptance
+separate. No production enablement, quality reduction or backing-matcher change.
+
+**Exact30 private APK now built and smoke-tested:** commit75ae3c6, app-input
+fingerprinte7904de5b991c9f268ab62067970d70b8c6d5a4c4def4399eccd1cf41c5daaa0.
+Preflight/optimized assembly PASS;591JVM tests pass, lint0errors/54warnings/
+6hints. The unchanged default build has both experimental flagsfalse.
+`App/output/overnight-alignment-20261114-0049/optimized-local-30/GreaterArt-1.22.30.apk`
+is5,579,536bytes, SHA-256
+`2929ef6f567db1af5c614986aa60b8f91947b3da8959a31f1f7f08f8a1d80c05`.
+Actual exact-file A55 Library→Now Playing play/pause/seek/resume/Home and
+visually inspected screenshots PASS. This uses the existing private maintenance
+certificate0a7b9ceb…53de6b7, NOT the unavailable original public signer9e28eb45…d612fbf.
+It cannot be called an update-compatible public release or all-six backing pass.
+Original test package, default access app-ops, microphone denial, volume5/15
+and stored AVD profile are restored. Owned A55 stops06:51:16Taipei; no wipe,
+uninstall, new signer, GPU change, push or merge.
+
+**Backing-presence hypothesis stopped, not adopted:** E30 tests an absolute
+estimated-instrumental/input RMS floor alongside the old frozen bass NCC.
+It rejects six additional controlled residual-vocal false matches while keeping
+six delayed-backing positives. However, ALL five actual target companions fail
+the unchanged NCC boundary in the retained real-song query. Do not lower the
+threshold, call synthetic controls six-singer validation, or import this into
+production. Sound/picture remain separate. E30 records exact inputs, scores,
+limitations and the required next evidence. Full-song backing, actual mixed
+output and high-rate shared-output parity remain incomplete.
+
+**Overnight14November — capture qualified, full goal still open:** Official
+scrcpy5.0.1 raw device-output capture passes the unchanged timing/gain/isolation/
+physical-absence suites twice. A single prospective first240000-frame interval
+repair addresses the frozen FFT scorer's variable-length scalloping; every
+native byte/overrun and the initial failures remain retained. No PCM repair or
+weaker numerical gate. Diagnosis closes01:19:50Taipei, inside its fixed45-minute
+cap. [Notebook E21/E22](docs/STACK_ALIGNMENT_LAB_NOTEBOOK.md) gives exact numbers
+and limits. Two exact1.22.27 six-independent-code Stack recordings fail output
+timing; the no-build repeat reaches17.501ms among valid pairs, while the premix
+control passes at most0.0906ms. This points to the multi-lane path, not a proven
+rate-trim/decoder cause. Normal original-six review/live Apply/seek/resume also
+produces a retained qualified-route20s recording; backing-only/full-song and
+per-singer output acceptance remain unproved. Do not conflate recording with
+passing synchronization, or call ambiguous codes absent voices. The source
+1.22.28/code349 is locally committed as975a0f2 and its exact optimized
+maintenance-signed APK passes normal Now Playing controls and fractional
+manual/save/reload/primary checks. The29 follow-up keeps the prototype disabled:
+shared six-coded-source output passes24windows/60pairs at max0.110726ms, but
+fractional192k tempo still fails. Original-six waveform evidence is not a
+backing or absolute-gain pass. Quick/Wider picture tests pass35.439/247.988s
+after app-UID fixture preparation, with all expected ranges/rejections intact.
+Committed29 (`3c8615f`) also has a built optimized maintenance APK and actual
+A55 Library→Now Playing play/pause/seek/resume/Home smoke. Its exact file is
+`App/output/overnight-alignment-20261114-0049/optimized-local-29/GreaterArt-1.22.29.apk`,
+5,579,536bytes, SHA-256
+`1e48a37028302e2d4b91a1892df2c12e2aea65b5af7fa5892bf9eec67143be12`.
+Original public signing is still blocked; do not call this an update-compatible
+public release. A bounded ART comparison fails the same192k gate in default
+and fully compiled states; full compilation alone is not a repair. See E28.
+The exact29 fractional manual/save/reload/primary sequence also passes. Fresh
+Windows test workers must decode ADB asUTF-8; preserved IBM437 locator failures
+do not demonstrate lost app state. Temporary access settings and owned test
+fixture restore without deleting pre-existing saved Stacks.
+No push, merge, source-quality change or public release promotion. Private
+evidence: `App/output/overnight-alignment-20261114-0049/`.
+
+**Approved private source-rate diagnostic, November14:** A separate test app
+compares source rates without changing Greater Art or the original helper.
+Completed441 Hz captures fail the original absence floor at both44100Hz
+(0.006420) and48000Hz (0.003094), with about34-sample phase slips. Forcing the
+test source to48000 does not remove this failure; do not force production
+output rates or claim the full eight-case matrix passed. Setup and stream
+failures are retained, including a corrected packet-average inference. The
+new helper is removed, owned emulators exit, and original source/app/helper/
+profile/volume/app-ops remain intact. No new Greater Art APK, push or merge.
+See the capture diagnosis and private `rate-diagnostic-20261113-2355/` evidence.
+
+**Saved PCM follow-up:** Failed streaming/static captures contain short phase
+disturbances equivalent to about-34 samples; the retained clean733 Hz stream
+does not. This is a concrete diagnostic lead, not a proved Android/emulator
+defect or recorder qualification. Original checks, app and media stay unchanged.
+A private48 kHz source comparison was subsequently approved and partially
+executed as recorded above; it does not replace the failed original44.1 kHz
+gates. See the capture diagnosis.
+
+**Owner-directed repeat, November13 at23:28–23:34Taipei:** The requested fresh
+3GiB A55 run completes all six unchanged initial/warm qualification suites.
+Timing passes4/4 twice; gain and physical absence fail twice. Original scorers
+reproduce the saved WAV results. All629 inventoried source files, HEAD, exact
+1.22.27/code348 APK, stored4GiB profile and input pins stay unchanged during
+the run. Default app-ops/volume5 remain; the owned A55 exits before the23:54:47
+deadline. No further RAM gate, quality limit, new APK, push or merge. This is
+not a quiet-host or six-song acceptance. See the diagnosis and private
+`repair-window-20261113-1718/retry-3g-20261113-2324/` evidence.
+
+**Actual3GiB A55 retry, November13:** Owner directs the run despite limited
+headroom. A temporary3072MiB CLI allocation boots and executes all six original
+initial/warm suites; stored4GiB profile and exact1.22.27/code348 APK are unchanged.
+Timing passes4/4 twice; gain and physical absence fail both rounds. Original
+scorers reproduce saved results with no weaker checks or repaired PCM. This
+is an executed memory-pressure attempt, not a quiet-host, six-song output or
+new-release pass. Runtime tests/shutdown finish around20:47Taipei before the
+21:06cutoff; saved-data verification/closeout is late. The owned A55 exits,
+volume5/default app-ops remain, and no source-quality reduction, new APK,
+push or merge occurs. [Details and E18 evidence](docs/STACK_PCM_CAPTURE_DIAGNOSIS_2026-11-13.md).
+
+**Read-only capture follow-up:** Public AOSP audio glue identifies an emulator
+capture boundary, not direct app PCM. Its35.6.3 source is older than installed
+37.2.13 and does not prove an installed-version defect. Official release notes
+do not establish a Windows repair for these failures. Keep Android mixing versus
+emulator output unresolved; no extra audio run, SDK change or app edit follows.
+See the diagnosis's bounded upstream follow-up for primary sources and limits.
+
+**Offline packet check:** The unchanged capture client matches the installed
+SDK format. Its parser preserves saved PCM through four generated packet/chunk
+layouts, and catches a deliberately deleted stereo frame. This is not actual
+server-wire evidence or recorder qualification. The SDK real-time mode is
+input-only; packet wall-clock timestamps are not sample positions. No extra
+audio, app edit or APK follows. Gain/absence remain failed; see the diagnosis.
+
+**Quiet-host recheck, November13 — preflight only:** The owner approved a
+30-minute repeat, then instructed "Stop at preflight if still short." Native
+Windows availability was2401MiB at20:14Taipei, below the agreed5GiB pre-boot
+condition, with no emulator running. Stop without launching A55 or executing
+the suites. No quiet-host result, new APK or artifact reverification exists.
+Original checks/matcher/quality stay unchanged; no push/merge. Retain E16's
+unresolved capture findings. Private receipt: App/output/stack-backing-repair-
+20261113/repair-window-20261113-1718/quiet-host-20261113-2004/preflight.json.
+
+**Bounded synthetic PCM diagnosis, November13:** [Exact-source and capture
+boundary report](docs/STACK_PCM_CAPTURE_DIAGNOSIS_2026-11-13.md) shows that the
+FFT peak can report0.848828 gain on known equal-gain signals, while actual A55
+static-file and streaming captures contain variable spectral distortion. Both
+paths fail absent-source checks; one later733Hz stream passes only its case.
+Raw S16 conversion and file identities are exact. The frozen five-phase gain
+check stays red. Android mixing versus emulator output is not yet isolated;
+do not label this a Stack leak, fix it by weakening checks, or substitute band
+power for acceptance. Two experiments are recorded in notebook E16, including
+failed harness entries and a33s device-stop overrun. Source/version/APK,
+quality, signer, permissions and volume are unchanged. No push, merge or build.
+Next: seek approval for a controlled quiet-host repetition, not another matcher.
+
+**Bounded repair window, November13:** Exact1.22.27 normal A55 sound review
+again proposes Riona+0.650ms and unc+83.216ms, with the other three unchanged;
+live Apply and manual Earlier/Later/Apply/reopen/restore pass. The2.135s scan is
+cache-warm, not a cold benchmark or six-take alignment acceptance. One new
+emulator-native speaker-capture candidate passes all four frozen timing controls
+on two boots, but still fails the original gain and physically absent-source
+checks. Windows-only capture is therefore not a sufficient explanation. Do not
+infer a production gain bug or accept a real mixed recording from these results.
+See notebook E15 and private App/output/stack-backing-repair-20261113/
+repair-window-20261113-1718/. No app code, version, signing key, engine, matcher,
+test threshold or source media changes. No push, merge or publication.
+
+The same window's exact27 picture regressions reach Quick/Wider review in
+39.263/248.245s, preserving all frozen numerical ranges and dispositions.
+Apply and6/6 resume/pause pass; the full private adapter then fails at its
+Yoshino row locator, so it is not a full-sequence pass. Source-frame inspection
+at45/90/135s shows matching scenes/lyrics between Miku and Riona despite
+different illustrations and framing. Do not interpret Riona's unchanged result
+as proof that no matching visual evidence exists. Keep this distinction and
+the tall review-row layout issue open; neither is a sound-output acceptance.
+The separate Yoshino Earlier/Later1ms/Apply/reopen/restore check passes with
+the existing leaf-list locator; both temporary app-ops return to default. This
+does not verify saved-Stack reload or repair the earlier full-sequence failure.
+
+**Newest local picture/transparent-transport candidate:** `1.22.26 (code347)` — `App/output/stack-picture-sampling-20261113/optimized-local-26/GreaterArt-1.22.26.apk`,5,579,536bytes, SHA-256 `0f34b8467201b09e1f7d2bedc9174e506ac3476a3b56a738a4e71901343289c3`, runtime `e046dbc`. All552 JVM tests, lint/no-errors, Android test compilation, optimized assembly and maintenance-signer exact-file checks pass. Actual installed A55 Now Playing has no timeline/transport holder and retains its controls. Normal six-video picture Quick/Wide reviews finish in40.325/285.770s with all frozen corpus dispositions preserved; Apply, six-track resume and pause pass. A later private row-locator failure is retained; separate two-track manual Earlier/Later/Apply/reopen/restore passes. OLED/app-ops are restored and the unchanged owned A55 stopped. [Exact evidence and limits](docs/PICTURE_TIMING_1.22.26.md). This is not an original-key/public release or backing-music/acoustic acceptance. Keep every prior APK; no push/merge/publication.
+
+**Current source:** `1.22.33 (code 354)` — SOURCE_ONLY. [Disabled PCM window experiment](docs/STACK_PCM_KERNEL_1.22.33.md) records exact arithmetic and separate native/build gates. [Shared video theme](docs/VIDEO_THEME_1.22.32.md), [controls](docs/NOW_PLAYING_CONTROLS_1.22.31.md) and [30 experiment receipt](docs/STACK_PCM_PIPELINE_1.22.30.md) preserve earlier work and failures. Shared output and parallel preparation stay disabled. Preserve all original gates/quality/signers/APKs. No backing-matcher change, push, merge or publication.
+
+**Preserved exact29 checkpoint:** `1.22.29/code350`, commit3c8615f,576passing JVM tests, lint/no-errors, optimized assembly, exact maintenance-signed identity and actual A55 normal/manual/save/reload/primary checks. [29 receipt](docs/STACK_PCM_PIPELINE_1.22.29.md) retains its failed192k fractional gate and ART comparison, shared synthetic output pass, picture regressions and full acceptance limits. Its exact APK is not rebuilt or replaced by source30 work.
+
+**Preserved previous local candidate:** `1.22.27 (code 348)` — SOURCE_ONLY, runtime `7749357`. [Native sound-support repair and exact evidence](docs/STACK_NATIVE_SUPPORT_1.22.27.md) keeps missing native measurements in the planned-region support denominator and invalidates old pair decisions. The frozen challenge catches the original defect;555 JVM tests, lint/no-errors, Android-test compilation and optimized assembly pass. APK: `App/output/stack-backing-repair-20261113/optimized-local-27/GreaterArt-1.22.27.apk`,5,579,536bytes, SHA-256 `d29be1d8eb9dfab75f5d1889724e6a386962bd6680ee7a5ddda270a61b88e733`, existing maintenance signer. The exact installed A55 candidate passes six-song sound review, live Apply, manual Earlier/Later/Apply/reopen/restore and normal Now Playing controls. The8.875s sound review is cache-warm, not a cold benchmark: Riona+0.650ms, unc+83.216ms; the other three still reject. Actual screenshots were inspected. App-ops are restored; no full-app, backing-only, emitted-audio, saved-Stack reload or physical-HDR acceptance is claimed. This does not solve all six takes. Preserve the exact26 APK and all existing functions/quality. No push, merge or publication; the original-signer check remains failed and the verified download stays1.21.93.
+
+**Preserved picture source:** `1.22.26/code347` — [sampling and mixed-cadence evidence](docs/PICTURE_TIMING_1.22.26.md). Bounded nearest-frame selection and unbiased exactly tied peaks repair the old15ms translation error. The isolated six-take A55 candidate passes Quick twice (33.813/33.895s) and Wide (256.345s), with frozen dispositions unchanged. The exact optimized26 normal-UI results are recorded above. These are not backing-only or acoustic acceptance; no picture matcher or UI behavior changes in27.
+**Preserved fullscreen presentation-tested candidate:** `1.22.24 (code 345)` — `App/output/fullscreen-ambient-toolbar-20261112/optimized-local-24/GreaterArt-1.22.24.apk`,5,579,536bytes, SHA-256 `cd5f4d32a8f7252f9753566f0784bdbe68355b9dc026300eb9dbf808ebd0e026`, runtime `bf0ae87`. Same maintenance key; original-signer release remains blocked. All542 JVM tests, lint/no-errors, test compilation, R8 assembly and exact-file checks pass. The actual installed A55 APK passes normal-center fullscreen/Home, visible margin Ambient, existing DEV/inspection and pull-to-Library. Actual top-button spacing is171px throughout. Restore DEV/app-ops after testing; preserve the1.22.23 failed-center-tap candidate. [Receipt, screenshots and limits](docs/FULLSCREEN_AMBIENT_1.22.24.md). No full-app, landscape/PiP, physical HDR or acoustic claim; no push/merge/publication.
+**Newest local theme/transport-tested candidate:** `1.22.25 (code 346)` — `App/output/oled-video-theme-20261113/optimized-local/GreaterArt-1.22.25.apk`,5,579,536bytes, SHA-256 `15d61935631169f9b9e88965cb9106278bf794428c08aa4f3d4dd0206cc3bf4f`, runtime `aa2240c`. All545 JVM tests, lint/no-errors, Android test compilation, optimized assembly and maintenance-signer exact-file checks pass. Actual installed A55 Settings/dock/Now Playing tests pass OLED/video-color choice, pause/resume, seek and Home return; screenshots were inspected and show no bottom holder. The same bytes pass fullscreen Ambient/DEV/inspection and pull return. Restore the initial OLED selection, DEV-off state and temporary app-ops. [Receipt and limits](docs/OLED_VIDEO_THEME_1.22.25.md). Compact instrumentation was compiled, not executed. Original-signer release remains blocked; no physical HDR/full-app/acoustic claim and no push/publication. Keep24 and all earlier APKs intact.
+**Newest local queue-tested optimized candidate:** `1.22.22 (code 343)` — `App/output/queue-add-list-crash-20261112/optimized-local/GreaterArt-1.22.22.apk`,5579536bytes, SHA-256 `c9c1da2f5e317e5175fdd92f72660ec2abf8629ba8c04fa2a5b55768ff8a52ba`. Built from committed runtime `681f946` and signed with the same maintenance key as1.22.19/21. Exact installed hashes match before/after the focused A55 regression; temporary Favorites and app-ops are restored. No rebuild, original-signer promotion or publication followed that test. See the linked receipt for setup-failure evidence and coverage limits.
+**Preserved notice-tested candidate:** `1.22.21 (code 342)` — `App/output/now-playing-power-saving-1.22.21-20261111/optimized-local/GreaterArt-1.22.21.apk`,5579536bytes, SHA-256 `439c3b87ccf0cf2db6c1db9c5f41a1fa974aaf553fd5b7588ce62dcf2b777cb2`. Its earlier focused notice result is retained; it is also the real queue-dialog crash baseline and is not full-app, acoustic or original-signer release acceptance.
+**Preserved Stack-tested candidate:** `1.22.20 (code 341)` — `App/output/stack-alignment-audit-20261111/optimized-local/GreaterArt-1.22.20.apk`,5579536bytes, SHA-256 `948036dcaff3d81a6a065a35d3b7a588b21e752854ffcf3357b9d21a7ebc3fee`. Exact installed bytes passed native sound review, live Apply and paused manual Reset on A55. Output sync is still unverified; do not promote this as a universally accurate or original-signer release.
+**Preserved presentation-test baseline:** `1.22.19 (code 340)` — `App/output/android-toolbar-1.22.19-20261111/release/candidate/GreaterArt-1.22.19.apk`, SHA-256 `79328f13b443a543c655cb321360cc6feec6afdcda086332572bf43eb4a2886e`. The exact installed APK passed A55 native playback, pause/resume, fullscreen geometry, Mini and Library-return checks. Real-video Now Playing captures were inspected; the toolbar has no rounded backplate. [Local candidate receipt and limits](docs/LOCAL_CANDIDATE_1.22.19.md).
 **Signing and release limit:** the local candidate uses the same separate key as 1.22.15–18 and cannot update an original-signer installation. No APK was overwritten or published. The repository's verified original-signer download remains 1.21.93; local emulator smoke is not physical-device, HDR or acoustic acceptance.
+
+**Alignment work:** [1.22.20 repair and remaining acceptance](docs/STACK_ALIGNMENT_1.22.20.md) records false-confidence rejection, coordinated Apply, clearer review/manual controls,541 passing JVM tests and8 passing development A55 UI tests. Normal Library→Stack testing caught and repaired stale unknown-duration inputs: use the prepared slot duration for analysis, without preloading Library metadata. The unchanged Miku/Riona review check now passes with +0.650ms. Android Wide picture expectations pass; Quick still exceeds45s. Three sound takes still abstain, and the owner declined second-stage native recovery. Actual output accuracy and the optimized artifact remain separate gates. Do not replace the exact tested1.22.19 APK with a development build. Use the retained package-specific maintenance key, not the different global debug key.
+
+**Output qualification, November13:** [Current recheck and preserved capture limits](docs/STACK_CAPTURE_CALIBRATION_2026-11-11.md#november13--exact12227-capture-recheck) uses the exact1.22.27 APK and unchanged A55/helper/fixtures. Fresh original timing passes4/4, but original gain and physically absent-track checks still fail. Raising only guest media volume5/15 to15/15 through Settings does not fix the gate;5/15 is restored. Earlier failed timing and the pre-playback volume-harness error remain retained. No scorer/threshold change or new real-song acceptance. Do not reuse the older Android static-track capture as post-gain output: it retained muted tones. Callback boxing is also not a mixer defect: source and actual compiled debug render bytecode show the production sample lambda is inline. Shared-output192kHz underrun/parity work remains open; no engine is enabled or replaced.
+
+**Music-first investigation:** [The earlier A55 and pitch-vote report](docs/STACK_ALIGNMENT_A55_2026-11-12.md) records the normal six-track sound review (2/5 proposals in 122.636s), its then-failed Quick deadline and completed Wider picture review (4/5 in 341.251s; Riona unmatched, Yoshino +17ms). The later1.22.26 Quick/Wide passes are recorded above. These are mixed-cache UI intervals, not cold benchmarks. A 9.308s retained-data probe isolates a pitch-vote veto of Yoshino's five time-consistent regions; it does not prove vocal causation or approve a replacement matcher. The target is shared backing music, not vocal phrasing. Keep the three uncertain sound takes unchanged under the owner's rejection-only decision until a separately agreed music-first change passes the false-match controls.
+
+**Backing-only follow-up:** [Controlled voice changes and an independent instrumental reference](docs/STACK_BACKING_MUSIC_EVIDENCE_2026-11-12.md) disprove a pitch-only repair: existing full-mix native confirmation can still reject identical backing when only the voice changes, and a common strong synthetic voice can pass with different backing. A private11.384s host comparison against syudou's public instrumental preview supports approximate backing timing in five distributed sections for Riona, unc, Yoshino and Morisray; Forte remains unresolved. The outro does not give a complete-song pass. Do not apply those host figures or call this A55/output acceptance. Android code, matcher rules, version and exact APK stay unchanged; a new backing-evidence policy needs the owner's agreement.
+
+**Approved separation trial, not app integration:** The same [backing-evidence report](docs/STACK_BACKING_MUSIC_EVIDENCE_2026-11-12.md#approved-analysis-only-separation-trial) records the CC BY4.0 KUIELab model, real-vocal controls and separate A55-profile CPU probe. Android returns the exact host tensor bit for bit, but its model core takes31.754s cold/8.031s warm with about1.20GiB peak RSS. Separation recovers the music's700ms peak instead of a280ms-late singer in a controlled case; the unchanged six-region gate still rejects that valid case because only4/6 anchors pass. Different backing with the same loud voice correctly rejects after separation. Preserve this red gate; do not loosen the five-of-six support requirement. One-window chroma suggests Forte may be about three semitones lower, but does not qualify a timing map. No app model/dependency, production matcher, version, player or APK changed. Whole-song, full-search, emitted-output and Quick-picture acceptance remain open; no push or merge.
+
+**Additional backing controls:** The [missing-backing and direct-drum follow-ups](docs/STACK_BACKING_MUSIC_EVIDENCE_2026-11-12.md#missing-backing-controls--november13-follow-up) keep the unchanged regional gate red: a designated vocal-stem-only pair with no added backing still passes after either vocal subtraction or direct percussion estimation. The real vocal stem may contain bleed; do not label it acoustically pure. Across five six-region cases, direct-drum inputs fail two truth conditions and pass three; host inference for42 distinct windows totals115.030s with about1.15GiB peak working set. A separate native-waveform check finds the correct700ms music peak in only4/6 late-voice drum regions; two still follow the singer. This disproves another blind input-swap approach. Do not relax guards, add a waveform rescue or integrate either model as-is. Component presence, matcher compatibility, whole-song evidence and mobile cost remain separate requirements.
+
+**Capture limit:** [The original static calibration](docs/STACK_CAPTURE_CALIBRATION_2026-11-11.md) and [Android streaming check](docs/STACK_ALIGNMENT_A55_2026-11-12.md#capture-qualification-streaming-is-not-speaker-output-proof) retain synthetic tones despite zero track gains. The owner-approved [Windows process-specific trial](docs/STACK_PROCESS_CAPTURE_2026-11-13.md) now passes owned tone isolation (~104dB exclusion), but its strict A55 gain check fails. Independent absence controls prove that estimator can report leakage even when the other track was never constructed. Keep the failure; do not call it a production gain bug or output-sync pass. No actual Stack recording followed this failed qualification. Exact installed1.22.24 hash, denied test recording permission, default app-ops and A55 profile match before/after. The owned A55 was stopped after testing, without changing data/configuration. Direct Media3 Solo, emitted synchronization and physical output remain unqualified. Preserve prior raw captures, the rate-hold failure and all APKs; no production matcher, engine, quality or version changed.
+
+**Known-offset capture follow-up:** [Coded timing controls](docs/STACK_PROCESS_CAPTURE_2026-11-13.md#known-coded-timing--additional-qualification) pass host source/shared-warp checks, and three repeated native Windows captures retain a continuous source. After repairing the private helper's visible-button/focus lifecycle, the completed A55 run passes zero,+37ms and unrelated-code rejection, but fails-73ms (2.75ms error, correlation0.636). Keep the frozen2ms/0.90 criteria and all failures;3/4 is not qualification. Weak matches to the known source prevent attributing the error to the production Stack. No actual Stack capture or app-code change followed this failure. Do not disable Android audio policy or repeat blind player fixes from an unqualified instrument; continue backing-evidence research separately.
 
 The following release fields describe the immutable repository release **1.21.93**, not the newer local APK or pending source:
 

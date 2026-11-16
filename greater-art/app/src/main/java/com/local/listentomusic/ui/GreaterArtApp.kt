@@ -302,7 +302,7 @@ fun GreaterArtApp(
                 }
             }
         }
-        UiInspectorHost(enabled = settings.developerMode, state = inspector) {
+        UiInspectorHost(enabled = settings.developerMode, state = inspector, language = settings.appLanguage) {
         val libraryWallpaperDimAlpha =
             if (settings.backgroundMode == AppBackgroundMode.DEFAULT) 0.08f else settings.backgroundDim
         val libraryWallpaperDimColor = appBackgroundVeil(settings.backgroundMode, lightPalette)

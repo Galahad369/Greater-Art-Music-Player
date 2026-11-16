@@ -2,15 +2,16 @@ package com.local.listentomusic.playback
 
 import android.content.Intent
 import android.graphics.Rect
-import android.os.SystemClock
+import android.view.WindowManager
 import androidx.compose.foundation.background
-import androidx.compose.foundation.gestures.detectVerticalDragGestures
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AlertDialog
@@ -29,9 +30,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.DialogProperties
 import androidx.media3.ui.PlayerView
 import com.local.listentomusic.MainViewModel
 import com.local.listentomusic.model.mediaFileFromSession
@@ -73,6 +74,10 @@ internal fun PlayerWindowExpandedContent(
     val inspector = remember { UiInspectorState() }
     val density = LocalDensity.current.density
     var fullscreen by remember { mutableStateOf(false) }
+    var toolbarBottom by remember { mutableStateOf(0f) }
+    // Handle drags as the buttons' parent, not as an overlapping sibling that
+    // wins hit testing and swallows otherwise valid icon-centre taps.
+    val toolbarInput = Modifier.expandedPlayerPullInput(!fullscreen, density, onPull, onPullEnd, onPullCancel)
     var addToListFile by remember { mutableStateOf<com.local.listentomusic.model.MediaFile?>(null) }
     val artwork by key(playback.currentPath, settings.localOverrides[playback.currentPath]) {
         val path = playback.currentPath
@@ -85,7 +90,7 @@ internal fun PlayerWindowExpandedContent(
     }
 
     MediaAdaptiveTheme(settings, playback.currentPath, artwork) {
-        UiInspectorHost(settings.developerMode, inspector) {
+        UiInspectorHost(settings.developerMode, inspector, settings.appLanguage) {
             Box(Modifier.fillMaxSize()) {
                 Surface(
                     modifier = Modifier.fillMaxSize(),
@@ -97,7 +102,7 @@ internal fun PlayerWindowExpandedContent(
                         Box(Modifier.fillMaxWidth().weight(1f)) {
                             NowPlayingScreen(
                                 floatingWindowMode = settings.floatingWindowMode,
-                                onFloatingWindowModeChange = viewModel::setFloatingWindowMode,
+                                onFloatingWindowModeChange = { viewModel.cycleFloatingWindowMode() },
                                 playback = playback,
                                 artwork = artwork,
                                 ambientPreferences = settings,
@@ -154,73 +159,38 @@ internal fun PlayerWindowExpandedContent(
                                     }
                                 },
                                 systemOverlay = true,
-                                onFullscreenChanged = { fullscreen = it; onFullscreen(it) },
+                                onFullscreenChanged = {
+                                    // Video entry is an Activity request, not a
+                                    // fullscreen state of this retained overlay.
+                                    if (!playback.isVideo) fullscreen = it
+                                    onFullscreen(it)
+                                },
                                 sharedVideoView = videoView,
                                 onSharedVideoReleased = onVideoReleased,
+                                onToolbarBoundsChanged = { toolbarBottom = it.bottom },
+                                toolbarInputModifier = toolbarInput,
                             )
                         }
                     }
                 }
 
-                // Keep the pull-to-Library gesture on a small dedicated top-center target.
-                // This works in short landscape windows without stealing vertical drags from
-                // the queue, waveform, lyrics or other Now Playing controls.
+                // Visual handle only. Its parent toolbar owns drag recognition;
+                // this layer must not intercept the buttons underneath it.
                 if (!fullscreen) {
                     Box(
                         Modifier
                             .align(Alignment.TopCenter)
-                            .fillMaxWidth(0.52f)
-                            .height(40.dp)
-                            .pointerInput(onPull, onPullEnd, onPullCancel, density) {
-                                val activationPx = expandedPullActivationPx(density)
-                                var activationTravelPx = 0f
-                                var totalDownwardPx = 0f
-                                var activated = false
-                                var dragStartMs = 0L
-                                detectVerticalDragGestures(
-                                    onDragStart = {
-                                        activationTravelPx = 0f
-                                        totalDownwardPx = 0f
-                                        activated = false
-                                        dragStartMs = SystemClock.uptimeMillis()
-                                    },
-                                    onVerticalDrag = { change, dragAmount ->
-                                        change.consume()
-                                        totalDownwardPx = (totalDownwardPx + dragAmount).coerceAtLeast(0f)
-                                        if (!activated) {
-                                            activationTravelPx =
-                                                (activationTravelPx + dragAmount).coerceAtLeast(0f)
-                                            if (activationTravelPx >= activationPx) {
-                                                activated = true
-                                                val overflow = activationTravelPx - activationPx
-                                                if (overflow > 0f) onPull(expandedPullResistedDelta(overflow))
-                                            }
-                                        } else {
-                                            onPull(expandedPullResistedDelta(dragAmount))
-                                        }
-                                    },
-                                    onDragEnd = {
-                                        if (activated) {
-                                            val elapsedMs =
-                                                (SystemClock.uptimeMillis() - dragStartMs).coerceAtLeast(1L)
-                                            val averageVelocity =
-                                                totalDownwardPx * 1_000f / elapsedMs.toFloat()
-                                            onPullEnd(totalDownwardPx, averageVelocity)
-                                        } else {
-                                            onPullCancel()
-                                        }
-                                    },
-                                    onDragCancel = onPullCancel,
-                                )
-                            }
+                            .width(EXPANDED_PULL_HANDLE_WIDTH_DP.dp)
+                            .height(52.dp)
                             .inspectElement(
                                 "EXPANDED_MINI_PULL_HANDLE",
                                 "Deliberate pull down to return to Library; activation gate + resistance",
                             ),
-                        contentAlignment = Alignment.Center,
+                        contentAlignment = Alignment.TopCenter,
                     ) {
                         Box(
                             Modifier
+                                .padding(top = 2.dp)
                                 .size(width = 64.dp, height = 4.dp)
                                 .background(
                                     MaterialTheme.colorScheme.onSurface.copy(alpha = 0.42f),
@@ -235,6 +205,8 @@ internal fun PlayerWindowExpandedContent(
                 val favourite = file.path in settings.favouritePaths
                 AlertDialog(
                     onDismissRequest = { addToListFile = null },
+                    // This player is hosted by a Service, not an Activity with a dialog token.
+                    properties = DialogProperties(windowType = WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY),
                     title = { Text(uiText(settings.appLanguage, "Add to list", "加入列表")) },
                     text = {
                         Column {
@@ -305,6 +277,7 @@ internal fun PlayerWindowExpandedContent(
                     warning = warnings.isNotEmpty() || com.local.listentomusic.ui.hasLocalFailure(failure),
                     inspector = inspector,
                     onDisableDeveloperMode = { viewModel.setDeveloperMode(false) },
+                    modifier = Modifier.padding(top = with(LocalDensity.current) { toolbarBottom.toDp() }),
                     systemOverlay = true,
                     language = settings.appLanguage,
                 )

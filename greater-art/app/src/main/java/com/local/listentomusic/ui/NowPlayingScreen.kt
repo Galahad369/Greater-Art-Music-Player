@@ -112,6 +112,7 @@ import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.TextButton
@@ -138,6 +139,9 @@ import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.liveRegion
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -224,19 +228,48 @@ internal fun nowPlayingMetadataLine(file: MediaFile?): String =
 
 internal fun shouldLockHeldDoubleSpeed(dragAfterHoldPx: Float, thresholdPx: Float): Boolean =
     thresholdPx > 0f && dragAfterHoldPx >= thresholdPx
+internal fun heldDoubleSpeedUnlockRequested(armed: Boolean, dragAfterHoldPx: Float, thresholdPx: Float): Boolean =
+    armed && thresholdPx > 0f && dragAfterHoldPx <= -thresholdPx
 internal fun isDoubleSpeed(speed: Float): Boolean = kotlin.math.abs(speed - 2f) <= 0.01f
 
 /** The video speed banner is gesture feedback, not a permanent 2× status display. */
-internal enum class VideoSpeedHint { RELEASE_FOR_NORMAL, PULL_TO_LOCK, LOCK_CONFIRMED }
+internal enum class VideoSpeedHint { PULL_UP_FOR_NORMAL, PULL_TO_LOCK, LOCK_CONFIRMED }
 
 internal fun videoSpeedHint(
     unlockArmed: Boolean, temporaryDoubleSpeed: Boolean,
     lockConfirmationVisible: Boolean, speed: Float,
 ): VideoSpeedHint? = when {
-    unlockArmed -> VideoSpeedHint.RELEASE_FOR_NORMAL
+    unlockArmed -> VideoSpeedHint.PULL_UP_FOR_NORMAL
     temporaryDoubleSpeed -> VideoSpeedHint.PULL_TO_LOCK
     lockConfirmationVisible && isDoubleSpeed(speed) -> VideoSpeedHint.LOCK_CONFIRMED
     else -> null
+}
+
+internal fun videoSpeedHintText(language: AppLanguage, hint: VideoSpeedHint): String = when (hint) {
+    VideoSpeedHint.PULL_UP_FOR_NORMAL -> when (language) {
+        AppLanguage.ENGLISH -> "2× · Pull up for 1×"
+        AppLanguage.TRADITIONAL_CHINESE -> "2× · 上拉回到 1×"
+        AppLanguage.CANTONESE -> "2× · 向上拉返 1×"
+        AppLanguage.JAPANESE -> "2× · 上にスワイプして1×"
+        AppLanguage.GERMAN -> "2× · Nach oben für 1×"
+        AppLanguage.FRENCH -> "2× · Glisser vers le haut pour 1×"
+    }
+    VideoSpeedHint.PULL_TO_LOCK -> when (language) {
+        AppLanguage.ENGLISH -> "2× · Pull down to lock"
+        AppLanguage.TRADITIONAL_CHINESE -> "2× · 下拉鎖定"
+        AppLanguage.CANTONESE -> "2× · 向下拉鎖定"
+        AppLanguage.JAPANESE -> "2× · 下にスワイプして固定"
+        AppLanguage.GERMAN -> "2× · Nach unten zum Sperren"
+        AppLanguage.FRENCH -> "2× · Glisser vers le bas pour verrouiller"
+    }
+    VideoSpeedHint.LOCK_CONFIRMED -> when (language) {
+        AppLanguage.ENGLISH -> "2× · Locked"
+        AppLanguage.TRADITIONAL_CHINESE -> "2× · 已鎖定"
+        AppLanguage.CANTONESE -> "2× · 鎖定咗"
+        AppLanguage.JAPANESE -> "2× · 固定中"
+        AppLanguage.GERMAN -> "2× · Gesperrt"
+        AppLanguage.FRENCH -> "2× · Verrouillé"
+    }
 }
 
 internal fun shouldShowPlayerLock(immersiveVideo: Boolean, videoControlsVisible: Boolean): Boolean =
@@ -403,6 +436,8 @@ fun NowPlayingScreen(
     sharedVideoView: PlayerView? = null,
     onSharedVideoReleased: () -> Unit = {},
     ambientPreferences: com.local.listentomusic.data.UserPreferences? = null,
+    onToolbarBoundsChanged: (androidx.compose.ui.geometry.Rect) -> Unit = {},
+    toolbarInputModifier: Modifier = Modifier,
 ) {
     androidx.compose.runtime.CompositionLocalProvider(
         LocalSystemPlayer provides systemOverlay,
@@ -415,10 +450,37 @@ fun NowPlayingScreen(
     // Crop trims edges when the user explicitly selects screen fill.
     var fullscreenFrameMode by rememberSaveable { mutableStateOf(FullscreenFrameMode.FIT) }
     val toggleFullscreen = {
-        if (!fullscreen) fullscreenLandscape = false
-        fullscreen = !fullscreen
+        if (systemOverlay && playback.isVideo && !fullscreen) {
+            // The real Activity owns fullscreen geometry. Keep the current
+            // overlay stable while it opens instead of resizing video twice.
+            onFullscreenChanged(true)
+        } else {
+            if (!fullscreen) fullscreenLandscape = false
+            fullscreen = !fullscreen
+        }
     }
     var controlsLocked by rememberSaveable { mutableStateOf(false) }
+    val lockHaptics = LocalHapticFeedback.current
+    // A new event restarts the brief notice, not the player's chrome timer.
+    var lockFeedback by remember { mutableStateOf<Pair<Long, Boolean>?>(null) }
+    var lockAttention by remember { mutableStateOf(false) }
+    val toggleControlsLock = {
+        controlsLocked = !controlsLocked
+        if (controlsLocked) {
+            lockHaptics.performHapticFeedback(HapticFeedbackType.LongPress)
+            lockFeedback = android.os.SystemClock.uptimeMillis() to false
+        } else lockFeedback = null
+    }
+    LaunchedEffect(controlsLocked, lockFeedback) {
+        if (!controlsLocked) lockFeedback = null
+        lockAttention = controlsLocked && lockFeedback?.second == true
+        if (lockFeedback != null) {
+            delay(160)
+            lockAttention = false
+            delay(1_440)
+            lockFeedback = null
+        }
+    }
     // The lock and the fullscreen video chrome share one visibility source.
     var videoControlsVisible by rememberSaveable { mutableStateOf(true) }
     // Both fullscreen toolbar and the separately elevated Lock action use one
@@ -447,6 +509,9 @@ fun NowPlayingScreen(
         }
 
         var playerRootBounds by remember { mutableStateOf<androidx.compose.ui.geometry.Rect?>(null) }
+        var normalToolbarBounds by remember { mutableStateOf<androidx.compose.ui.geometry.Rect?>(null) }
+        val powerSaving = com.local.listentomusic.ui.components.ambientSystemConstraints().second
+        val noticeGapPx = with(LocalDensity.current) { GaSpacing.sm.roundToPx() }
 
         // The Library wallpaper is independent from the player. Adaptive keeps its
         // motion and intensity; every other browsing mode gets steady Ambient.
@@ -470,7 +535,6 @@ fun NowPlayingScreen(
         val immersiveVideo = playback.isVideo && (fullscreen || landscape)
         val backdrop = if (playerAmbient != null) {
             Modifier.adaptiveAmbientBackdrop(artwork, playback.currentPath, playerAmbient,
-                visible = !fullscreen && !immersiveVideo,
                 extraDim = playerAmbient.backgroundDim,
                 scrolling = queueListState.isScrollInProgress,
                 steady = playerAmbient.backgroundMode == com.local.listentomusic.data.AppBackgroundMode.AMBIENT,
@@ -488,7 +552,7 @@ fun NowPlayingScreen(
             com.local.listentomusic.data.AppBackgroundMode.AMBIENT) .8f
             else com.local.listentomusic.ui.components.ambientUnit(playerAmbient?.adaptiveIntensity ?: 0f)
         val useFrameAmbient = wantsFrameAmbient && !frameAmbientFailed && frameAmbientLight > 0f &&
-            !com.local.listentomusic.ui.components.ambientSystemConstraints().second &&
+            !powerSaving &&
             com.local.listentomusic.ambient.hasFrameAmbientTrack(controller, playback.currentPath)
         val rotateFullscreen = {
             fullscreenLandscape = if (fullscreen) !fullscreenLandscape else !landscape
@@ -519,15 +583,10 @@ fun NowPlayingScreen(
             )
         }
         if (playback.isVideo) {
-            val (pageBg, pageInsets) = if (immersiveVideo) {
-                Color.Black to WindowInsets(0)
-            } else {
-                // Portrait playback: gutters use the theme so light mode does not
-                // turn the whole page into a black slab. The video stage itself
-                // keeps its black backdrop below for letterboxing the frame.
-                Color.Transparent to playerStatusInsets()
-            }
-            val videoPageModifier = Modifier.fillMaxSize().background(pageBg)
+            // Native fullscreen video fills only its aspect-correct rectangle;
+            // leave the unused Fit margins open to the sampled Ambient below.
+            val pageInsets = if (immersiveVideo) WindowInsets(0) else playerStatusInsets()
+            val videoPageModifier = Modifier.fillMaxSize()
                 .windowInsetsPadding(pageInsets)
             Column(videoPageModifier) {
                 if (!immersiveVideo) {
@@ -538,9 +597,16 @@ fun NowPlayingScreen(
                                         onFullscreen = toggleFullscreen,
                                         onClose = onClose,
                                         frameLit = useFrameAmbient,
-                                        onLock = { controlsLocked = !controlsLocked },
+                                        onLock = toggleControlsLock,
                                         locked = controlsLocked,
+                                        lockAttention = lockAttention,
                                         onLockAnchorBoundsChanged = reportLockAnchor,
+                                        onTopBarBoundsChanged = {
+                                            normalToolbarBounds = it
+                                            onToolbarBoundsChanged(it)
+                                        },
+                                        reservePullHandle = systemOverlay,
+                                        modifier = toolbarInputModifier,
                                     )
                                 }
                                 VideoPlayerStage(
@@ -550,6 +616,7 @@ fun NowPlayingScreen(
                     onSharedVideoReleased = onSharedVideoReleased,
                     frameAmbient = useFrameAmbient,
                     onFrameAmbientStage = { frameAmbientStage = it },
+                    onFullscreenToolbarBoundsChanged = onToolbarBoundsChanged,
                     immersive = immersiveVideo,
                     onVideoBoundsChanged = onVideoBoundsChanged,
                     onHome = onHome,
@@ -569,8 +636,9 @@ fun NowPlayingScreen(
                     onEndTemporaryDoubleSpeed = onEndTemporaryDoubleSpeed,
                     onLockTemporaryDoubleSpeed = onLockTemporaryDoubleSpeed,
                     onLockAnchorBoundsChanged = reportLockAnchor,
-                    onToggleControlsLock = { controlsLocked = !controlsLocked },
+                    onToggleControlsLock = toggleControlsLock,
                     controlsLocked = controlsLocked,
+                    lockAttention = lockAttention,
                     frameMode = fullscreenFrameMode,
                     onToggleFrameMode = {
                         fullscreenFrameMode = if (fullscreenFrameMode == FullscreenFrameMode.FIT)
@@ -636,9 +704,16 @@ fun NowPlayingScreen(
                     landscape = fullscreenLandscape,
                     onClose = onClose,
                     fullscreen = fullscreen,
-                    onLock = { controlsLocked = !controlsLocked },
+                    onLock = toggleControlsLock,
                     locked = controlsLocked,
+                    lockAttention = lockAttention,
                     onLockAnchorBoundsChanged = reportLockAnchor,
+                    onTopBarBoundsChanged = {
+                        normalToolbarBounds = it
+                        onToolbarBoundsChanged(it)
+                    },
+                    reservePullHandle = systemOverlay && !fullscreen,
+                    modifier = toolbarInputModifier,
                 )
                 AudioPlayer(
                     playback = playback.copy(appLanguage = language),
@@ -680,20 +755,17 @@ fun NowPlayingScreen(
         }
         }
         if (controlsLocked) {
-            Box(Modifier.fillMaxSize().pointerInput(immersiveVideo) {
-                if (immersiveVideo) {
+            Box(Modifier.fillMaxSize().testTag("PLAYER_LOCK_INPUT_BLOCKER").pointerInput(immersiveVideo) {
+                detectTapGestures(onTap = { position ->
+                    lockFeedback = android.os.SystemClock.uptimeMillis() to true
+                    if (immersiveVideo) {
                     // Locked input cannot reach VideoPlayerStage. A tap only reveals
                     // the unlock control; playback/seek/zoom remain blocked.
-                    detectTapGestures(onTap = { position ->
                         if (isCenterVideoTap(position.x, size.width.toFloat()))
                             videoControlsVisible = !videoControlsVisible
                         else videoControlsVisible = true
-                    })
-                } else {
-                    awaitPointerEventScope {
-                        while (true) awaitPointerEvent().changes.forEach { it.consume() }
                     }
-                }
+                })
             })
         }
         if (controlsLocked) {
@@ -713,14 +785,50 @@ fun NowPlayingScreen(
                         .clickable(
                             interactionSource = remember { MutableInteractionSource() },
                             indication = null,
-                            onClick = { controlsLocked = false },
+                            onClick = toggleControlsLock,
                         )
                         .semantics {
                             contentDescription = uiText(language, "Unlock player controls", "解鎖播放器控制")
+                            stateDescription = uiText(language, "Controls locked", "控制已鎖定")
                         })
                 }
             }
         }
+        if (controlsLocked && lockFeedback != null && (!immersiveVideo || videoControlsVisible)) {
+            val noticeDensity = LocalDensity.current
+            Text(
+                text = if (lockFeedback?.second == true)
+                    uiText(language, "Tap lock to unlock", "輕觸鎖頭以解鎖")
+                    else uiText(language, "Controls locked", "控制已鎖定"),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.inverseOnSurface,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.align(Alignment.TopCenter).offset {
+                    val videoBottom = if (immersiveVideo) constraints.maxHeight else
+                        ((normalToolbarBounds?.bottom ?: playerRootBounds?.top ?: 0f) -
+                            (playerRootBounds?.top ?: 0f)).roundToInt() +
+                            with(noticeDensity) { portraitVideoHeight.roundToPx() }
+                    IntOffset(0, (videoBottom - with(noticeDensity) {
+                        (if (immersiveVideo) 100.dp else 36.dp).roundToPx()
+                    }).coerceAtLeast(0))
+                }.testTag("PLAYER_LOCK_NOTICE")
+                    .semantics { liveRegion = LiveRegionMode.Polite }
+                    .clip(CircleShape).background(MaterialTheme.colorScheme.inverseSurface)
+                    .padding(horizontal = GaSpacing.md, vertical = GaSpacing.xs),
+            )
+        }
+        NowPlayingPowerSavingNotice(
+            powerSaving = powerSaving,
+            visible = !fullscreen && !immersiveVideo && playback.currentPath != null && normalToolbarBounds != null,
+            language = language,
+            modifier = Modifier.align(Alignment.TopCenter).fillMaxWidth().offset {
+                val root = playerRootBounds
+                val toolbar = normalToolbarBounds
+                IntOffset(0, if (root != null && toolbar != null)
+                    (toolbar.bottom - root.top).roundToInt().coerceAtLeast(0) + noticeGapPx else 0)
+            }.padding(horizontal = GaSpacing.md),
+        )
     }
 }
 }
@@ -735,6 +843,7 @@ private fun VideoPlayerStage(
     onVideoBoundsChanged: (Rect) -> Unit,
     frameAmbient: Boolean,
     onFrameAmbientStage: (Rect) -> Unit,
+    onFullscreenToolbarBoundsChanged: (androidx.compose.ui.geometry.Rect) -> Unit,
     onHome: () -> Unit,
     onClose: () -> Unit,
     onPictureInPicture: () -> Unit,
@@ -754,6 +863,7 @@ private fun VideoPlayerStage(
     onLockAnchorBoundsChanged: (androidx.compose.ui.geometry.Rect) -> Unit,
     onToggleControlsLock: () -> Unit,
     controlsLocked: Boolean,
+    lockAttention: Boolean,
     frameMode: FullscreenFrameMode,
     onToggleFrameMode: () -> Unit,
     controlsVisible: Boolean,
@@ -859,8 +969,9 @@ private fun VideoPlayerStage(
                     onControlsVisibilityChange(true)
                 }
             }
+            .testTag("VIDEO_STAGE")
             .inspectElement("VIDEO_STAGE", "Side double-tap seeks; pinch to zoom in fullscreen")
-            .background(if (frameAmbient) Color.Transparent else Color.Black)
+            .background(if (frameAmbient || immersive) Color.Transparent else Color.Black)
             .clipToBounds(),
         contentAlignment = Alignment.Center,
     ) {
@@ -960,6 +1071,7 @@ private fun VideoPlayerStage(
                 var holdActivated = false
                 var lockedThisGesture = false
                 var unlockArmed = false
+                var unlockedThisGesture = false
 
                 fun tryLockCurrentHold() {
                     if (!holdActivated || lockedThisGesture || multiTouch || videoScale > 1.01f) return
@@ -976,6 +1088,7 @@ private fun VideoPlayerStage(
                     delay(HOLD_2X_ACTIVATION_MS)
                         if (multiTouch || videoScale > 1.01f) return@launch
                         if (startedAtDoubleSpeed) {
+                            activationY = currentY
                             unlockArmed = true
                             unlockDoubleSpeedArmed = true
                             haptics.performHapticFeedback(HapticFeedbackType.LongPress)
@@ -1001,7 +1114,16 @@ private fun VideoPlayerStage(
                             maxMovement = maxOf(maxMovement, dx, dy)
                             if (!multiTouch && dy > 4f) onControlsVisibilityChange(true)
                             tryLockCurrentHold()
-                            if (!multiTouch && (holdActivated || unlockArmed || dy > viewConfiguration.touchSlop)) {
+                            if (!multiTouch && videoScale <= 1.01f &&
+                                heldDoubleSpeedUnlockRequested(unlockArmed, currentY - activationY, lockThresholdPx)) {
+                                onSpeed(1f)
+                                unlockedThisGesture = true
+                                unlockArmed = false
+                                unlockDoubleSpeedArmed = false
+                                lockConfirmationVisible = false
+                                haptics.performHapticFeedback(HapticFeedbackType.LongPress)
+                            }
+                            if (!multiTouch && (holdActivated || unlockArmed || unlockedThisGesture || dy > viewConfiguration.touchSlop)) {
                                 change.consume()
                             }
                         }
@@ -1020,10 +1142,7 @@ private fun VideoPlayerStage(
                     return@awaitEachGesture
                 }
 
-                if (startedAtDoubleSpeed && unlockArmed) {
-                    lockConfirmationVisible = false
-                    onSpeed(1f)
-                    haptics.performHapticFeedback(HapticFeedbackType.LongPress)
+                if (startedAtDoubleSpeed && (unlockArmed || unlockedThisGesture)) {
                     lastSeekSide = null
                     lastSeekTapMs = 0L
                     return@awaitEachGesture
@@ -1082,31 +1201,41 @@ private fun VideoPlayerStage(
                 }
             }
         })
-        val speedGestureLabel = when (videoSpeedHint(
+        val speedGestureLabel = videoSpeedHint(
             unlockDoubleSpeedArmed, temporaryDoubleSpeed, lockConfirmationVisible, playback.speed
-        )) {
-            VideoSpeedHint.RELEASE_FOR_NORMAL ->
-                uiText(playback.appLanguage, "Release for 1×", "放開回到 1×")
-            VideoSpeedHint.PULL_TO_LOCK ->
-                uiText(playback.appLanguage, "2× · Pull down to lock", "2× · 下拉鎖定")
-            VideoSpeedHint.LOCK_CONFIRMED ->
-                uiText(playback.appLanguage, "2× · Locked", "2× · 已鎖定")
-            null -> null
+        )?.let { videoSpeedHintText(playback.appLanguage, it) }
+        val fittedVideo = com.local.listentomusic.ui.components.aspectPreservingVideoSize(
+            lastViewportSize.width, lastViewportSize.height, playback.videoAspectRatio,
+            immersive && frameMode == FullscreenFrameMode.CROP,
+        )
+        val videoBottomInsetPx = fittedVideo?.let {
+            ((lastViewportSize.height - it.height) / 2f).coerceAtLeast(0f)
+        } ?: 0f
+        val visibleControlsInsetPx = if (immersive && controlsVisible) {
+            safeBottomPx + with(density) {
+                (if (canShowTransport) 120.dp else if (canShowTimeline) 64.dp else 0.dp).toPx()
+            }
+        } else 0f
+        val speedHintBottomPadding = with(density) {
+            maxOf(videoBottomInsetPx, visibleControlsInsetPx)
+                .coerceAtMost((lastViewportSize.height - 48.dp.toPx()).coerceAtLeast(0f)).toDp() + 8.dp
         }
         AnimatedVisibility(
             visible = speedGestureLabel != null,
             enter = fadeIn(tween(100)),
             exit = fadeOut(tween(120)),
-            modifier = Modifier.align(Alignment.TopCenter)
-                .offset { IntOffset(0, (toolbarBottomPx + with(density) { 8.dp.toPx() }).roundToInt()) },
+            modifier = Modifier.align(Alignment.BottomCenter)
+                .padding(start = GaSpacing.sm, end = GaSpacing.sm, bottom = speedHintBottomPadding),
         ) {
             Text(
                 speedGestureLabel.orEmpty(),
                 color = GaVideoOverlay.foreground,
-                style = MaterialTheme.typography.labelLarge,
-                fontWeight = FontWeight.Bold,
-                modifier = Modifier.clip(CircleShape).background(GaVideoOverlay.scrim)
-                    .padding(horizontal = GaSpacing.md, vertical = GaSpacing.sm),
+                style = MaterialTheme.typography.labelSmall,
+                fontWeight = FontWeight.Medium,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.testTag("VIDEO_SPEED_HINT").clip(CircleShape).background(GaVideoOverlay.scrim)
+                    .padding(horizontal = GaSpacing.md, vertical = GaSpacing.xs),
             )
         }
         SeekFeedback(
@@ -1142,10 +1271,14 @@ private fun VideoPlayerStage(
                                         landscape = landscape,
                                         onLock = onToggleControlsLock,
                                         locked = controlsLocked,
+                                        lockAttention = lockAttention,
                                         frameMode = frameMode,
                                         onToggleFrameMode = onToggleFrameMode,
                                         onLockAnchorBoundsChanged = onLockAnchorBoundsChanged,
-                                        onTopBarBoundsChanged = { toolbarWindowBounds = it },
+                                        onTopBarBoundsChanged = {
+                                            toolbarWindowBounds = it
+                                            onFullscreenToolbarBoundsChanged(it)
+                                        },
                                         modifier = Modifier.align(Alignment.TopCenter)
                                             // The video itself stays edge-to-edge; chrome must
                                             // avoid notches/camera cutouts on both orientations.
@@ -1162,7 +1295,7 @@ private fun VideoPlayerStage(
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     OverlayIconButton(onClick = onPrevious, enabled = playback.hasPrevious) {
-                        Icon(Icons.Rounded.SkipPrevious, uiText(playback.appLanguage, "Previous", "上一首"), tint = GaVideoOverlay.foreground, modifier = Modifier.size(GaControl.prominentIcon))
+                        Icon(Icons.Rounded.SkipPrevious, uiText(playback.appLanguage, "Previous", "上一首"), modifier = Modifier.size(GaControl.prominentIcon))
                     }
                     // Keep the center play control available whenever controls are visible.
                     Box(
@@ -1178,7 +1311,7 @@ private fun VideoPlayerStage(
                         )
                     }
                     OverlayIconButton(onClick = onNext, enabled = playback.hasNext) {
-                        Icon(Icons.Rounded.SkipNext, uiText(playback.appLanguage, "Next", "下一首"), tint = GaVideoOverlay.foreground, modifier = Modifier.size(GaControl.prominentIcon))
+                        Icon(Icons.Rounded.SkipNext, uiText(playback.appLanguage, "Next", "下一首"), modifier = Modifier.size(GaControl.prominentIcon))
                     }
                 }
 
@@ -1504,7 +1637,6 @@ private fun SecondaryControls(
             .padding(start = 12.dp, end = 12.dp, top = 0.dp, bottom = 0.dp),
         horizontalAlignment = Alignment.Start,
     ) {
-        val chromeShape = RoundedCornerShape(GaRadius.chrome)
         Box(
             Modifier.fillMaxWidth()
                 .testTag("CURRENT_MEDIA_HEADER_CONTAINER")
@@ -1553,13 +1685,7 @@ private fun SecondaryControls(
                 )
         Column(
             Modifier.fillMaxWidth()
-                .clip(chromeShape)
-                .background(MaterialTheme.colorScheme.surface.copy(alpha = NOW_PLAYING_AMBIENT_PANEL_ALPHA))
-                .border(
-                    1.dp,
-                    MaterialTheme.colorScheme.outlineVariant.copy(alpha = NOW_PLAYING_AMBIENT_OUTLINE_ALPHA),
-                    chromeShape,
-                )
+                .testTag("NOW_PLAYING_TRANSPORT_AREA")
                 .padding(horizontal = 8.dp, vertical = 4.dp),
         ) {
             Timeline(playback, onSeek)
@@ -1592,6 +1718,7 @@ private fun NowPlayingQueue(
     onLocateCurrent: () -> Unit,
 ) {
     var query by rememberSaveable { mutableStateOf("") }
+    val actionColors = IconButtonDefaults.iconButtonColors(contentColor = MaterialTheme.colorScheme.secondary)
     val searchFocus = remember { FocusRequester() }
     val keyboard = LocalSoftwareKeyboardController.current
     LaunchedEffect(searchOpen) {
@@ -1652,6 +1779,7 @@ private fun NowPlayingQueue(
             // Dedicated targets on opposite ends minimize accidental Locate/Close taps.
             IconButton(
                 onClick = { query = ""; onLocateCurrent() },
+                colors = actionColors,
                 enabled = stack.active || currentQueueIndex in queue.indices,
                 modifier = Modifier.size(GaControl.touchTarget)
                     .inspectElement("LOCATE_CURRENT_BUTTON", "Reveal and locate the playing song"),
@@ -1669,6 +1797,7 @@ private fun NowPlayingQueue(
             Spacer(Modifier.width(4.dp))
             IconButton(
                 onClick = { if (query.isNotEmpty()) query = "" else onCloseSearch() },
+                colors = actionColors,
                 modifier = Modifier.size(GaControl.touchTarget)
                     .inspectElement("QUEUE_SEARCH_CLEAR_CLOSE", "Clear the filter or close search"),
             ) {
@@ -1765,6 +1894,7 @@ private fun NowPlayingQueue(
                                 openActionsKey = null
                                 onAddQueueItemToList(file)
                             },
+                            colors = actionColors,
                             modifier = Modifier.align(Alignment.CenterEnd).size(actionSize)
                                 .drawWithContent content@{
                                     // The underlay never moves. Reveal only the strip exposed
@@ -1829,18 +1959,19 @@ private fun NowPlayingQueue(
                             }
                             IconButton(
                                 onClick = { openActionsKey = if (actionsOpen) null else entry.stableKey },
+                                colors = actionColors,
                                 modifier = Modifier.size(GaControl.touchTarget).inspectElement("QUEUE_MORE_BUTTON", "Actions for ${file.name}"),
                             ) {
                                 Icon(Icons.Rounded.MoreVert, uiText(language, "Actions", "操作"))
                             }
                             if (editableQueue) {
-                                IconButton(onClick = { onMoveQueueItem(index, index - 1) }, enabled = index > 0) {
+                                IconButton(onClick = { onMoveQueueItem(index, index - 1) }, enabled = index > 0, colors = actionColors) {
                                     Icon(Icons.Rounded.KeyboardArrowUp, uiText(language, "Move up", "上移"))
                                 }
-                                IconButton(onClick = { onMoveQueueItem(index, index + 1) }, enabled = index < queue.lastIndex) {
+                                IconButton(onClick = { onMoveQueueItem(index, index + 1) }, enabled = index < queue.lastIndex, colors = actionColors) {
                                     Icon(Icons.Rounded.KeyboardArrowDown, uiText(language, "Move down", "下移"))
                                 }
-                                IconButton(onClick = { onRemoveQueueItem(index) }, enabled = queue.size > 1) {
+                                IconButton(onClick = { onRemoveQueueItem(index) }, enabled = queue.size > 1, colors = actionColors) {
                                     Icon(Icons.Rounded.RemoveCircleOutline, uiText(language, "Remove", "移除"))
                                 }
                             }
@@ -2139,6 +2270,7 @@ internal fun PlayerBottomControls(
 ) {
     var speedMenuOpen by remember { mutableStateOf(false) }
     val accent = MaterialTheme.colorScheme.secondary
+    val actionColors = IconButtonDefaults.iconButtonColors(contentColor = accent)
     val cycleLabel = when {
         playback.stackCount > 0 && playback.repeatMode == Player.REPEAT_MODE_ALL ->
             uiText(playback.appLanguage, "Loop", "循環")
@@ -2157,6 +2289,7 @@ internal fun PlayerBottomControls(
     ) {
         IconButton(
                     onClick = onRepeat,
+                    colors = actionColors,
                     modifier = Modifier.size(GaControl.touchTarget)
                         .inspectElement(
                             "REPEAT_BUTTON",
@@ -2180,12 +2313,13 @@ internal fun PlayerBottomControls(
                                 if (stackLoop) if (stackLoopOn) "循環" else "不循環" else "重複模式",
                             ),
                             Modifier.size(GaControl.icon).testTag("PLAYER_TRANSPORT_ICON"),
-                            tint = if (stackLoop && !stackLoopOn) MaterialTheme.colorScheme.onSurfaceVariant else accent,
+                            tint = if (stackLoop && !stackLoopOn) accent.copy(alpha = .62f) else accent,
                         )
                         Text(cycleLabel, style = MaterialTheme.typography.labelSmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
                     }
                 }
         IconButton(onClick = onPrevious, enabled = playback.hasPrevious || playback.positionMs > 4_000L,
+            colors = actionColors,
             modifier = Modifier.size(GaControl.touchTarget).inspectElement("PREVIOUS_BUTTON", "Previous media or restart current")) {
             Icon(Icons.Rounded.SkipPrevious, uiText(playback.appLanguage, "Previous", "上一首"), modifier = Modifier.size(GaControl.icon).testTag("PLAYER_TRANSPORT_ICON"))
         }
@@ -2210,7 +2344,7 @@ internal fun PlayerBottomControls(
                 tint = MaterialTheme.colorScheme.onSecondary,
             )
         }
-        IconButton(onClick = onNext, enabled = playback.hasNext, modifier = Modifier.size(GaControl.touchTarget).inspectElement("NEXT_BUTTON", "Next media")) {
+        IconButton(onClick = onNext, enabled = playback.hasNext, colors = actionColors, modifier = Modifier.size(GaControl.touchTarget).inspectElement("NEXT_BUTTON", "Next media")) {
             Icon(Icons.Rounded.SkipNext, uiText(playback.appLanguage, "Next", "下一首"), modifier = Modifier.size(GaControl.icon).testTag("PLAYER_TRANSPORT_ICON"))
         }
         Box {
@@ -2248,6 +2382,7 @@ private fun CurrentMediaHeader(
     onSearch: () -> Unit,
 ) {
     var shareMenuOpen by remember { mutableStateOf(false) }
+    val actionColors = IconButtonDefaults.iconButtonColors(contentColor = MaterialTheme.colorScheme.secondary)
 
     Column(Modifier.fillMaxWidth()) {
         // The primary keeps the ordinary Now Playing header. Stack context is
@@ -2280,21 +2415,23 @@ private fun CurrentMediaHeader(
             }
             IconButton(
                 onClick = onToggleFavourite,
+                colors = actionColors,
                 modifier = Modifier.size(GaControl.touchTarget).inspectElement("FAVOURITE_BUTTON", "Stores the current file in the local Favorites list"),
             ) {
                 Icon(
                     if (isFavourite) Icons.Rounded.Favorite else Icons.Rounded.FavoriteBorder,
                     uiText(playback.appLanguage, if (isFavourite) "Remove from Favorites" else "Add to Favorites", if (isFavourite) "從我的最愛移除" else "加入我的最愛"),
-                    tint = if (isFavourite) MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.outline,
+                    tint = MaterialTheme.colorScheme.secondary,
                     modifier = Modifier.size(GaControl.icon).testTag("PLAYER_HEADER_ACTION_ICON"),
                 )
             }
-            IconButton(onClick = onSearch, modifier = Modifier.size(GaControl.touchTarget).inspectElement("QUEUE_SEARCH_BUTTON", "Search the current list")) {
+            IconButton(onClick = onSearch, colors = actionColors, modifier = Modifier.size(GaControl.touchTarget).inspectElement("QUEUE_SEARCH_BUTTON", "Search the current list")) {
                 Icon(Icons.Rounded.Search, uiText(playback.appLanguage, "Search current queue", "搜尋目前播放佇列"), Modifier.size(GaControl.icon).testTag("PLAYER_HEADER_ACTION_ICON"))
             }
             Box {
                 IconButton(
                     onClick = { shareMenuOpen = true },
+                    colors = actionColors,
                     modifier = Modifier.size(GaControl.touchTarget).inspectElement("SHARE_BUTTON", "Choose the current file or an M3U8 queue"),
                 ) {
                     Icon(Icons.Rounded.Share, uiText(playback.appLanguage, "Share", "分享"), Modifier.size(GaControl.icon).testTag("PLAYER_HEADER_ACTION_ICON"))
@@ -2325,7 +2462,6 @@ private fun SecondaryControlRow(
 ) {
     val practice by com.local.listentomusic.playback.PracticeLoop.state.collectAsState()
     var sleepMenuOpen by remember { mutableStateOf(false) }
-    val outline = MaterialTheme.colorScheme.outline
     val activeColor = MaterialTheme.colorScheme.secondary
     val controlColors = ButtonDefaults.buttonColors(
         containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.46f),
@@ -2357,7 +2493,7 @@ private fun SecondaryControlRow(
                 Icon(
                     Icons.Rounded.Bedtime,
                     null,
-                    tint = if (sleepTimer.active) activeColor else outline,
+                    tint = activeColor,
                     modifier = Modifier.size(23.dp),
                 )
                 Spacer(Modifier.width(4.dp))
@@ -2422,7 +2558,7 @@ private fun PlaybackError(message: String?) {
 /**
  * One visual specification for every Now Playing toolbar action, including the
  * input-safe Lock action. Its caller owns placement and chrome visibility; it
- * never creates a separate background or an independent animation clock.
+ * keeps every slot fixed. Only selected Lock gets a local state highlight.
  */
 @Composable
 private fun PlayerToolbarAction(
@@ -2434,14 +2570,24 @@ private fun PlayerToolbarAction(
     inspectorDescription: String,
     modifier: Modifier = Modifier,
     rotationBadgeBackground: Color? = null,
+    selected: Boolean = false,
+    attention: Boolean = false,
 ) {
+    val lockScale = if (selected) animateFloatAsState(
+        if (attention) 1.12f else 1f, tween(120), label = "lock attention"
+    ) else null
     IconButton(
         onClick = onClick,
         modifier = modifier.size(GaControl.touchTarget)
             .inspectElement(inspectorId, inspectorDescription),
     ) {
-        Box(Modifier.size(32.dp), contentAlignment = Alignment.Center) {
-            Icon(glyph, description, modifier = Modifier.size(GaControl.icon), tint = foreground)
+        Box(Modifier.size(32.dp).then(if (selected) Modifier
+            .testTag("PLAYER_LOCK_SELECTED")
+            .graphicsLayer { scaleX = lockScale!!.value; scaleY = lockScale.value }
+            .background(MaterialTheme.colorScheme.primary, CircleShape) else Modifier),
+            contentAlignment = Alignment.Center) {
+            Icon(glyph, description, modifier = Modifier.size(if (selected) 24.dp else GaControl.icon),
+                tint = if (selected) MaterialTheme.colorScheme.onPrimary else foreground)
             if (rotationBadgeBackground != null) {
                 Icon(
                     Icons.AutoMirrored.Rounded.RotateRight, null,
@@ -2463,7 +2609,8 @@ internal fun NowPlayingTopBar(
     onClose: () -> Unit,
     modifier: Modifier = Modifier,
     overlay: Boolean = false,
-    frameLit: Boolean = false,
+    reservePullHandle: Boolean = false,
+    @Suppress("UNUSED_PARAMETER") frameLit: Boolean = false,
     fullscreen: Boolean = false,
     speed: Float = 1f,
     onSpeed: ((Float) -> Unit)? = null,
@@ -2472,6 +2619,7 @@ internal fun NowPlayingTopBar(
     onSpeedPressedChange: (Boolean) -> Unit = {},
     onLock: (() -> Unit)? = null,
     locked: Boolean = false,
+    lockAttention: Boolean = false,
     frameMode: FullscreenFrameMode? = null,
     onToggleFrameMode: (() -> Unit)? = null,
     onRotate: (() -> Unit)? = null,
@@ -2479,7 +2627,9 @@ internal fun NowPlayingTopBar(
     onLockAnchorBoundsChanged: (androidx.compose.ui.geometry.Rect) -> Unit = {},
     onTopBarBoundsChanged: (androidx.compose.ui.geometry.Rect) -> Unit = {},
 ) {
-    val foregroundColor = if (overlay || frameLit) GaVideoOverlay.foreground else MaterialTheme.colorScheme.onSurface
+    // Ambient behind normal chrome is not foreground video. Do not let it
+    // bypass the shared live accent. Actual video overlays keep their contrast palette.
+    val foregroundColor = if (overlay) GaVideoOverlay.foreground else MaterialTheme.colorScheme.secondary
     val backgroundColor = if (overlay) GaVideoOverlay.scrim else Color.Transparent
     BoxWithConstraints(modifier.fillMaxWidth()
         .onGloballyPositioned { onTopBarBoundsChanged(it.boundsInWindow()) }) {
@@ -2488,8 +2638,10 @@ internal fun NowPlayingTopBar(
         val density = LocalDensity.current
         // Round the combined inset once. At 420dpi, independently rounded
         // 12dp + 4dp pads steal two pixels from six exact 48dp targets.
-        val outerPx = with(density) { 12.dp.roundToPx() }
-        val insetPx = with(density) { 16.dp.roundToPx() }
+        val hasPullHandle = reservePullHandle && !fullscreen
+        val outerPadding = if (hasPullHandle) GaSpacing.sm else GaSpacing.md
+        val outerPx = with(density) { outerPadding.roundToPx() }
+        val insetPx = with(density) { (if (hasPullHandle) GaSpacing.sm else GaSpacing.lg).roundToPx() }
         val innerPadding = with(density) { (insetPx - outerPx).toDp() }
         val slots = toolbarAvailableSlots(constraints.maxWidth,
             with(density) { GaControl.touchTarget.roundToPx() }, insetPx * 2)
@@ -2501,7 +2653,7 @@ internal fun NowPlayingTopBar(
         val oneColumn = slots < 2
         val shape = RoundedCornerShape(GaRadius.chrome)
         val chrome = Modifier.fillMaxWidth()
-            .padding(horizontal = 12.dp, vertical = 6.dp)
+            .padding(horizontal = outerPadding, vertical = 6.dp)
             .then(if (overlay) {
                 Modifier.clip(shape)
                     .background(backgroundColor)
@@ -2563,7 +2715,13 @@ internal fun NowPlayingTopBar(
                     inspectorId = "PLAYER_LOCK_BUTTON",
                     inspectorDescription = if (locked)
                         "Unlock Now Playing controls" else "Lock Now Playing controls",
-                    modifier = anchored,
+                    modifier = anchored.semantics {
+                        stateDescription = uiText(language,
+                            if (locked) "Controls locked" else "Controls unlocked",
+                            if (locked) "控制已鎖定" else "控制已解鎖")
+                    },
+                    selected = locked,
+                    attention = lockAttention,
                 )
             }
         }
@@ -2602,7 +2760,73 @@ internal fun NowPlayingTopBar(
                 inspectorDescription = "Closes Now Playing without stopping playback",
             )
         }
-        if (compact) {
+        val floatingLauncherButton: @Composable () -> Unit = {
+            PlayerToolbarAction(
+                onClick = onPictureInPicture,
+                glyph = Icons.Rounded.PictureInPictureAlt,
+                description = uiText(language, "Open floating player", "開啟浮動播放器"),
+                foreground = foregroundColor,
+                inspectorId = "FLOATING_PLAYER_BUTTON",
+                inspectorDescription = "Opens the selected floating-player mode",
+            )
+        }
+        val homeButton: @Composable () -> Unit = {
+            PlayerToolbarAction(
+                onClick = onHome,
+                glyph = Icons.Rounded.Home,
+                description = uiText(language, "Home", "首頁"),
+                foreground = foregroundColor,
+                inspectorId = "HOME_BUTTON",
+                inspectorDescription = "Returns to Library",
+            )
+        }
+        val floatingModeButton: @Composable () -> Unit = {
+            val selectedMode = LocalFloatingMode.current
+            val onModeChange = LocalFloatingModeChange.current
+            PlayerToolbarAction(
+                onClick = { onModeChange(selectedMode.nextFloatingMode()) },
+                glyph = when (selectedMode) {
+                    FloatingWindowMode.MINI_WINDOW -> Icons.Rounded.PictureInPictureAlt
+                    FloatingWindowMode.FOLLOW_VIDEO, FloatingWindowMode.COMPACT -> Icons.Rounded.OndemandVideo
+                    FloatingWindowMode.NONE -> Icons.Rounded.Block
+                },
+                description = floatingModeDescription(language, selectedMode),
+                foreground = foregroundColor,
+                inspectorId = "FLOATING_MODE_BUTTON",
+                inspectorDescription = "Switch floating playback mode: ${floatingModeLabel(language, selectedMode)}",
+            )
+        }
+        if (hasPullHandle) {
+            val left = listOf(floatingLauncherButton, homeButton, floatingModeButton)
+            val right = listOf(lockSlot, fullscreenButton, closeButton)
+            val touchPx = with(density) { GaControl.touchTarget.roundToPx() }
+            val handlePx = with(density) { com.local.listentomusic.playback.EXPANDED_PULL_HANDLE_WIDTH_DP.dp.roundToPx() }
+            if (constraints.maxWidth < insetPx * 2 + touchPx * 2 + handlePx) {
+                Column(chrome, horizontalAlignment = Alignment.CenterHorizontally) {
+                    Spacer(Modifier.fillMaxWidth().height(52.dp).testTag("EXPANDED_TOOLBAR_HANDLE_GAP"))
+                    (left + right).forEach { it() }
+                }
+            } else {
+                val gapPx = handlePx
+                val perSide = ((constraints.maxWidth - insetPx * 2 - gapPx) / 2 / touchPx).coerceIn(1, 3)
+                Row(chrome, verticalAlignment = Alignment.Top) {
+                    Column(Modifier.weight(1f)) {
+                        left.chunked(perSide).forEach { row ->
+                            Row(Modifier.fillMaxWidth().height(52.dp), verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.SpaceEvenly) { row.forEach { it() } }
+                        }
+                    }
+                    Spacer(Modifier.width(with(density) { gapPx.toDp() })
+                        .height(52.dp * ((3 + perSide - 1) / perSide)).testTag("EXPANDED_TOOLBAR_HANDLE_GAP"))
+                    Column(Modifier.weight(1f)) {
+                        right.chunked(perSide).forEach { row ->
+                            Row(Modifier.fillMaxWidth().height(52.dp), verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.SpaceEvenly) { row.forEach { it() } }
+                        }
+                    }
+                }
+            }
+        } else if (compact) {
             Column(chrome, horizontalAlignment = Alignment.CenterHorizontally) {
                 if (hasSpeed) Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Start) { speedButton() }
                 if (oneColumn) {
@@ -2630,39 +2854,12 @@ internal fun NowPlayingTopBar(
                 }
             }
         } else {
-            Row(chrome.height(52.dp), verticalAlignment = Alignment.CenterVertically) {
+            Row(chrome.height(52.dp), verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween) {
                 speedButton()
-                if (actions.floatingLauncher) PlayerToolbarAction(
-                    onClick = onPictureInPicture,
-                    glyph = Icons.Rounded.PictureInPictureAlt,
-                    description = uiText(language, "Open floating player", "開啟浮動播放器"),
-                    foreground = foregroundColor,
-                    inspectorId = "FLOATING_PLAYER_BUTTON",
-                    inspectorDescription = "Opens the selected floating-player mode",
-                )
-                if (actions.home) PlayerToolbarAction(
-                    onClick = onHome,
-                    glyph = Icons.Rounded.Home,
-                    description = uiText(language, "Home", "首頁"),
-                    foreground = foregroundColor,
-                    inspectorId = "HOME_BUTTON",
-                    inspectorDescription = "Returns to Library",
-                )
-                val selectedMode = LocalFloatingMode.current
-                val onModeChange = LocalFloatingModeChange.current
-                if (actions.floatingMode) PlayerToolbarAction(
-                    onClick = { onModeChange(selectedMode.nextFloatingMode()) },
-                    glyph = when (selectedMode) {
-                        FloatingWindowMode.MINI_WINDOW -> Icons.Rounded.PictureInPictureAlt
-                        FloatingWindowMode.FOLLOW_VIDEO, FloatingWindowMode.COMPACT -> Icons.Rounded.OndemandVideo
-                        FloatingWindowMode.NONE -> Icons.Rounded.Block
-                    },
-                    description = floatingModeDescription(language, selectedMode),
-                    foreground = foregroundColor,
-                    inspectorId = "FLOATING_MODE_BUTTON",
-                    inspectorDescription = "Switch floating playback mode: ${floatingModeLabel(language, selectedMode)}",
-                )
-                Spacer(Modifier.weight(1f))
+                if (actions.floatingLauncher) floatingLauncherButton()
+                if (actions.home) homeButton()
+                if (actions.floatingMode) floatingModeButton()
                 rotateButton()
                 lockSlot()
                 frameModeButton()
@@ -2683,7 +2880,7 @@ internal fun fullscreenRotationLabel(language: AppLanguage, landscape: Boolean):
 }
 
 @Composable
-private fun OverlayIconButton(
+internal fun OverlayIconButton(
     onClick: () -> Unit,
     enabled: Boolean = true,
     content: @Composable () -> Unit,
@@ -2691,6 +2888,10 @@ private fun OverlayIconButton(
     IconButton(
         onClick = onClick,
         enabled = enabled,
+        colors = IconButtonDefaults.iconButtonColors(
+            contentColor = GaVideoOverlay.foreground,
+            disabledContentColor = GaVideoOverlay.foreground.copy(alpha = 0.38f),
+        ),
         modifier = Modifier.size(GaControl.touchTarget).clip(CircleShape)
             .background(GaVideoOverlay.control),
         content = content,

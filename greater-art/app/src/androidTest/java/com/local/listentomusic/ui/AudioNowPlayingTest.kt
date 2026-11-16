@@ -139,6 +139,24 @@ class AudioNowPlayingTest {
         }
     }
 
+    @Test fun lockedTouchShowsReminderButDoesNotActivatePlaybackAndNoticeExpires() {
+        show()
+        compose.mainClock.autoAdvance = false
+        compose.onNodeWithContentDescription("Lock player controls").performClick()
+        compose.mainClock.advanceTimeByFrame()
+        compose.onNodeWithText("Controls locked").assertIsDisplayed()
+        compose.onNodeWithTag("PLAYER_LOCK_INPUT_BLOCKER").performTouchInput { click(center) }
+        compose.mainClock.advanceTimeByFrame()
+        compose.onNodeWithText("Tap lock to unlock").assertIsDisplayed()
+        compose.runOnIdle { assertEquals(0, playCalls); assertEquals(0, homeCalls) }
+        compose.mainClock.advanceTimeBy(1_800)
+        compose.onNodeWithTag("PLAYER_LOCK_NOTICE").assertDoesNotExist()
+        compose.onNodeWithContentDescription("Unlock player controls").performClick()
+        compose.mainClock.advanceTimeByFrame()
+        compose.onNodeWithContentDescription("Home").assertIsDisplayed()
+        compose.mainClock.autoAdvance = true
+    }
+
     @Test fun shortLandscapeKeepsAudioControlsAndArtworkVisible() {
         show(DpSize(800.dp, 360.dp))
         val bitmap = Bitmap.createBitmap(48, 48, Bitmap.Config.ARGB_8888)

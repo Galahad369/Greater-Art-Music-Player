@@ -278,7 +278,7 @@ fun StackScreen(
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
             alignment.matched?.let { matched ->
-                val status = if (alignment.applied) uiText(language, "Aligned tracks", "已對齊歌曲")
+                val status = if (alignment.applied) uiText(language, "Timing applied", "已套用時間調整")
                     else uiText(language, "Suggested offsets", "建議偏移")
                 Text("$methodLabel · $status: $matched/${alignment.total}",
                     Modifier.padding(horizontal = 8.dp, vertical = 4.dp), style = MaterialTheme.typography.bodySmall,
@@ -286,7 +286,7 @@ fun StackScreen(
                 if (matched < alignment.total) Text(uiText(language, "Uncertain matches kept unchanged", "未能確認的匹配保持不變"),
                     Modifier.padding(horizontal = 8.dp), style = MaterialTheme.typography.labelSmall)
             }
-            if (alignment.proposal.isNotEmpty()) {
+            if (!alignment.running && alignment.eligiblePaths.isNotEmpty() && (alignment.matched != null || alignment.failed)) {
                 TextButton(onClick = { reviewOffsets = true },
                     modifier = Modifier.inspectElement("STACK_REVIEW_ALIGNMENT", "Review only the selected analysis result")) {
                     Text(uiText(language, "Review offsets", "檢視偏移"))
@@ -519,27 +519,22 @@ fun StackScreen(
         }
     }
 
-    if (reviewOffsets && alignment.proposal.isNotEmpty()) {
-        AlertDialog(
-            onDismissRequest = { reviewOffsets = false },
-            title = { Text(methodLabel) },
-            text = {
-                LazyColumn(Modifier.heightIn(max = 320.dp)) {
-                    items(displayed.filter { it.file.path in alignment.proposal }, key = { it.file.path }) { slot ->
-                        val milliseconds = alignment.proposal.getValue(slot.file.path).offsetUs / 1_000.0
-                        ListItem(
-                            headlineContent = { Text(slot.file.name, maxLines = 2, overflow = TextOverflow.Ellipsis) },
-                            supportingContent = { Text("${if (milliseconds > 0) "+" else ""}${stackOffsetText(milliseconds)} ms") },
-                        )
-                    }
-                }
+    if (reviewOffsets && !alignment.running && alignment.eligiblePaths.isNotEmpty() &&
+        (alignment.matched != null || alignment.failed)) {
+        StackAlignmentReview(
+            language = language,
+            slots = displayed,
+            alignment = alignment,
+            onDismiss = { reviewOffsets = false },
+            onApply = { StackAlignmentController.apply(); reviewOffsets = false },
+            onManualOffset = { path ->
+                reviewOffsets = false
+                offsetPath = path
             },
-            confirmButton = {
-                TextButton(onClick = { StackAlignmentController.apply(); reviewOffsets = false }) {
-                    Text(uiText(language, "Apply alignment", "套用對齊"))
-                }
+            onWiderPictureSearch = {
+                reviewOffsets = false
+                StackAlignmentController.retryPictureWider(context)
             },
-            dismissButton = { TextButton(onClick = { reviewOffsets = false }) { Text(uiText(language, "Cancel", "取消")) } },
         )
     }
 

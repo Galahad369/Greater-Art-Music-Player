@@ -33,6 +33,12 @@ data class StackSession(
     val active: Boolean get() = slots.isNotEmpty()
 }
 
+/** The fast Library scan leaves duration unknown; prepared Stack players know it. */
+internal fun StackSlot.fileForAlignment(): MediaFile =
+    if (resolvedDurationMs > 0L && resolvedDurationMs != file.durationMs) {
+        file.copy(durationMs = resolvedDurationMs)
+    } else file
+
 internal fun stackDuration(slots: List<StackSlot>, primaryPath: String? = slots.firstOrNull()?.file?.path): Long =
     slots.firstOrNull { it.file.path == primaryPath }?.let {
         (it.resolvedDurationMs.takeIf { duration -> duration > 0L } ?: it.file.durationMs).coerceAtLeast(0L)

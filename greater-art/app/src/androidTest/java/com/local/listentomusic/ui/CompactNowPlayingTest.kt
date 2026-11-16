@@ -141,7 +141,8 @@ class CompactNowPlayingTest {
         compose.waitForIdle()
         compose.mainClock.advanceTimeBy(2_200)
         compose.waitForIdle()
-        assertHeaderIsTransparent(density)
+        assertAreaIsTransparent("CURRENT_MEDIA_HEADER_CONTAINER", density)
+        assertAreaIsTransparent("NOW_PLAYING_TRANSPORT_AREA", density)
         val title = compose.onNodeWithTag("CURRENT_MEDIA_TITLE", useUnmergedTree = true).assertIsDisplayed()
         val textLayouts = mutableListOf<TextLayoutResult>()
         title.performSemanticsAction(SemanticsActions.GetTextLayoutResult) { it(textLayouts) }
@@ -213,26 +214,24 @@ class CompactNowPlayingTest {
     private fun bounds(tag: String): Rect =
         compose.onNodeWithTag(tag, useUnmergedTree = true).fetchSemanticsNode().boundsInRoot
 
-    private fun assertHeaderIsTransparent(density: Float) {
-        compose.onNodeWithTag("CURRENT_MEDIA_HEADER_CONTAINER", useUnmergedTree = true).assertIsDisplayed()
-        val header = bounds("CURRENT_MEDIA_HEADER_CONTAINER")
+    private fun assertAreaIsTransparent(tag: String, density: Float) {
+        compose.onNodeWithTag(tag, useUnmergedTree = true).assertIsDisplayed()
+        val header = bounds(tag)
         val root = compose.onRoot()
         val rootBounds = root.fetchSemanticsNode().boundsInRoot
         val image = root.captureToImage().asAndroidBitmap()
         try {
             val inset = 2f * density
-            assertTrue("The fixture needs backdrop outside the title holder", header.left - inset >= rootBounds.left)
-            // Both fixtures use a 48dp identity row. Its top 2dp is blank above the
-            // centered text/icons; audio intentionally has no horizontal gutter.
-            // Zero ambient intensity makes the backdrop uniform, so compare one
-            // blank interior pixel with the same frame immediately outside it.
+            assertTrue("The fixture needs backdrop outside $tag", header.left - inset >= rootBounds.left)
+            // The top 2dp is blank padding, above either the title or seek track.
+            // Zero ambient intensity makes this fixture's backdrop uniform.
             val y = ((header.top + inset - rootBounds.top) * image.height / rootBounds.height)
                 .roundToInt().coerceIn(0, image.height - 1)
             val insideX = ((header.center.x - rootBounds.left) * image.width / rootBounds.width)
                 .roundToInt().coerceIn(0, image.width - 1)
             val outsideX = ((header.left - inset - rootBounds.left) * image.width / rootBounds.width)
                 .roundToInt().coerceIn(0, image.width - 1)
-            assertEquals("Blank title-holder padding must reveal the unchanged backdrop",
+            assertEquals("Blank $tag padding must reveal the unchanged backdrop",
                 image.getPixel(outsideX, y), image.getPixel(insideX, y))
         } finally { image.recycle() }
     }

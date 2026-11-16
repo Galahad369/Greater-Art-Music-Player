@@ -4,6 +4,9 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
@@ -44,7 +47,7 @@ internal fun StackManualOffsetDialog(
         onDismissRequest = onDismiss,
         title = { Text(uiText(language, "Manual offset", "手動偏移")) },
         text = {
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Column(Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text(trackName, style = MaterialTheme.typography.titleSmall, maxLines = 2, overflow = TextOverflow.Ellipsis)
                 OutlinedTextField(
                     value = input, onValueChange = { input = it },
@@ -53,21 +56,32 @@ internal fun StackManualOffsetDialog(
                     singleLine = true,
                     isError = value == null,
                     supportingText = {
-                        Text(if (value == null) uiText(language, "Enter −30,000 to +30,000 ms", "請輸入 −30,000 至 +30,000 毫秒")
-                            else uiText(language, "Positive starts this track later in its file.", "正數會從此檔案中較後的位置開始。"))
+                        Text(if (value == null) uiText(language, "Enter −30000 to +30000 ms", "請輸入 −30000 至 +30000 毫秒")
+                            else uiText(language, "Positive moves this track earlier; negative moves it later.", "正數會提早此歌曲；負數會延後。"))
                     },
                 )
-                for (step in listOf(10, 100)) {
-                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
-                        for (delta in listOf(-step, step)) {
-                            TextButton(enabled = value != null, onClick = {
-                                input = stackOffsetText(((value ?: originalMs) + delta)
-                                    .coerceIn(-STACK_MAX_OFFSET_MS.toDouble(), STACK_MAX_OFFSET_MS.toDouble()))
-                            }) { Text(if (delta < 0) "−${-delta}" else "+$delta") }
-                        }
+                for (step in listOf(1, 10, 100)) {
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        TextButton(
+                            enabled = value != null,
+                            onClick = {
+                                input = stackOffsetText(((value ?: originalMs) + step)
+                                    .coerceAtMost(STACK_MAX_OFFSET_MS.toDouble()))
+                            },
+                            modifier = Modifier.weight(1f).heightIn(min = 48.dp).testTag("STACK_OFFSET_EARLIER_$step"),
+                        ) { Text("${uiText(language, "Earlier", "提早")} $step ms") }
+                        TextButton(
+                            enabled = value != null,
+                            onClick = {
+                                input = stackOffsetText(((value ?: originalMs) - step)
+                                    .coerceAtLeast(-STACK_MAX_OFFSET_MS.toDouble()))
+                            },
+                            modifier = Modifier.weight(1f).heightIn(min = 48.dp).testTag("STACK_OFFSET_LATER_$step"),
+                        ) { Text("${uiText(language, "Later", "延後")} $step ms") }
                     }
                 }
-                TextButton(onClick = { input = "0"; resetRate = true }) {
+                TextButton(onClick = { input = "0"; resetRate = true },
+                    modifier = Modifier.heightIn(min = 48.dp).testTag("STACK_OFFSET_RESET")) {
                     Text(uiText(language, "Reset alignment", "重設對齊"))
                 }
             }

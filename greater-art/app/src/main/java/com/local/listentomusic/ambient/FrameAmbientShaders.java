@@ -41,6 +41,12 @@ final class FrameAmbientShaders {
             }
             """;
 
+    // Only requested by Follow video colors, at the existing sparse sampling cadence.
+    // The output is real RGB, unlike the beam map's coordinate-encoding bytes.
+    static final String PALETTE = FRAME_INPUT + """
+            void main() { gl_FragColor = vec4(frame(vUv), 1.); }
+            """;
+
     // Each row describes one edge (bottom/top/left/right). The map contains only
     // light coordinates, width, confidence and tint; it is not a downscaled frame.
     static final String ANALYZE = FRAME_INPUT + """

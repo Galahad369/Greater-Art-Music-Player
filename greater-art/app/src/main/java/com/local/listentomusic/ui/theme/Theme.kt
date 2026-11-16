@@ -302,7 +302,7 @@ internal fun appColorScheme(theme: ColorTheme, dark: Boolean): ColorScheme {
         ColorTheme.INDIGO -> indigoPalette
         ColorTheme.ROSE -> rosePalette
         ColorTheme.MONOCHROME -> monochromePalette
-        ColorTheme.VOID -> voidPalette
+        ColorTheme.VOID, ColorTheme.VIDEO -> voidPalette
         ColorTheme.HIGH_CONTRAST -> highContrastPalette
     }
     // Explicit Void choice wins over Light/System to prevent grey or light surfaces.
@@ -323,7 +323,7 @@ internal fun appColorScheme(theme: ColorTheme, dark: Boolean): ColorScheme {
         tertiaryContainer = androidx.compose.ui.graphics.lerp(colors.surfaceVariant, colors.tertiary, .12f),
         onTertiaryContainer = colors.onSurface,
         // Disable tonal tint on Void's black base surfaces.
-        surfaceTint = if (theme == ColorTheme.VOID) Color.Transparent else colors.primary,
+        surfaceTint = if (theme == ColorTheme.VOID || theme == ColorTheme.VIDEO) Color.Transparent else colors.primary,
     )
 }
 
@@ -338,7 +338,7 @@ private val RoundedShapes = Shapes(
 @Composable
 fun GreaterArtTheme(
     themeMode: ThemeMode = ThemeMode.DARK,
-    colorTheme: ColorTheme = ColorTheme.FOREST,
+    colorTheme: ColorTheme = ColorTheme.VOID,
     appFont: AppFont = AppFont.SYSTEM,
     silianRail: Boolean = false,
     content: @Composable () -> Unit,

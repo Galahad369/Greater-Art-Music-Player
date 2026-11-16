@@ -32,8 +32,12 @@ internal data class DeveloperSummary(
 internal fun hasLocalFailure(report: String): Boolean = report.lineSequence().any { it.startsWith("failure=") }
 
 /** Never replace the diagnostic payload with the short on-screen summary. */
-internal fun completeDeveloperReport(detailReport: String, regions: List<String>): String = buildString {
+internal fun completeDeveloperReport(detailReport: String, regions: List<String>, selectionReport: String? = null): String = buildString {
     appendLine(detailReport)
+    if (!selectionReport.isNullOrBlank()) {
+        appendLine("SELECTED ELEMENT")
+        appendLine(selectionReport)
+    }
     appendLine("ACTIVE REGIONS")
     regions.forEach { appendLine("- $it") }
 }
@@ -77,4 +81,9 @@ private val diagnosticsTranslations = mapOf(
     "Show region IDs" to listOf("顯示區域代號", "顯示區域代號", "領域IDを表示", "Bereichs-IDs anzeigen", "Afficher les identifiants"),
     "Copy bug report" to listOf("複製錯誤報告", "複製錯誤報告", "不具合報告をコピー", "Fehlerbericht kopieren", "Copier le rapport"),
     "Turn off Developer Mode" to listOf("關閉開發者模式", "關閉開發者模式", "開発者モードをオフ", "Entwicklermodus ausschalten", "Désactiver le mode développeur"),
+    "Tap an element" to listOf("點選介面元素", "撳一個介面元素", "要素をタップ", "Element antippen", "Toucher un élément"),
+    "Cancel inspector" to listOf("取消元素檢查", "取消元素檢查", "選択をキャンセル", "Inspektion abbrechen", "Annuler l’inspection"),
+    "Next match" to listOf("下一個符合項目", "下一個符合項目", "次の候補", "Nächster Treffer", "Résultat suivant"),
+    "Copy" to listOf("複製", "複製", "コピー", "Kopieren", "Copier"),
+    "Close selection" to listOf("關閉選取詳情", "關閉選取詳情", "選択を閉じる", "Auswahl schließen", "Fermer la sélection"),
 )

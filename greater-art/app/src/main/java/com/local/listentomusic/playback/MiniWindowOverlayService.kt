@@ -163,7 +163,8 @@ class MiniWindowOverlayService : Service(), LifecycleOwner, ViewModelStoreOwner,
     private val systemHome = object : BroadcastReceiver() {
         override fun onReceive(context: Context?, intent: Intent?) {
             if (intent?.action == Intent.ACTION_CLOSE_SYSTEM_DIALOGS &&
-                shouldShrinkForSystemReason(intent.getStringExtra("reason")) && expanded) {
+                shouldShrinkForSystemReason(intent.getStringExtra("reason")) && expanded &&
+                !com.local.listentomusic.ui.components.VideoSurfaceOwner.fullscreenActivityActive) {
                 if (autoFloatingEnabled && selectedFloatingMode.usesAndroidPip() &&
                     viewModel.playback.value.isVideo && viewModel.playback.value.isPlaying) {
                     openNativePictureInPicture()
@@ -274,6 +275,13 @@ class MiniWindowOverlayService : Service(), LifecycleOwner, ViewModelStoreOwner,
             }
         }
         connect()
+        scope.launch {
+            com.local.listentomusic.ui.components.VideoSurfaceOwner.fullscreenFrameReady.fullscreenFrameCommits().collect {
+                // Keep the outgoing pixels until the native destination has a frame.
+                // Commit the visual cut on a display frame, without delaying playback.
+                root?.postOnAnimation { updateVisibility() }
+            }
+        }
         scope.launch {
             com.local.listentomusic.data.AppPreferences(applicationContext).values.collect {
                 compact?.appearance(it)
@@ -739,6 +747,26 @@ class MiniWindowOverlayService : Service(), LifecycleOwner, ViewModelStoreOwner,
     private fun updateRootLayout() {
         val view = root ?: return
         val layout = params ?: return
+        // Rotation, resize and share restoration also update this same window.
+        // Apply visibility at this common boundary so none can resurrect a
+        // hidden overlay's focus, touches or dim behind the fullscreen Activity.
+        val allowExternalMini = mode != PlayerWindowMode.DETACHED ||
+            selectedFloatingMode == FloatingWindowMode.MINI_WINDOW
+        val visible = !sharing && allowExternalMini && com.local.listentomusic.ui.components.shouldShowPlayerWindow(
+            ready = ready,
+            fullscreenActivity = com.local.listentomusic.ui.components.VideoSurfaceOwner.fullscreenActivityActive,
+            expanded = expanded,
+            docked = docked,
+            dockedVisible = PlayerWindowVisibility.dockedVisible.value,
+            detachedVisible = PlayerWindowVisibility.detachedVisible.value,
+        )
+        layout.alpha = playerWindowVisualAlpha(visible, expanded && ready && !sharing,
+            com.local.listentomusic.ui.components.VideoSurfaceOwner.fullscreenActivityActive,
+            com.local.listentomusic.ui.components.VideoSurfaceOwner.fullscreenFrameReady.value)
+        layout.flags = playerWindowInputFlags(layout.flags, expanded, visible)
+        layout.dimAmount = playerWindowDimAmount(expanded, visible)
+        view.importantForAccessibility = if (visible) View.IMPORTANT_FOR_ACCESSIBILITY_AUTO
+            else View.IMPORTANT_FOR_ACCESSIBILITY_NO_HIDE_DESCENDANTS
         runCatching { wm?.updateViewLayout(view, layout) }
     }
 
@@ -908,24 +936,7 @@ class MiniWindowOverlayService : Service(), LifecycleOwner, ViewModelStoreOwner,
         }
     }
 
-    private fun updateVisibility() {
-        val allowExternalMini = mode != PlayerWindowMode.DETACHED ||
-            selectedFloatingMode == FloatingWindowMode.MINI_WINDOW
-        val visible = allowExternalMini && com.local.listentomusic.ui.components.shouldShowPlayerWindow(
-            ready = ready,
-            fullscreenActivity = com.local.listentomusic.ui.components.VideoSurfaceOwner.fullscreenActivityActive,
-            expanded = expanded,
-            docked = docked,
-            dockedVisible = PlayerWindowVisibility.dockedVisible.value,
-            detachedVisible = PlayerWindowVisibility.detachedVisible.value,
-        )
-        params?.let {
-            it.alpha = if (visible) 1f else 0f
-            it.flags = if (visible) it.flags and WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE.inv()
-                else it.flags or WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE
-        }
-        updateRootLayout()
-    }
+    private fun updateVisibility() = updateRootLayout()
 
     private fun updateMiniWindowSize() {
         val layout = params ?: return
@@ -1009,7 +1020,9 @@ class MiniWindowOverlayService : Service(), LifecycleOwner, ViewModelStoreOwner,
             startActivity(Intent(this, FullscreenVideoActivity::class.java).apply {
                 addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_NO_ANIMATION)
             })
-            switchMode(PlayerWindowMode.DETACHED)
+            // Retain the expanded host and its live surface while the Activity
+            // registers its replacement. Visibility hides this window; collapsing
+            // it here reparents/disposes the outgoing renderer before the handoff.
             updateVisibility()
         }.onFailure {
             com.local.listentomusic.ui.components.VideoSurfaceOwner.setFullscreenActivityVisible(false)

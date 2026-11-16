@@ -19,6 +19,60 @@ class StackInstrumentTest {
         assertEquals(coarse, stackValidateNativeCorrections(coarse, emptyList(), false))
     }
 
+    @Test fun productionMonoPolicyCannotAliasMissingSideAsConfirmation() {
+        val mono = StackAlignment(20, .7, true, 1.00002, 20120.0, 3, 1.0)
+        val evidence = requireNotNull(stackSelectInstrumentEvidence(mono, side = null, durationMs = 180000))
+        assertEquals(mono, evidence.alignment)
+        assertTrue(evidence.nativeMonoRequired)
+        assertFalse(stackValidateNativeCorrections(evidence.alignment, emptyList(), evidence.nativeMonoRequired).confident)
+        assertFalse(stackValidateNativeCorrections(evidence.alignment, listOf(1000.0, 1100.0), evidence.nativeMonoRequired).confident)
+        val refined = stackValidateNativeCorrections(evidence.alignment, listOf(1000.0, 1200.0, 1100.0), evidence.nativeMonoRequired)
+        assertTrue(refined.confident)
+        assertEquals(21220.0, refined.offsetUs, .001)
+        assertEquals(mono.timeScale, refined.timeScale, 0.0)
+        assertNull(stackSelectInstrumentEvidence(mono.copy(confident = false), side = null, durationMs = 180000))
+    }
+
+    @Test fun productionStereoPolicyPreservesAgreementAndGatesWeakSideFallback() {
+        val mono = StackAlignment(20, .7, true, 1.00002, 20120.0, 4, 1.0)
+        val side = mono.copy(offsetUs = 20320.0)
+        val agreed = requireNotNull(stackSelectInstrumentEvidence(mono, side, 180000))
+        assertEquals(side, agreed.alignment)
+        assertFalse(agreed.nativeMonoRequired)
+        assertEquals(side, stackValidateNativeCorrections(agreed.alignment, emptyList(), agreed.nativeMonoRequired))
+        assertNull(stackSelectInstrumentEvidence(mono, side.copy(offsetMs = 61, offsetUs = 61000.0), 180000))
+        assertNull(stackSelectInstrumentEvidence(mono, side.copy(timeScale = 1.001), 180000))
+        val weakSide = side.copy(confident = false)
+        val fallback = requireNotNull(stackSelectInstrumentEvidence(mono, weakSide, 180000))
+        assertTrue(fallback.nativeMonoRequired)
+        assertEquals(mono, fallback.alignment)
+        assertNull(stackSelectInstrumentEvidence(mono.copy(anchorCount = 3), weakSide, 180000))
+        assertNull(stackSelectInstrumentEvidence(mono.copy(correlation = .59), weakSide, 180000))
+        assertNull(stackSelectInstrumentEvidence(mono.copy(residualMs = 5.1), weakSide, 180000))
+    }
+
+    @Test fun productionStereoMapsMustAgreeAtBothEndsOfTheSong() {
+        val duration = 180000L
+        val mono = StackAlignment(700, .8, true, 1.0, 700000.0, 6, 1.0)
+        for (direction in listOf(-1, 1)) {
+            val side = mono.copy(offsetMs = 700 + direction * 30L,
+                offsetUs = mono.offsetUs + direction * 30000,
+                timeScale = 1.0 + direction * 30.0 / duration)
+            assertNull("Offset and rate disagreement add to60ms at the song end",
+                stackSelectInstrumentEvidence(mono, side, duration))
+
+            val cancelling = side.copy(timeScale = 1.0 - direction * 30.0 / duration)
+            assertEquals(cancelling, requireNotNull(
+                stackSelectInstrumentEvidence(mono, cancelling, duration)).alignment)
+            // Preserve the original parameter guards even when larger errors
+            // happen to cancel at the far endpoint.
+            val excessiveOffset = mono.copy(offsetMs = 700 + direction * 50L,
+                offsetUs = mono.offsetUs + direction * 50000,
+                timeScale = 1.0 - direction * 50.0 / duration)
+            assertNull(stackSelectInstrumentEvidence(mono, excessiveOffset, duration))
+        }
+    }
+
     @Test fun pairDecisionCachePreservesFractionalOffsetsAndRejectsMalformedData() {
         val value = StackAlignment(152, .8, true, .99998, 151820.0, 4, 1.7)
         val bytes = ByteArrayOutputStream().also { buffer ->
@@ -26,6 +80,9 @@ class StackInstrumentTest {
         }.toByteArray()
         assertEquals(49, bytes.size)
         assertEquals(value, readStackAlignmentMap(DataInputStream(ByteArrayInputStream(bytes)), bytes.size.toLong()))
+        val previousPolicy = bytes.copyOf().also { it[3] = 8 }
+        try { readStackAlignmentMap(DataInputStream(ByteArrayInputStream(previousPolicy)), previousPolicy.size.toLong()); fail() }
+        catch (_: IllegalArgumentException) { }
         for (bad in listOf(value.copy(offsetUs = Double.NaN), value.copy(timeScale = 2.0),
             value.copy(anchorCount = 1), value.copy(residualMs = 80.0))) {
             val damaged = ByteArrayOutputStream().also { buffer ->
@@ -57,6 +114,52 @@ class StackInstrumentTest {
                 StackInstrumentAnchor(time, time + 2700, .79, 0))
         }
         assertFalse(stackFitInstrumentCandidates(groups, 180000).confident)
+    }
+
+    @Test fun missingWindowsCountAgainstSupportWithoutRejectingOneMissingIntro() {
+        val groups = listOf(3000.0, 39000.0, 75000.0, 111000.0, 147000.0, 177000.0).map { time ->
+            listOf(StackInstrumentAnchor(time, time + 700, .8, 0))
+        }
+        val oneMissing = stackFitInstrumentCandidates(groups.mapIndexed { index, group ->
+            if (index == 0) emptyList() else group
+        }, 180000)
+        assertTrue(oneMissing.confident)
+        assertEquals(5, oneMissing.anchorCount)
+        assertEquals(700000.0, oneMissing.offsetUs, .001)
+        assertFalse(stackFitInstrumentCandidates(groups.mapIndexed { index, group ->
+            if (index < 2) emptyList() else group
+        }, 180000).confident)
+    }
+
+    @Test fun closeWholeTrackAlternativesRejectOnlyWhenTheyAreDistinctAndComparable() {
+        val times = listOf(3000.0, 39000.0, 75000.0, 111000.0, 147000.0, 177000.0)
+        fun alternatives(deltaMs: Double, score: Double = .79) = times.map { time ->
+            listOf(StackInstrumentAnchor(time, time + 700, .8, 0),
+                StackInstrumentAnchor(time, time + 700 + deltaMs, score, 0))
+        }
+        assertFalse(stackFitInstrumentCandidates(alternatives(60.0), 180000).confident)
+        assertFalse(stackFitInstrumentCandidates(alternatives(250.0), 180000).confident)
+        assertTrue(stackFitInstrumentCandidates(alternatives(10.0), 180000).confident)
+        val stronger = stackFitInstrumentCandidates(alternatives(250.0, score = .65), 180000)
+        assertTrue(stronger.confident)
+        assertEquals(700000.0, stronger.offsetUs, .001)
+    }
+
+    @Test fun closeDistinctLocalPeaksSurviveCandidateSelection() {
+        val primary = region()
+        val shift = 12 // 240 ms, much closer than the former 500 ms suppression radius.
+        fun doubled(values: FloatArray) = FloatArray(values.size + shift) { index ->
+            values.getOrElse(index) { 0f } + values.getOrElse(index - shift) { 0f }
+        }
+        val companion = StackInstrumentRegion(0, doubled(primary.percussion), doubled(primary.bass),
+            Array(primary.chroma.size + shift) { index -> FloatArray(12) { pitch ->
+                (primary.chroma.getOrNull(index)?.get(pitch) ?: 0f) +
+                    (primary.chroma.getOrNull(index - shift)?.get(pitch) ?: 0f)
+            } })
+        val candidates = stackInstrumentCandidates(primary, companion)
+        assertTrue(candidates.any { abs(it.companionMs - it.primaryMs) <= 10 })
+        assertTrue(candidates.any { abs(it.companionMs - it.primaryMs - shift * 20) <= 10 })
+        assertNull(stackMatchInstrumentRegion(primary, companion))
     }
 
     @Test fun distributedConsensusCanDiscardOneBadIntroButNotMostlyUnrelatedWindows() {

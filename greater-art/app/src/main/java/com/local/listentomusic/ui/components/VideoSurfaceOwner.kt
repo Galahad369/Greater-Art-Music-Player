@@ -5,6 +5,7 @@ import androidx.media3.common.Player
 import androidx.media3.ui.PlayerView
 import java.lang.ref.WeakReference
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.asStateFlow
 
 /** Authoritative primary presentation. Wallpaper uses a different player entirely. */
 object VideoSurfaceOwner {
@@ -15,6 +16,9 @@ object VideoSurfaceOwner {
     private var nowPlaying = false
     private var pip = false
     private var fullscreenActivity = false
+    private var fullscreenSourceGeneration = 0L
+    private val fullscreenReady = MutableStateFlow(false)
+    internal val fullscreenFrameReady = fullscreenReady.asStateFlow()
     private var currentVideoBackground = false
     private var handoffTarget: String? = null
     private val systemOverlayOwners = linkedMapOf<String, String>()
@@ -40,7 +44,8 @@ object VideoSurfaceOwner {
     internal fun ambientSource(): Pair<String, android.view.View>? {
         if (!foreground && !systemOverlayActive && !fullscreenActivity) return null
         val view = active.get() ?: return null
-        if (view is com.local.listentomusic.ambient.FrameAmbientPlayerView) return null
+        if (view is com.local.listentomusic.ambient.FrameAmbientPlayerView &&
+            !com.local.listentomusic.ui.theme.VideoThemeColors.requested) return null
         val player = view.player ?: return null
         if (!player.isPlaying || player.videoSize.width <= 0) return null
         val id = player.currentMediaItem?.mediaId ?: return null
@@ -71,7 +76,9 @@ object VideoSurfaceOwner {
     }
     fun setFullscreenActivityVisible(value: Boolean) {
         if (fullscreenActivity == value) return
+        if (value) fullscreenSourceGeneration = state.value.generation
         fullscreenActivity = value
+        fullscreenReady.value = false
         com.local.listentomusic.playback.PlayerWindowVisibility.expanded(expandedOverlayActive)
         log("fullscreenActivity=$value expected=$expectedOwner", active.get())
         reconcile()
@@ -211,7 +218,11 @@ object VideoSurfaceOwner {
         // MediaController IPC can parcel a different Surface wrapper. Reference equality
         // with the View's Surface cannot prove identity. This is timestamp attribution.
         val match = surface != null
-        state.value = state.value.frame(eventMs, match)
+        val frame = state.value.frame(eventMs, match)
+        state.value = frame
+        if (fullscreenActivity && fullscreenDestinationHasFrame(fullscreenSourceGeneration, frame)) {
+            fullscreenReady.value = true
+        }
         log("firstFrame output=${System.identityHashCode(output)} attribution=renderer-time accepted=${match && eventMs >= state.value.sinceMs}", active.get())
     }
     fun describe(): String = state.value.let {

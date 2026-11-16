@@ -9,7 +9,10 @@ import com.local.listentomusic.data.MediaScanner
 import com.local.listentomusic.model.MediaFile
 import kotlinx.coroutines.*
 import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.channels.ChannelResult
+import kotlinx.coroutines.channels.ReceiveChannel
 import java.io.File
+import java.io.IOException
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
 import kotlin.math.roundToLong
@@ -94,7 +97,7 @@ internal class StackPcmStream(scope: CoroutineScope, private val file: MediaFile
                         while (buffer.remaining() >= spec.channels * bytes) {
                             ensureActive()
                             val count = minOf(1024, buffer.remaining() / (spec.channels * bytes))
-                            val values = FloatArray(count * spec.channels) { nativePcmSample(buffer, encoding) }
+                            val values = nativePcmSamples(buffer, encoding, count * spec.channels)
                             val begin = base + consumed
                             consumed += count
                             val first = maxOf(0L, seekFrame - begin).coerceAtMost(count.toLong()).toInt()
@@ -143,9 +146,8 @@ internal class StackPcmStream(scope: CoroutineScope, private val file: MediaFile
                 while (buffer.remaining() >= spec.channels * bytes) {
                     ensureActive()
                     val count = minOf(1024, buffer.remaining() / (spec.channels * bytes))
-                    val values = FloatArray(count * spec.channels) {
-                        (if (bytes == 4) buffer.float else buffer.short / 32768f).also { require(it.isFinite()) }
-                    }
+                    val values = if (bytes == 4) nativePcmSamples(buffer, encoding, count * spec.channels)
+                        else FloatArray(count * spec.channels) { buffer.short / 32768f }
                     val begin = base + consumed
                     consumed += count
                     val first = maxOf(0L, seekFrame - begin).coerceAtMost(count.toLong()).toInt()
@@ -211,6 +213,58 @@ internal class StackPcmStream(scope: CoroutineScope, private val file: MediaFile
     suspend fun close() { job.cancelAndJoin(); blocks.cancel() }
 }
 
+/** Decoder-wait boundary. Output protection must run before a missing block can exhaust the sink. */
+internal suspend fun <T> awaitStackPcmBlock(blocks: ReceiveChannel<T>, onWait: () -> Unit): ChannelResult<T> {
+    currentCoroutineContext().ensureActive()
+    val available = blocks.tryReceive()
+    if (available.isSuccess || available.isClosed) return available
+    // The output buffer is shorter than a decoder timeout. Pause before
+    // suspending, not after queued audio has already run dry.
+    onWait()
+    // Only this wait's own deadline becomes a data failure. Cancellation of
+    // the parent still propagates, including an outer timeout. Otherwise a
+    // decoder deadline bypasses failure cleanup and can retain the audio lease.
+    return withTimeoutOrNull(2000) { blocks.receiveCatching() }
+        ?: throw IOException("PCM data did not arrive within 2000ms")
+}
+
+/** Exact decoded samples, including zero outside the clip; no filtering or rate conversion. */
+internal fun copyPcmStereoWindow(blocks: List<NativePcmBlock>, durationFrames: Long,
+    first: Long, frames: Int, destination: FloatArray,
+    preferred: NativePcmBlock? = null): NativePcmBlock? {
+    require(frames >= 0 && destination.size >= frames * 2)
+    destination.fill(0f, 0, frames * 2)
+    val end = minOf(first + frames, durationFrames)
+    var begin = maxOf(first, 0L)
+    var selected = preferred
+    while (begin < end) {
+        // Preserve sample()'s cached-current ownership, including overlaps when
+        // a halo revisits a prior frame. Search held order only on a cache miss.
+        var block = selected?.takeIf { begin >= it.start && begin < it.end }
+        if (block == null) for (index in blocks.indices) {
+            val candidate = blocks[index]
+            if (begin >= candidate.start && begin < candidate.end) { block = candidate; break }
+        }
+        selected = block
+        if (block == null) { begin++; continue }
+        val last = minOf(end, block.end)
+        val sourceIndex = ((begin - block.start) * block.channels).toInt()
+        val targetIndex = ((begin - first) * 2).toInt()
+        val count = (last - begin).toInt()
+        if (block.channels == 2) {
+            block.samples.copyInto(destination, targetIndex, sourceIndex, sourceIndex + count * 2)
+        } else {
+            for (sample in 0 until count) {
+                val value = block.samples[sourceIndex + sample]
+                destination[targetIndex + sample * 2] = value
+                destination[targetIndex + sample * 2 + 1] = value
+            }
+        }
+        begin = last
+    }
+    return selected
+}
+
 internal class PcmLane(private val stream: StackPcmStream, private val onWait: () -> Unit) {
     private val held = ArrayDeque<NativePcmBlock>()
     private var current: NativePcmBlock? = null
@@ -221,8 +275,7 @@ internal class PcmLane(private val stream: StackPcmStream, private val onWait: (
         }
         if (last < 0 || first >= stream.spec.durationFrames) return
         while (!ended && (held.lastOrNull()?.end ?: Long.MIN_VALUE) <= last) {
-            val next = withTimeoutOrNull(200) { stream.blocks.receiveCatching() }
-                ?: run { onWait(); withTimeout(2000) { stream.blocks.receiveCatching() } }
+            val next = awaitStackPcmBlock(stream.blocks, onWait)
             next.exceptionOrNull()?.let { throw it }
             val block = next.getOrNull()
             if (block == null) ended = true else {
@@ -233,6 +286,10 @@ internal class PcmLane(private val stream: StackPcmStream, private val onWait: (
             }
         }
     }
+    fun copyStereoWindow(first: Long, frames: Int, destination: FloatArray) {
+        current = copyPcmStereoWindow(held, stream.spec.durationFrames, first, frames, destination, current)
+    }
+
     fun sample(frame: Long, channel: Int): Float {
         if (frame < 0 || frame >= stream.spec.durationFrames) return 0f
         var block = current

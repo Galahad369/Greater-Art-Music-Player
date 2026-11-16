@@ -19,6 +19,7 @@ import kotlin.coroutines.coroutineContext
 import kotlin.math.abs
 
 internal data class StackInstrumentViews(val mono: StackInstrumentRegion, val side: StackInstrumentRegion?)
+private const val STACK_ALIGNMENT_MAP_REVISION = 11
 
 internal class StackInstrumentAlign(private val context: Context) {
     private val cache = File(context.applicationContext.cacheDir, "stack-align-v7-instruments")
@@ -34,7 +35,7 @@ internal class StackInstrumentAlign(private val context: Context) {
                     return "${com.local.listentomusic.data.mediaFingerprint(file)}|${file.durationMs}"
                 }
                 val key = MessageDigest.getInstance("SHA-256").digest(
-                    "8|pcm$STACK_PCM_WINDOW_REVISION|${identity(primary)}\u0000${identity(companion)}".toByteArray())
+                    "$STACK_ALIGNMENT_MAP_REVISION|pcm$STACK_PCM_WINDOW_REVISION|${identity(primary)}\u0000${identity(companion)}".toByteArray())
                     .joinToString("") { "%02x".format(it) }
                 maps.mkdirs()
                 File(maps, "$key.bin")
@@ -103,11 +104,13 @@ internal class StackInstrumentAlign(private val context: Context) {
         val duration = primary.durationMs
         val starts = stackRegionStarts(duration)
         if (starts.isEmpty()) return@withContext StackAlignment(0, 0.0, false)
-        val monoAnchors = ArrayList<List<StackInstrumentAnchor>>()
-        val sideAnchors = ArrayList<List<StackInstrumentAnchor>>()
-        val transientTimes = ArrayList<Long>()
+        // Keep one slot per planned region: skipped or unmatched windows are
+        // missing evidence, not a smaller denominator for whole-track support.
+        val monoAnchors = MutableList<List<StackInstrumentAnchor>>(starts.size) { emptyList() }
+        val sideAnchors = MutableList<List<StackInstrumentAnchor>>(starts.size) { emptyList() }
+        val transientTimes = MutableList<Long?>(starts.size) { null }
         var allSide = true
-        for (start in starts) {
+        for ((index, start) in starts.withIndex()) {
             coroutineContext.ensureActive()
             val searchStart = (start - STACK_SEARCH_MS).coerceAtLeast(0)
             val searchEnd = minOf(companion.durationMs, start + STACK_REGION_MS + STACK_SEARCH_MS)
@@ -116,32 +119,30 @@ internal class StackInstrumentAlign(private val context: Context) {
             val b = region(companion, searchStart, searchEnd - searchStart)
             val active = coroutineContext
             val monoMatch = stackInstrumentCandidates(a.mono, b.mono) { active.ensureActive() }
-            monoAnchors.add(monoMatch)
+            monoAnchors[index] = monoMatch
             val attack = (20 until a.mono.percussion.size - 20).maxByOrNull { a.mono.percussion[it] }
-            if (attack != null) transientTimes += start + attack * STACK_INSTRUMENT_HOP_MS
+            if (attack != null) transientTimes[index] = start + attack * STACK_INSTRUMENT_HOP_MS
             if (a.side != null && b.side != null) {
                 val sideMatch = stackInstrumentCandidates(a.side, b.side) { active.ensureActive() }
-                sideAnchors.add(sideMatch)
+                sideAnchors[index] = sideMatch
                 if (com.local.listentomusic.BuildConfig.DEBUG)
                     android.util.Log.d("StackAlignV7", "anchor=$start mono=$monoMatch side=$sideMatch")
             } else allSide = false
         }
         val mono = stackFitInstrumentCandidates(monoAnchors, duration)
-        val side = if (allSide) stackFitInstrumentCandidates(sideAnchors, duration) else mono
+        val side = if (allSide) stackFitInstrumentCandidates(sideAnchors, duration) else null
         if (com.local.listentomusic.BuildConfig.DEBUG)
             android.util.Log.d("StackAlignV7", "map mono=$mono side=$side sideRequired=$allSide")
-        // A confident side map must agree. A weak side channel is not evidence of
-        // disagreement, but replacing it requires strong distributed mono evidence
-        // AND independent native-rate attack confirmation below.
-        val nativeMonoRequired = allSide && !side.confident && mono.confident && mono.anchorCount >= 4 &&
-            mono.correlation >= .6 && mono.residualMs <= 5
-        if (!mono.confident || (!nativeMonoRequired && (!side.confident || abs(mono.offsetUs - side.offsetUs) > 40_000 ||
-            abs((mono.timeScale - side.timeScale) * duration) > 40))) return@withContext StackAlignment(0, 0.0, false)
-        val coarse = if (nativeMonoRequired) mono else side
+        val evidence = stackSelectInstrumentEvidence(mono, side, duration)
+            ?: return@withContext StackAlignment(0, 0.0, false)
+        val nativeMonoRequired = evidence.nativeMonoRequired
+        val coarse = evidence.alignment
         // Each refinement uses <=400ms original-rate PCM, released before the next anchor.
         val corrections = ArrayList<Double>()
-        val supportedTimes = transientTimes.filterIndexed { index, _ ->
-            monoAnchors[index].any { abs(it.companionMs - (coarse.timeScale * it.primaryMs + coarse.offsetUs / 1000)) <= 25 }
+        val supportedTimes = transientTimes.mapIndexedNotNull { index, time ->
+            time?.takeIf { monoAnchors[index].any {
+                abs(it.companionMs - (coarse.timeScale * it.primaryMs + coarse.offsetUs / 1000)) <= 25
+            } }
         }.take(6)
         for (time in supportedTimes) {
             val companionTime = coarse.timeScale * time + coarse.offsetUs / 1000
@@ -152,8 +153,8 @@ internal class StackInstrumentAlign(private val context: Context) {
                 val a = withContext(Dispatchers.IO) { decodeStackPcmWindow(primary, aStart, 400, null, context) }
                 val b = withContext(Dispatchers.IO) { decodeStackPcmWindow(companion, bStart, 400, null, context) }
                 val rate = minOf(a.sampleRate, b.sampleRate)
-                val aSamples = if (allSide && !nativeMonoRequired) a.side else a.mono
-                val bSamples = if (allSide && !nativeMonoRequired) b.side else b.mono
+                val aSamples = if (nativeMonoRequired) a.mono else a.side
+                val bSamples = if (nativeMonoRequired) b.mono else b.side
                 val active = coroutineContext
                 stackNativeLagUs(
                     stackNativeAttack(stackResampleAnalysis(aSamples, a.sampleRate, rate), rate),
@@ -168,7 +169,7 @@ internal class StackInstrumentAlign(private val context: Context) {
             }
             if (correction != null) corrections += correction
         }
-        val refined = stackValidateNativeCorrections(coarse, corrections, nativeMonoRequired)
+        val refined = stackValidateNativeCorrections(coarse, corrections, nativeMonoRequired, starts.size)
         if (com.local.listentomusic.BuildConfig.DEBUG)
             android.util.Log.d("StackAlignV8", "nativeRequired=$nativeMonoRequired correctionsUs=$corrections result=$refined")
         refined
@@ -176,13 +177,13 @@ internal class StackInstrumentAlign(private val context: Context) {
 }
 
 internal fun writeStackAlignmentMap(output: DataOutputStream, value: StackAlignment) {
-    output.writeInt(8); output.writeLong(value.offsetMs); output.writeDouble(value.correlation)
+    output.writeInt(STACK_ALIGNMENT_MAP_REVISION); output.writeLong(value.offsetMs); output.writeDouble(value.correlation)
     output.writeBoolean(value.confident); output.writeDouble(value.timeScale); output.writeDouble(value.offsetUs)
     output.writeInt(value.anchorCount); output.writeDouble(value.residualMs)
 }
 
 internal fun readStackAlignmentMap(input: DataInputStream, length: Long): StackAlignment {
-    require(length == 49L && input.readInt() == 8)
+    require(length == 49L && input.readInt() == STACK_ALIGNMENT_MAP_REVISION)
     val value = StackAlignment(input.readLong(), input.readDouble(), input.readBoolean(), input.readDouble(),
         input.readDouble(), input.readInt(), input.readDouble())
     require(value.correlation.isFinite() && value.correlation in 0.0..1.0 && value.timeScale in .985..1.015)

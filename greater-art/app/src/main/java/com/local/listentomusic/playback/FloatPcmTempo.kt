@@ -5,6 +5,7 @@ import androidx.media3.common.audio.AudioProcessor
 import androidx.media3.common.audio.SonicAudioProcessor
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
+import java.nio.FloatBuffer
 
 /** One float/stereo processor after the shared mix, never one independent clock per singer.
  * The caller drains every returned buffer before the next call. Unity playback bypasses this
@@ -14,6 +15,7 @@ internal class FloatPcmTempo(rate: Int, speed: Float, pitch: Float) : AutoClosea
     val active: Boolean
     val clockSpeed: Double
     private val input: ByteBuffer
+    private val inputFloats: FloatBuffer
     private var pending = AudioProcessor.EMPTY_BUFFER
     init {
         require(speed.isFinite() && speed > 0 && pitch.isFinite() && pitch > 0)
@@ -25,6 +27,7 @@ internal class FloatPcmTempo(rate: Int, speed: Float, pitch: Float) : AutoClosea
         clockSpeed = if (active) speed.toDouble() else 1.0
         input = if (active) ByteBuffer.allocateDirect(PCM_BLOCK_FRAMES * 8).order(ByteOrder.nativeOrder())
             else AudioProcessor.EMPTY_BUFFER
+        inputFloats = input.asFloatBuffer()
         processor.flush(AudioProcessor.StreamMetadata.DEFAULT)
     }
 
@@ -32,8 +35,9 @@ internal class FloatPcmTempo(rate: Int, speed: Float, pitch: Float) : AutoClosea
         check(active && !pending.hasRemaining()) { "Drain float tempo output before queueing input" }
         require(frames in 1..PCM_BLOCK_FRAMES && samples.size >= frames * 2)
         input.clear()
-        for (index in 0 until frames * 2) input.putFloat(samples[index])
-        input.flip()
+        inputFloats.clear()
+        inputFloats.put(samples, 0, frames * 2)
+        input.limit(frames * 8)
         processor.queueInput(input)
         check(!input.hasRemaining())
         return drain()

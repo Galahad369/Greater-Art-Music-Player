@@ -42,7 +42,6 @@ class DeveloperDiagnosticsTest {
 
     @Test fun copyDoesNotTruncateToTheSummary() {
         show()
-        compose.onNode(hasScrollAction()).performScrollToNode(hasText("Copy bug report"))
         compose.onNodeWithText("Copy bug report").performClick()
         compose.runOnIdle {
             val context = InstrumentationRegistry.getInstrumentation().targetContext
@@ -55,7 +54,6 @@ class DeveloperDiagnosticsTest {
     @Test fun warningBadgeAndPickerArePreserved() {
         show(warning = true)
         compose.onNodeWithText("Needs attention").assertIsDisplayed()
-        compose.onNode(hasScrollAction()).performScrollToNode(hasText("Pick an element"))
         compose.onNodeWithText("Pick an element").performClick()
         compose.onNodeWithText("Developer").assertDoesNotExist()
     }
@@ -73,7 +71,6 @@ class DeveloperDiagnosticsTest {
             }
         }
         compose.onNodeWithText("DEV").performClick()
-        compose.onNode(hasScrollAction()).performScrollToNode(hasText("Copy bug report"))
         compose.onNodeWithText("Copy bug report").assertIsDisplayed().assertHeightIsAtLeast(48.dp)
         compose.onNode(hasScrollAction()).performScrollToNode(hasText("Turn off Developer Mode"))
         compose.onNodeWithText("Turn off Developer Mode").performClick()
@@ -86,7 +83,6 @@ class DeveloperDiagnosticsTest {
         compose.onNodeWithText("Technical details").performClick()
         compose.onNode(hasScrollAction()).performScrollToNode(hasText("Show region IDs"))
         compose.onNodeWithText("Show region IDs").performClick()
-        compose.onNode(hasScrollAction()).performScrollToNode(hasText("Close"))
         compose.onNodeWithText("Close").performClick()
         compose.onNodeWithText("NODES_CANVAS · 100×100px").assertIsDisplayed()
         compose.onNodeWithText("DEV").performClick()

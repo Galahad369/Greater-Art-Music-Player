@@ -44,4 +44,12 @@ class DeveloperSummaryTest {
         assertFalse(hasLocalFailure("exit reason=10 at=0 status=0"))
         assertTrue(hasLocalFailure("exit reason=10 at=0\nfailure=uncaught version=v"))
     }
+
+    @Test fun completeCopyIncludesTheSelectedElementWithoutTruncatingTechnicalDetails() {
+        val selection = "QUEUE_ADD_TO_LIST\nboundsPx=911,996 → 1046,1131\nsizeDp=48×48"
+        val report = completeDeveloperReport("first=1\nlast=42", listOf("VIDEO_STAGE"), selection)
+        assertTrue(report.startsWith("first=1\nlast=42\n"))
+        assertTrue(report.contains("SELECTED ELEMENT\n$selection\n"))
+        assertTrue(report.endsWith("ACTIVE REGIONS\n- VIDEO_STAGE\n"))
+    }
 }

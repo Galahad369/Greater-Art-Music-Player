@@ -32,7 +32,7 @@ data class UserPreferences(
     val libraryRowSize: LibraryRowSize = LibraryRowSize.SMALL,
     val miniWindowSize: LibraryRowSize = LibraryRowSize.SMALL,
     val themeMode: ThemeMode = ThemeMode.DARK,
-    val colorTheme: ColorTheme = ColorTheme.FOREST,
+    val colorTheme: ColorTheme = ColorTheme.VOID,
     val showThumbnails: Boolean = true,
     val showFileDetails: Boolean = false,
     val resumePlayback: Boolean = true,
@@ -78,8 +78,9 @@ enum class ColorTheme(val label: String) {
     INDIGO("Astra"),
     ROSE("Nova"),
     MONOCHROME("Space Black"),
-    VOID("Void OLED"),
+    VOID("Black OLED"),
     HIGH_CONTRAST("High Contrast"),
+    VIDEO("Follow video colors"),
 }
 enum class FloatingWindowMode { COMPACT, FOLLOW_VIDEO, MINI_WINDOW, NONE }
 
@@ -197,21 +198,12 @@ class AppPreferences(private val context: Context) {
                 LibraryRowSize.SMALL,
             ),
             themeMode = enumValueOrDefault(prefs[Keys.themeMode], ThemeMode.DARK),
-            colorTheme = enumValueOrDefault(prefs[Keys.colorTheme], ColorTheme.FOREST),
+            colorTheme = enumValueOrDefault(prefs[Keys.colorTheme], ColorTheme.VOID),
             showThumbnails = prefs[Keys.showThumbnails] ?: true,
             showFileDetails = prefs[Keys.showFileDetails] ?: false,
             resumePlayback = prefs[Keys.resumePlayback] ?: true,
             autoPictureInPicture = prefs[Keys.autoPictureInPicture] ?: true,
-            floatingWindowMode = enumValueOrDefault(
-                prefs[Keys.floatingWindowMode],
-                FloatingWindowMode.MINI_WINDOW,
-            ).let { savedMode ->
-                // Existing installs inherited Compact without choosing it. Migrate that
-                // old default once; future explicit Compact selections remain respected.
-                if (prefs[Keys.floatingWindowDefaultV2] != true &&
-                    savedMode == FloatingWindowMode.COMPACT
-                ) FloatingWindowMode.MINI_WINDOW else savedMode
-            },
+            floatingWindowMode = floatingWindowMode(prefs),
             appLanguage = enumValueOrDefault(prefs[Keys.appLanguage], AppLanguage.ENGLISH),
             backgroundMode = enumValueOrDefault(
                 prefs[Keys.backgroundMode],
@@ -350,6 +342,18 @@ class AppPreferences(private val context: Context) {
     suspend fun setFloatingWindowMode(value: FloatingWindowMode) = edit {
         it[Keys.floatingWindowMode] = value.name
         it[Keys.floatingWindowDefaultV2] = true
+    }
+    suspend fun cycleFloatingWindowMode() = edit {
+        // Read and advance in the same transaction. Two taps before the UI's
+        // next preference emission must not both write the same stale value.
+        it[Keys.floatingWindowMode] = floatingWindowMode(it).nextFloatingMode().name
+        it[Keys.floatingWindowDefaultV2] = true
+    }
+    private fun floatingWindowMode(prefs: androidx.datastore.preferences.core.Preferences): FloatingWindowMode {
+        val savedMode = enumValueOrDefault(prefs[Keys.floatingWindowMode], FloatingWindowMode.MINI_WINDOW)
+        // Preserve the original one-time migration of the legacy Compact default.
+        return if (prefs[Keys.floatingWindowDefaultV2] != true && savedMode == FloatingWindowMode.COMPACT)
+            FloatingWindowMode.MINI_WINDOW else savedMode
     }
     suspend fun setAppLanguage(value: AppLanguage) = edit { it[Keys.appLanguage] = value.name }
     suspend fun setBackgroundMode(value: AppBackgroundMode) =

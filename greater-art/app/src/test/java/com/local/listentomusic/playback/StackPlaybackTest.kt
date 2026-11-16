@@ -38,6 +38,23 @@ class StackPlaybackTest {
         "/Download/$index.mp3", "$index.mp3", duration, 100, 1, MediaKind.AUDIO,
     )
 
+    @Test fun alignmentUsesPreparedDurationWithoutChangingLibraryIdentityOrClip() {
+        val scanned = file(1, 0).copy(clipStartMs = 1200L, clipEndMs = 189258L)
+        val prepared = StackSlot(scanned, resolvedDurationMs = 188058L).fileForAlignment()
+        assertEquals(scanned.copy(durationMs = 188058L), prepared)
+        assertEquals(0L, scanned.durationMs)
+        assertEquals(6, stackRegionStarts(prepared.durationMs).size)
+        assertSame(scanned, StackSlot(scanned).fileForAlignment())
+        assertSame(scanned, StackSlot(scanned, resolvedDurationMs = -1L).fileForAlignment())
+    }
+
+    @Test fun alignmentRetainsKnownFileDurationUntilAPlayerHasBetterMetadata() {
+        val known = file(1, 188058L)
+        assertSame(known, StackSlot(known).fileForAlignment())
+        assertSame(known, StackSlot(known, resolvedDurationMs = 188058L).fileForAlignment())
+        assertEquals(188100L, StackSlot(known, resolvedDurationMs = 188100L).fileForAlignment().durationMs)
+    }
+
     @Test fun primaryTrackDefinesTheLoopBoundaryEvenWhenACompanionIsLonger() {
         val slots = listOf(StackSlot(file(1, 1000)), StackSlot(file(2, 4000)))
         assertEquals(1000L, stackDuration(slots))

@@ -15,6 +15,8 @@ internal fun additionalUiText(language: AppLanguage, key: String): String? {
 }
 
 internal val additionalTranslations = """
+Power saving makes Ambient less vivid. Video quality is unchanged.|省電模式會減弱氛圍燈光效果，但影片畫質不變。|省電力モードではアンビエントの光が控えめになります。動画の画質は変わりません。|Im Energiesparmodus wirkt das Ambient-Licht dezenter. Die Videoqualität bleibt unverändert.|Le mode économie d’énergie atténue l’éclairage ambiant. La qualité vidéo reste inchangée.
+Dismiss power saving notice|關閉省電提示|省電力の通知を閉じる|Energiesparhinweis schließen|Fermer l’avis d’économie d’énergie
 nodes|節點|ノード|Knoten|nœuds
 links|連線|リンク|Verbindungen|liens
 Connections|連線|接続|Verbindungen|Connexions
@@ -37,6 +39,31 @@ Manual offset|手動偏移|手動オフセット|Manueller Versatz|Décalage man
 Offset (ms)|偏移（毫秒）|オフセット（ms）|Versatz (ms)|Décalage (ms)
 Enter −30,000 to +30,000 ms|請輸入 −30,000 至 +30,000 毫秒|−30,000〜+30,000 ms を入力|−30.000 bis +30.000 ms eingeben|Saisissez −30 000 à +30 000 ms
 Positive starts this track later in its file.|正數會從此檔案中較後的位置開始。|正の値はファイルの後ろから再生します。|Ein positiver Wert startet später in der Datei.|Une valeur positive commence plus loin dans le fichier.
+Enter −30000 to +30000 ms|請輸入 −30000 至 +30000 毫秒|−30000〜+30000 ms を入力|−30000 bis +30000 ms eingeben|Saisissez −30000 à +30000 ms
+Positive moves this track earlier; negative moves it later.|正數會提早此歌曲；負數會延後。|正の値はこの曲を早め、負の値は遅らせます。|Positive Werte verschieben diesen Titel nach vorn, negative nach hinten.|Une valeur positive avance cette piste ; une valeur négative la retarde.
+Earlier|提早|早める|Früher|Plus tôt
+Later|延後|遅らせる|Später|Plus tard
+Timing applied|已套用時間調整|タイミングを適用済み|Timing angewendet|Décalage appliqué
+Reference track|參考歌曲|基準の曲|Referenztitel|Piste de référence
+Current → proposed|目前 → 建議|現在 → 提案|Aktuell → Vorschlag|Actuel → Proposé
+Speed fit|速度配合|速度補正|Geschwindigkeitsanpassung|Correction de vitesse
+Sound estimates backing timing. Vocals can affect the result; review before applying.|聲音分析會估算伴奏時間，但人聲仍可能影響結果；套用前請先檢查。|音から伴奏のタイミングを推定します。歌声が結果に影響するため、適用前に確認してください。|Der Klangabgleich schätzt das Timing der Begleitung. Stimmen können das Ergebnis beeinflussen; vor dem Anwenden prüfen.|Le son sert à estimer le calage de l’accompagnement. Les voix peuvent influencer le résultat ; vérifiez avant d’appliquer.
+Picture timing is frame-limited. Matching images does not verify matching sound.|畫面對齊的精度受影格限制；影像相同不代表聲音已同步。|映像の時間精度はフレームに制限されます。画像が一致しても音の同期は確認できません。|Die Bildgenauigkeit ist durch die Frames begrenzt. Gleiche Bilder bestätigen keinen synchronen Ton.|La précision visuelle dépend des images vidéo. Leur correspondance ne prouve pas la synchronisation du son.
+Could not establish one consistent sound offset.|未能確立一致的聲音偏移。|一貫した音のオフセットを特定できませんでした。|Kein einheitlicher Klangversatz ermittelbar.|Impossible d’établir un décalage sonore cohérent.
+Could not establish one consistent picture offset.|未能確立一致的畫面偏移。|一貫した映像のオフセットを特定できませんでした。|Kein einheitlicher Bildversatz ermittelbar.|Impossible d’établir un décalage d’image cohérent.
+Not completed before the quick scan time limit.|未能在快速搜尋時限內完成。|クイックスキャンの制限時間内に完了しませんでした。|Vor dem Zeitlimit des Schnellsuchlaufs nicht abgeschlossen.|Non terminé avant la limite de temps de la recherche rapide.
+Picture scan waited too long for the analysis decoder.|等待畫面分析解碼器的時間過長。|映像解析用デコーダーの待機時間を超えました。|Die Wartezeit auf den Analysedecoder wurde überschritten.|L’attente du décodeur d’analyse a dépassé la limite.
+Picture decoding reached its time limit.|畫面解碼已達時間上限。|映像のデコードが制限時間に達しました。|Das Zeitlimit für die Bilddecodierung wurde erreicht.|Le décodage vidéo a atteint sa limite de temps.
+This video could not be read. Check folder access.|無法讀取此影片，請檢查資料夾存取權限。|動画を読み込めません。フォルダーへのアクセス権を確認してください。|Dieses Video konnte nicht gelesen werden. Prüfen Sie den Ordnerzugriff.|Impossible de lire cette vidéo. Vérifiez l’accès au dossier.
+This video cannot be analysed by this device.|此裝置無法分析此影片。|この端末ではこの動画を解析できません。|Dieses Gerät kann dieses Video nicht analysieren.|Cet appareil ne peut pas analyser cette vidéo.
+The video decoder failed. No timing was changed.|影片解碼失敗，未變更時間偏移。|動画デコーダーでエラーが発生しました。タイミングは変更していません。|Der Videodecoder ist fehlgeschlagen. Das Timing wurde nicht verändert.|Le décodeur vidéo a échoué. Aucun décalage n’a été modifié.
+The reference video could not be analysed.|無法分析參考影片。|基準の動画を解析できませんでした。|Das Referenzvideo konnte nicht analysiert werden.|Impossible d’analyser la vidéo de référence.
+The reference video has insufficient picture evidence.|參考影片的畫面證據不足。|基準の動画には十分な映像情報がありません。|Das Referenzvideo enthält nicht genügend Bildinformationen.|La vidéo de référence ne contient pas assez d’indices visuels.
+Retry picture scan|重試畫面分析|映像解析を再試行|Bildanalyse wiederholen|Réessayer l’analyse vidéo
+Kept unchanged|保持不變|変更なし|Unverändert|Inchangé
+Apply timing ({count})|套用時間調整（{count}）|タイミングを適用（{count}）|Timing anwenden ({count})|Appliquer ({count})
+Applying timing briefly pauses the Stack. Listen to check the result.|套用時間調整時，疊播會短暫暫停。請聆聽並檢查結果。|適用時は重ね再生を短く一時停止します。聴いて結果を確認してください。|Beim Anwenden pausiert der Mix kurz. Prüfen Sie das Ergebnis durch Anhören.|L’application du décalage met brièvement le mix en pause. Écoutez pour vérifier le résultat.
+Timing was applied, not verified. Listen and adjust if needed.|已套用時間調整，但尚未驗證。請聆聽並按需要調整。|タイミングは適用済みですが、未検証です。聴いて必要なら調整してください。|Das Timing wurde angewendet, nicht überprüft. Hören Sie es an und passen Sie es bei Bedarf an.|Le décalage a été appliqué, pas vérifié. Écoutez et ajustez si nécessaire.
 Aligned tracks|已對齊歌曲|位置合わせ済み|Ausgerichtete Titel|Pistes alignées
 Playback resumes after analysis|分析後繼續播放|解析後に再生を再開|Wiedergabe nach Analyse fortsetzen|Lecture reprise après analyse
 Aligning by sound|正在按聲音對齊|音を解析中|Klang wird analysiert|Analyse du son
