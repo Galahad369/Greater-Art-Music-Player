@@ -19,6 +19,39 @@ import org.junit.Rule
 import org.junit.Test
 
 class StackAlignmentReviewTest {
+    @Test fun pictureTimeoutAndReadFailureShowTheirActualReasonsAndKeepManualControls() {
+        val slots = listOf(slot("/reference.mp4"), slot("/timeout.mp4"), slot("/unreadable.mp4"))
+        val progress = StackAlignmentProgress(total = 2, completed = 2, matched = 0,
+            primaryPath = "/reference.mp4", paths = slots.map { it.file.path },
+            method = StackAlignmentMethod.PICTURE, widePictureSearch = true,
+            eligiblePaths = slots.drop(1).map { it.file.path }, pictureFailures = mapOf(
+                "/timeout.mp4" to com.local.listentomusic.playback.StackPictureFailure.DECODE_TIME_LIMIT,
+                "/unreadable.mp4" to com.local.listentomusic.playback.StackPictureFailure.UNREADABLE))
+        var retries = 0
+        var manual = ""
+        compose.setContent { StackAlignmentReview(AppLanguage.ENGLISH, slots, progress, {}, {}, { manual = it }, { retries++ }) }
+        compose.onNodeWithTag("STACK_ALIGNMENT_REASON_/timeout.mp4").assertTextContains("Picture decoding reached its time limit.", substring = true)
+        compose.onNodeWithTag("STACK_ALIGNMENT_WIDER").performClick()
+        compose.onNodeWithTag("STACK_ALIGNMENT_REVIEW_LIST").performScrollToNode(hasTestTag("STACK_ALIGNMENT_MANUAL_/unreadable.mp4"))
+        compose.onNodeWithTag("STACK_ALIGNMENT_REASON_/unreadable.mp4").assertTextContains("This video could not be read. Check folder access.", substring = true)
+        compose.onNodeWithTag("STACK_ALIGNMENT_MANUAL_/unreadable.mp4").performClick()
+        compose.onNodeWithTag("STACK_ALIGNMENT_APPLY").assertDoesNotExist()
+        compose.runOnIdle { assertEquals(1, retries); assertEquals("/unreadable.mp4", manual) }
+    }
+
+    @Test fun failedReferenceIsNotMisreportedAsDifferentCompanionPictures() {
+        val slots = listOf(slot("/reference.mp4"), slot("/companion.mp4"))
+        val progress = StackAlignmentProgress(total = 1, matched = 0, primaryPath = "/reference.mp4",
+            paths = slots.map { it.file.path }, eligiblePaths = listOf("/companion.mp4"),
+            method = StackAlignmentMethod.PICTURE, pictureFailures = mapOf(
+                "/reference.mp4" to com.local.listentomusic.playback.StackPictureFailure.UNREADABLE,
+                "/companion.mp4" to com.local.listentomusic.playback.StackPictureFailure.REFERENCE_UNAVAILABLE))
+        compose.setContent { StackAlignmentReview(AppLanguage.ENGLISH, slots, progress, {}, {}, {}, {}) }
+        compose.onNodeWithTag("STACK_ALIGNMENT_REFERENCE_FAILURE").assertTextContains("This video could not be read. Check folder access.")
+        compose.onNodeWithTag("STACK_ALIGNMENT_REASON_/companion.mp4").assertTextContains("The reference video could not be analysed.", substring = true)
+        compose.onNodeWithTag("STACK_ALIGNMENT_APPLY").assertDoesNotExist()
+    }
+
     @get:Rule val compose = createComposeRule()
 
     private fun slot(path: String, offsetMs: Double = 0.0) = StackSlot(

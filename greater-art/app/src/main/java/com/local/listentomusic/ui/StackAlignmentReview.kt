@@ -26,6 +26,7 @@ import com.local.listentomusic.data.AppLanguage
 import com.local.listentomusic.playback.StackAlignmentMethod
 import com.local.listentomusic.playback.StackAlignmentProgress
 import com.local.listentomusic.playback.StackSlot
+import com.local.listentomusic.playback.StackPictureFailure
 import java.math.BigDecimal
 import java.math.RoundingMode
 
@@ -37,6 +38,17 @@ private fun stackReviewRate(rate: Double): String {
     val shown = exact.setScale(6, RoundingMode.HALF_UP).stripTrailingZeros()
     return "${if (shown.compareTo(exact) == 0) "" else "≈"}${shown.toPlainString()}×"
 }
+
+internal fun pictureFailureText(language: AppLanguage, failure: StackPictureFailure): String = uiText(language, when (failure) {
+    StackPictureFailure.QUICK_TIME_LIMIT -> "Not completed before the quick scan time limit."
+    StackPictureFailure.WAIT_TIME_LIMIT -> "Picture scan waited too long for the analysis decoder."
+    StackPictureFailure.DECODE_TIME_LIMIT -> "Picture decoding reached its time limit."
+    StackPictureFailure.UNREADABLE -> "This video could not be read. Check folder access."
+    StackPictureFailure.UNSUPPORTED -> "This video cannot be analysed by this device."
+    StackPictureFailure.DECODER_ERROR -> "The video decoder failed. No timing was changed."
+    StackPictureFailure.REFERENCE_UNAVAILABLE -> "The reference video could not be analysed."
+    StackPictureFailure.INSUFFICIENT_REFERENCE -> "The reference video has insufficient picture evidence."
+}, "")
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -81,6 +93,10 @@ internal fun StackAlignmentReview(
                                 style = MaterialTheme.typography.bodyMedium,
                             )
                         }
+                        if (picture) alignment.pictureFailures[alignment.primaryPath]?.let { failure ->
+                            Text(pictureFailureText(language, failure), Modifier.testTag("STACK_ALIGNMENT_REFERENCE_FAILURE"),
+                                style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
                         val status = if (alignment.applied) uiText(language, "Timing applied", "已套用時間調整")
                             else uiText(language, "Suggested offsets", "建議偏移")
                         Text(
@@ -89,11 +105,12 @@ internal fun StackAlignmentReview(
                             style = MaterialTheme.typography.labelLarge,
                             color = MaterialTheme.colorScheme.primary,
                         )
-                        if (alignment.canRetryPictureWider) {
+                        if (alignment.canRetryPictureWider || alignment.canRetryFailedPictureScan) {
                             TextButton(
                                 onClick = onWiderPictureSearch,
                                 modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp).testTag("STACK_ALIGNMENT_WIDER"),
-                            ) { Text(uiText(language, "Wider search (±30 s)", "擴大搜尋（±30 秒）")) }
+                            ) { Text(if (alignment.widePictureSearch) uiText(language, "Retry picture scan", "重試畫面分析")
+                                else uiText(language, "Wider search (±30 s)", "擴大搜尋（±30 秒）")) }
                         }
                     }
                 }
@@ -112,6 +129,8 @@ internal fun StackAlignmentReview(
                             Text(
                                 "${uiText(language, "Kept unchanged", "保持不變")} · " +
                                     when {
+                                        picture && alignment.pictureFailures[slot.file.path] != null ->
+                                            pictureFailureText(language, requireNotNull(alignment.pictureFailures[slot.file.path]))
                                         unfinished -> uiText(language, "Not completed before the quick scan time limit.", "未能在快速搜尋時限內完成。")
                                         picture -> uiText(language, "Could not establish one consistent picture offset.", "未能確立一致的畫面偏移。")
                                         else -> uiText(language, "Could not establish one consistent sound offset.", "未能確立一致的聲音偏移。")

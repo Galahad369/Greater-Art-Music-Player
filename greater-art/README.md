@@ -4,7 +4,7 @@ Greater Art is a native Kotlin/Jetpack Compose player for local music and video.
 
 ## Current Android builds
 
-- Latest source: **1.22.42 / code 363 — SOURCE_ONLY**. [Player icon colors](docs/PLAYER_ICON_COLORS_1.22.41.md) repairs local fullscreen contrast, disabled Previous/Next, native artwork-adaptive Ambient accents and press ripples. All button geometry and video quality remain unchanged. Host/build, exact-A55 and original-public signing checks are separate; no new public release claim.
+- Latest source: **1.22.43 / code 364 — SOURCE_ONLY**. [Picture-decoder reliability](docs/STACK_PICTURE_RELIABILITY_1.22.43.md) preserves completed windows on fallback and distinguishes read/decode/time-limit failures from picture mismatch. Matcher, confidence, 45-second Quick budget, sound and full-quality playback are unchanged. Host/native and exact optimized acceptance are separate from the unavailable original-public signing identity.
 - The retained [1.22.33 disabled PCM experiment](docs/STACK_PCM_KERNEL_1.22.33.md) and its incomplete backing/output/parity gates remain unchanged. No production engine replacement, public release, push or merge.
 - [Later acceptance checkpoint](docs/STACK_ALIGNMENT_ACCEPTANCE_1.22.33.md): current A55 picture Quick/Wide regressions pass. A different clean-reference sound experiment passes 18 known numeric controls but fails a stronger independent-region check and the six-original target. Earlier actual-mix gain failures remain. No production adoption, full backing or release acceptance.
 - Verified repository download: [GreaterArt-1.21.93.apk](releases/GreaterArt-1.21.93.apk), code 316. See the [release receipt](docs/RELEASE_1.21.93.md) for signing and test limits.

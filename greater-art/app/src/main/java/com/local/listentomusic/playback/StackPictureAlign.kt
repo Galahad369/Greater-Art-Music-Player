@@ -8,6 +8,8 @@ import android.media.MediaExtractor
 import android.media.MediaCodecList
 import android.media.MediaFormat
 import android.os.Build
+import android.os.SystemClock
+import android.util.Log
 import com.local.listentomusic.data.OfflineAnalysisBudget
 import com.local.listentomusic.data.openMedia
 import com.local.listentomusic.model.MediaFile
@@ -22,11 +24,8 @@ import java.io.IOException
 import java.nio.ByteBuffer
 
 internal class StackPictureAlign(private val context: Context) {
-    data class Result(val matches: Map<String, StackAlignment>, val quickTimedOut: Boolean)
-
-    private class IncompleteLocalDecode(cause: Throwable? = null) : IllegalStateException(cause)
-
-    private data class Samples(val windows: List<StackPictureWindow>, val frames: List<StackPictureFrame>)
+    data class Result(val matches: Map<String, StackAlignment>, val quickTimedOut: Boolean,
+        val failures: Map<String, StackPictureFailure> = emptyMap())
 
     suspend fun estimateAll(
         primary: MediaFile,
@@ -35,17 +34,37 @@ internal class StackPictureAlign(private val context: Context) {
         onProgress: (Int) -> Unit,
     ): Result = withContext(Dispatchers.Default) {
         val result = linkedMapOf<String, StackAlignment>()
+        val failures = linkedMapOf<String, StackPictureFailure>()
+        val completed = mutableSetOf<String>()
+        var referenceFinished = false
+        var currentPath = primary.path
         suspend fun analyze() {
             val analysisContext = currentCoroutineContext()
-            val reference = readSamples(primary, search) ?: return
-            val anchors = prepareStackPictureReference(reference.frames) { analysisContext.ensureActive() } ?: return
+            val referenceRead = readSamples(primary, search)
+            if (referenceRead is StackPictureReadResult.Failed) {
+                failures[primary.path] = referenceRead.reason
+                companions.forEach { failures[it.path] = StackPictureFailure.REFERENCE_UNAVAILABLE }
+                return
+            }
+            val reference = (referenceRead as StackPictureReadResult.Ready).samples
+            val anchors = prepareStackPictureReference(reference.frames) { analysisContext.ensureActive() }
+            if (anchors == null) {
+                failures[primary.path] = StackPictureFailure.INSUFFICIENT_REFERENCE
+                companions.forEach { failures[it.path] = StackPictureFailure.REFERENCE_UNAVAILABLE }
+                return
+            }
+            referenceFinished = true
             withContext(Dispatchers.Main.immediate) { onProgress(0) }
             for ((index, file) in companions.withIndex()) {
                 analysisContext.ensureActive()
-                val frames = readSamples(file, search, reference.windows)?.frames.orEmpty()
-                estimateStackPictureOffset(anchors, frames, search) {
-                    analysisContext.ensureActive()
-                }?.let { result[file.path] = it }
+                currentPath = file.path
+                when (val read = readSamples(file, search, reference.windows)) {
+                    is StackPictureReadResult.Failed -> failures[file.path] = read.reason
+                    is StackPictureReadResult.Ready -> estimateStackPictureOffset(anchors, read.samples.frames, search) {
+                        analysisContext.ensureActive()
+                    }?.let { result[file.path] = it }
+                }
+                completed += file.path
                 withContext(Dispatchers.Main.immediate) { onProgress(index + 1) }
             }
         }
@@ -56,30 +75,47 @@ internal class StackPictureAlign(private val context: Context) {
             analyze()
             false
         }
-        Result(result, timedOut)
+        if (timedOut) {
+            if (!referenceFinished && currentPath == primary.path) failures[primary.path] = StackPictureFailure.QUICK_TIME_LIMIT
+            // Earlier completed rejections are not relabelled as unprocessed tracks.
+            for (file in companions) if (file.path !in completed && file.path !in failures)
+                failures[file.path] = StackPictureFailure.QUICK_TIME_LIMIT
+        }
+        Result(result, timedOut, failures)
     }
 
-    private suspend fun readSamples(
+    internal suspend fun readSamples(
         file: MediaFile,
         search: StackPictureSearch,
         reference: List<StackPictureWindow>? = null,
-    ): Samples? = withTimeoutOrNull(90_000L) {
-        withContext(Dispatchers.IO) {
-            OfflineAnalysisBudget.mutex.withLock {
-                try {
+        allowLocalAvc: Boolean = true,
+    ): StackPictureReadResult {
+        val (read, timeout) = boundedStackPictureRead<StackPictureReadResult> { acquired ->
+            withContext(Dispatchers.IO) {
+                OfflineAnalysisBudget.mutex.withLock {
+                    acquired()
                     try {
-                        decode(file, search, reference)
-                    } catch (_: IncompleteLocalDecode) {
-                        decode(file, search, reference, allowLocalAvc = false)
+                        StackPictureReadResult.Ready(decode(file, search, reference, allowLocalAvc))
+                    } catch (cancel: CancellationException) {
+                        throw cancel
+                    } catch (_: SecurityException) {
+                        StackPictureReadResult.Failed(StackPictureFailure.UNREADABLE)
+                    } catch (_: UnreadablePictureSource) {
+                        StackPictureReadResult.Failed(StackPictureFailure.UNREADABLE)
+                    } catch (_: IOException) {
+                        StackPictureReadResult.Failed(StackPictureFailure.UNSUPPORTED)
+                    } catch (_: UnsupportedPictureSource) {
+                        StackPictureReadResult.Failed(StackPictureFailure.UNSUPPORTED)
+                    } catch (failure: Exception) {
+                        Log.w("GA-StackPictureDecode", "analysis failed type=${failure.javaClass.simpleName}")
+                        StackPictureReadResult.Failed(StackPictureFailure.DECODER_ERROR)
                     }
-                } catch (cancel: CancellationException) {
-                    throw cancel
-                } catch (_: Exception) {
-                    // An unreadable clip or an unsupported analysis decoder must not change a track.
-                    null
                 }
             }
         }
+        val result = read ?: StackPictureReadResult.Failed(requireNotNull(timeout))
+        if (result is StackPictureReadResult.Failed) Log.i("GA-StackPictureDecode", "readFailure=${result.reason}")
+        return result
     }
 
     private suspend fun decode(
@@ -87,16 +123,18 @@ internal class StackPictureAlign(private val context: Context) {
         search: StackPictureSearch,
         reference: List<StackPictureWindow>?,
         allowLocalAvc: Boolean = true,
-    ): Samples? {
+    ): StackPictureSamples {
         val extractor = MediaExtractor()
         var codec: MediaCodec? = null
-        val frames = ArrayList<StackPictureFrame>()
+        val decoderNames = linkedSetOf<String>()
+        val fallbackWindows = linkedSetOf<Int>()
         val clipStartUs = file.clipStartMs * 1_000L
         try {
-            extractor.openMedia(context, file.sourcePath)
+            try { extractor.openMedia(context, file.sourcePath) }
+            catch (failure: IOException) { throw UnreadablePictureSource(failure) }
             val track = (0 until extractor.trackCount).firstOrNull {
                 extractor.getTrackFormat(it).getString(MediaFormat.KEY_MIME)?.startsWith("video/") == true
-            } ?: return null
+            } ?: throw UnsupportedPictureSource()
             val format = extractor.getTrackFormat(track)
             val trackDurationUs = if (format.containsKey(MediaFormat.KEY_DURATION)) {
                 format.getLong(MediaFormat.KEY_DURATION).takeIf { it > 0 }?.minus(clipStartUs)
@@ -104,10 +142,10 @@ internal class StackPictureAlign(private val context: Context) {
             val durationUs = minOf(trackDurationUs
                 ?: file.durationMs.takeIf { it > 0 }?.times(1_000L) ?: Long.MAX_VALUE,
                 file.clipEndMs?.let { it * 1_000L - clipStartUs } ?: Long.MAX_VALUE)
-            if (search == StackPictureSearch.QUICK && reference == null && durationUs == Long.MAX_VALUE) return null
+            if (search == StackPictureSearch.QUICK && reference == null && durationUs == Long.MAX_VALUE) throw UnsupportedPictureSource()
             val windows = if (reference == null) stackPictureWindows(durationUs, search)
                 else stackPictureCompanionWindows(reference, durationUs, search)
-            if (windows.isEmpty()) return null
+            if (windows.isEmpty()) throw UnsupportedPictureSource()
             val mime = requireNotNull(format.getString(MediaFormat.KEY_MIME))
             val rotation = if (format.containsKey(MediaFormat.KEY_ROTATION)) format.getInteger(MediaFormat.KEY_ROTATION) else 0
             format.setInteger(MediaFormat.KEY_ROTATION, 0)
@@ -117,12 +155,13 @@ internal class StackPictureAlign(private val context: Context) {
                 codec = decoder
                 decoder.configure(format, null, null, 0)
                 decoder.start()
+                decoderNames += decoder.name
+                Log.i("GA-StackPictureDecode", "decoder=${decoder.name} search=$search")
                 return decoder
             }
             // Ranchu's host AVC decoder transfers analysis frames across the VM boundary.
-            val localAvc = if (allowLocalAvc && search == StackPictureSearch.QUICK && mime == MediaFormat.MIMETYPE_VIDEO_AVC &&
-                Build.HARDWARE == "ranchu" && Build.SUPPORTED_ABIS.firstOrNull() == "x86_64"
-            ) {
+            val localAvc = if (allowLocalAvc && stackPictureUsesLocalAvc(search, Build.HARDWARE,
+                    Build.SUPPORTED_ABIS.firstOrNull(), mime)) {
                 try {
                     MediaCodecList(MediaCodecList.REGULAR_CODECS).codecInfos.firstOrNull {
                         it.name == "c2.android.avc.decoder" && it.getCapabilitiesForType(mime).isFormatSupported(format)
@@ -134,29 +173,54 @@ internal class StackPictureAlign(private val context: Context) {
                     val failed = codec
                     codec = null
                     failed?.release()
+                    Log.i("GA-StackPictureDecode", "local initialization failed type=${failure.javaClass.simpleName}; use platform")
                     null
                 }
             } else null
-            val decoder = localAvc ?: startDecoder(MediaCodec.createDecoderByType(mime))
+            var decoder = localAvc ?: startDecoder(MediaCodec.createDecoderByType(mime))
+            var usingLocal = localAvc != null
+            var attempts = 0
             val info = MediaCodec.BufferInfo()
             val luma = FloatArray(STACK_PICTURE_GRID * STACK_PICTURE_GRID)
-            val syncProbe = if (localAvc == null) null else ByteBuffer.allocateDirect(512 * 1024)
-            try {
-                for ((index, window) in windows.withIndex()) {
+            val maximumInput = if (format.containsKey(MediaFormat.KEY_MAX_INPUT_SIZE)) format.getInteger(MediaFormat.KEY_MAX_INPUT_SIZE) else 0
+            var syncProbe = if (localAvc == null) null else ByteBuffer.allocateDirect(stackPictureProbeCapacity(-1, maximumInput))
+            val frames = readStackPictureWindows(windows, localAvc != null) { index, window, useLocal ->
+                val windowFrames = ArrayList<StackPictureFrame>()
+                val began = SystemClock.elapsedRealtime()
+                try {
                     currentCoroutineContext().ensureActive()
                     val start = clipStartUs + window.startUs
-                    if (index > 0) decoder.flush() // Synchronous codec; resume with a keyframe.
-                    if (start > 0) extractor.seekTo(start, MediaExtractor.SEEK_TO_PREVIOUS_SYNC)
-                    if (syncProbe != null) seekToLocalAvcIdr(extractor, syncProbe)
+                    var fresh = false
+                    if (!useLocal && usingLocal) {
+                        codec = null
+                        decoder.release()
+                        decoder = startDecoder(MediaCodec.createDecoderByType(mime))
+                        usingLocal = false
+                        fresh = true
+                    }
+                    if (attempts > 0 && !fresh) decoder.flush()
+                    if (start > 0 || attempts > 0) extractor.seekTo(start, MediaExtractor.SEEK_TO_PREVIOUS_SYNC)
+                    attempts++
+                    if (useLocal) syncProbe = seekToLocalAvcIdr(extractor, requireNotNull(syncProbe))
                     if (!decodeWindow(extractor, decoder, info, luma, start, clipStartUs + window.endUs,
-                            clipStartUs, rotation, frames, batchBuffers = localAvc != null)
+                            clipStartUs, rotation, windowFrames, batchBuffers = useLocal)
                     ) throw IncompleteLocalDecode()
+                } catch (failure: MediaCodec.CodecException) {
+                    if (!useLocal) throw failure
+                    fallbackWindows += index
+                    Log.i("GA-StackPictureDecode", "window=$index fallback=codec-error decoder=${decoder.name}")
+                    throw IncompleteLocalDecode(failure, "codec-error")
+                } catch (failure: IncompleteLocalDecode) {
+                    if (useLocal) {
+                        fallbackWindows += index
+                        Log.i("GA-StackPictureDecode", "window=$index fallback=${failure.reason} decoder=${decoder.name}")
+                    }
+                    throw failure
                 }
-            } catch (failure: MediaCodec.CodecException) {
-                if (localAvc == null) throw failure
-                throw IncompleteLocalDecode(failure)
+                Log.i("GA-StackPictureDecode", "window=$index decoder=${decoder.name} local=$useLocal frames=${windowFrames.size} elapsedMs=${SystemClock.elapsedRealtime() - began}")
+                windowFrames
             }
-            return Samples(windows, frames)
+            return StackPictureSamples(windows, frames, decoderNames, fallbackWindows)
         } finally {
             try { codec?.release() } finally { extractor.release() }
         }
@@ -164,35 +228,30 @@ internal class StackPictureAlign(private val context: Context) {
 
     // The local AVC decoder can drop frames when a container sync sample is
     // a recovery point in an open GOP. Start it at a nearby IDR instead.
-    private suspend fun seekToLocalAvcIdr(extractor: MediaExtractor, packet: ByteBuffer) {
+    private suspend fun seekToLocalAvcIdr(extractor: MediaExtractor, initialPacket: ByteBuffer): ByteBuffer {
+        var packet = initialPacket
         val firstSync = extractor.sampleTime
         var sync = firstSync
         while (sync >= 0 && firstSync - sync <= 5_000_000L) {
             currentCoroutineContext().ensureActive()
+            val sampleSize = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) extractor.sampleSize else -1L
+            val capacity = stackPictureProbeCapacity(sampleSize, packet.capacity())
+            if (capacity > packet.capacity()) packet = ByteBuffer.allocateDirect(capacity)
             packet.clear()
             val size = try {
                 extractor.readSampleData(packet, 0)
             } catch (failure: IllegalArgumentException) {
-                throw IncompleteLocalDecode(failure)
+                throw IncompleteLocalDecode(failure, "probe-read")
             }
             if (size !in 4..packet.capacity()) break
-            // MediaExtractor exposes AVC samples with Annex B start codes.
-            for (index in 0 until size - 3) {
-                if (packet.get(index).toInt() != 0 || packet.get(index + 1).toInt() != 0 ||
-                    packet.get(index + 2).toInt() != 1
-                ) continue
-                when (packet.get(index + 3).toInt() and 31) {
-                    5 -> return
-                    in 1..4 -> break
-                }
-            }
+            if (stackPictureHasAvcIdr(packet, size)) return packet
             if (sync == 0L) break
             extractor.seekTo(sync - 1, MediaExtractor.SEEK_TO_PREVIOUS_SYNC)
             val earlier = extractor.sampleTime
             if (earlier >= sync) break
             sync = earlier
         }
-        throw IncompleteLocalDecode()
+        throw IncompleteLocalDecode(reason = "idr-not-found")
     }
 
     private suspend fun decodeWindow(
@@ -209,6 +268,7 @@ internal class StackPictureAlign(private val context: Context) {
     ): Boolean {
         var inputDone = false
         var outputDone = false
+        var usableOutput = true
         val submittedTimes = if (batchBuffers) ArrayList<Long>() else null
         val returnedTimes = if (batchBuffers) ArrayList<Long>() else null
         val analysisContext = currentCoroutineContext()
@@ -240,9 +300,9 @@ internal class StackPictureAlign(private val context: Context) {
                 val time = info.presentationTimeUs
                 if (info.size == 0 || time !in start until end) return true
                 returnedTimes?.add(time)
-                val image = decoder.getOutputImage(index) ?: return true
+                val image = decoder.getOutputImage(index) ?: run { usableOutput = false; return true }
                 image.use {
-                    if (it.format != ImageFormat.YUV_420_888) return@use
+                    if (it.format != ImageFormat.YUV_420_888) { usableOutput = false; return@use }
                     val plane = it.planes[0]
                     val crop = it.cropRect
                     val buffer = plane.buffer
@@ -253,7 +313,7 @@ internal class StackPictureAlign(private val context: Context) {
                         val px = crop.left + (2 * sx + 1) * crop.width() / (2 * STACK_PICTURE_GRID)
                         val py = crop.top + (2 * sy + 1) * crop.height() / (2 * STACK_PICTURE_GRID)
                         val position = buffer.position() + py * plane.rowStride + px * plane.pixelStride
-                        if (position >= buffer.limit()) return@use
+                        if (position >= buffer.limit()) { usableOutput = false; return@use }
                         luma[y * STACK_PICTURE_GRID + x] = (buffer.get(position).toInt() and 255).toFloat()
                     }
                     sampler.offer(time - clipStartUs, luma)
@@ -276,7 +336,6 @@ internal class StackPictureAlign(private val context: Context) {
         }
         sampler.finish()
         // Some AVC sync samples start a GOP that the local decoder only partially returns.
-        submittedTimes?.sort()
-        return submittedTimes == returnedTimes
+        return usableOutput && (!batchBuffers || stackPictureOutputComplete(requireNotNull(submittedTimes), requireNotNull(returnedTimes)))
     }
 }

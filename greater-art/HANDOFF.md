@@ -8,7 +8,18 @@ This file describes the **current repository state only**. Historical session no
 
 ## Current Android builds
 
-**Current 1.22.42/code 363 — on-screen native ripple acceptance, SOURCE_ONLY:**
+**Current 1.22.43/code 364 — focused picture-decoder reliability, SOURCE_ONLY:**
+[Scope, causes and gates](docs/STACK_PICTURE_RELIABILITY_1.22.43.md). Bounded adaptive
+IDR probes, per-window platform fallback retaining completed evidence, typed
+per-track/reference failures, explicit Wide timeout retry and decoder diagnostics.
+The unchanged new regression checks catch the original fixed-probe and repeated-
+window behavior. Keep matcher/sampler/confidence, Quick 45 s, original corpus
+assertions, sound alignment, 42 UI and playback quality unchanged. Preflight and
+629 JVM tests pass; lint has zero errors/54 warnings; debug/test APKs compile.
+Native/exact optimized acceptance is pending. Preserve the owner's separate
+Stack documents, original artifacts and signing identity. No push/merge/publication.
+
+**Retained 1.22.42/code 363 — on-screen native ripple acceptance, SOURCE_ONLY:**
 [Full cause, tests and artifact](docs/PLAYER_ICON_COLORS_1.22.41.md). Keeps the four
 41 production repairs unchanged. 620 JVM tests pass, lint zero errors/54 warnings,
 and debug/test APKs compile. All nine A55 rendered/native color tests PASS, including

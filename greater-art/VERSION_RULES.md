@@ -16,7 +16,7 @@ This file is the authoritative version policy for Greater Art. If any handoff no
 ## Machine-checkable state
 
 
-Current source: **1.22.42 (code 363)**
+Current source: **1.22.43 (code 364)**
 Allowed consumed transition: **1.21.38 (code 261) -> 1.21.40 (code 263)**
 
 Retain PR174's original declared transition for eeb06d9. Its initial1.21.40
@@ -522,3 +522,4 @@ Previous baseline: 1.13.26 (code 115).
 - 1.22.40 (code 361): correct the frame-ready observer so resetting readiness cannot restore Expanded before a Home/return action selects Mini. Only true frame-ready events commit a visual cut. Preserve the complete 39 handoff repair and its built evidence, but do not promote that superseded candidate. Add same-check readiness-reset and repeated-entry regressions. SOURCE_ONLY until exact optimized-device acceptance; all prior source, APKs, keys, quality and controls remain intact.
 - 1.22.41 (code 362): fix four reviewed icon-color gaps: local fullscreen transport contrast, disabled previous/next glyphs, Ambient artwork accent parity in native compact players, and theme-colored native press ripples. Preserve all button geometry, video pixels/quality, player/surface ownership and prior artifacts. SOURCE_ONLY pending exact optimized-device acceptance; no public signing or release claim.
 - 1.22.42 (code 363): replace the invalid offscreen native-ripple test fixture with an attached hardware-rendered compact player, screenshot actual pressed pixels and challenge the same check with the old mint color. Preserve the complete 41 app repair and its failed diagnostic evidence; no production geometry, playback or color behavior changes. SOURCE_ONLY pending exact optimized-device acceptance.
+- 1.22.43 (code 364): focused picture-decoder reliability pass: bounded metadata-aware IDR probes, per-window platform fallback preserving completed evidence, typed per-track/reference failures and timed-out Wide retry, decoder logging and direct decoder/policy tests. Keep the 45 s Quick limit, matcher/sampler/confidence, sound alignment and full-quality playback unchanged. SOURCE_ONLY pending exact optimized-device acceptance; preserve prior artifacts and separate Stack work.

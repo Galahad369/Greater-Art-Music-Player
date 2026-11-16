@@ -31,6 +31,7 @@ data class StackAlignmentProgress(val running: Boolean = false, val completed: I
     val quickPictureTimedOut: Boolean = false,
     val eligiblePaths: List<String> = emptyList(),
     val results: Map<String, StackAlignment> = emptyMap(),
+    val pictureFailures: Map<String, StackPictureFailure> = emptyMap(),
 ) {
     internal fun belongsTo(session: StackSession): Boolean =
         session.active && primaryPath == session.primaryPath && paths == session.slots.map { it.file.path }
@@ -38,6 +39,10 @@ data class StackAlignmentProgress(val running: Boolean = false, val completed: I
     internal val canRetryPictureWider: Boolean
         get() = !running && method == StackAlignmentMethod.PICTURE && !widePictureSearch &&
             total > 0 && matched != null
+
+    internal val canRetryFailedPictureScan: Boolean
+        get() = !running && method == StackAlignmentMethod.PICTURE && widePictureSearch &&
+            pictureFailures.values.any { it == StackPictureFailure.WAIT_TIME_LIMIT || it == StackPictureFailure.DECODE_TIME_LIMIT }
 }
 
 /** Analysis belongs to the playback session, not a disposable pager page. */
@@ -52,7 +57,7 @@ object StackAlignmentController {
 
     fun retryPictureWider(context: Context) {
         val previous = mutable.value
-        if (previous.canRetryPictureWider && previous.belongsTo(StackPlayback.state.value)) {
+        if ((previous.canRetryPictureWider || previous.canRetryFailedPictureScan) && previous.belongsTo(StackPlayback.state.value)) {
             start(context, StackAlignmentMethod.PICTURE, StackPictureSearch.WIDE)
         }
     }
@@ -104,7 +109,8 @@ object StackAlignmentController {
                             mutable.value = mutable.value.copy(running = false,
                                 completed = if (pictureResult == null) companions.size else mutable.value.completed,
                                 matched = proposal.size, proposal = proposal, results = matches, readingPictureReference = false,
-                                quickPictureTimedOut = pictureResult?.quickTimedOut == true)
+                                quickPictureTimedOut = pictureResult?.quickTimedOut == true,
+                                pictureFailures = pictureResult?.failures.orEmpty())
                         }
                     } finally { watcher.cancel() }
                 }

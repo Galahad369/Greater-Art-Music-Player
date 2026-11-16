@@ -52,6 +52,14 @@ Picture timing is frame-limited. Matching images does not verify matching sound.
 Could not establish one consistent sound offset.|未能確立一致的聲音偏移。|一貫した音のオフセットを特定できませんでした。|Kein einheitlicher Klangversatz ermittelbar.|Impossible d’établir un décalage sonore cohérent.
 Could not establish one consistent picture offset.|未能確立一致的畫面偏移。|一貫した映像のオフセットを特定できませんでした。|Kein einheitlicher Bildversatz ermittelbar.|Impossible d’établir un décalage d’image cohérent.
 Not completed before the quick scan time limit.|未能在快速搜尋時限內完成。|クイックスキャンの制限時間内に完了しませんでした。|Vor dem Zeitlimit des Schnellsuchlaufs nicht abgeschlossen.|Non terminé avant la limite de temps de la recherche rapide.
+Picture scan waited too long for the analysis decoder.|等待畫面分析解碼器的時間過長。|映像解析用デコーダーの待機時間を超えました。|Die Wartezeit auf den Analysedecoder wurde überschritten.|L’attente du décodeur d’analyse a dépassé la limite.
+Picture decoding reached its time limit.|畫面解碼已達時間上限。|映像のデコードが制限時間に達しました。|Das Zeitlimit für die Bilddecodierung wurde erreicht.|Le décodage vidéo a atteint sa limite de temps.
+This video could not be read. Check folder access.|無法讀取此影片，請檢查資料夾存取權限。|動画を読み込めません。フォルダーへのアクセス権を確認してください。|Dieses Video konnte nicht gelesen werden. Prüfen Sie den Ordnerzugriff.|Impossible de lire cette vidéo. Vérifiez l’accès au dossier.
+This video cannot be analysed by this device.|此裝置無法分析此影片。|この端末ではこの動画を解析できません。|Dieses Gerät kann dieses Video nicht analysieren.|Cet appareil ne peut pas analyser cette vidéo.
+The video decoder failed. No timing was changed.|影片解碼失敗，未變更時間偏移。|動画デコーダーでエラーが発生しました。タイミングは変更していません。|Der Videodecoder ist fehlgeschlagen. Das Timing wurde nicht verändert.|Le décodeur vidéo a échoué. Aucun décalage n’a été modifié.
+The reference video could not be analysed.|無法分析參考影片。|基準の動画を解析できませんでした。|Das Referenzvideo konnte nicht analysiert werden.|Impossible d’analyser la vidéo de référence.
+The reference video has insufficient picture evidence.|參考影片的畫面證據不足。|基準の動画には十分な映像情報がありません。|Das Referenzvideo enthält nicht genügend Bildinformationen.|La vidéo de référence ne contient pas assez d’indices visuels.
+Retry picture scan|重試畫面分析|映像解析を再試行|Bildanalyse wiederholen|Réessayer l’analyse vidéo
 Kept unchanged|保持不變|変更なし|Unverändert|Inchangé
 Apply timing ({count})|套用時間調整（{count}）|タイミングを適用（{count}）|Timing anwenden ({count})|Appliquer ({count})
 Applying timing briefly pauses the Stack. Listen to check the result.|套用時間調整時，疊播會短暫暫停。請聆聽並檢查結果。|適用時は重ね再生を短く一時停止します。聴いて結果を確認してください。|Beim Anwenden pausiert der Mix kurz. Prüfen Sie das Ergebnis durch Anhören.|L’application du décalage met brièvement le mix en pause. Écoutez pour vérifier le résultat.
