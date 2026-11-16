@@ -16,7 +16,7 @@ This file is the authoritative version policy for Greater Art. If any handoff no
 ## Machine-checkable state
 
 
-Current source: **1.22.43 (code 364)**
+Current source: **1.22.44 (code 365)**
 Allowed consumed transition: **1.21.38 (code 261) -> 1.21.40 (code 263)**
 
 Retain PR174's original declared transition for eeb06d9. Its initial1.21.40
@@ -523,3 +523,4 @@ Previous baseline: 1.13.26 (code 115).
 - 1.22.41 (code 362): fix four reviewed icon-color gaps: local fullscreen transport contrast, disabled previous/next glyphs, Ambient artwork accent parity in native compact players, and theme-colored native press ripples. Preserve all button geometry, video pixels/quality, player/surface ownership and prior artifacts. SOURCE_ONLY pending exact optimized-device acceptance; no public signing or release claim.
 - 1.22.42 (code 363): replace the invalid offscreen native-ripple test fixture with an attached hardware-rendered compact player, screenshot actual pressed pixels and challenge the same check with the old mint color. Preserve the complete 41 app repair and its failed diagnostic evidence; no production geometry, playback or color behavior changes. SOURCE_ONLY pending exact optimized-device acceptance.
 - 1.22.43 (code 364): focused picture-decoder reliability pass: bounded metadata-aware IDR probes, per-window platform fallback preserving completed evidence, typed per-track/reference failures and timed-out Wide retry, decoder logging and direct decoder/policy tests. Keep the 45 s Quick limit, matcher/sampler/confidence, sound alignment and full-quality playback unchanged. SOURCE_ONLY pending exact optimized-device acceptance; preserve prior artifacts and separate Stack work.
+- 1.22.44 (code 365): carry PR242's exact Gradle 9.9.1 wrapper JAR and pinned distribution checksum into an atomic versioned commit, instead of retaining the bot's invalid no-bump commit or rewriting its history. Preserve all app source, dependencies, tests, signing identities and the exact A55-tested 1.22.43 APK. SOURCE_ONLY; optimized assembly, host tests and exact current-APK device acceptance are separate gates. See docs/GRADLE_1.22.44.md.
