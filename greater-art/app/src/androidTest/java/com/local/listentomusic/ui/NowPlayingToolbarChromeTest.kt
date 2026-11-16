@@ -5,6 +5,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.width
 import androidx.compose.runtime.SideEffect
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asAndroidBitmap
@@ -38,6 +39,34 @@ class NowPlayingToolbarChromeTest {
     private val clicks = mutableListOf<String>()
     private var topInsetPx = 0
     private var leftInsetPx = 0
+    private val locked = mutableStateOf(false)
+
+    @Test fun selectedLockIsVisibleWithoutMovingAnyActionOrHandle() {
+        showToolbar(overlay = false)
+        val before = compose.onAllNodes(hasClickAction()).fetchSemanticsNodes()
+            .map { it.boundsInRoot }.sortedBy { it.left }
+        val gap = compose.onNodeWithTag("EXPANDED_TOOLBAR_HANDLE_GAP").fetchSemanticsNode().boundsInRoot
+        val normal = compose.onNodeWithTag("toolbar-content").captureToImage().asAndroidBitmap()
+        compose.runOnIdle { locked.value = true }
+        compose.onNodeWithTag("PLAYER_LOCK_SELECTED", useUnmergedTree = true)
+            .assertWidthIsEqualTo(32.dp).assertHeightIsEqualTo(32.dp)
+        compose.onNodeWithContentDescription("Unlock player controls")
+            .assertWidthIsEqualTo(48.dp).assertHeightIsEqualTo(48.dp)
+        val after = compose.onAllNodes(hasClickAction()).fetchSemanticsNodes()
+            .map { it.boundsInRoot }.sortedBy { it.left }
+        assertEquals("No action may move when Lock changes state", before, after)
+        assertEquals(gap, compose.onNodeWithTag("EXPANDED_TOOLBAR_HANDLE_GAP").fetchSemanticsNode().boundsInRoot)
+        val selected = compose.onNodeWithTag("toolbar-content").captureToImage().asAndroidBitmap()
+        try {
+            val bounds = compose.onNodeWithContentDescription("Unlock player controls").fetchSemanticsNode().boundsInRoot
+            val toolbar = compose.onNodeWithTag("toolbar-content").fetchSemanticsNode().boundsInRoot
+            val x = (bounds.center.x - toolbar.left).toInt()
+            val y = (bounds.center.y - toolbar.top + bounds.height * .25f).toInt()
+            assertNotEquals("A real filled selection must be visible", normal.getPixel(x, y), selected.getPixel(x, y))
+        } finally { normal.recycle(); selected.recycle() }
+        compose.runOnIdle { locked.value = false }
+        compose.onNodeWithTag("PLAYER_LOCK_SELECTED", useUnmergedTree = true).assertDoesNotExist()
+    }
 
     @Test fun expandedToolbarIsTransparentAndRetainsItsActions() {
         showToolbar(overlay = false)
@@ -96,6 +125,7 @@ class NowPlayingToolbarChromeTest {
                             onFullscreen = { clicks += "Fullscreen" },
                             onClose = { clicks += "Close player" },
                             onLock = { clicks += "Lock player controls" },
+                            locked = locked.value,
                             modifier = Modifier.testTag("toolbar-content"),
                             overlay = overlay,
                             fullscreen = overlay,

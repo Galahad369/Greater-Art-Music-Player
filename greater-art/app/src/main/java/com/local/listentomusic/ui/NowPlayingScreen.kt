@@ -139,6 +139,9 @@ import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.liveRegion
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -457,6 +460,27 @@ fun NowPlayingScreen(
         }
     }
     var controlsLocked by rememberSaveable { mutableStateOf(false) }
+    val lockHaptics = LocalHapticFeedback.current
+    // A new event restarts the brief notice, not the player's chrome timer.
+    var lockFeedback by remember { mutableStateOf<Pair<Long, Boolean>?>(null) }
+    var lockAttention by remember { mutableStateOf(false) }
+    val toggleControlsLock = {
+        controlsLocked = !controlsLocked
+        if (controlsLocked) {
+            lockHaptics.performHapticFeedback(HapticFeedbackType.LongPress)
+            lockFeedback = android.os.SystemClock.uptimeMillis() to false
+        } else lockFeedback = null
+    }
+    LaunchedEffect(controlsLocked, lockFeedback) {
+        if (!controlsLocked) lockFeedback = null
+        lockAttention = controlsLocked && lockFeedback?.second == true
+        if (lockFeedback != null) {
+            delay(160)
+            lockAttention = false
+            delay(1_440)
+            lockFeedback = null
+        }
+    }
     // The lock and the fullscreen video chrome share one visibility source.
     var videoControlsVisible by rememberSaveable { mutableStateOf(true) }
     // Both fullscreen toolbar and the separately elevated Lock action use one
@@ -573,8 +597,9 @@ fun NowPlayingScreen(
                                         onFullscreen = toggleFullscreen,
                                         onClose = onClose,
                                         frameLit = useFrameAmbient,
-                                        onLock = { controlsLocked = !controlsLocked },
+                                        onLock = toggleControlsLock,
                                         locked = controlsLocked,
+                                        lockAttention = lockAttention,
                                         onLockAnchorBoundsChanged = reportLockAnchor,
                                         onTopBarBoundsChanged = {
                                             normalToolbarBounds = it
@@ -611,8 +636,9 @@ fun NowPlayingScreen(
                     onEndTemporaryDoubleSpeed = onEndTemporaryDoubleSpeed,
                     onLockTemporaryDoubleSpeed = onLockTemporaryDoubleSpeed,
                     onLockAnchorBoundsChanged = reportLockAnchor,
-                    onToggleControlsLock = { controlsLocked = !controlsLocked },
+                    onToggleControlsLock = toggleControlsLock,
                     controlsLocked = controlsLocked,
+                    lockAttention = lockAttention,
                     frameMode = fullscreenFrameMode,
                     onToggleFrameMode = {
                         fullscreenFrameMode = if (fullscreenFrameMode == FullscreenFrameMode.FIT)
@@ -678,8 +704,9 @@ fun NowPlayingScreen(
                     landscape = fullscreenLandscape,
                     onClose = onClose,
                     fullscreen = fullscreen,
-                    onLock = { controlsLocked = !controlsLocked },
+                    onLock = toggleControlsLock,
                     locked = controlsLocked,
+                    lockAttention = lockAttention,
                     onLockAnchorBoundsChanged = reportLockAnchor,
                     onTopBarBoundsChanged = {
                         normalToolbarBounds = it
@@ -728,20 +755,17 @@ fun NowPlayingScreen(
         }
         }
         if (controlsLocked) {
-            Box(Modifier.fillMaxSize().pointerInput(immersiveVideo) {
-                if (immersiveVideo) {
+            Box(Modifier.fillMaxSize().testTag("PLAYER_LOCK_INPUT_BLOCKER").pointerInput(immersiveVideo) {
+                detectTapGestures(onTap = { position ->
+                    lockFeedback = android.os.SystemClock.uptimeMillis() to true
+                    if (immersiveVideo) {
                     // Locked input cannot reach VideoPlayerStage. A tap only reveals
                     // the unlock control; playback/seek/zoom remain blocked.
-                    detectTapGestures(onTap = { position ->
                         if (isCenterVideoTap(position.x, size.width.toFloat()))
                             videoControlsVisible = !videoControlsVisible
                         else videoControlsVisible = true
-                    })
-                } else {
-                    awaitPointerEventScope {
-                        while (true) awaitPointerEvent().changes.forEach { it.consume() }
                     }
-                }
+                })
             })
         }
         if (controlsLocked) {
@@ -761,13 +785,38 @@ fun NowPlayingScreen(
                         .clickable(
                             interactionSource = remember { MutableInteractionSource() },
                             indication = null,
-                            onClick = { controlsLocked = false },
+                            onClick = toggleControlsLock,
                         )
                         .semantics {
                             contentDescription = uiText(language, "Unlock player controls", "解鎖播放器控制")
+                            stateDescription = uiText(language, "Controls locked", "控制已鎖定")
                         })
                 }
             }
+        }
+        if (controlsLocked && lockFeedback != null && (!immersiveVideo || videoControlsVisible)) {
+            val noticeDensity = LocalDensity.current
+            Text(
+                text = if (lockFeedback?.second == true)
+                    uiText(language, "Tap lock to unlock", "輕觸鎖頭以解鎖")
+                    else uiText(language, "Controls locked", "控制已鎖定"),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.inverseOnSurface,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.align(Alignment.TopCenter).offset {
+                    val videoBottom = if (immersiveVideo) constraints.maxHeight else
+                        ((normalToolbarBounds?.bottom ?: playerRootBounds?.top ?: 0f) -
+                            (playerRootBounds?.top ?: 0f)).roundToInt() +
+                            with(noticeDensity) { portraitVideoHeight.roundToPx() }
+                    IntOffset(0, (videoBottom - with(noticeDensity) {
+                        (if (immersiveVideo) 100.dp else 36.dp).roundToPx()
+                    }).coerceAtLeast(0))
+                }.testTag("PLAYER_LOCK_NOTICE")
+                    .semantics { liveRegion = LiveRegionMode.Polite }
+                    .clip(CircleShape).background(MaterialTheme.colorScheme.inverseSurface)
+                    .padding(horizontal = GaSpacing.md, vertical = GaSpacing.xs),
+            )
         }
         NowPlayingPowerSavingNotice(
             powerSaving = powerSaving,
@@ -814,6 +863,7 @@ private fun VideoPlayerStage(
     onLockAnchorBoundsChanged: (androidx.compose.ui.geometry.Rect) -> Unit,
     onToggleControlsLock: () -> Unit,
     controlsLocked: Boolean,
+    lockAttention: Boolean,
     frameMode: FullscreenFrameMode,
     onToggleFrameMode: () -> Unit,
     controlsVisible: Boolean,
@@ -1221,6 +1271,7 @@ private fun VideoPlayerStage(
                                         landscape = landscape,
                                         onLock = onToggleControlsLock,
                                         locked = controlsLocked,
+                                        lockAttention = lockAttention,
                                         frameMode = frameMode,
                                         onToggleFrameMode = onToggleFrameMode,
                                         onLockAnchorBoundsChanged = onLockAnchorBoundsChanged,
@@ -2507,7 +2558,7 @@ private fun PlaybackError(message: String?) {
 /**
  * One visual specification for every Now Playing toolbar action, including the
  * input-safe Lock action. Its caller owns placement and chrome visibility; it
- * never creates a separate background or an independent animation clock.
+ * keeps every slot fixed. Only selected Lock gets a local state highlight.
  */
 @Composable
 private fun PlayerToolbarAction(
@@ -2519,14 +2570,24 @@ private fun PlayerToolbarAction(
     inspectorDescription: String,
     modifier: Modifier = Modifier,
     rotationBadgeBackground: Color? = null,
+    selected: Boolean = false,
+    attention: Boolean = false,
 ) {
+    val lockScale = if (selected) animateFloatAsState(
+        if (attention) 1.12f else 1f, tween(120), label = "lock attention"
+    ) else null
     IconButton(
         onClick = onClick,
         modifier = modifier.size(GaControl.touchTarget)
             .inspectElement(inspectorId, inspectorDescription),
     ) {
-        Box(Modifier.size(32.dp), contentAlignment = Alignment.Center) {
-            Icon(glyph, description, modifier = Modifier.size(GaControl.icon), tint = foreground)
+        Box(Modifier.size(32.dp).then(if (selected) Modifier
+            .testTag("PLAYER_LOCK_SELECTED")
+            .graphicsLayer { scaleX = lockScale!!.value; scaleY = lockScale.value }
+            .background(MaterialTheme.colorScheme.primary, CircleShape) else Modifier),
+            contentAlignment = Alignment.Center) {
+            Icon(glyph, description, modifier = Modifier.size(if (selected) 24.dp else GaControl.icon),
+                tint = if (selected) MaterialTheme.colorScheme.onPrimary else foreground)
             if (rotationBadgeBackground != null) {
                 Icon(
                     Icons.AutoMirrored.Rounded.RotateRight, null,
@@ -2558,6 +2619,7 @@ internal fun NowPlayingTopBar(
     onSpeedPressedChange: (Boolean) -> Unit = {},
     onLock: (() -> Unit)? = null,
     locked: Boolean = false,
+    lockAttention: Boolean = false,
     frameMode: FullscreenFrameMode? = null,
     onToggleFrameMode: (() -> Unit)? = null,
     onRotate: (() -> Unit)? = null,
@@ -2653,7 +2715,13 @@ internal fun NowPlayingTopBar(
                     inspectorId = "PLAYER_LOCK_BUTTON",
                     inspectorDescription = if (locked)
                         "Unlock Now Playing controls" else "Lock Now Playing controls",
-                    modifier = anchored,
+                    modifier = anchored.semantics {
+                        stateDescription = uiText(language,
+                            if (locked) "Controls locked" else "Controls unlocked",
+                            if (locked) "控制已鎖定" else "控制已解鎖")
+                    },
+                    selected = locked,
+                    attention = lockAttention,
                 )
             }
         }

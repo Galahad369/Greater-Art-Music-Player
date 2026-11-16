@@ -16,7 +16,7 @@ This file is the authoritative version policy for Greater Art. If any handoff no
 ## Machine-checkable state
 
 
-Current source: **1.22.37 (code 358)**
+Current source: **1.22.38 (code 359)**
 Allowed consumed transition: **1.21.38 (code 261) -> 1.21.40 (code 263)**
 
 Retain PR174's original declared transition for eeb06d9. Its initial1.21.40
@@ -517,3 +517,4 @@ Previous baseline: 1.13.26 (code 115).
 - 1.22.35 (code 356): finish the same normal-player icon coverage for queue search/locate/close, add-to-list, overflow, reorder/remove and Sleep Timer controls. Extend the rendered-color regression to queue actions. Preserve every callback, action target, selected/disabled state, full-quality playback, shared palette/sampling and foreground-video contrast. SOURCE_ONLY; all failed broader fixtures and original-public signing limits remain recorded.
 - 1.22.36 (code 357): make floating-mode cycling atomic, request the fullscreen Activity without an intermediate overlay relayout, and retain the hidden expanded host for direct surface return. Match Mini/widget transport to22dp Material Rounded vectors, bundling their license. Add focused native regressions and1,000-cycle connection/surface tests. Preserve quality, Fit/Crop, actions, touch targets, Stack, pause policy and existing checks. SOURCE_ONLY; exact optimized-device acceptance and original-public signing remain separate gates.
 - 1.22.37 (code 358): prevent a hidden retained overlay from keeping input focus or dimming fullscreen. Apply the visibility/input/dim policy at every native layout update, including rotation and sharing, and add focused regressions. Keep36source/artifacts as a superseded candidate, preserve playback quality and all existing functions/checks. SOURCE_ONLY; exact optimized-device acceptance and original-public signing remain separate gates.
+- 1.22.38 (code 359): make selected Lock visible with a 24dp padlock and local filled highlight, a brief haptic/notice and blocked-tap reminder. Preserve other actions, 48dp slots, toolbar/handle spacing, auto-hide, playback quality and existing functions. Add rendered-state/geometry and input-feedback tests. SOURCE_ONLY until exact optimized-device acceptance; preserve the existing maintenance signer and original-public signing limits.

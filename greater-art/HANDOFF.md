@@ -8,7 +8,17 @@ This file describes the **current repository state only**. Historical session no
 
 ## Current Android builds
 
-**Current 1.22.37/code 358 — hidden-window focus/dim correction, SOURCE_ONLY:**
+**Current 1.22.38/code 359 — clearer Lock state, SOURCE_ONLY:**
+[Scope, checks and resume](docs/PLAYER_LOCK_FEEDBACK_1.22.38.md). The owner approved
+the local filled selection, 24dp closed padlock, brief lock haptic/message and a
+blocked-tap reminder. Other icons, 48dp touch targets, toolbar/handle spacing,
+auto-hide and playback quality stay unchanged. Preflight and host checks pass:
+610 JVM tests, zero lint errors/54 warnings, debug and instrumentation assembly.
+The new device tests are compiled, not run. Optimized assembly is next; no
+exact-current-device acceptance is claimed.
+Do not touch the user's separate Stack experiment files or push/merge.
+
+**Retained 1.22.37/code 358 — hidden-window focus/dim correction, SOURCE_ONLY:**
 [Cause, regression and resume](docs/PLAYER_WINDOW_POLICY_1.22.37.md). The retained
 host must not keep focus or 14% dim while transparent in fullscreen. 37 applies the
 visibility/input/dim policy at every native layout update, including rotation and
