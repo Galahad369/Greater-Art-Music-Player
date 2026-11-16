@@ -6,6 +6,23 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class PlayerWindowPolicyTest {
+    @Test fun expandedFrameCoversFullscreenStartupWithoutTakingInput() {
+        assertEquals("Keep the outgoing frame until the destination renders",
+            1f, playerWindowVisualAlpha(visible = false, expanded = true,
+                fullscreenActivity = true, fullscreenFrameReady = false), 0f)
+        val flags = playerWindowInputFlags(0, expanded = true, visible = false)
+        assertTrue(flags and WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE != 0)
+        assertTrue(flags and WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE != 0)
+        assertEquals(0f, playerWindowDimAmount(true, false), 0f)
+    }
+
+    @Test fun firstFullscreenFrameRemovesCoverAndOtherHiddenModesStayHidden() {
+        assertEquals(0f, playerWindowVisualAlpha(false, true, true, true), 0f)
+        assertEquals(0f, playerWindowVisualAlpha(false, false, true, false), 0f)
+        assertEquals(0f, playerWindowVisualAlpha(false, true, false, false), 0f)
+        assertEquals(1f, playerWindowVisualAlpha(true, true, false, false), 0f)
+    }
+
     @Test fun hiddenExpandedWindowCannotDimOrTakeInputFromFullscreen() {
         val flags = WindowManager.LayoutParams.FLAG_DIM_BEHIND or WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON
         assertEquals(0f, playerWindowDimAmount(expanded = true, visible = false), 0f)

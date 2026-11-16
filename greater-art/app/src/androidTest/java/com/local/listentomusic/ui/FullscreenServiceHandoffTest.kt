@@ -53,6 +53,8 @@ class FullscreenServiceHandoffTest {
             context.startService(Intent(context, MiniWindowOverlayService::class.java).setAction(MiniWindowOverlayService.ACTION_EXPAND))
             await { MiniWindowOverlayService.modeSnapshot.value == PlayerWindowMode.EXPANDED && VideoSurfaceOwner.state.value.firstFrame }
             val playerIdentity = VideoSurfaceOwner.state.value.player
+            val sourceGeneration = VideoSurfaceOwner.state.value.generation
+            assertTrue("Inactive fullscreen must not retain stale readiness", !VideoSurfaceOwner.fullscreenFrameReady.value)
             var fullscreenRequested = false
             await {
                 if (!fullscreenRequested) fullscreenRequested = clickInWindows("Fullscreen")
@@ -61,6 +63,8 @@ class FullscreenServiceHandoffTest {
             fullscreen = monitor.waitForActivityWithTimeout(10_000L) as? FullscreenVideoActivity
             assertTrue("The fullscreen button did not open the real Activity", fullscreen != null)
             await { VideoSurfaceOwner.state.value.owner == "NOW_PLAYING" && VideoSurfaceOwner.state.value.firstFrame }
+            await { VideoSurfaceOwner.fullscreenFrameReady.value }
+            assertTrue("Entry must have a new destination generation", VideoSurfaceOwner.state.value.generation > sourceGeneration)
             var focused = false
             await {
                 instrumentation.runOnMainSync { focused = fullscreen!!.hasWindowFocus() }
@@ -77,6 +81,7 @@ class FullscreenServiceHandoffTest {
             await { !VideoSurfaceOwner.fullscreenActivityActive && VideoSurfaceOwner.state.value.owner == "MINI_WINDOW" && VideoSurfaceOwner.state.value.firstFrame }
             assertEquals(PlayerWindowMode.EXPANDED, MiniWindowOverlayService.modeSnapshot.value)
             assertEquals(playerIdentity, VideoSurfaceOwner.state.value.player)
+            assertTrue("Returning must clear fullscreen readiness", !VideoSurfaceOwner.fullscreenFrameReady.value)
         } finally {
             instrumentation.runOnMainSync { fullscreen?.finish(); vm?.controller?.value?.pause() }
             instrumentation.removeMonitor(monitor)

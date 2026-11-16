@@ -276,6 +276,14 @@ class MiniWindowOverlayService : Service(), LifecycleOwner, ViewModelStoreOwner,
         }
         connect()
         scope.launch {
+            com.local.listentomusic.ui.components.VideoSurfaceOwner.fullscreenFrameReady.collect { rendered ->
+                // Keep the outgoing pixels until the native destination has a frame.
+                // Commit the visual cut on a display frame, without delaying playback.
+                if (rendered) root?.postOnAnimation { updateVisibility() }
+                else updateVisibility()
+            }
+        }
+        scope.launch {
             com.local.listentomusic.data.AppPreferences(applicationContext).values.collect {
                 compact?.appearance(it)
                 selectedFloatingMode = it.floatingWindowMode
@@ -753,9 +761,13 @@ class MiniWindowOverlayService : Service(), LifecycleOwner, ViewModelStoreOwner,
             dockedVisible = PlayerWindowVisibility.dockedVisible.value,
             detachedVisible = PlayerWindowVisibility.detachedVisible.value,
         )
-        layout.alpha = if (visible) 1f else 0f
+        layout.alpha = playerWindowVisualAlpha(visible, expanded && ready && !sharing,
+            com.local.listentomusic.ui.components.VideoSurfaceOwner.fullscreenActivityActive,
+            com.local.listentomusic.ui.components.VideoSurfaceOwner.fullscreenFrameReady.value)
         layout.flags = playerWindowInputFlags(layout.flags, expanded, visible)
         layout.dimAmount = playerWindowDimAmount(expanded, visible)
+        view.importantForAccessibility = if (visible) View.IMPORTANT_FOR_ACCESSIBILITY_AUTO
+            else View.IMPORTANT_FOR_ACCESSIBILITY_NO_HIDE_DESCENDANTS
         runCatching { wm?.updateViewLayout(view, layout) }
     }
 

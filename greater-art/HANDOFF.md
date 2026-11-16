@@ -8,7 +8,20 @@ This file describes the **current repository state only**. Historical session no
 
 ## Current Android builds
 
-**Current 1.22.38/code 359 — clearer Lock state, SOURCE_ONLY:**
+**Current 1.22.39/code 360 — frame-ready fullscreen handoff, SOURCE_ONLY:**
+[Cause, acceptance and resume](docs/FULLSCREEN_FRAME_HANDOFF_1.22.39.md). Separate
+the outgoing window's pixels from its input ownership: keep the last picture until
+the new native fullscreen generation renders, then commit the visual cut on a
+display frame. No focus, touches, dim or accessibility actions on that cover.
+There is no fixed delay on successful entry. No destination frame within eight
+seconds returns to the original destination instead of exposing a blank/stuck UI.
+Preflight passes. The original policy check fails as intended, then passes after
+the repair. Full host checks pass: 616 JVM tests, lint zero errors/54 warnings,
+debug and instrumentation APK assembly. Optimized assembly is next. Native A55
+visual acceptance remains unverified; the new readiness assertion is compiled,
+not device-run. Keep existing frame-attribution limits explicit.
+
+**Retained 1.22.38/code 359 — clearer Lock state, SOURCE_ONLY:**
 [Scope, checks and resume](docs/PLAYER_LOCK_FEEDBACK_1.22.38.md). The owner approved
 the local filled selection, 24dp closed padlock, brief lock haptic/message and a
 blocked-tap reminder. Other icons, 48dp touch targets, toolbar/handle spacing,

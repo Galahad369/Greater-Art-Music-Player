@@ -22,3 +22,8 @@ internal fun playerWindowInputFlags(flags: Int, expanded: Boolean, visible: Bool
 
 internal fun playerWindowDimAmount(expanded: Boolean, visible: Boolean): Float =
     if (expanded && visible) .14f else 0f
+
+/** Visual coverage is independent of input ownership during a fullscreen transfer. */
+internal fun playerWindowVisualAlpha(visible: Boolean, expanded: Boolean,
+    fullscreenActivity: Boolean, fullscreenFrameReady: Boolean): Float =
+    if (visible || (expanded && fullscreenActivity && !fullscreenFrameReady)) 1f else 0f

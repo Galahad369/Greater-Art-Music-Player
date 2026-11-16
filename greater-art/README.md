@@ -4,7 +4,7 @@ Greater Art is a native Kotlin/Jetpack Compose player for local music and video.
 
 ## Current Android builds
 
-- Latest source: **1.22.38 / code 359 — SOURCE_ONLY**. [Clearer Lock state](docs/PLAYER_LOCK_FEEDBACK_1.22.38.md) adds a selected highlight, haptic and short reminder without moving other actions or the pull-handle gap. Full quality, sampling/cache, actions and touch targets are preserved. Host tests/assembly, exact-device acceptance and original-public signing remain separate; no new verified-release claim.
+- Latest source: **1.22.39 / code 360 — SOURCE_ONLY**. [Frame-ready fullscreen handoff](docs/FULLSCREEN_FRAME_HANDOFF_1.22.39.md) holds the outgoing picture until the native destination renders. Full quality, native HDR, sampling/cache, Lock, actions and touch targets are preserved. Host tests/assembly, exact-device acceptance and original-public signing remain separate; no new verified-release claim.
 - The retained [1.22.33 disabled PCM experiment](docs/STACK_PCM_KERNEL_1.22.33.md) and its incomplete backing/output/parity gates remain unchanged. No production engine replacement, public release, push or merge.
 - [Later acceptance checkpoint](docs/STACK_ALIGNMENT_ACCEPTANCE_1.22.33.md): current A55 picture Quick/Wide regressions pass. A different clean-reference sound experiment passes 18 known numeric controls but fails a stronger independent-region check and the six-original target. Earlier actual-mix gain failures remain. No production adoption, full backing or release acceptance.
 - Verified repository download: [GreaterArt-1.21.93.apk](releases/GreaterArt-1.21.93.apk), code 316. See the [release receipt](docs/RELEASE_1.21.93.md) for signing and test limits.

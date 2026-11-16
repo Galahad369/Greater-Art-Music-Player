@@ -55,6 +55,10 @@ internal fun shouldShowPlayerWindow(
     else -> detachedVisible
 }
 
+/** A source/stale frame cannot commit the destination's visual handoff. */
+internal fun fullscreenDestinationHasFrame(sourceGeneration: Long, lease: SurfaceLease): Boolean =
+    lease.owner == "NOW_PLAYING" && lease.generation > sourceGeneration && lease.firstFrame
+
 /** Platform-independent ownership state. Calls are serialized on main. */
 internal data class SurfaceLease(
     val owner: String = "NONE", val view: Int = 0, val generation: Long = 0,
