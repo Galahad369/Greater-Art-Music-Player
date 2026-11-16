@@ -8,7 +8,17 @@ This file describes the **current repository state only**. Historical session no
 
 ## Current Android builds
 
-**Current 1.22.41/code 362 — player icon colors, SOURCE_ONLY:**
+**Current 1.22.42/code 363 — on-screen native ripple acceptance, SOURCE_ONLY:**
+Keeps all four 41 production repairs unchanged. The A55 completed 6/8 diagnostics;
+the two native tests failed because an unattached software-drawn ripple was
+invisible, not because they observed a wrong accent. Replace that fixture with an
+attached AndroidView, capture actual pressed pixels and challenge the same check
+with the old mint color. Keep the failed 41 evidence. A preference-restoration
+assertion also failed; original bytes are retained for recovery before more tests.
+42 host checks pass: 620 JVM tests, zero lint errors/54 warnings, debug/test APKs.
+Exact optimized assembly and A55 acceptance remain pending. No push or merge.
+
+**Retained 1.22.41/code 362 — player icon colors, SOURCE_ONLY:**
 [Scope and acceptance](docs/PLAYER_ICON_COLORS_1.22.41.md). Repair local fullscreen
 transport contrast and disabled glyphs, native Ambient artwork accent parity,
 and theme-colored dock press ripples. Preserve button sizes/spacing, toolbar,

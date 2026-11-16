@@ -1,5 +1,14 @@
 # Player icon colors — 1.22.41 / code 362
 
+**Current test-only follow-up: 1.22.42 / code 363.** All production color fixes
+below remain byte-identical. The 41 optimized APK is retained, not overwritten.
+Its A55 diagnostic run passed six tests but could not draw the offscreen native
+ripple in two tests. The follow-up attaches the real compact view to a window,
+captures actual pressed pixels and requires the same check to reject an injected
+old mint ripple. It does not weaken the icon-tint or disabled-button assertions.
+The original 364-byte preferences are retained after a restoration assertion
+failed; restore and verify them before continuing device testing.
+
 ## Scope and cause
 
 The owner approved all four findings from the read-only 1.22.40 icon review.
