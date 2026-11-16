@@ -25,8 +25,8 @@ Preflight passes with the installed JDK 21 and API 37 SDK; over 30 GiB was free.
 `host-checks-03.log` passes in 2m 37s: 610 JVM tests, no failures/errors/skips,
 lint zero errors/54 warnings, debug APK and instrumentation APK assembly. Preserve
 `host-checks-01.log` (restricted Gradle-cache access) and `host-checks-02.log`
-(an invalid test import, removed without changing assertions). Optimized assembly
-is next. `self-review38.json` is a source-bound self-review, not independent review;
+(an invalid test import, removed without changing assertions). `self-review38.json`
+is a source-bound self-review, not independent review;
 658 unrelated files and the retained APK hashes match the saved baseline. The
 toolbar layout and actions after the Lock slot are byte-for-byte unchanged.
 
@@ -46,3 +46,32 @@ push, merge, replacement signer or cleanup is authorized by this task.
 Reference: [Material toggle icon buttons](https://github.com/material-components/material-components-android/blob/master/docs/components/IconButton.md)
 supports visibly different selected and unselected states. Reuse the existing
 Compose IconButton and theme contrast pair; do not add another UI dependency.
+
+## Exact optimized candidate — device acceptance still pending
+
+`optimized38-gate-01/build.json` records preflight and optimized assembly PASS
+(5m 35s) from executable commit `96ef7c18818f96daedd3b0eea7940eb8b6e74b03`.
+App-input SHA-256:
+`ee2cb6c2321036e0eb3e2d907d34274ade669d56363ed6c2e159665654f2ed3b`.
+The subsequent documentation commit does not rebuild or alter those inputs.
+
+Private APK: `App/output/lock-state-20261116/optimized38-maintenance/GreaterArt-1.22.38.apk`.
+Version 1.22.38/code 359; package `com.local.listentomusic`; 5,604,312 bytes;
+non-debug/non-test. SHA-256:
+`ed2f8c8986cb615eaa2a33d3250f644453903b89b75245571f92e040bb0f0f25`.
+Pinned, unchanged maintenance certificate:
+`0a7b9cebf928022c1930b64f2c47581c13def3007b0e97737bbb9ca3e53de6b7`.
+
+`optimized38-maintenance/artifact-verification.json` passes identity/manifest checks;
+16 KiB zip alignment and ZIP CRC pass. The bundled icon license is intact. The
+optimized DEX contains the new selection and notice markers, absent from retained
+37. Both unfinished PCM feature flags remain false. Full-repository user dirt is
+preserved; it is not a claim of a clean checkout or a signed provenance attestation.
+
+The original-public certificate check still FAILS; no key is replaced. The exact
+38 APK has not been installed or smoke-tested on the A55. Do not call it a verified
+release, claim measured visual acceptance or replace the verified public download.
+Resume with a healthy owned A55: inspect selected/unselected Lock in normal and
+fullscreen modes, verify blocked taps/drag/seek and unlock, run the two new tests
+and existing toolbar/lock regressions, then perform a normal-entry smoke on these
+exact optimized bytes. No push, merge, cleanup or publication occurred.

@@ -14,8 +14,15 @@ the local filled selection, 24dp closed padlock, brief lock haptic/message and a
 blocked-tap reminder. Other icons, 48dp touch targets, toolbar/handle spacing,
 auto-hide and playback quality stay unchanged. Preflight and host checks pass:
 610 JVM tests, zero lint errors/54 warnings, debug and instrumentation assembly.
-The new device tests are compiled, not run. Optimized assembly is next; no
-exact-current-device acceptance is claimed.
+The new device tests are compiled, not run. Optimized assembly passes in 5m 35s
+from `96ef7c1`; app-input SHA-256 is
+`ee2cb6c2321036e0eb3e2d907d34274ade669d56363ed6c2e159665654f2ed3b`.
+The private same-maintenance-key APK is
+`App/output/lock-state-20261116/optimized38-maintenance/GreaterArt-1.22.38.apk`,
+5,604,312 bytes, SHA-256
+`ed2f8c8986cb615eaa2a33d3250f644453903b89b75245571f92e040bb0f0f25`.
+Version/package/certificate, ZIP CRC and 16 KiB alignment pass. Exact-current A55
+smoke is NOT RUN; original-public identity still fails. No verified release claim.
 Do not touch the user's separate Stack experiment files or push/merge.
 
 **Retained 1.22.37/code 358 — hidden-window focus/dim correction, SOURCE_ONLY:**
