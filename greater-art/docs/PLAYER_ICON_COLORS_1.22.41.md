@@ -6,8 +6,10 @@ Its A55 diagnostic run passed six tests but could not draw the offscreen native
 ripple in two tests. The follow-up attaches the real compact view to a window,
 captures actual pressed pixels and requires the same check to reject an injected
 old mint ripple. It does not weaken the icon-tint or disabled-button assertions.
-The original 364-byte preferences are retained after a restoration assertion
-failed; restore and verify them before continuing device testing.
+The original 364-byte preferences were recovered/restored byte-for-byte after
+the initial adapter's restoration assertion failed. The A55's later `pkg=null`
+record was repaired with the same signer and retained data, never an uninstall.
+Sync guest writes before stopping the emulator. Keep all failed receipts.
 
 ## Scope and cause
 
@@ -45,6 +47,43 @@ the final check renders the pressed drawable instead of inspecting private state
 Optimized assembly, signer/exact-file checks and A55 acceptance remain separate.
 The existing private maintenance signer is preserved; the missing original public
 signer remains a separate release gate. No push, merge or publication is authorized.
+
+## Final executed acceptance — 1.22.42
+
+- 620 JVM tests pass. Lint: zero errors, 54 existing warnings. Debug/test assembly passes.
+- Nine A55 color tests PASS in 32.056s: normal toolbar/current-media/transport
+  colors and callbacks, native palette/ripple parity over two artworks in dark/light,
+  intensity/background changes, vector geometry, fullscreen disabled glyphs/clicks,
+  and existing adaptive-theme checks. The injected old mint ripple must fail the
+  same on-screen pixel check before the real accent passes.
+- Exact optimized `assembleRelease` passes in 3m 9s. Version/package, pinned
+  maintenance certificate, non-debug/non-test flags, ZIP CRC and 16 KiB alignment pass.
+- Exact installed optimized bytes pass normal-entry Library/Now Playing playback,
+  video frame advancement, pause/resume, fullscreen, actual landscape rotation and
+  return to Expanded. The adapter uses the normal side-tap reveal instead of waiting
+  for an auto-hidden Rotate button. Screenshots were visually inspected.
+- Original preferences, app ID/data inode and AVD profile are preserved. Temporary
+  app-op changes are restored; the guest filesystem is synced and the owned A55 stops.
+
+Exact APK: `App/output/icon-colors-20261116/optimized42-maintenance/GreaterArt-1.22.42.apk`.
+Size: 5,604,312 bytes. SHA-256:
+`f8fcea1f1a6b9b525b678a3d899d6eb3fa02849dbaa21a41ac3c47a056954d13`.
+Source commit: `d3fa3a40955e4cf023d96f3d33d10d5cc0df07ff`.
+App-input SHA-256: `78190301dc7096cf3d78d9a1ec0b8c0ee0298a1228153a4dbe0cc8e20a81453b`.
+Maintenance certificate: `0a7b9cebf928022c1930b64f2c47581c13def3007b0e97737bbb9ca3e53de6b7`.
+Evidence: `a55-42-03/instrumentation.txt`, `a55-42-04/report.json`, captures and
+`optimized42-maintenance/artifact-verification.json` under the task folder.
+This is a tested private candidate, not an original-public-signer release or
+physical-phone/HDR certification. The public signing gate still rejects the
+unavailable original identity. Existing verified releases remain unchanged.
+
+## Branch cleanup
+
+One local branch, main, and one worktree. The deleted merged toolbar remote-tracking
+ref was confirmed ancestral to main and pruned. Remote #242 remains open with a
+unique Gradle 9.9.1 update and a failed version guard; do not delete that work or
+mix an unreviewed toolchain change into this tested APK. The existing Windows Trust
+stash and the owner's separate Stack files are retained. Nothing was pushed/merged.
 
 ## Prevention
 

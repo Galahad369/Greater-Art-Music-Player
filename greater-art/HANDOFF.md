@@ -9,14 +9,25 @@ This file describes the **current repository state only**. Historical session no
 ## Current Android builds
 
 **Current 1.22.42/code 363 — on-screen native ripple acceptance, SOURCE_ONLY:**
-Keeps all four 41 production repairs unchanged. The A55 completed 6/8 diagnostics;
-the two native tests failed because an unattached software-drawn ripple was
-invisible, not because they observed a wrong accent. Replace that fixture with an
-attached AndroidView, capture actual pressed pixels and challenge the same check
-with the old mint color. Keep the failed 41 evidence. A preference-restoration
-assertion also failed; original bytes are retained for recovery before more tests.
-42 host checks pass: 620 JVM tests, zero lint errors/54 warnings, debug/test APKs.
-Exact optimized assembly and A55 acceptance remain pending. No push or merge.
+[Full cause, tests and artifact](docs/PLAYER_ICON_COLORS_1.22.41.md). Keeps the four
+41 production repairs unchanged. 620 JVM tests pass, lint zero errors/54 warnings,
+and debug/test APKs compile. All nine A55 rendered/native color tests PASS, including
+the same on-screen check rejecting the injected old mint ripple. Optimized assembly
+passes in 3m 9s from `d3fa3a40955e4cf023d96f3d33d10d5cc0df07ff`; app-input SHA-256
+`78190301dc7096cf3d78d9a1ec0b8c0ee0298a1228153a4dbe0cc8e20a81453b`.
+Exact private APK: `App/output/icon-colors-20261116/optimized42-maintenance/GreaterArt-1.22.42.apk`,
+5,604,312 bytes, SHA-256 `f8fcea1f1a6b9b525b678a3d899d6eb3fa02849dbaa21a41ac3c47a056954d13`.
+The unchanged maintenance signer, package/version, ZIP CRC and 16 KiB alignment pass.
+The exact installed APK passes normal Library/Now Playing video advancement,
+pause/resume, native fullscreen, explicit landscape rotation and return. Actual
+screenshots are inspected. Original preferences are recovered/restored byte-for-byte;
+app ID/data inode, app-op restoration and AVD profile are preserved. Sync the guest
+filesystem before stopping it. Evidence: `App/output/icon-colors-20261116/a55-42-03/`
+(nine tests) and `a55-42-04/` (exact optimized smoke). Keep earlier failures.
+Only local main and one worktree remain; the deleted merged toolbar tracking ref
+is pruned. Retain open #242's unique Gradle update and the existing Windows stash.
+Original-public signing remains blocked, so no public release/VERIFIED ledger claim.
+No push or merge; preserve the separate Stack files and prior APKs.
 
 **Retained 1.22.41/code 362 — player icon colors, SOURCE_ONLY:**
 [Scope and acceptance](docs/PLAYER_ICON_COLORS_1.22.41.md). Repair local fullscreen
