@@ -14,8 +14,19 @@ This file describes the **current repository state only**. Historical session no
 must not restore Expanded before the return action chooses Mini. Two additional
 same-check regressions fail against the original observer behavior, then pass.
 40 host checks pass: 618 JVM tests, lint zero errors/54 warnings, debug and
-instrumentation APK assembly. Optimized assembly is next; exact-A55 acceptance
-is unverified. Do not
+instrumentation APK assembly. Optimized assembly passes in 3m 47s from
+`acb1c6245e5b113aec4a8c94113ea9b609b8df5b`, app-input SHA-256
+`91d68327011c433e486a521489ac0809599fae3fbef71df01057b8647803028d`.
+The exact private maintenance-key APK is
+`App/output/fullscreen-ready-20261116/optimized40-maintenance/GreaterArt-1.22.40.apk`,
+5,604,312 bytes, SHA-256
+`cf47837986a3b2d0351c6112c042e9d719b2e72d1e36e82d45ba98f4761fb529`.
+Version/package/pinned-maintenance-certificate, ZIP CRC and 16 KiB alignment pass.
+Original-public identity still fails; exact-A55 acceptance is unverified. One owned
+3 GiB boot reached Android, but the UI bridge returned a null root before any APK
+install. The emulator was stopped; no wipe, GPU/profile edit or app install occurred,
+and the two profile hashes match. Do not label this as an app crash or a device pass.
+Do not
 promote the superseded 39 build or alter its consumed version identity.
 
 **Retained 1.22.39/code 360 — frame-ready fullscreen handoff, SOURCE_ONLY:**

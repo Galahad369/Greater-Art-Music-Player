@@ -32,8 +32,7 @@ not independent review: 655 unrelated files and the retained APK hashes match
 the baseline. Existing attach/reconcile, entry launch, return, orientation,
 Now Playing and quality code remain unchanged outside the focused repair.
 
-Optimized assembly is next. There is no attached A55; keep
-the owner's other apps running. Native visual acceptance and exact-APK smoke remain
+Native visual acceptance and exact-APK smoke remain
 separate from tests/assembly/signing. First-frame readiness uses the existing
 generation/timestamp attribution, not an independently measured compositor fence.
 The eight-second failure return starts when the fullscreen Activity resumes; it
@@ -45,3 +44,35 @@ one visible cut, no blank interval, original dimensions, same player and no inte
 Expanded on Home. Then run normal-entry smoke on the exact optimized APK bytes.
 Preserve all existing assertions, keys, source, APKs and the user's separate Stack
 work. No push, merge, public release or cleanup is part of this task.
+
+## Exact optimized candidate and device attempt
+
+`optimized40-gate-01/build.json`: preflight and optimized assembly PASS in 3m 47s
+from `acb1c6245e5b113aec4a8c94113ea9b609b8df5b`; app-input SHA-256
+`91d68327011c433e486a521489ac0809599fae3fbef71df01057b8647803028d`.
+The later documentation commit does not rebuild or change these executable inputs.
+
+APK: `App/output/fullscreen-ready-20261116/optimized40-maintenance/GreaterArt-1.22.40.apk`.
+Version 1.22.40/code 361, package `com.local.listentomusic`, 5,604,312 bytes,
+non-debug/non-test. SHA-256:
+`cf47837986a3b2d0351c6112c042e9d719b2e72d1e36e82d45ba98f4761fb529`.
+Unchanged maintenance certificate:
+`0a7b9cebf928022c1930b64f2c47581c13def3007b0e97737bbb9ca3e53de6b7`.
+Exact identity/manifest, ZIP CRC and 16 KiB alignment pass; the icon license remains
+bundled, and both unfinished PCM flags remain false. R8 mapping contains the
+true-only fullscreen-frame commit implementation. Original-public identity still
+FAILS; no key is replaced and no verified public download is changed.
+
+`a55-40-01/boot.json`, `boot.log` and `ui-health.txt` retain the actual device attempt.
+After compilation freed about 3 GiB RAM, one owned existing A55 was started with
+the previously permitted temporary 3072 MiB option and unchanged GPU configuration.
+Android booted in about 33 seconds, but UI Automator returned
+“ERROR: null root node returned by UiTestAutomationBridge.” No APK install or app
+test followed. The owned emulator received a graceful shutdown; no wipe or new AVD
+was used and both original profile hashes match. This is an unavailable UI-test
+root, not proof that Greater Art crashed or that the host could never recover.
+Do not blindly repeat cold boots. Keep the owner's other apps running.
+
+The candidate is **NOT A55-verified** and is not a verified release. Resume the
+normal-entry/rapid-return visual and exact-file smoke checks above on a healthy A55.
+All original source, user work, prior APKs, signing files and failed evidence remain.
