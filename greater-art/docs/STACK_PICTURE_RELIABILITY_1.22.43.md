@@ -45,8 +45,49 @@ signing/exact-file checks and normal-entry playback on those bytes separately.
 Preflight and 629 JVM tests pass. Lint has zero errors/54 existing warnings;
 debug and instrumentation APKs compile. Preserve the failed host JVM C2 compiler
 crash in `jdk-crash-13704.log`; the unchanged retry (`checks-all-04.log`) passes.
-Native and optimized results are pending. The original public signer remains
-unavailable; retain the existing verified public artifact.
+All 11 native decoder/review checks pass in 41.312 s. The real Riona comparison
+uses distinct `c2.android.avc.decoder` and `c2.goldfish.h264.decoder` implementations,
+with no local fallback: timestamps, edges and all normalized luma samples agree
+for 360 analysis frames. Cancellation releases the budget for the next read;
+missing references and audio-only input produce the expected typed failures.
+
+The unchanged original-six corpus passes five Quick scans at 31.282, 28.684,
+28.534, 28.197 and 28.308 s. Each returns companion offsets in microseconds
+`[null, 0, 0, 12500, 0]`. Wide passes at 224.854 s with
+`[null, 0, 0, 20500, 0]`. Both retain the original 2 ms/12–28 ms ranges and
+different-video rejection; no hidden read/decoder failures occur in corpus logs.
+These are fresh app processes on the same guest/filesystem cache, not five cold
+VMs or a controlled speedup comparison. Per-window failure recovery has pure
+regression coverage; the successful corpus does not claim every native failure
+was injected. Physical-phone performance and backing-music sync remain unverified.
+
+Optimized assembly passes in 4m 2s from commit
+`a5bf26e730015c940514ffc57a034dbbde3f05ce`; Android input SHA-256
+`a40272cfcfb29c3f90f3d396fb1db415aed0a7bd7a90ad637577dcb62c15447d`.
+The exact existing-maintenance-key APK is
+`App/output/picture-reliability-20261116/optimized43-maintenance/GreaterArt-1.22.43.apk`,
+5,620,696 bytes, SHA-256
+`f453f0bedf9ead91e891d363c8539f23af7395b0196184520e9046e74f867f77`.
+Actual package/version/signer, ZIP CRC, non-debug flags and 16 KiB alignment pass.
+The first private verifier invocation hit Windows' old Java 8 launcher timeout;
+`artifact-verification-jdk21.json` checks the unchanged signed bytes with the
+pinned JDK 21 first on PATH. No rebuild, re-sign or replacement key was used.
+
+`a55-43-01/` retains passed native/corpus results and an exact-smoke failure:
+rotation entered landscape, but an untimed toggle tap hid the already-visible
+toolbar and the script could not find Rotate. `a55-43-02/` retains the retry on
+the same APK: wait for the existing 2.5 s auto-hide, reveal normally, and retain
+the same Rotate-label, actual-orientation and return assertions. Normal Library
+entry, real video advancement, pause/resume, fullscreen/landscape and return all
+pass. Actual screenshots are inspected; the landscape capture can show chrome
+part-way through its normal fade. Original preferences restore byte-for-byte;
+app ID/data inode, app-op modes and AVD profile hashes are preserved. The guest
+filesystem is synced before shutdown. No root, GPU or permanent RAM change.
+
+This is a self-reviewed local maintenance candidate, not public-release approval.
+The original public signer remains unavailable and the original public identity
+gate fails as expected. Retain SOURCE_ONLY, prior verified artifacts and all
+failed evidence. No push, merge, public download replacement or sound claim.
 
 ## Prevention
 

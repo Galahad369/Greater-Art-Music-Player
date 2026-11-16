@@ -16,8 +16,25 @@ The unchanged new regression checks catch the original fixed-probe and repeated-
 window behavior. Keep matcher/sampler/confidence, Quick 45 s, original corpus
 assertions, sound alignment, 42 UI and playback quality unchanged. Preflight and
 629 JVM tests pass; lint has zero errors/54 warnings; debug/test APKs compile.
-Native/exact optimized acceptance is pending. Preserve the owner's separate
-Stack documents, original artifacts and signing identity. No push/merge/publication.
+All 11 A55 decoder/review tests pass, including identical 360-frame timestamp/luma
+evidence across local/platform decoders. The unchanged original-six corpus passes:
+five fresh-process Quick runs take 28.197–31.282 s and Wide takes 224.854 s. Same
+guest/filesystem cache; not five cold-VM benchmarks. Riona's different video still
+abstains; this is NOT sound/backing-music acceptance. Optimized assembly passes
+from `a5bf26e730015c940514ffc57a034dbbde3f05ce`; app-input SHA-256
+`a40272cfcfb29c3f90f3d396fb1db415aed0a7bd7a90ad637577dcb62c15447d`.
+Exact private APK: `App/output/picture-reliability-20261116/optimized43-maintenance/GreaterArt-1.22.43.apk`,
+5,620,696 bytes, SHA-256 `f453f0bedf9ead91e891d363c8539f23af7395b0196184520e9046e74f867f77`.
+The existing maintenance signer, actual version, ZIP CRC and 16 KiB alignment pass.
+Exact optimized Library/Now Playing video advancement, pause/resume, fullscreen,
+explicit landscape rotation and return pass; screenshots are inspected. Preserve
+`a55-43-01/`'s passed native/corpus evidence and failed smoke timing; `a55-43-02/`
+retries only the smoke on unchanged APK bytes with normal auto-hide/reveal timing.
+Preferences restore byte-for-byte; app ID/data inode, app ops and AVD profile stay
+unchanged. Public identity remains blocked by the unavailable original signer;
+keep SOURCE_ONLY and the verified public download intact. Put the pinned JDK 21
+first on PATH for the artifact verifier; the Windows Java 8 launcher timed out.
+Preserve the owner's separate Stack documents and original artifacts. No push/merge/publication.
 
 **Retained 1.22.42/code 363 — on-screen native ripple acceptance, SOURCE_ONLY:**
 [Full cause, tests and artifact](docs/PLAYER_ICON_COLORS_1.22.41.md). Keeps the four
