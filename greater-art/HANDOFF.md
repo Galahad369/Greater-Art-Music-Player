@@ -8,7 +8,21 @@ This file describes the **current repository state only**. Historical session no
 
 ## Current Android builds
 
-**Current 1.22.43/code 364 — focused picture-decoder reliability, SOURCE_ONLY:**
+**Current 1.22.44/code 365 — versioned Gradle 9.9.1 update, SOURCE_ONLY:**
+[Review and acceptance](docs/GRADLE_1.22.44.md). Carry PR242's exact wrapper changes
+in the same commit as the required version bump. The original bot commit fails
+the per-commit version guard, so a later bump cannot repair its ancestry. Preserve
+that head in a private archive ref; close/remove its branch only after the exact
+update lands via a passing replacement PR. No force push or protection bypass.
+Official wrapper/distribution checksums match. App source, media quality, tests,
+plugins/dependencies and signing are unchanged. Host/build/device results belong
+to this version's landing PR and exact receipts in its named evidence folder;
+do not infer runtime acceptance from wrapper authenticity or CI compilation alone.
+Preserve the exact tested 43 APK and its original evidence/path; it is NOT rebuilt
+or relabelled as44. Keep the owner's three local files and Windows Trust stash.
+No public release or original-public signing claim.
+
+**Retained 1.22.43/code 364 — focused picture-decoder reliability, SOURCE_ONLY:**
 [Scope, causes and gates](docs/STACK_PICTURE_RELIABILITY_1.22.43.md). Bounded adaptive
 IDR probes, per-window platform fallback retaining completed evidence, typed
 per-track/reference failures, explicit Wide timeout retry and decoder diagnostics.
