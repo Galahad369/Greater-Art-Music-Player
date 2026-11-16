@@ -1295,7 +1295,7 @@ private fun VideoPlayerStage(
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     OverlayIconButton(onClick = onPrevious, enabled = playback.hasPrevious) {
-                        Icon(Icons.Rounded.SkipPrevious, uiText(playback.appLanguage, "Previous", "上一首"), tint = GaVideoOverlay.foreground, modifier = Modifier.size(GaControl.prominentIcon))
+                        Icon(Icons.Rounded.SkipPrevious, uiText(playback.appLanguage, "Previous", "上一首"), modifier = Modifier.size(GaControl.prominentIcon))
                     }
                     // Keep the center play control available whenever controls are visible.
                     Box(
@@ -1311,7 +1311,7 @@ private fun VideoPlayerStage(
                         )
                     }
                     OverlayIconButton(onClick = onNext, enabled = playback.hasNext) {
-                        Icon(Icons.Rounded.SkipNext, uiText(playback.appLanguage, "Next", "下一首"), tint = GaVideoOverlay.foreground, modifier = Modifier.size(GaControl.prominentIcon))
+                        Icon(Icons.Rounded.SkipNext, uiText(playback.appLanguage, "Next", "下一首"), modifier = Modifier.size(GaControl.prominentIcon))
                     }
                 }
 
@@ -2880,7 +2880,7 @@ internal fun fullscreenRotationLabel(language: AppLanguage, landscape: Boolean):
 }
 
 @Composable
-private fun OverlayIconButton(
+internal fun OverlayIconButton(
     onClick: () -> Unit,
     enabled: Boolean = true,
     content: @Composable () -> Unit,
@@ -2888,6 +2888,10 @@ private fun OverlayIconButton(
     IconButton(
         onClick = onClick,
         enabled = enabled,
+        colors = IconButtonDefaults.iconButtonColors(
+            contentColor = GaVideoOverlay.foreground,
+            disabledContentColor = GaVideoOverlay.foreground.copy(alpha = 0.38f),
+        ),
         modifier = Modifier.size(GaControl.touchTarget).clip(CircleShape)
             .background(GaVideoOverlay.control),
         content = content,

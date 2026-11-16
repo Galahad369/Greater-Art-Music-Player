@@ -30,6 +30,7 @@ import com.local.listentomusic.ui.uiText
 import com.local.listentomusic.ui.theme.appColorScheme
 import com.local.listentomusic.ui.theme.artworkAccentScheme
 import com.local.listentomusic.ui.theme.artworkThemePalette
+import com.local.listentomusic.ui.theme.mediaThemeEnabled
 import com.local.listentomusic.ui.theme.VideoThemeColors
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -62,7 +63,10 @@ class CompactPlayerView(context: Context) : FrameLayout(context) {
     private var appearanceKey: List<Any>? = null
     private var appearanceSettings: UserPreferences? = null
     private var videoThemeJob: Job? = null
+    private var themeSubscription: Pair<Boolean, Boolean>? = null
     private var artworkPalette = emptyList<Int>()
+    private var sampledPalette = emptyList<Int>()
+    private var paletteMediaId: String? = null
     private var paletteBackground = Color.rgb(22, 30, 28)
     private var detached = false
     private var expanded = false
@@ -130,27 +134,30 @@ class CompactPlayerView(context: Context) : FrameLayout(context) {
         paletteBackground = background
         setBackgroundColor(if (detached) Color.TRANSPARENT else background)
         title.setTextColor(foreground)
-        listOf(previous, toggle, next).forEach { it.imageTintList = ColorStateList.valueOf(accent) }
+        listOf(previous, toggle, next).forEach {
+            it.imageTintList = ColorStateList.valueOf(accent)
+            (it.background as RippleDrawable).setColor(ColorStateList.valueOf(
+                Color.argb(0x33, Color.red(accent), Color.green(accent), Color.blue(accent))))
+        }
         progress.progressTintList = ColorStateList.valueOf(accent)
     }
     fun appearance(settings: UserPreferences) {
+        if (appearanceSettings?.let { it.backgroundMode != settings.backgroundMode ||
+                it.adaptiveReactToVideo != settings.adaptiveReactToVideo ||
+                it.adaptiveIntensity != settings.adaptiveIntensity } == true) sampledPalette = emptyList()
         appearanceSettings = settings
         updateVideoThemeSubscription()
         if (miniSize != settings.miniWindowSize) { miniSize = settings.miniWindowSize; refresh() }
         val night = resources.configuration.uiMode and android.content.res.Configuration.UI_MODE_NIGHT_MASK == android.content.res.Configuration.UI_MODE_NIGHT_YES
         val font = if (settings.silianRail) AppFont.SILIAN_RAIL else settings.appFont
         val key = listOf(settings.themeMode, settings.colorTheme, font, settings.appLanguage, night,
-            if (settings.colorTheme == ColorTheme.VIDEO) lastArtwork?.generationId ?: 0 else 0)
+            settings.backgroundMode, settings.adaptiveIntensity, settings.adaptiveReactToVideo,
+            lastArtwork?.generationId ?: 0, player?.currentMediaItem?.mediaId.orEmpty())
         if (appearanceKey == key) return
         appearanceKey = key
-        val dark = settings.themeMode == ThemeMode.DARK || (settings.themeMode == ThemeMode.SYSTEM && night)
-        val base = appColorScheme(settings.colorTheme, dark)
-        if (settings.colorTheme == ColorTheme.VIDEO && artworkPalette.isEmpty())
-            artworkPalette = artworkThemePalette(lastArtwork)
-        val palette = if (settings.colorTheme == ColorTheme.VIDEO)
-            artworkAccentScheme(base, VideoThemeColors.colors(player?.currentMediaItem?.mediaId.orEmpty())
-                .ifEmpty { artworkPalette }, 1f, settings.colorTheme) else base
-        colors(palette.surface.toArgb(), palette.onSurface.toArgb(), palette.secondary.toArgb())
+        artworkPalette = if (mediaThemeEnabled(settings, player?.currentMediaItem?.mediaId))
+            artworkThemePalette(lastArtwork) else emptyList()
+        updateVideoAccent()
         val lang = settings.appLanguage
         labels(uiText(lang, "Previous", "上一首"), uiText(lang, "Play", "播放"), uiText(lang, "Pause", "暫停"), uiText(lang, "Next", "下一首"))
         val resource = when (font) {
@@ -176,9 +183,8 @@ class CompactPlayerView(context: Context) : FrameLayout(context) {
     fun setArtwork(bitmap: Bitmap?) {
         if (lastArtwork === bitmap) return
         lastArtwork = bitmap
-        artworkPalette = if (appearanceSettings?.colorTheme == ColorTheme.VIDEO) artworkThemePalette(bitmap) else emptyList()
         if (bitmap == null) artwork.setImageResource(R.drawable.ic_launcher_foreground) else artwork.setImageBitmap(bitmap)
-        appearanceSettings?.takeIf { it.colorTheme == ColorTheme.VIDEO }?.let(::appearance)
+        appearanceSettings?.let(::appearance)
     }
     private fun updateDetachedLayout() {
         // Keep the whole detached window transparent even after theme updates.
@@ -233,6 +239,7 @@ class CompactPlayerView(context: Context) : FrameLayout(context) {
             removeCallbacks(ticker)
             if (value != null && !detached) post(ticker)
         }
+        appearanceSettings?.let(::appearance)
         refresh()
     }
     private fun refresh() {
@@ -276,6 +283,7 @@ class CompactPlayerView(context: Context) : FrameLayout(context) {
         videoThemeJob?.cancel()
         videoThemeJob = null
         VideoThemeColors.release(this)
+        themeSubscription = null
         removeCallbacks(ticker)
         player?.removeListener(listener)
         VideoSurfaceOwner.detach(video)
@@ -291,29 +299,59 @@ class CompactPlayerView(context: Context) : FrameLayout(context) {
         videoThemeJob?.cancel()
         videoThemeJob = null
         VideoThemeColors.release(this)
+        themeSubscription = null
         super.onDetachedFromWindow()
     }
 
     private fun updateVideoThemeSubscription() {
-        if (!isAttachedToWindow || appearanceSettings?.colorTheme != ColorTheme.VIDEO) {
-            videoThemeJob?.cancel()
-            videoThemeJob = null
-            VideoThemeColors.release(this)
-        } else if (videoThemeJob == null) {
+        val settings = appearanceSettings
+        val followsVideo = settings?.colorTheme == ColorTheme.VIDEO
+        val sampleAmbient = settings != null && settings.adaptiveReactToVideo &&
+            mediaThemeEnabled(settings, player?.currentMediaItem?.mediaId)
+        val subscription = if (isAttachedToWindow && (followsVideo || sampleAmbient))
+            followsVideo to sampleAmbient else null
+        if (themeSubscription == subscription) return
+        videoThemeJob?.cancel()
+        videoThemeJob = null
+        VideoThemeColors.release(this)
+        themeSubscription = subscription
+        if (subscription == null) return
+        if (followsVideo) {
             VideoThemeColors.retain(context, this)
             videoThemeJob = CoroutineScope(Dispatchers.Main.immediate).launch {
                 VideoThemeColors.state.collect { updateVideoAccent() }
+            }
+        } else {
+            // Reuse the existing sparse samples; never add another video reader.
+            videoThemeJob = CoroutineScope(Dispatchers.Main.immediate).launch {
+                VideoAmbientColors.state.collect { updateVideoAccent() }
             }
         }
     }
 
     private fun updateVideoAccent() {
-        val settings = appearanceSettings?.takeIf { it.colorTheme == ColorTheme.VIDEO } ?: return
+        val settings = appearanceSettings ?: return
+        val mediaId = player?.currentMediaItem?.mediaId
+        if (paletteMediaId != mediaId) {
+            paletteMediaId = mediaId
+            sampledPalette = emptyList()
+        }
         val night = resources.configuration.uiMode and android.content.res.Configuration.UI_MODE_NIGHT_MASK == android.content.res.Configuration.UI_MODE_NIGHT_YES
         val base = appColorScheme(settings.colorTheme, settings.themeMode == ThemeMode.DARK ||
             (settings.themeMode == ThemeMode.SYSTEM && night))
-        val palette = VideoThemeColors.colors(player?.currentMediaItem?.mediaId.orEmpty()).ifEmpty { artworkPalette }
-        val scheme = artworkAccentScheme(base, palette, 1f, settings.colorTheme)
+        val enabled = mediaThemeEnabled(settings, mediaId)
+        if (enabled && settings.colorTheme != ColorTheme.VIDEO && settings.adaptiveReactToVideo &&
+            artworkPalette.isEmpty() && sampledPalette.isEmpty()) {
+            val sample = VideoAmbientColors.state.value
+            if (sample.mediaId == mediaId && sample.pixels.isNotEmpty())
+                sampledPalette = analyzeAmbient(sample.pixels, emptyList())
+                    .takeIf { it.saturation >= .12f }?.colors.orEmpty()
+        }
+        val palette = if (!enabled) emptyList() else if (settings.colorTheme == ColorTheme.VIDEO)
+            VideoThemeColors.colors(mediaId.orEmpty()).ifEmpty { artworkPalette }
+        else artworkPalette.ifEmpty { sampledPalette }
+        val intensity = if (settings.colorTheme == ColorTheme.VIDEO) 1f else settings.adaptiveIntensity
+        val scheme = artworkAccentScheme(base, palette, intensity, settings.colorTheme)
         colors(scheme.surface.toArgb(), scheme.onSurface.toArgb(), scheme.secondary.toArgb())
     }
 

@@ -57,8 +57,10 @@ internal object GaAlpha {
 internal object GaVideoOverlay {
     val foreground = Color(0xFFF6F7F4)
     val scrim = Color.Black.copy(alpha = 0.44f)
-    val control = Color.Black.copy(alpha = 0.42f)
-    val playSurface = Color.White.copy(alpha = 0.18f)
+    // Local button plates only: keep icons readable even over a white frame.
+    // Do not darken, sample or otherwise alter the video underneath.
+    val control = Color.Black.copy(alpha = 0.56f)
+    val playSurface = control
     val inactiveTrack = Color.White.copy(alpha = 0.36f)
 }
 

@@ -8,7 +8,18 @@ This file describes the **current repository state only**. Historical session no
 
 ## Current Android builds
 
-**Current 1.22.40/code 361 — frame-ready return correction, SOURCE_ONLY:**
+**Current 1.22.41/code 362 — player icon colors, SOURCE_ONLY:**
+[Scope and acceptance](docs/PLAYER_ICON_COLORS_1.22.41.md). Repair local fullscreen
+transport contrast and disabled glyphs, native Ambient artwork accent parity,
+and theme-colored dock press ripples. Preserve button sizes/spacing, toolbar,
+Lock, video pixels/quality, surface ownership and existing functions. Preflight
+passes; the new unchanged contrast assertion catches the original failure.
+620 JVM tests pass; lint has zero errors/54 warnings; debug and instrumentation
+APKs compile. Optimized assembly and exact-A55 acceptance are pending. Keep the
+private maintenance identity separate from the unavailable original-public key.
+No push, merge, public release or changes to the separate Stack experiments.
+
+**Retained 1.22.40/code 361 — frame-ready return correction, SOURCE_ONLY:**
 [Cause and checks](docs/FULLSCREEN_FRAME_HANDOFF_1.22.40.md). Keep the complete
 39 visual handoff, but observe only true frame-ready events. A readiness reset
 must not restore Expanded before the return action chooses Mini. Two additional
