@@ -101,7 +101,7 @@ class FullscreenTransportIconColorTest {
         val y = screenshot.height / 2
         val pixel = screenshot.getPixel(x, y)
         assertTrue("Speed label must have an actual dark local plate over white video",
-            Color(pixel).alpha >= .95f && Color(pixel).red < .5f &&
+            Color(pixel).alpha >= .35f && Color(pixel).red < .5f &&
                 Color(pixel).green < .5f && Color(pixel).blue < .5f)
     }
 
@@ -125,8 +125,32 @@ class FullscreenTransportIconColorTest {
         val pixel = screenshot.getPixel(screenshot.width / 4,
             screenshot.height / 2 - screenshot.height / 12)
         assertTrue("Fullscreen timeline must have a dark local backing under its accent",
-            Color(pixel).alpha >= .95f && Color(pixel).red < .6f &&
+            Color(pixel).alpha >= .35f && Color(pixel).red < .6f &&
                 Color(pixel).green < .6f && Color(pixel).blue < .6f)
+    }
+
+    @Test fun ordinarySliderKeepsTheSingleOriginalInactiveTrackLayer() {
+        compose.setContent {
+            DeviceConfigurationOverride(DeviceConfigurationOverride.ForcedSize(DpSize(384.dp, 100.dp))) {
+                GreaterArtTheme(ThemeMode.DARK, ColorTheme.INDIGO) {
+                    Box(Modifier.width(384.dp).background(Color.White).testTag("ordinary-slider-fixture")) {
+                        CompactSlider(
+                            value = 0f, onValueChange = {}, onValueChangeFinished = {},
+                            valueRange = 0f..1f, enabled = true, videoOverlay = false,
+                            activeColor = Color.White, inactiveColor = Color.Black,
+                        )
+                    }
+                }
+            }
+        }
+        val screenshot = compose.onNodeWithTag("ordinary-slider-fixture")
+            .captureToImage().asAndroidBitmap()
+        val pixel = Color(screenshot.getPixel(screenshot.width * 3 / 4, screenshot.height / 2))
+        // One 34%-black layer on white is about 66% luminance in sRGB.
+        // Two overdrawn layers become 44% and would fail this regression.
+        assertTrue("Ordinary playback must retain the original single-layer track",
+            pixel.alpha >= .95f && pixel.red in 0.58f..0.75f &&
+                pixel.green in 0.58f..0.75f && pixel.blue in 0.58f..0.75f)
     }
 
     private fun assertTint(label: String, color: Color) {

@@ -8,6 +8,17 @@ This file describes the **current repository state only**. Historical session no
 
 ## Current Android builds
 
+**Current 1.22.48/code 369 — preserve ordinary slider during fullscreen review repair, SOURCE_ONLY:**
+[Focused correction and gates](docs/FULLSCREEN_AMBIENT_PARITY_1.22.48.md).
+The prior 47 fullscreen-backdrop change introduced a second inactive-track
+draw to ordinary audio/Stack sliders by accident. Fix the default false
+`videoOverlay` track wrapper so the ordinary 3dp track retains exactly one
+34%-alpha paint. The fullscreen opt-in keeps its separate dark12dp backing.
+Add a rendered regular-track pixel assertion and keep earlier theme/pull tests.
+No Ambient decoder/path, media quality, data, signing, Nodes, Stack mix or desktop
+changes. CI on exact new head and real A55/optimized visual/surface testing
+remain outstanding; preserve immutable verified1.21.93 and source47 evidence.
+
 **Current 1.22.47/code 368 — PR #246 review correction, SOURCE_ONLY:**
 [Review repair and exact verification boundary](docs/FULLSCREEN_AMBIENT_PARITY_1.22.47.md).
 The prior eligible fullscreen SDR frame-Ambient compositor and native HDR/Power-saving

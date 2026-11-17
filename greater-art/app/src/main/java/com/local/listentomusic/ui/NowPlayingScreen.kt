@@ -2289,7 +2289,7 @@ internal fun CompactSlider(
                 Modifier.fillMaxWidth().height(if (videoOverlay) 12.dp else 3.dp)
                     .clip(RoundedCornerShape(999.dp))
                     .background(if (videoOverlay) GaVideoOverlay.control
-                        else inactiveColor.copy(alpha = 0.34f)),
+                        else Color.Transparent),
                 contentAlignment = Alignment.CenterStart,
             ) {
                 Box(Modifier.fillMaxWidth().height(3.dp)
