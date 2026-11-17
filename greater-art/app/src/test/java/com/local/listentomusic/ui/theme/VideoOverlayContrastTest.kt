@@ -16,6 +16,19 @@ class VideoOverlayContrastTest {
         }
     }
 
+    @Test fun videoControlsUseThemeOnlyWhenReadableOnBrightAndDarkFrames() {
+        val themed = Color(0xFFCCFFDD)
+        assertEquals(themed, videoOverlayAccent(themed))
+        assertEquals(GaVideoOverlay.foreground, videoOverlayAccent(Color.Black))
+        for (accent in listOf(themed, Color.Black, Color(0xFF4477BB), Color.White)) {
+            val selected = videoOverlayAccent(accent)
+            for (frame in listOf(Color.Black, Color.White)) {
+                assertTrue("Theme-aware glyph must remain readable over $frame",
+                    accentContrast(selected, GaVideoOverlay.control.compositeOver(frame)) >= 3f)
+            }
+        }
+    }
+
     @Test fun existingToolbarAndVideoScrimStayUnchanged() {
         assertEquals(Color.Black.copy(alpha = .44f), GaVideoOverlay.scrim)
         assertEquals(Color(0xFFF6F7F4), GaVideoOverlay.foreground)

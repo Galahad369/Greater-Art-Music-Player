@@ -4,6 +4,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.unit.dp
 
 /**
@@ -63,6 +64,15 @@ internal object GaVideoOverlay {
     val playSurface = control
     val inactiveTrack = Color.White.copy(alpha = 0.36f)
 }
+
+/** Match the user's video color theme while protecting foreground readability.
+ * Both all-black and all-white frames can appear under the local 56%-black plates.
+ * Dark or insufficiently contrasting accents retain the existing neutral glyph.
+ */
+internal fun videoOverlayAccent(accent: Color): Color =
+    if (listOf(Color.Black, Color.White).all { video ->
+            accentContrast(accent, GaVideoOverlay.control.compositeOver(video)) >= 3f
+        }) accent else GaVideoOverlay.foreground
 
 /** Retained contrast fixture; runtime diagnostics use the active app palette below. */
 internal object GaInspectorPalette {

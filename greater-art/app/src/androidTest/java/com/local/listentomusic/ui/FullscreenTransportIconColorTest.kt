@@ -26,6 +26,8 @@ import com.local.listentomusic.data.ThemeMode
 import com.local.listentomusic.ui.theme.GaControl
 import com.local.listentomusic.ui.theme.GaVideoOverlay
 import com.local.listentomusic.ui.theme.GreaterArtTheme
+import com.local.listentomusic.ui.theme.appColorScheme
+import com.local.listentomusic.ui.theme.videoOverlayAccent
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Rule
@@ -37,6 +39,7 @@ class FullscreenTransportIconColorTest {
 
     @Test fun disabledGlyphsDimAndClicksStayDisabledWithoutChangingButtonBounds() {
         val enabled = mutableStateOf(false)
+        val expectedAccent = videoOverlayAccent(appColorScheme(ColorTheme.VOID, true).secondary)
         var calls = 0
         compose.setContent {
             GreaterArtTheme(ThemeMode.DARK, ColorTheme.VOID) {
@@ -55,14 +58,14 @@ class FullscreenTransportIconColorTest {
             button.assertIsNotEnabled()
             button.performClick()
             val plate = GaVideoOverlay.control.compositeOver(Color.White)
-            assertTint(label, GaVideoOverlay.foreground.copy(alpha = .38f).compositeOver(plate))
+            assertTint(label, expectedAccent.copy(alpha = .38f).compositeOver(plate))
             button.fetchSemanticsNode().boundsInRoot
         }
         compose.runOnIdle { assertEquals(0, calls); enabled.value = true }
         for ((index, label) in listOf("Previous", "Next").withIndex()) {
             val button = compose.onNode(hasClickAction() and hasContentDescription(label))
             assertEquals(initialBounds[index], button.fetchSemanticsNode().boundsInRoot)
-            assertTint(label, GaVideoOverlay.foreground)
+            assertTint(label, expectedAccent)
             button.performClick()
         }
         compose.runOnIdle { assertEquals(2, calls) }

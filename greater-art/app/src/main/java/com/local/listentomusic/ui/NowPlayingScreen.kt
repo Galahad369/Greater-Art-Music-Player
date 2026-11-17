@@ -388,6 +388,20 @@ internal fun sideDoubleTapSeeks(
 private val LocalFloatingMode = androidx.compose.runtime.compositionLocalOf { FloatingWindowMode.MINI_WINDOW }
 private val LocalFloatingModeChange = androidx.compose.runtime.compositionLocalOf<(FloatingWindowMode) -> Unit> { {} }
 
+/** Frame Ambient must leave the native Fit margins outside the actual video.
+ * Crop intentionally has no unused margins. Keep aspect/pixel geometry uniform.
+ */
+internal fun fullscreenAmbientVideoBounds(viewport: Rect?, displayAspect: Float): Rect? {
+    viewport ?: return null
+    val fitted = com.local.listentomusic.ui.components.aspectPreservingVideoSize(
+        viewport.width(), viewport.height(), displayAspect, crop = false,
+    ) ?: return viewport
+    val dx = (viewport.width() - fitted.width) / 2
+    val dy = (viewport.height() - fitted.height) / 2
+    return Rect(viewport.left + dx, viewport.top + dy,
+        viewport.left + dx + fitted.width, viewport.top + dy + fitted.height)
+}
+
 @Composable
 fun NowPlayingScreen(
     floatingWindowMode: FloatingWindowMode,
@@ -545,9 +559,16 @@ fun NowPlayingScreen(
             playback.currentPath,
             bottomBlend = NOW_PLAYING_AMBIENT_BOTTOM_BLEND,
         )
-        val wantsFrameAmbient = playback.isVideo && !immersiveVideo && playerAmbient?.adaptiveReactToVideo == true
+        val wantsFrameAmbient = playback.isVideo && playerAmbient?.adaptiveReactToVideo == true
         var frameAmbientFailed by remember(controller, playback.currentPath) { mutableStateOf(false) }
         var frameAmbientStage by remember { mutableStateOf<Rect?>(null) }
+        var frameAmbientZoom by remember(playback.currentPath) { mutableFloatStateOf(1f) }
+        var frameAmbientPan by remember(playback.currentPath) { mutableStateOf(Offset.Zero) }
+        // Immersive Fit uses the actual video frame as the light boundary, not
+        // the whole viewport (which would leave no space for reflected light).
+        val ambientStage = if (immersiveVideo && fullscreenFrameMode == FullscreenFrameMode.FIT) {
+            fullscreenAmbientVideoBounds(frameAmbientStage, playback.videoAspectRatio)
+        } else frameAmbientStage
         val frameAmbientLight = if (playerAmbient?.backgroundMode ==
             com.local.listentomusic.data.AppBackgroundMode.AMBIENT) .8f
             else com.local.listentomusic.ui.components.ambientUnit(playerAmbient?.adaptiveIntensity ?: 0f)
@@ -575,7 +596,9 @@ fun NowPlayingScreen(
         Box(Modifier.fillMaxSize().then(backdrop).then(if (controlsLocked) Modifier.clearAndSetSemantics { } else Modifier)) {
         if (useFrameAmbient && controller != null) {
             com.local.listentomusic.ambient.FrameAmbientPresentation(
-                controller, overlay = sharedVideoView != null, stage = frameAmbientStage,
+                controller, overlay = sharedVideoView != null, stage = ambientStage,
+                crop = immersiveVideo && fullscreenFrameMode == FullscreenFrameMode.CROP,
+                zoom = frameAmbientZoom, panX = frameAmbientPan.x, panY = frameAmbientPan.y,
                 intensity = frameAmbientLight *
                     (1f - com.local.listentomusic.ui.components.ambientUnit(playerAmbient?.backgroundDim ?: 0f)),
                 onFailure = { frameAmbientFailed = true },
@@ -616,6 +639,10 @@ fun NowPlayingScreen(
                     onSharedVideoReleased = onSharedVideoReleased,
                     frameAmbient = useFrameAmbient,
                     onFrameAmbientStage = { frameAmbientStage = it },
+                    onFrameAmbientTransform = { zoom, pan ->
+                        if (frameAmbientZoom != zoom) frameAmbientZoom = zoom
+                        if (frameAmbientPan != pan) frameAmbientPan = pan
+                    },
                     onFullscreenToolbarBoundsChanged = onToolbarBoundsChanged,
                     immersive = immersiveVideo,
                     onVideoBoundsChanged = onVideoBoundsChanged,
@@ -843,6 +870,7 @@ private fun VideoPlayerStage(
     onVideoBoundsChanged: (Rect) -> Unit,
     frameAmbient: Boolean,
     onFrameAmbientStage: (Rect) -> Unit,
+    onFrameAmbientTransform: (Float, Offset) -> Unit,
     onFullscreenToolbarBoundsChanged: (androidx.compose.ui.geometry.Rect) -> Unit,
     onHome: () -> Unit,
     onClose: () -> Unit,
@@ -922,6 +950,7 @@ private fun VideoPlayerStage(
     // Do not carry it into a differently sized portrait/landscape viewport.
     var videoScale by remember { mutableFloatStateOf(1f) }
     var videoOffset by remember { mutableStateOf(Offset.Zero) }
+    LaunchedEffect(videoScale, videoOffset) { onFrameAmbientTransform(videoScale, videoOffset) }
     LaunchedEffect(playback.currentPath, playback.videoAspectRatio) {
         videoScale = 1f
         videoOffset = Offset.Zero
@@ -1307,7 +1336,7 @@ private fun VideoPlayerStage(
                             if (playback.playRequested) Icons.Rounded.Pause else Icons.Rounded.PlayArrow,
                             uiText(playback.appLanguage, if (playback.playRequested) "Pause" else "Play", if (playback.playRequested) "暫停" else "播放"),
                             modifier = Modifier.size(GaControl.heroIcon),
-                            tint = GaVideoOverlay.foreground,
+                            tint = com.local.listentomusic.ui.theme.videoOverlayAccent(MaterialTheme.colorScheme.secondary),
                         )
                     }
                     OverlayIconButton(onClick = onNext, enabled = playback.hasNext) {
@@ -1331,7 +1360,7 @@ private fun VideoPlayerStage(
                         onValueChangeFinished = { onSeek(seekPosition.toLong()); seeking = false },
                         valueRange = 0f..maximum,
                         enabled = hasDuration,
-                        activeColor = GaVideoOverlay.foreground,
+                        activeColor = com.local.listentomusic.ui.theme.videoOverlayAccent(MaterialTheme.colorScheme.secondary),
                         inactiveColor = GaVideoOverlay.inactiveTrack,
                         onInteractionActiveChange = { timelineInteractionActive = it },
                     )
@@ -2284,7 +2313,7 @@ internal fun PlayerBottomControls(
         modifier = Modifier.fillMaxWidth().padding(top = 2.dp)
             .testTag("TRANSPORT_CONTROLS")
             .inspectElement("TRANSPORT_CONTROLS", "Repeat/random, previous, play/pause, next, and speed"),
-        horizontalArrangement = Arrangement.SpaceBetween,
+        horizontalArrangement = Arrangement.SpaceEvenly,
         verticalAlignment = Alignment.CenterVertically,
     ) {
         IconButton(
@@ -2356,7 +2385,8 @@ internal fun PlayerBottomControls(
             ) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     SpeedDialIcon(playback.speed, accent, Modifier.size(GaControl.icon))
-                    Text(speedLabel(playback.speed), style = MaterialTheme.typography.labelSmall, maxLines = 1)
+                    Text(speedLabel(playback.speed), color = accent,
+                        style = MaterialTheme.typography.labelSmall, maxLines = 1)
                 }
             }
             DropdownMenu(speedMenuOpen, { speedMenuOpen = false }) {
@@ -2572,6 +2602,7 @@ private fun PlayerToolbarAction(
     rotationBadgeBackground: Color? = null,
     selected: Boolean = false,
     attention: Boolean = false,
+    videoOverlay: Boolean = false,
 ) {
     val lockScale = if (selected) animateFloatAsState(
         if (attention) 1.12f else 1f, tween(120), label = "lock attention"
@@ -2581,10 +2612,13 @@ private fun PlayerToolbarAction(
         modifier = modifier.size(GaControl.touchTarget)
             .inspectElement(inspectorId, inspectorDescription),
     ) {
-        Box(Modifier.size(32.dp).then(if (selected) Modifier
-            .testTag("PLAYER_LOCK_SELECTED")
-            .graphicsLayer { scaleX = lockScale!!.value; scaleY = lockScale.value }
-            .background(MaterialTheme.colorScheme.primary, CircleShape) else Modifier),
+        Box(Modifier.size(32.dp).then(when {
+            selected -> Modifier.testTag("PLAYER_LOCK_SELECTED")
+                .graphicsLayer { scaleX = lockScale!!.value; scaleY = lockScale.value }
+                .background(MaterialTheme.colorScheme.primary, CircleShape)
+            videoOverlay -> Modifier.background(GaVideoOverlay.control, CircleShape)
+            else -> Modifier
+        }),
             contentAlignment = Alignment.Center) {
             Icon(glyph, description, modifier = Modifier.size(if (selected) 24.dp else GaControl.icon),
                 tint = if (selected) MaterialTheme.colorScheme.onPrimary else foreground)
@@ -2629,7 +2663,9 @@ internal fun NowPlayingTopBar(
 ) {
     // Ambient behind normal chrome is not foreground video. Do not let it
     // bypass the shared live accent. Actual video overlays keep their contrast palette.
-    val foregroundColor = if (overlay) GaVideoOverlay.foreground else MaterialTheme.colorScheme.secondary
+    val foregroundColor = if (overlay)
+        com.local.listentomusic.ui.theme.videoOverlayAccent(MaterialTheme.colorScheme.secondary)
+    else MaterialTheme.colorScheme.secondary
     val backgroundColor = if (overlay) GaVideoOverlay.scrim else Color.Transparent
     BoxWithConstraints(modifier.fillMaxWidth()
         .onGloballyPositioned { onTopBarBoundsChanged(it.boundsInWindow()) }) {
@@ -2691,6 +2727,7 @@ internal fun NowPlayingTopBar(
                 glyph = if (landscape) Icons.Rounded.StayCurrentPortrait else Icons.Rounded.StayCurrentLandscape,
                 description = fullscreenRotationLabel(language, landscape),
                 foreground = foregroundColor,
+                videoOverlay = overlay,
                 inspectorId = "ROTATE_SCREEN_BUTTON",
                 inspectorDescription = fullscreenRotationLabel(language, landscape),
                 rotationBadgeBackground = backgroundColor,
@@ -2712,6 +2749,7 @@ internal fun NowPlayingTopBar(
                         if (locked) "Unlock player controls" else "Lock player controls",
                         if (locked) "解鎖播放器控制" else "鎖定播放器控制"),
                     foreground = foregroundColor,
+                videoOverlay = overlay,
                     inspectorId = "PLAYER_LOCK_BUTTON",
                     inspectorDescription = if (locked)
                         "Unlock Now Playing controls" else "Lock Now Playing controls",
@@ -2734,6 +2772,7 @@ internal fun NowPlayingTopBar(
                     uiText(language, "Crop video to screen", "裁切影片填滿螢幕")
                     else uiText(language, "Fit whole video", "完整顯示影片"),
                 foreground = foregroundColor,
+                videoOverlay = overlay,
                 inspectorId = "FULLSCREEN_FRAME_MODE_BUTTON",
                 inspectorDescription = if (frameMode == FullscreenFrameMode.FIT)
                     "Crop video to screen (no stretch)" else "Fit whole video (no stretch)",
@@ -2746,6 +2785,7 @@ internal fun NowPlayingTopBar(
                 description = if (fullscreen) uiText(language, "Exit fullscreen", "離開全螢幕")
                     else uiText(language, "Fullscreen", "全螢幕"),
                 foreground = foregroundColor,
+                videoOverlay = overlay,
                 inspectorId = "FULLSCREEN_BUTTON",
                 inspectorDescription = if (fullscreen) "Exit fullscreen" else "Enter fullscreen",
             )
@@ -2756,6 +2796,7 @@ internal fun NowPlayingTopBar(
                 glyph = Icons.Rounded.Close,
                 description = uiText(language, "Close player", "關閉播放器"),
                 foreground = foregroundColor,
+                videoOverlay = overlay,
                 inspectorId = "CLOSE_PLAYER_BUTTON",
                 inspectorDescription = "Closes Now Playing without stopping playback",
             )
@@ -2766,6 +2807,7 @@ internal fun NowPlayingTopBar(
                 glyph = Icons.Rounded.PictureInPictureAlt,
                 description = uiText(language, "Open floating player", "開啟浮動播放器"),
                 foreground = foregroundColor,
+                videoOverlay = overlay,
                 inspectorId = "FLOATING_PLAYER_BUTTON",
                 inspectorDescription = "Opens the selected floating-player mode",
             )
@@ -2776,6 +2818,7 @@ internal fun NowPlayingTopBar(
                 glyph = Icons.Rounded.Home,
                 description = uiText(language, "Home", "首頁"),
                 foreground = foregroundColor,
+                videoOverlay = overlay,
                 inspectorId = "HOME_BUTTON",
                 inspectorDescription = "Returns to Library",
             )
@@ -2792,6 +2835,7 @@ internal fun NowPlayingTopBar(
                 },
                 description = floatingModeDescription(language, selectedMode),
                 foreground = foregroundColor,
+                videoOverlay = overlay,
                 inspectorId = "FLOATING_MODE_BUTTON",
                 inspectorDescription = "Switch floating playback mode: ${floatingModeLabel(language, selectedMode)}",
             )
@@ -2801,7 +2845,15 @@ internal fun NowPlayingTopBar(
             val right = listOf(lockSlot, fullscreenButton, closeButton)
             val touchPx = with(density) { GaControl.touchTarget.roundToPx() }
             val handlePx = with(density) { com.local.listentomusic.playback.EXPANDED_PULL_HANDLE_WIDTH_DP.dp.roundToPx() }
-            if (constraints.maxWidth < insetPx * 2 + touchPx * 2 + handlePx) {
+            // The pull mark is visual only and lives above the glyph row.
+            // At ordinary widths it must not cause an oversized center gap.
+            // Keep the existing handle-safe wrapping on genuinely narrow screens.
+            if (constraints.maxWidth >= insetPx * 2 + touchPx * 6) {
+                Row(chrome.height(52.dp), verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceEvenly) {
+                    (left + right).forEach { it() }
+                }
+            } else if (constraints.maxWidth < insetPx * 2 + touchPx * 2 + handlePx) {
                 Column(chrome, horizontalAlignment = Alignment.CenterHorizontally) {
                     Spacer(Modifier.fillMaxWidth().height(52.dp).testTag("EXPANDED_TOOLBAR_HANDLE_GAP"))
                     (left + right).forEach { it() }
@@ -2889,8 +2941,9 @@ internal fun OverlayIconButton(
         onClick = onClick,
         enabled = enabled,
         colors = IconButtonDefaults.iconButtonColors(
-            contentColor = GaVideoOverlay.foreground,
-            disabledContentColor = GaVideoOverlay.foreground.copy(alpha = 0.38f),
+            contentColor = com.local.listentomusic.ui.theme.videoOverlayAccent(MaterialTheme.colorScheme.secondary),
+            disabledContentColor = com.local.listentomusic.ui.theme
+                .videoOverlayAccent(MaterialTheme.colorScheme.secondary).copy(alpha = 0.38f),
         ),
         modifier = Modifier.size(GaControl.touchTarget).clip(CircleShape)
             .background(GaVideoOverlay.control),

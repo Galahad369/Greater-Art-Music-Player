@@ -26,6 +26,22 @@ public class FrameAmbientGeometryTest {
         }
         assertThrows(IllegalArgumentException.class, () -> FrameAmbientGeometry.place(0, 0, 0, 100, 1, true));
     }
+    @Test public void pinchPanMaintainsAspectAndMatchesNativeComposeCoordinates() {
+        float[] baseline = FrameAmbientGeometry.place(0, 100, 720, 420, 16f / 9f, false);
+        float[] same = FrameAmbientGeometry.transform(baseline, 1f, 0f, 0f);
+        for (int i = 0; i < 4; i++) assertEquals(baseline[i], same[i], .00001f);
+        float[] zoomed = FrameAmbientGeometry.transform(baseline, 2f, 20f, 30f);
+        assertEquals(baseline[2] * 2f, zoomed[2], .001f);
+        assertEquals(baseline[3] * 2f, zoomed[3], .001f);
+        assertEquals(baseline[2] / baseline[3], zoomed[2] / zoomed[3], .00001f);
+        assertEquals(baseline[0] - baseline[2] / 2f + 20f, zoomed[0], .001f);
+        assertEquals(baseline[1] - baseline[3] / 2f - 30f, zoomed[1], .001f);
+        assertThrows(IllegalArgumentException.class,
+            () -> FrameAmbientGeometry.transform(baseline, Float.NaN, 0f, 0f));
+        assertThrows(IllegalArgumentException.class,
+            () -> FrameAmbientGeometry.transform(baseline, 0f, 0f, 0f));
+    }
+
     @Test public void colorProbeCannotTreatBlackOrNeutralAsMatchingScenes() {
         assertEquals(-1, FrameAmbientGeometry.dominant(0));
         assertEquals(-1, FrameAmbientGeometry.dominant(0x777777));

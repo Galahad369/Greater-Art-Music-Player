@@ -16,7 +16,16 @@ This file is the authoritative version policy for Greater Art. If any handoff no
 ## Machine-checkable state
 
 
-Current source: **1.22.44 (code 365)**
+Current source: **1.22.46 (code 367)**
+Allowed consumed transition: **1.22.44 (code 365) -> 1.22.46 (code 367)**
+
+A published draft PR #245 commit a4e2be41 declared1.22.45/code366 in
+the machine-readable ledger but accidentally left the Gradle version at44/365.
+Its exact-head version guard failed. Keep the original branch/PR history as
+evidence, never merge that commit or reuse the declared 45 identity.
+This clean replacement starts at the last verified main source version44/365
+and consumes46/367 atomically.
+
 Allowed consumed transition: **1.21.38 (code 261) -> 1.21.40 (code 263)**
 
 Retain PR174's original declared transition for eeb06d9. Its initial1.21.40
@@ -524,3 +533,5 @@ Previous baseline: 1.13.26 (code 115).
 - 1.22.42 (code 363): replace the invalid offscreen native-ripple test fixture with an attached hardware-rendered compact player, screenshot actual pressed pixels and challenge the same check with the old mint color. Preserve the complete 41 app repair and its failed diagnostic evidence; no production geometry, playback or color behavior changes. SOURCE_ONLY pending exact optimized-device acceptance.
 - 1.22.43 (code 364): focused picture-decoder reliability pass: bounded metadata-aware IDR probes, per-window platform fallback preserving completed evidence, typed per-track/reference failures and timed-out Wide retry, decoder logging and direct decoder/policy tests. Keep the 45 s Quick limit, matcher/sampler/confidence, sound alignment and full-quality playback unchanged. SOURCE_ONLY pending exact optimized-device acceptance; preserve prior artifacts and separate Stack work.
 - 1.22.44 (code 365): carry PR242's exact Gradle 9.9.1 wrapper JAR and pinned distribution checksum into an atomic versioned commit, instead of retaining the bot's invalid no-bump commit or rewriting its history. Preserve all app source, dependencies, tests, signing identities and the exact A55-tested 1.22.43 APK. SOURCE_ONLY; optimized assembly, host tests and exact current-APK device acceptance are separate gates. See docs/GRADLE_1.22.44.md.
+- 1.22.45 (code 366): consumed by draft PR #245 commit a4e2be41, whose executable Kotlin/Java changes and ledger were published without an atomic Gradle version bump; strict version guard failed. This commit is preserved but is not mergeable. No APK verified.
+- 1.22.46 (code 367): clean version-compliant replacement of fullscreen SDR Ambient and Now Playing color/spacing improvements, with Fit/Crop geometry, uniform pinch/pan, and native HDR/Power-saving fallback. This branch contains the required versionName/code bump in the same executable commit. Regression tests added; SOURCE_ONLY pending CI, A55 visual acceptance, exact optimized candidate and original signing. See docs/FULLSCREEN_AMBIENT_PARITY_1.22.46.md.
