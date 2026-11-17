@@ -1363,14 +1363,20 @@ private fun VideoPlayerStage(
                         activeColor = com.local.listentomusic.ui.theme.videoOverlayAccent(MaterialTheme.colorScheme.secondary),
                         inactiveColor = GaVideoOverlay.inactiveTrack,
                         onInteractionActiveChange = { timelineInteractionActive = it },
+                        videoOverlay = true,
                     )
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                        val timestampPlate = Modifier.clip(RoundedCornerShape(GaRadius.compact))
+                            .background(GaVideoOverlay.control)
+                            .padding(horizontal = 6.dp, vertical = 2.dp)
                         Text(
                             formatPlaybackTime(if (seeking) position.toLong() else playback.positionMs),
+                            modifier = timestampPlate,
                             color = GaVideoOverlay.foreground,
                             style = MaterialTheme.typography.labelMedium,
                         )
-                        Text(formatDuration(playback.durationMs), color = GaVideoOverlay.foreground, style = MaterialTheme.typography.labelMedium)
+                        Text(formatDuration(playback.durationMs), modifier = timestampPlate,
+                            color = GaVideoOverlay.foreground, style = MaterialTheme.typography.labelMedium)
                     }
                 }
             }
@@ -2236,6 +2242,7 @@ internal fun CompactSlider(
     inactiveColor: Color,
     modifier: Modifier = Modifier,
     onInteractionActiveChange: (Boolean) -> Unit = {},
+    videoOverlay: Boolean = false,
 ) {
     val range = valueRange.endInclusive - valueRange.start
     val interactions = remember { MutableInteractionSource() }
@@ -2264,23 +2271,36 @@ internal fun CompactSlider(
         modifier = modifier.fillMaxWidth().height(48.dp).inspectElement("PLAYBACK_TIMELINE", "Drag to seek playback"),
         thumb = { _ ->
             Box(
-                Modifier.size(18.dp)
-                    .graphicsLayer { scaleX = thumbScale.value; scaleY = thumbScale.value }
-                    .clip(CircleShape)
-                    .background(activeColor)
-                    .border(1.dp, MaterialTheme.colorScheme.surface.copy(alpha = 0.55f), CircleShape),
-            )
+                Modifier.size(if (videoOverlay) 24.dp else 18.dp)
+                    .then(if (videoOverlay) Modifier.background(GaVideoOverlay.control, CircleShape)
+                        else Modifier),
+                contentAlignment = Alignment.Center,
+            ) {
+                Box(
+                    Modifier.size(18.dp)
+                        .graphicsLayer { scaleX = thumbScale.value; scaleY = thumbScale.value }
+                        .clip(CircleShape).background(activeColor)
+                        .border(1.dp, MaterialTheme.colorScheme.surface.copy(alpha = 0.55f), CircleShape),
+                )
+            }
         },
         track = { _ ->
             Box(
-                Modifier.fillMaxWidth().height(3.dp).clip(RoundedCornerShape(999.dp))
-                    .background(inactiveColor.copy(alpha = 0.34f))
+                Modifier.fillMaxWidth().height(if (videoOverlay) 12.dp else 3.dp)
+                    .clip(RoundedCornerShape(999.dp))
+                    .background(if (videoOverlay) GaVideoOverlay.control
+                        else inactiveColor.copy(alpha = 0.34f)),
+                contentAlignment = Alignment.CenterStart,
             ) {
-                Box(
-                    Modifier.fillMaxWidth(animatedFraction).fillMaxHeight()
-                        .clip(RoundedCornerShape(999.dp))
-                        .background(activeColor),
-                )
+                Box(Modifier.fillMaxWidth().height(3.dp)
+                    .clip(RoundedCornerShape(999.dp))
+                    .background(inactiveColor.copy(alpha = 0.34f))) {
+                    Box(
+                        Modifier.fillMaxWidth(animatedFraction).fillMaxHeight()
+                            .clip(RoundedCornerShape(999.dp))
+                            .background(activeColor),
+                    )
+                }
             }
         },
     )
@@ -2709,8 +2729,16 @@ internal fun NowPlayingTopBar(
                         modifier = Modifier.testTag("FULLSCREEN_SPEED_BUTTON")
                             .inspectElement("FULLSCREEN_SPEED_BUTTON", speedLabel(speed)),
                     ) {
-                        Text(speedLabel(speed), color = foregroundColor,
-                            style = MaterialTheme.typography.labelLarge, maxLines = 1)
+                        // The selected tint is checked against this actual plate,
+                        // not just the weaker fullscreen toolbar scrim.
+                        Box(
+                            Modifier.size(width = 44.dp, height = 30.dp)
+                                .clip(CircleShape).background(GaVideoOverlay.control),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            Text(speedLabel(speed), color = foregroundColor,
+                                style = MaterialTheme.typography.labelLarge, maxLines = 1)
+                        }
                     }
                     DropdownMenu(menuOpen, { menuOpen = false }) {
                         playbackSpeeds.forEach { choice ->
@@ -2845,15 +2873,11 @@ internal fun NowPlayingTopBar(
             val right = listOf(lockSlot, fullscreenButton, closeButton)
             val touchPx = with(density) { GaControl.touchTarget.roundToPx() }
             val handlePx = with(density) { com.local.listentomusic.playback.EXPANDED_PULL_HANDLE_WIDTH_DP.dp.roundToPx() }
-            // The pull mark is visual only and lives above the glyph row.
-            // At ordinary widths it must not cause an oversized center gap.
-            // Keep the existing handle-safe wrapping on genuinely narrow screens.
-            if (constraints.maxWidth >= insetPx * 2 + touchPx * 6) {
-                Row(chrome.height(52.dp), verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceEvenly) {
-                    (left + right).forEach { it() }
-                }
-            } else if (constraints.maxWidth < insetPx * 2 + touchPx * 2 + handlePx) {
+            // The actual drag gesture occupies the centered 72dp lane through
+            // the first 52dp of this toolbar. Keep all 48dp actions outside it.
+            // Distribute each three-action side symmetrically; six perfectly
+            // uniform centers would overlap the pull gesture on phone widths.
+            if (constraints.maxWidth < insetPx * 2 + touchPx * 2 + handlePx) {
                 Column(chrome, horizontalAlignment = Alignment.CenterHorizontally) {
                     Spacer(Modifier.fillMaxWidth().height(52.dp).testTag("EXPANDED_TOOLBAR_HANDLE_GAP"))
                     (left + right).forEach { it() }

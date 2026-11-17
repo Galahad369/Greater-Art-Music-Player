@@ -2,6 +2,8 @@ package com.local.listentomusic.ui
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.SkipNext
@@ -10,6 +12,11 @@ import androidx.compose.material3.Icon
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.DeviceConfigurationOverride
+import androidx.compose.ui.test.ForcedSize
+import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.graphics.asAndroidBitmap
 import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.graphics.toArgb
@@ -22,6 +29,7 @@ import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.unit.dp
 import com.local.listentomusic.data.ColorTheme
+import com.local.listentomusic.data.AppLanguage
 import com.local.listentomusic.data.ThemeMode
 import com.local.listentomusic.ui.theme.GaControl
 import com.local.listentomusic.ui.theme.GaVideoOverlay
@@ -69,6 +77,56 @@ class FullscreenTransportIconColorTest {
             button.performClick()
         }
         compose.runOnIdle { assertEquals(2, calls) }
+    }
+
+    @Test fun themedFullscreenSpeedGetsTheSameDarkPlateAsToolbarGlyphs() {
+        compose.setContent {
+            DeviceConfigurationOverride(DeviceConfigurationOverride.ForcedSize(DpSize(384.dp, 180.dp))) {
+                GreaterArtTheme(ThemeMode.DARK, ColorTheme.INDIGO) {
+                    Box(Modifier.width(384.dp).background(Color.White)) {
+                        NowPlayingTopBar(
+                            language = AppLanguage.ENGLISH,
+                            onPictureInPicture = {}, onHome = {}, onFullscreen = {},
+                            onClose = {}, onLock = {}, onSpeed = {}, fullscreen = true,
+                            overlay = true,
+                        )
+                    }
+                }
+            }
+        }
+        val screenshot = compose.onNodeWithTag("FULLSCREEN_SPEED_BUTTON", useUnmergedTree = true)
+            .captureToImage().asAndroidBitmap()
+        // Sample the empty left edge of the 44x30dp badge, not antialiased text.
+        val x = screenshot.width / 8
+        val y = screenshot.height / 2
+        val pixel = screenshot.getPixel(x, y)
+        assertTrue("Speed label must have an actual dark local plate over white video",
+            Color(pixel).alpha >= .95f && Color(pixel).red < .5f &&
+                Color(pixel).green < .5f && Color(pixel).blue < .5f)
+    }
+
+    @Test fun themedFullscreenTimelineHasDarkTrackAndThumbBacking() {
+        compose.setContent {
+            DeviceConfigurationOverride(DeviceConfigurationOverride.ForcedSize(DpSize(384.dp, 100.dp))) {
+                GreaterArtTheme(ThemeMode.DARK, ColorTheme.INDIGO) {
+                    Box(Modifier.width(384.dp).background(Color.White)) {
+                        CompactSlider(
+                            value = 0.5f, onValueChange = {}, onValueChangeFinished = {},
+                            valueRange = 0f..1f, enabled = true, videoOverlay = true,
+                            activeColor = videoOverlayAccent(appColorScheme(ColorTheme.INDIGO, true).secondary),
+                            inactiveColor = GaVideoOverlay.inactiveTrack,
+                        )
+                    }
+                }
+            }
+        }
+        val screenshot = compose.onNodeWithTag("PLAYBACK_TIMELINE", useUnmergedTree = true)
+            .captureToImage().asAndroidBitmap()
+        val pixel = screenshot.getPixel(screenshot.width / 4,
+            screenshot.height / 2 - screenshot.height / 12)
+        assertTrue("Fullscreen timeline must have a dark local backing under its accent",
+            Color(pixel).alpha >= .95f && Color(pixel).red < .6f &&
+                Color(pixel).green < .6f && Color(pixel).blue < .6f)
     }
 
     private fun assertTint(label: String, color: Color) {

@@ -16,7 +16,7 @@ This file is the authoritative version policy for Greater Art. If any handoff no
 ## Machine-checkable state
 
 
-Current source: **1.22.46 (code 367)**
+Current source: **1.22.47 (code 368)**
 Allowed consumed transition: **1.22.44 (code 365) -> 1.22.46 (code 367)**
 
 A published draft PR #245 commit a4e2be41 declared1.22.45/code366 in
@@ -535,3 +535,4 @@ Previous baseline: 1.13.26 (code 115).
 - 1.22.44 (code 365): carry PR242's exact Gradle 9.9.1 wrapper JAR and pinned distribution checksum into an atomic versioned commit, instead of retaining the bot's invalid no-bump commit or rewriting its history. Preserve all app source, dependencies, tests, signing identities and the exact A55-tested 1.22.43 APK. SOURCE_ONLY; optimized assembly, host tests and exact current-APK device acceptance are separate gates. See docs/GRADLE_1.22.44.md.
 - 1.22.45 (code 366): consumed by draft PR #245 commit a4e2be41, whose executable Kotlin/Java changes and ledger were published without an atomic Gradle version bump; strict version guard failed. This commit is preserved but is not mergeable. No APK verified.
 - 1.22.46 (code 367): clean version-compliant replacement of fullscreen SDR Ambient and Now Playing color/spacing improvements, with Fit/Crop geometry, uniform pinch/pan, and native HDR/Power-saving fallback. This branch contains the required versionName/code bump in the same executable commit. Regression tests added; SOURCE_ONLY pending CI, A55 visual acceptance, exact optimized candidate and original signing. See docs/FULLSCREEN_AMBIENT_PARITY_1.22.46.md.
+- 1.22.47 (code 368): PR #246 review repair: use matching local dark plates for theme-colored fullscreen speed label and timeline track/thumb, with timestamp readability independent of the moving frame. Restore 72dp central pull gesture clearance and symmetric three-button groups instead of overlapping all six controls. Add real Compose touch/pull and rendered backing regressions while retaining the prior SDR Ambient renderer, native HDR/Power-saving fallback, uniform Fit/Crop/pinch geometry, video quality and same-decoder surface. SOURCE_ONLY, no original-signer or device verified release claim. See docs/FULLSCREEN_AMBIENT_PARITY_1.22.47.md.

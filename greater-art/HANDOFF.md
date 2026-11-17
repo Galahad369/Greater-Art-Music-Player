@@ -8,6 +8,19 @@ This file describes the **current repository state only**. Historical session no
 
 ## Current Android builds
 
+**Current 1.22.47/code 368 — PR #246 review correction, SOURCE_ONLY:**
+[Review repair and exact verification boundary](docs/FULLSCREEN_AMBIENT_PARITY_1.22.47.md).
+The prior eligible fullscreen SDR frame-Ambient compositor and native HDR/Power-saving
+fallback are preserved. Contrasting themed fullscreen speed/timeline glyphs now have
+real local dark backing (including timestamps), rather than applying a plate-based
+color rule to unbacked text. The central 72dp pull gesture lane is protected; its
+three actions on each side are symmetrically spaced without overlapping the lane.
+Instrumented rendered pixels, actual button-center touch, pull and gap assertions,
+plus palette/geometry unit regressions are included. Final PR-head CI and
+exact A55/optimized visual acceptance are separate and **not yet completed**.
+Preserve original signing, immutable verified1.21.93, video quality, Stack, Nodes,
+and all 46 historical evidence.
+
 **Current 1.22.46/code 367 — fullscreen Ambient + Now Playing control parity, SOURCE_ONLY:**
 [Scope and verification boundary](docs/FULLSCREEN_AMBIENT_PARITY_1.22.46.md).
 Reuses the existing one-decoder, same-frame SDR Ambient compositor in eligible fullscreen presentations, including actual Fit video bounds, Crop and interactive zoom/pan. Unsupported/HDR/power-saving footage retains the native SurfaceView and periodic sample fallback; no general HDR or zero-latency parity claim.
