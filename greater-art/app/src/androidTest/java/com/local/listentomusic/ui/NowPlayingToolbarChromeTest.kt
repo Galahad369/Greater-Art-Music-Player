@@ -45,7 +45,6 @@ class NowPlayingToolbarChromeTest {
         showToolbar(overlay = false)
         val before = compose.onAllNodes(hasClickAction()).fetchSemanticsNodes()
             .map { it.boundsInRoot }.sortedBy { it.left }
-        val gap = compose.onNodeWithTag("EXPANDED_TOOLBAR_HANDLE_GAP").fetchSemanticsNode().boundsInRoot
         val normal = compose.onNodeWithTag("toolbar-content").captureToImage().asAndroidBitmap()
         compose.runOnIdle { locked.value = true }
         compose.onNodeWithTag("PLAYER_LOCK_SELECTED", useUnmergedTree = true)
@@ -55,7 +54,6 @@ class NowPlayingToolbarChromeTest {
         val after = compose.onAllNodes(hasClickAction()).fetchSemanticsNodes()
             .map { it.boundsInRoot }.sortedBy { it.left }
         assertEquals("No action may move when Lock changes state", before, after)
-        assertEquals(gap, compose.onNodeWithTag("EXPANDED_TOOLBAR_HANDLE_GAP").fetchSemanticsNode().boundsInRoot)
         val selected = compose.onNodeWithTag("toolbar-content").captureToImage().asAndroidBitmap()
         try {
             val bounds = compose.onNodeWithContentDescription("Unlock player controls").fetchSemanticsNode().boundsInRoot
@@ -73,16 +71,13 @@ class NowPlayingToolbarChromeTest {
         val buttons = compose.onAllNodes(hasClickAction()).fetchSemanticsNodes()
             .sortedBy { it.boundsInRoot.left }
         assertEquals("Keep all six top actions", 6, buttons.size)
-        val gap = compose.onNodeWithTag("EXPANDED_TOOLBAR_HANDLE_GAP").fetchSemanticsNode().boundsInRoot
-        assertTrue("Reserve at least 72dp for the handle", gap.width >= 72f * (buttons.first().boundsInRoot.width / 48f) - 1f)
-        for (button in buttons) assertTrue("No action may occupy the handle gap",
-            button.boundsInRoot.right <= gap.left + 1 || button.boundsInRoot.left >= gap.right - 1)
-        for (group in buttons.chunked(3)) {
-            val intervals = group.zipWithNext { left, right ->
-                right.boundsInRoot.center.x - left.boundsInRoot.center.x
-            }
-            assertTrue("Distribute each side evenly: $intervals", intervals.max() - intervals.min() <= 1.01f)
+        // The transparent handle is above the action glyphs, not a central
+        // spacer that makes the six normal Now Playing actions look uneven.
+        val intervals = buttons.zipWithNext { left, right ->
+            right.boundsInRoot.center.x - left.boundsInRoot.center.x
         }
+        assertTrue("Six top actions should be evenly distributed: $intervals",
+            intervals.max() - intervals.min() <= 1.01f)
         checkToolbarPixels { bitmap ->
             val centerX = bitmap.width / 2
             assertEquals("Expanded toolbar must show the shared background", backdrop,

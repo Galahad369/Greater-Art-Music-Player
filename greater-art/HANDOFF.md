@@ -8,6 +8,12 @@ This file describes the **current repository state only**. Historical session no
 
 ## Current Android builds
 
+**Current 1.22.45/code 366 — fullscreen Ambient + Now Playing control parity, SOURCE_ONLY:**
+[Scope and verification boundary](docs/FULLSCREEN_AMBIENT_PARITY_1.22.45.md).
+Reuses the existing one-decoder, same-frame SDR Ambient compositor in eligible fullscreen presentations, including actual Fit video bounds, Crop and interactive zoom/pan. Unsupported/HDR/power-saving footage retains the native SurfaceView and periodic sample fallback; no general HDR or zero-latency parity claim.
+Refresh full artwork on cache miss as Expanded already does. Video controls choose the selected theme color only when it passes both light/dark frame contrast probes, otherwise keep the existing fixed high-contrast glyph. Give controls an existing black local plate; align normal-player bottom transport consistently and tint its speed caption. No Nodes, Stack sync, offline/storage, release keys or verified APK changes. **This source proposal is not yet built or visually verified**; test exact PR head via CI, optimized assembly and A55 actual fullscreen/portrait/SRD/HDR/battery-saving/geometry gestures before accepting it. Preserve verified1.21.93 and 1.22.44 source history.
+
+
 **Current 1.22.44/code 365 — versioned Gradle 9.9.1 update, SOURCE_ONLY:**
 [Review and acceptance](docs/GRADLE_1.22.44.md). Carry PR242's exact wrapper changes
 in the same commit as the required version bump. The original bot commit fails

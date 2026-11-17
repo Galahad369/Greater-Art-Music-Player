@@ -100,6 +100,11 @@ public final class FrameAmbientView extends GLSurfaceView implements GLSurfaceVi
     private final float[] heldGlow = new float[3];
     private volatile float aspect = 16f / 9f;
     private volatile boolean crop;
+    // Interactive fullscreen transforms are applied to the same GL video rectangle.
+    // The light margin remains anchored to the viewport, not to the pinch.
+    private float videoZoom = 1f;
+    private float videoPanX;
+    private float videoPanY;
     private volatile boolean closed;
     private volatile boolean formatAllowed;
     private volatile String failure;
@@ -187,6 +192,19 @@ public final class FrameAmbientView extends GLSurfaceView implements GLSurfaceVi
     public void setCrop(boolean value) {
         crop = value;
         queueEvent(() -> layoutDirty = true);
+        requestRender();
+    }
+
+    public void setVideoTransform(float zoom, float panX, float panY) {
+        if (!Float.isFinite(zoom) || zoom < 1f ||
+                !Float.isFinite(panX) || !Float.isFinite(panY))
+            throw new IllegalArgumentException("Invalid video transform");
+        queueEvent(() -> {
+            videoZoom = zoom;
+            videoPanX = panX;
+            videoPanY = panY;
+            layoutDirty = true;
+        });
         requestRender();
     }
 
@@ -305,7 +323,9 @@ public final class FrameAmbientView extends GLSurfaceView implements GLSurfaceVi
                 } else {
                     stage = new float[] {0, height * .47f, width, height * .49f};
                 }
-                video = FrameAmbientGeometry.place(stage[0], stage[1], stage[2], stage[3], aspect, crop);
+                video = FrameAmbientGeometry.transform(
+                    FrameAmbientGeometry.place(stage[0], stage[1], stage[2], stage[3], aspect, crop),
+                    videoZoom, videoPanX, videoPanY);
                 layoutDirty = false;
                 beamsDirty = true;
             }
