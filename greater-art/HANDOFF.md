@@ -8,6 +8,18 @@ This file describes the **current repository state only**. Historical session no
 
 ## Current Android builds
 
+**Current 1.22.51/code372 — optional hosted API36 component smoke, SOURCE_ONLY:**
+[Issue #147 test coverage and limits](docs/ISSUE_147_HOSTED_EMULATOR_1.22.51.md).
+Introduce an opt-in GitHub Actions workflow running fixture-free Compose
+fullscreen toolbar/contrast/geometry tests on a disposable API36 emulator.
+It is scoped to its own PR and manual workflow dispatch, uses a SHA-pinned
+action, read-only permissions, no user media, no keystore, and uploads no APK.
+The new CI result is **not** the private optimized A55-signed 1.22.50 APK,
+not a real-media Ambient/HDR equivalence test, and not physical-device QA.
+Android app runtime, playback, media quality, Stack, Nodes, stored data and
+verified 1.21.93 APK remain unchanged. Android release-gate preflight and
+exact-device acceptance remain separate; do not mark #147 complete.
+
 **Current 1.22.50/code 371 — PR #246 and Library integration, SOURCE_ONLY:**
 Keep the icon-only playlist selector immediately left of the filter: 48dp touch
 target, 4dp gap, remaining row width for search, active-list checkmark inside
