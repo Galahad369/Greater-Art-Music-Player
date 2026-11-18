@@ -40,9 +40,14 @@ The separate media-dependent `FullscreenRotationTest` remains excluded.
 
 ## Validation status
 
-The correction's actual hosted Android test results are **pending** until
-its own CI run finishes. Local runner checks only validate invocation and
-rejection of incomplete/failed/skipped XML; they are not Android execution.
+[Run 44317991598](https://github.com/Galahad369/Greater-Art-Music-Player/actions/runs/44317991598)
+at source `5dc6dc9c0c4ae406fc91b5691dee78ba6dcaf911` executed **all 14 tests:
+12 passed, two failed, zero errors/skips**. Chrome 4/4, bounds 2/2 and toolbar 4/4
+passed; the color class had two failures among four executed tests.
+Its aggregate console report did not retain which methods failed or their
+assertion stacks, and the job had no uploaded reports. Preserve that limitation.
+Android build/unit/lint/release assembly, version and public-security CI passed;
+Windows CI was still running when this follow-up was prepared.
 
 No app behavior or instrumented test assertion is changed. The source identity
 advances under the repository's workflow/tooling version rule. Android CI must
@@ -55,3 +60,29 @@ These are disposable hosted debug-component tests, not the exact private
 optimized 1.22.50 APK, real-media fullscreen SDR/HDR comparisons, Battery Saver,
 Mini return, a physical A55, acoustic/thermal acceptance or original-public
 signing. No APK is uploaded or promoted and #147 stays open.
+
+## Diagnostic and fixture follow-up (1.22.53/code374)
+
+Source inspection found two concrete fixture defects:
+
+1. The fullscreen slider test queries `PLAYBACK_TIMELINE`, but production
+   `CompactSlider` only registers that inspector label; `inspectElement`
+   never adds a Compose test tag. Pass an explicit test-only tag through
+   the existing slider modifier.
+2. The ordinary-slider test captures its forced 384x100dp parent and samples
+   the parent's midpoint, outside the top-aligned 48dp slider. Move that
+   test-only tag onto the slider and capture its own bounds. The white
+   parent backdrop and all original RGB/alpha thresholds remain.
+
+The upstream [fixed-size measurement](https://github.com/androidx/androidx/blob/a168b01692abf23dec8e11fd419ac96fa4437fba/compose/ui/ui-test/src/commonMain/kotlin/androidx/compose/ui/test/DensityForcedSize.kt),
+[Box constraints](https://github.com/androidx/androidx/blob/a168b01692abf23dec8e11fd419ac96fa4437fba/compose/foundation/foundation-layout/src/commonMain/kotlin/androidx/compose/foundation/layout/Box.kt)
+and [window-region capture](https://github.com/androidx/androidx/blob/a168b01692abf23dec8e11fd419ac96fa4437fba/compose/ui/ui-test/src/androidMain/kotlin/androidx/compose/ui/test/AndroidImageHelpers.android.kt)
+support this fixture diagnosis. These source findings do not retrospectively
+identify the two failure methods absent from the earlier log.
+
+The runner now logs each method's status and complete XML assertion message
+and stack. Pixel assertion messages also include actual color and capture size.
+No production code, thresholds or required checks are relaxed.
+
+**Actual 1.22.53 rerun results: pending.** Record its run and method results
+in PR #247 and issue #147 when available; keep the earlier failed run.

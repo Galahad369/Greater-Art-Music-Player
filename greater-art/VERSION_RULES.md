@@ -16,7 +16,7 @@ This file is the authoritative version policy for Greater Art. If any handoff no
 ## Machine-checkable state
 
 
-Current source: **1.22.52 (code 373)**
+Current source: **1.22.53 (code 374)**
 Allowed consumed transition: **1.22.44 (code 365) -> 1.22.46 (code 367)**
 
 A published draft PR #245 commit a4e2be41 declared1.22.45/code366 in
@@ -542,3 +542,5 @@ Previous baseline: 1.13.26 (code 115).
 - 1.22.51 (code 372): add a SHA-pinned, least-privilege optional GitHub Actions API36 emulator smoke for existing fixture-free fullscreen toolbar, theme-contrast and fitted-video geometry Android instrumentation; workflow is triggered for its own PR or manually and never uploads an APK or uses signing secrets. No Android app runtime, media quality, permissions, Nodes, Stack, desktop or verified release changes. CI emulator test results must not be conflated with the owned exact optimized 1.22.50 maintenance APK, actual SDR/HDR fixture comparisons or physical device acceptance. SOURCE_ONLY; see docs/ISSUE_147_HOSTED_EMULATOR_1.22.51.md.
 
 - 1.22.52 (code 373): repair PR #247's hosted API36 workflow after run 44315810518 booted successfully but failed in sh before executing any tests. Replace the multi-line shell input with one standard-library Python runner, execute each of the four existing component classes separately, and require fresh JUnit evidence for all 14 unique methods with zero failures/errors/skips. Preserve earlier reports and the failed 1.22.51 commit; no assertion, app runtime, rendering, signing or verified APK changes. SOURCE_ONLY pending actual hosted results and separate optimized/original-signer/A55 acceptance. See docs/ISSUE_147_HOSTED_EMULATOR_1.22.52.md.
+
+- 1.22.53 (code 374): retain the actual 1.22.52 hosted run (14 executed, 12 passed, 2 failed, zero skips) and repair two source-confirmed color-test fixture defects: explicitly tag the fullscreen slider and capture the ordinary slider's own bounds instead of its 100dp parent. Preserve all pixel thresholds, assertions and production code. Log each test's outcome and complete XML failure details so subsequent failures are diagnosable. SOURCE_ONLY; hosted rerun and exact optimized A55/physical/original-signer acceptance remain separate. See docs/ISSUE_147_HOSTED_EMULATOR_1.22.52.md#diagnostic-and-fixture-follow-up-12253code374.

@@ -100,7 +100,8 @@ class FullscreenTransportIconColorTest {
         val x = screenshot.width / 8
         val y = screenshot.height / 2
         val pixel = screenshot.getPixel(x, y)
-        assertTrue("Speed label must have an actual dark local plate over white video",
+        assertTrue("Speed label must have an actual dark local plate over white video; " +
+            "actual=${Color(pixel)}, bitmap=${screenshot.width}x${screenshot.height}, sample=$x,$y",
             Color(pixel).alpha >= .35f && Color(pixel).red < .5f &&
                 Color(pixel).green < .5f && Color(pixel).blue < .5f)
     }
@@ -113,6 +114,7 @@ class FullscreenTransportIconColorTest {
                         CompactSlider(
                             value = 0.5f, onValueChange = {}, onValueChangeFinished = {},
                             valueRange = 0f..1f, enabled = true, videoOverlay = true,
+                            modifier = Modifier.testTag("PLAYBACK_TIMELINE"),
                             activeColor = videoOverlayAccent(appColorScheme(ColorTheme.INDIGO, true).secondary),
                             inactiveColor = GaVideoOverlay.inactiveTrack,
                         )
@@ -124,7 +126,8 @@ class FullscreenTransportIconColorTest {
             .captureToImage().asAndroidBitmap()
         val pixel = screenshot.getPixel(screenshot.width / 4,
             screenshot.height / 2 - screenshot.height / 12)
-        assertTrue("Fullscreen timeline must have a dark local backing under its accent",
+        assertTrue("Fullscreen timeline must have a dark local backing under its accent; " +
+            "actual=${Color(pixel)}, bitmap=${screenshot.width}x${screenshot.height}",
             Color(pixel).alpha >= .35f && Color(pixel).red < .6f &&
                 Color(pixel).green < .6f && Color(pixel).blue < .6f)
     }
@@ -133,10 +136,11 @@ class FullscreenTransportIconColorTest {
         compose.setContent {
             DeviceConfigurationOverride(DeviceConfigurationOverride.ForcedSize(DpSize(384.dp, 100.dp))) {
                 GreaterArtTheme(ThemeMode.DARK, ColorTheme.INDIGO) {
-                    Box(Modifier.width(384.dp).background(Color.White).testTag("ordinary-slider-fixture")) {
+                    Box(Modifier.width(384.dp).background(Color.White)) {
                         CompactSlider(
                             value = 0f, onValueChange = {}, onValueChangeFinished = {},
                             valueRange = 0f..1f, enabled = true, videoOverlay = false,
+                            modifier = Modifier.testTag("ordinary-slider-fixture"),
                             activeColor = Color.White, inactiveColor = Color.Black,
                         )
                     }
@@ -148,7 +152,8 @@ class FullscreenTransportIconColorTest {
         val pixel = Color(screenshot.getPixel(screenshot.width * 3 / 4, screenshot.height / 2))
         // One 34%-black layer on white is about 66% luminance in sRGB.
         // Two overdrawn layers become 44% and would fail this regression.
-        assertTrue("Ordinary playback must retain the original single-layer track",
+        assertTrue("Ordinary playback must retain the original single-layer track; " +
+            "actual=$pixel, bitmap=${screenshot.width}x${screenshot.height}",
             pixel.alpha >= .95f && pixel.red in 0.58f..0.75f &&
                 pixel.green in 0.58f..0.75f && pixel.blue in 0.58f..0.75f)
     }
@@ -162,6 +167,7 @@ class FullscreenTransportIconColorTest {
             val pixel = image.getPixel(x, y)
             if (listOf(16, 8, 0).all { abs(((pixel ushr it) and 255) - ((expected ushr it) and 255)) <= 3 }) matches++
         }
-        assertTrue("$label must render its enabled/disabled foreground; matches=$matches", matches >= 8)
+        assertTrue("$label must render its enabled/disabled foreground; matches=$matches, " +
+            "expected=$color, bitmap=${image.width}x${image.height}", matches >= 8)
     }
 }

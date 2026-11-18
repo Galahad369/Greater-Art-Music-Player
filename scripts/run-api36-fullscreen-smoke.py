@@ -20,7 +20,7 @@ PACKAGE = "com.local.listentomusic.ui."
 
 def inspect_results(directory, class_name, expected):
     report = dict(class_name=class_name, expected=expected, tests=0,
-                  failures=0, errors=0, skipped=0, cases=[], problems=[])
+                  failures=0, errors=0, skipped=0, cases=[], outcomes=[], problems=[])
     files = sorted(directory.rglob("*.xml")) if directory.exists() else []
     if not files:
         report["problems"].append("No fresh JUnit XML results")
@@ -45,8 +45,17 @@ def inspect_results(directory, class_name, expected):
                     report["problems"].append(f"Duplicate testcase: {identity}")
                 report["cases"].append(identity)
                 report["tests"] += 1
+                details = []
                 for tag, key in (("failure", "failures"), ("error", "errors"), ("skipped", "skipped")):
                     report[key] += int(case.find(tag) is not None)
+                    for result in case.findall(tag):
+                        details.append(dict(kind=tag, attributes=dict(result.attrib),
+                                            text="".join(result.itertext())))
+                status = next((status for tag, status in
+                               (("error", "error"), ("failure", "failed"), ("skipped", "skipped"))
+                               if case.find(tag) is not None), "passed")
+                report["outcomes"].append(dict(class_name=identity[0], name=identity[1],
+                                              status=status, details=details))
         except (ET.ParseError, OSError, ValueError) as error:
             report["problems"].append(f"{path.name}: {error}")
     if report["tests"] != expected:

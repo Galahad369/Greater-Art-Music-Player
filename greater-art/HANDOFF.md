@@ -8,7 +8,18 @@ This file describes the **current repository state only**. Historical session no
 
 ## Current Android builds
 
-**Current 1.22.52/code373 — hosted component runner repair, SOURCE_ONLY:**
+**Current 1.22.53/code374 — component fixture targeting and diagnostics, SOURCE_ONLY:**
+[Observed results and fixture correction](docs/ISSUE_147_HOSTED_EMULATOR_1.22.52.md#diagnostic-and-fixture-follow-up-12253code374).
+The actual 1.22.52 hosted run executed all 14: 12 passed, two color-class tests
+failed and none skipped. Its aggregate log did not retain failure method names.
+Source review found a missing fixture testTag for the fullscreen slider and an
+ordinary-slider capture using the 100dp parent's midpoint instead of the 48dp
+slider's own bounds. Correct these fixtures and preserve every pixel threshold.
+Record individual test outcomes and full XML assertion details on the next run.
+No production UI/rendering/playback change. Exact optimized A55, real SDR/HDR,
+Battery Saver/Mini, physical and original-public-signing gates remain separate.
+
+**Previous 1.22.52/code373 — hosted component runner repair, SOURCE_ONLY:**
 [Failure, correction and evidence boundary](docs/ISSUE_147_HOSTED_EMULATOR_1.22.52.md).
 The 1.22.51 hosted emulator booted, then its action's sh invocation failed
 before Gradle or any instrumented test ran. Keep that failed run and commit.
