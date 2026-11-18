@@ -1,5 +1,8 @@
 # Issue #147 — Hosted Android API36 fullscreen component smoke (source 1.22.51/code372)
 
+**Follow-up:** The first hosted run failed before testing. See the
+[1.22.52 runner repair and evidence](ISSUE_147_HOSTED_EMULATOR_1.22.52.md).
+
 ## Exact scope
 
 A **non-release, disposable** GitHub Actions emulator job supplements the
@@ -10,7 +13,7 @@ for existing **fixture-free** classes:
   clicked button centers and synthetic Compose pull/tap behavior.
 - `FullscreenTransportIconColorTest` — high-contrast theme-icon rendering,
   dark control plates and ordinary-seek-track pixel regression.
-- `FullscreenAmbientBoundsTest` — native Fit rectangle/pixel-aspect geometry.
+- `FullscreenAmbientBoundsTest` — Fit rectangle bounds and invalid-metadata fallback geometry.
 - `FullscreenToolbarTest` — visible speed selector and compact/narrow layout.
 
 This is a headless x86_64 **API36 virtual Pixel profile**. It is **not**
@@ -57,7 +60,7 @@ A hosted emulator passing does **not** verify:
   fullscreen, real-media seeking/pause and orientation, HDR/PQ native fallback,
   Power Saver, GPU-accurate directional beam or 1:1 pixel identity.
 - Physical device touch/audio/headset/thermal/acoustic QA.
-- The user's local test APK signer mismatch: do **not** uninstall the local
+- The user's different retained local test APK (the cause was not established here): do **not** uninstall the local
   app, change device permissions or replace retained test APKs.
 - Production signing, release identity, Stage D SAF permissions,
   native Stack output or security certification.

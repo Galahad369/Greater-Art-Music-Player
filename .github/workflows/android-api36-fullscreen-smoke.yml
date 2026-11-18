@@ -7,6 +7,7 @@ on:
     branches: [main]
     paths:
       - ".github/workflows/android-api36-fullscreen-smoke.yml"
+      - "scripts/run-api36-fullscreen-smoke.py"
   workflow_dispatch:
 
 permissions:
@@ -56,14 +57,9 @@ jobs:
           profile: pixel_5
           disable-animations: true
           emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim -camera-back none -camera-front none
-          script: |
-            set -euo pipefail
-            echo "Disposable Android API: $(adb shell getprop ro.build.version.sdk)"
-            cd greater-art
-            ./gradlew :app:connectedDebugAndroidTest --no-daemon \
-              -Pandroid.testInstrumentationRunnerArguments.class=com.local.listentomusic.ui.NowPlayingToolbarChromeTest,com.local.listentomusic.ui.FullscreenTransportIconColorTest,com.local.listentomusic.ui.FullscreenAmbientBoundsTest,com.local.listentomusic.ui.FullscreenToolbarTest
-            echo "Instrumented test-suite summaries (synthetic/component checks only):"
-            find app/build/outputs/androidTest-results/connected -name '*.xml' -exec grep -h '<testsuite' {} + || true
+          # The action executes each script line in a separate sh process.
+          # One Python entry point owns subprocess arguments and result checks.
+          script: python3 scripts/run-api36-fullscreen-smoke.py
 
 # Deliberately no artifact upload: runner-debug signed APK is not the pinned
 # personal optimized APK. No user media, signing secrets or local test data.

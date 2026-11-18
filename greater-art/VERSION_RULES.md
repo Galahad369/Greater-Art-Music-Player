@@ -16,7 +16,7 @@ This file is the authoritative version policy for Greater Art. If any handoff no
 ## Machine-checkable state
 
 
-Current source: **1.22.51 (code 372)**
+Current source: **1.22.52 (code 373)**
 Allowed consumed transition: **1.22.44 (code 365) -> 1.22.46 (code 367)**
 
 A published draft PR #245 commit a4e2be41 declared1.22.45/code366 in
@@ -540,3 +540,5 @@ Previous baseline: 1.13.26 (code 115).
 - 1.22.49 (code 370): fix PR #246's Android instrumentation compilation by importing the Compose touch-injection `click` extension. Keep the coordinates, physical gesture assertion and production behavior unchanged. SOURCE_ONLY; preserve the failed 1.22.48 CI run and require runtime fullscreen/Ambient checks separately.
 - 1.22.50 (code 371): combine PR #246's fullscreen Ambient, protected pull lane and contrast work with the local 1.22.48 icon-only playlist filter and Now Playing fixes. Transfer the reviewed behavior and tests without grafting the conflicting local 1.22.45–48 version history. Keep the old APKs and exact source identities distinct. SOURCE_ONLY; optimized identity and A55 checks do not replace original-public signing.
 - 1.22.51 (code 372): add a SHA-pinned, least-privilege optional GitHub Actions API36 emulator smoke for existing fixture-free fullscreen toolbar, theme-contrast and fitted-video geometry Android instrumentation; workflow is triggered for its own PR or manually and never uploads an APK or uses signing secrets. No Android app runtime, media quality, permissions, Nodes, Stack, desktop or verified release changes. CI emulator test results must not be conflated with the owned exact optimized 1.22.50 maintenance APK, actual SDR/HDR fixture comparisons or physical device acceptance. SOURCE_ONLY; see docs/ISSUE_147_HOSTED_EMULATOR_1.22.51.md.
+
+- 1.22.52 (code 373): repair PR #247's hosted API36 workflow after run 44315810518 booted successfully but failed in sh before executing any tests. Replace the multi-line shell input with one standard-library Python runner, execute each of the four existing component classes separately, and require fresh JUnit evidence for all 14 unique methods with zero failures/errors/skips. Preserve earlier reports and the failed 1.22.51 commit; no assertion, app runtime, rendering, signing or verified APK changes. SOURCE_ONLY pending actual hosted results and separate optimized/original-signer/A55 acceptance. See docs/ISSUE_147_HOSTED_EMULATOR_1.22.52.md.

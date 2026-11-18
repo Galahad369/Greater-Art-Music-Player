@@ -8,7 +8,19 @@ This file describes the **current repository state only**. Historical session no
 
 ## Current Android builds
 
-**Current 1.22.51/code372 — optional hosted API36 component smoke, SOURCE_ONLY:**
+**Current 1.22.52/code373 — hosted component runner repair, SOURCE_ONLY:**
+[Failure, correction and evidence boundary](docs/ISSUE_147_HOSTED_EMULATOR_1.22.52.md).
+The 1.22.51 hosted emulator booted, then its action's sh invocation failed
+before Gradle or any instrumented test ran. Keep that failed run and commit.
+One Python entry point now invokes the four existing classes independently
+and verifies their fresh XML: 4 + 4 + 2 + 4 unique tests, no skips/errors/failures.
+Earlier reports are retained, and actual test names/results are printed to CI.
+This changes the test runner only; all app code and test assertions are preserved.
+Actual hosted results remain pending until CI completes. The private optimized
+A55 APK, real SDR/HDR/Battery Saver/Mini matrix, physical hardware and original
+public signer remain separate acceptance gates; keep #147 open.
+
+**Previous 1.22.51/code372 — optional hosted API36 component smoke, SOURCE_ONLY:**
 [Issue #147 test coverage and limits](docs/ISSUE_147_HOSTED_EMULATOR_1.22.51.md).
 Introduce an opt-in GitHub Actions workflow running fixture-free Compose
 fullscreen toolbar/contrast/geometry tests on a disposable API36 emulator.
