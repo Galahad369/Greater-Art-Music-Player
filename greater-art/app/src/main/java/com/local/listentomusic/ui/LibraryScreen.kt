@@ -34,6 +34,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.Sort
 import androidx.compose.material.icons.rounded.DragHandle
+import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material.icons.rounded.MoreVert
 import androidx.compose.material.icons.rounded.Delete
 import androidx.compose.material.icons.rounded.Clear
@@ -245,70 +246,44 @@ fun LibraryScreen(
                 animationSpec = androidx.compose.animation.core.tween(GaMotion.standardMs),
                 label = "library-filter-glow",
             )
-            Box(
-                modifier = Modifier.fillMaxWidth().padding(horizontal = GaSpacing.lg, vertical = GaSpacing.sm)
-                    .clip(RoundedCornerShape(GaRadius.chrome))
-                    .background(gaChromeColor())
-                    .border(1.dp, searchGlow, RoundedCornerShape(GaRadius.chrome))
-                    .inspectElement("LIBRARY_FILTER", "Sharp local filename search and clear control"),
-            ) {
-                OutlinedTextField(
-                    value = state.query,
-                    onValueChange = onQueryChange,
-                    modifier = Modifier.fillMaxWidth(),
-                    interactionSource = searchInteraction,
-                    shape = RoundedCornerShape(GaRadius.chrome),
-                    singleLine = true,
-                    leadingIcon = { Icon(Icons.Rounded.Search, null) },
-                    trailingIcon = if (state.query.isNotEmpty()) {
-                        {
-                            IconButton(onClick = { onQueryChange("") }) {
-                                Icon(Icons.Rounded.Clear, uiText(language, "Clear filter", "清除篩選"))
-                            }
-                        }
-                    } else null,
-                    placeholder = { Text(uiText(language, "Filter library", "篩選音樂庫")) },
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedContainerColor = Color.Transparent,
-                        unfocusedContainerColor = Color.Transparent,
-                        focusedBorderColor = Color.Transparent,
-                        unfocusedBorderColor = Color.Transparent,
-                    ),
-                )
-            }
             Row(
                 Modifier.fillMaxWidth().padding(horizontal = GaSpacing.lg, vertical = GaSpacing.xs),
+                horizontalArrangement = Arrangement.spacedBy(GaSpacing.xs),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Box(Modifier.weight(1f)) {
-                    Button(onClick = { playlistMenuOpen = true }, modifier = Modifier
-                        .inspectElement("PLAYLIST_BUTTON", "Selects or manages a playlist"),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = MaterialTheme.colorScheme.primary.copy(alpha = GaAlpha.chrome),
-                        )) {
-                        Icon(Icons.AutoMirrored.Rounded.QueueMusic, null)
-                        Spacer(Modifier.width(8.dp))
-                        Text(when {
-                            favouritesActive -> uiText(language, "Favorites", "我的最愛")
-                            activePlaylist != null -> activePlaylist.name
-                            else -> uiText(language, "All songs", "所有歌曲")
-                        }, maxLines = 1)
+                Box {
+                    val playlistName = when {
+                        favouritesActive -> uiText(language, "Favorites", "我的最愛")
+                        activePlaylist != null -> activePlaylist.name
+                        else -> uiText(language, "All songs", "所有歌曲")
                     }
+                    GaIconAction(
+                        icon = Icons.AutoMirrored.Rounded.QueueMusic,
+                        contentDescription = uiText(language, "Playlists", "播放清單"),
+                        onClick = { playlistMenuOpen = true },
+                        modifier = Modifier.semantics { stateDescription = playlistName }
+                            .inspectElement("PLAYLIST_BUTTON", "Selects or manages a playlist"),
+                        tint = MaterialTheme.colorScheme.primary,
+                    )
                     DropdownMenu(playlistMenuOpen, { playlistMenuOpen = false }) {
+                        val activeMark: @Composable () -> Unit = { Icon(Icons.Rounded.Check, null) }
                         DropdownMenuItem(
                             text = { Text(uiText(language, "All songs", "所有歌曲")) },
                             onClick = { playlistMenuOpen = false; onSelectPlaylist(null) },
                             leadingIcon = { Icon(Icons.AutoMirrored.Rounded.QueueMusic, null) },
+                            trailingIcon = if (activePlaylist == null && !favouritesActive) activeMark else null,
                         )
                         DropdownMenuItem(
                             text = { Text(uiText(language, "Favorites", "我的最愛")) },
                             onClick = { playlistMenuOpen = false; onSelectPlaylist(com.local.listentomusic.data.FAVOURITES_PLAYLIST_ID) },
                             leadingIcon = { Icon(Icons.Rounded.Favorite, null) },
+                            trailingIcon = if (favouritesActive) activeMark else null,
                         )
                         preferences.playlists.forEach { playlist ->
                             DropdownMenuItem(
                                 text = { Text("${playlist.name}  (${playlist.paths.size})") },
                                 onClick = { playlistMenuOpen = false; onSelectPlaylist(playlist.id) },
+                                trailingIcon = if (playlist.id == activePlaylist?.id) activeMark else null,
                             )
                         }
                         DropdownMenuItem(
@@ -349,14 +324,45 @@ fun LibraryScreen(
                         }
                     }
                 }
-                if (activePlaylist != null) {
-                    Text(
-                        uiText(language, "Hold + drag to reorder", "長按拖曳排序"),
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(start = 10.dp),
+                Box(
+                    modifier = Modifier.weight(1f)
+                        .clip(RoundedCornerShape(GaRadius.chrome))
+                        .background(gaChromeColor())
+                        .border(1.dp, searchGlow, RoundedCornerShape(GaRadius.chrome))
+                        .inspectElement("LIBRARY_FILTER", "Sharp local filename search and clear control"),
+                ) {
+                    OutlinedTextField(
+                        value = state.query,
+                        onValueChange = onQueryChange,
+                        modifier = Modifier.fillMaxWidth(),
+                        interactionSource = searchInteraction,
+                        shape = RoundedCornerShape(GaRadius.chrome),
+                        singleLine = true,
+                        leadingIcon = { Icon(Icons.Rounded.Search, null) },
+                        trailingIcon = if (state.query.isNotEmpty()) {
+                            {
+                                IconButton(onClick = { onQueryChange("") }) {
+                                    Icon(Icons.Rounded.Clear, uiText(language, "Clear filter", "清除篩選"))
+                                }
+                            }
+                        } else null,
+                        placeholder = { Text(uiText(language, "Filter library", "篩選音樂庫")) },
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedContainerColor = Color.Transparent,
+                            unfocusedContainerColor = Color.Transparent,
+                            focusedBorderColor = Color.Transparent,
+                            unfocusedBorderColor = Color.Transparent,
+                        ),
                     )
                 }
+            }
+            if (activePlaylist != null) {
+                Text(
+                    uiText(language, "Hold + drag to reorder", "長按拖曳排序"),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(start = GaSpacing.lg, end = GaSpacing.lg, bottom = GaSpacing.xs),
+                )
             }
 
             val scopedFolderSelected = preferences.scopedMediaTreeUri != null

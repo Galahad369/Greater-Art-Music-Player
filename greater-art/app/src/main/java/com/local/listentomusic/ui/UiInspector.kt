@@ -16,6 +16,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.composed
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
@@ -170,14 +171,16 @@ internal fun UiInspectorHost(
                 )
                 Surface(
                     modifier = Modifier.align(Alignment.TopCenter).statusBarsPadding().padding(12.dp).zIndex(101f),
-                    color = colors.surface,
+                    color = colors.raised.copy(alpha = com.local.listentomusic.ui.theme.GaAlpha.notice),
                     contentColor = colors.foreground,
                     shape = RoundedCornerShape(GaRadius.compact),
                 ) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text(text("Tap an element"), Modifier.padding(horizontal = 12.dp),
-                            style = MaterialTheme.typography.labelLarge)
-                        IconButton(onClick = state::cancel) { Icon(Icons.Rounded.Close, text("Cancel inspector")) }
+                        Text(text("Tap an element"), Modifier.padding(horizontal = 8.dp).testTag("INSPECTOR_PROMPT"),
+                            style = MaterialTheme.typography.labelSmall)
+                        IconButton(onClick = state::cancel, modifier = Modifier.size(GaControl.touchTarget)) {
+                            Icon(Icons.Rounded.Close, text("Cancel inspector"), Modifier.size(GaControl.icon))
+                        }
                     }
                 }
             }

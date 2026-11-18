@@ -61,6 +61,10 @@ internal class FrameAmbientPlayerView(context: Context, attrs: AttributeSet) : P
     private var input: Surface? = null
     private var stage: Rect? = null
     private var intensity = 0f
+    private var crop = false
+    private var zoom = 1f
+    private var panX = 0f
+    private var panY = 0f
     var onFailure: () -> Unit = {}
     val renderer = FrameAmbientView(context, object : FrameAmbientView.Listener {
         override fun surfaceReady(surface: Surface) {
@@ -102,11 +106,21 @@ internal class FrameAmbientPlayerView(context: Context, attrs: AttributeSet) : P
         player.setVideoSurface(surface)
     }
 
-    fun placeVideo(bounds: Rect?, light: Float) {
-        if (bounds == stage && light == intensity) return
+    fun placeVideo(bounds: Rect?, light: Float, cropMode: Boolean = false,
+                   scale: Float = 1f, translateX: Float = 0f, translateY: Float = 0f) {
+        val geometryChanged = bounds != stage || light != intensity
+        val modeChanged = crop != cropMode
+        val transformChanged = zoom != scale || panX != translateX || panY != translateY
+        if (!geometryChanged && !modeChanged && !transformChanged) return
         stage = bounds
         intensity = light
-        updateStage()
+        crop = cropMode
+        zoom = scale
+        panX = translateX
+        panY = translateY
+        if (modeChanged) renderer.setCrop(cropMode)
+        if (transformChanged) renderer.setVideoTransform(scale, translateX, translateY)
+        if (geometryChanged) updateStage()
     }
 
     override fun onLayout(changed: Boolean, left: Int, top: Int, right: Int, bottom: Int) {
@@ -155,6 +169,7 @@ internal fun hasFrameAmbientTrack(player: Player?, mediaId: String?): Boolean {
 internal fun FrameAmbientPresentation(
     player: Player, overlay: Boolean, stage: Rect?, intensity: Float,
     onFailure: () -> Unit, modifier: Modifier,
+    crop: Boolean = false, zoom: Float = 1f, panX: Float = 0f, panY: Float = 0f,
 ) {
     val lifecycle = LocalLifecycleOwner.current.lifecycle
     var resumed by remember(lifecycle) { mutableStateOf(lifecycle.currentState.isAtLeast(Lifecycle.State.RESUMED)) }
@@ -183,7 +198,7 @@ internal fun FrameAmbientPresentation(
             }
         },
         update = { view ->
-            view.placeVideo(stage, intensity)
+            view.placeVideo(stage, intensity, crop, zoom, panX, panY)
             if (resumed) VideoSurfaceOwner.attach(player, view, overlay)
             else VideoSurfaceOwner.detach(view)
         },

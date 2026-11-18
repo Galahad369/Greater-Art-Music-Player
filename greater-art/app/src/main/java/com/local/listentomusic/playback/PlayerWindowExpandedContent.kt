@@ -38,6 +38,8 @@ import com.local.listentomusic.MainViewModel
 import com.local.listentomusic.model.mediaFileFromSession
 import com.local.listentomusic.ui.AndroidShare
 import com.local.listentomusic.ui.DeveloperDiagnostics
+import com.local.listentomusic.ui.DeveloperDiagnosticsBadge
+import com.local.listentomusic.ui.DeveloperDiagnosticsState
 import com.local.listentomusic.ui.NowPlayingScreen
 import com.local.listentomusic.ui.UiInspectorHost
 import com.local.listentomusic.ui.UiInspectorState
@@ -72,6 +74,7 @@ internal fun PlayerWindowExpandedContent(
     val controller by viewModel.controller.collectAsState()
     val sleepTimer by viewModel.sleepTimer.collectAsState()
     val inspector = remember { UiInspectorState() }
+    val diagnostics = remember { DeveloperDiagnosticsState() }
     val density = LocalDensity.current.density
     var fullscreen by remember { mutableStateOf(false) }
     var toolbarBottom by remember { mutableStateOf(0f) }
@@ -89,6 +92,43 @@ internal fun PlayerWindowExpandedContent(
         value = viewModel.loadLyrics(playback.currentPath)
     }
 
+    // The panel stays at the full-player root. Only its badge enters the handle
+    // slot; a service panel is inline content, not an independent Dialog window.
+    val developerControls: @Composable () -> Unit = {
+        if (settings.developerMode) {
+            val engine by PlaybackDiagnostics.report.collectAsState()
+            val failure by com.local.listentomusic.diagnostics.CrashReports.latest.collectAsState()
+            val surface by VideoSurfaceOwner.state.collectAsState()
+            val stack by StackPlayback.state.collectAsState()
+            val warnings = surface.warnings(VideoSurfaceOwner.expectedOwner,
+                playback.isVideo && playback.isPlaying && controller?.playbackState == androidx.media3.common.Player.STATE_READY,
+                android.os.SystemClock.elapsedRealtime(), playback.videoFrameRendered) +
+                listOfNotNull(if (playback.errorMessage != null) "PLAYBACK_ERROR" else null)
+            DeveloperDiagnostics(
+                summaryLines = com.local.listentomusic.ui.DeveloperSummary(
+                    version = com.local.listentomusic.BuildConfig.VERSION_NAME,
+                    screen = "NOW_PLAYING", playing = playback.isPlaying, video = playback.isVideo,
+                    queueSize = queue.size, stackTracks = stack.slots.size,
+                    surfaceOwner = surface.owner, warnings = warnings,
+                    hasFailure = com.local.listentomusic.ui.hasLocalFailure(failure),
+                ).lines(settings.appLanguage),
+                detailReport = "version=${com.local.listentomusic.BuildConfig.VERSION_NAME}\nscreen=NOW_PLAYING\n" +
+                    "playing=${playback.isPlaying} playerWindowMode=EXPANDED\n" +
+                    "controllerId=${System.identityHashCode(controller)} playerViewId=${System.identityHashCode(videoView)}\n" +
+                    "position=${playback.positionMs} duration=${playback.durationMs} queue=${queue.size}\n" +
+                    VideoSurfaceOwner.describe() + "\nAUDIO ENGINE\n" + engine + "\n" + failure,
+                regions = inspector.regions.values.map { "${it.label}: ${it.detail}" },
+                warning = warnings.isNotEmpty() || com.local.listentomusic.ui.hasLocalFailure(failure),
+                inspector = inspector,
+                onDisableDeveloperMode = { viewModel.setDeveloperMode(false) },
+                modifier = if (fullscreen) Modifier.padding(top = with(LocalDensity.current) { toolbarBottom.toDp() }) else Modifier,
+                systemOverlay = true,
+                language = settings.appLanguage,
+                state = diagnostics,
+                showBadge = fullscreen,
+            )
+        }
+    }
     MediaAdaptiveTheme(settings, playback.currentPath, artwork) {
         UiInspectorHost(settings.developerMode, inspector, settings.appLanguage) {
             Box(Modifier.fillMaxSize()) {
@@ -169,6 +209,12 @@ internal fun PlayerWindowExpandedContent(
                                 onSharedVideoReleased = onVideoReleased,
                                 onToolbarBoundsChanged = { toolbarBottom = it.bottom },
                                 toolbarInputModifier = toolbarInput,
+                                toolbarCenterContent = {
+                                    if (settings.developerMode) Box(Modifier.fillMaxSize()) {
+                                        DeveloperDiagnosticsBadge(diagnostics.warning.value, diagnostics::openPanel,
+                                            Modifier.align(Alignment.TopCenter).padding(top = 2.dp))
+                                    }
+                                },
                             )
                         }
                     }
@@ -184,7 +230,7 @@ internal fun PlayerWindowExpandedContent(
                             .height(52.dp)
                             .inspectElement(
                                 "EXPANDED_MINI_PULL_HANDLE",
-                                "Deliberate pull down to return to Library; activation gate + resistance",
+                                "Pull down to reveal the page or app behind Now Playing",
                             ),
                         contentAlignment = Alignment.TopCenter,
                     ) {
@@ -251,37 +297,7 @@ internal fun PlayerWindowExpandedContent(
                     },
                 )
             }
-            if (settings.developerMode) {
-                val engine by PlaybackDiagnostics.report.collectAsState()
-                val failure by com.local.listentomusic.diagnostics.CrashReports.latest.collectAsState()
-                val surface by VideoSurfaceOwner.state.collectAsState()
-                val stack by StackPlayback.state.collectAsState()
-                val warnings = surface.warnings(VideoSurfaceOwner.expectedOwner,
-                    playback.isVideo && playback.isPlaying && controller?.playbackState == androidx.media3.common.Player.STATE_READY,
-                    android.os.SystemClock.elapsedRealtime(), playback.videoFrameRendered) +
-                    listOfNotNull(if (playback.errorMessage != null) "PLAYBACK_ERROR" else null)
-                DeveloperDiagnostics(
-                    summaryLines = com.local.listentomusic.ui.DeveloperSummary(
-                        version = com.local.listentomusic.BuildConfig.VERSION_NAME,
-                        screen = "NOW_PLAYING", playing = playback.isPlaying, video = playback.isVideo,
-                        queueSize = queue.size, stackTracks = stack.slots.size,
-                        surfaceOwner = surface.owner, warnings = warnings,
-                        hasFailure = com.local.listentomusic.ui.hasLocalFailure(failure),
-                    ).lines(settings.appLanguage),
-                    detailReport = "version=${com.local.listentomusic.BuildConfig.VERSION_NAME}\nscreen=NOW_PLAYING\n" +
-                        "playing=${playback.isPlaying} playerWindowMode=EXPANDED\n" +
-                        "controllerId=${System.identityHashCode(controller)} playerViewId=${System.identityHashCode(videoView)}\n" +
-                        "position=${playback.positionMs} duration=${playback.durationMs} queue=${queue.size}\n" +
-                        VideoSurfaceOwner.describe() + "\nAUDIO ENGINE\n" + engine + "\n" + failure,
-                    regions = inspector.regions.values.map { "${it.label}: ${it.detail}" },
-                    warning = warnings.isNotEmpty() || com.local.listentomusic.ui.hasLocalFailure(failure),
-                    inspector = inspector,
-                    onDisableDeveloperMode = { viewModel.setDeveloperMode(false) },
-                    modifier = Modifier.padding(top = with(LocalDensity.current) { toolbarBottom.toDp() }),
-                    systemOverlay = true,
-                    language = settings.appLanguage,
-                )
-            }
+            developerControls()
         }
     }
 }

@@ -19,6 +19,7 @@ import com.local.listentomusic.model.MediaKind
 import androidx.test.platform.app.InstrumentationRegistry
 import java.io.File
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 
@@ -35,9 +36,12 @@ class AudioNowPlayingTest {
     private var closeCalls = 0
     private var shrinkCalls = 0
     private var playCalls = 0
+    private val queueCalls = mutableListOf<Int>()
+    private var editCalls = 0
+    private var seekCalls = 0
 
     private fun show(size: DpSize = DpSize(384.dp, 760.dp), disc: Boolean = false,
-        initialFullscreen: Boolean = false) {
+        initialFullscreen: Boolean = false, rows: List<MediaFile> = listOf(file), editable: Boolean = false) {
         compose.setContent {
             DeviceConfigurationOverride(DeviceConfigurationOverride.ForcedSize(size)) {
                 MaterialTheme {
@@ -47,10 +51,10 @@ class AudioNowPlayingTest {
                         playback = PlaybackUiState(currentPath = file.path, currentQueueIndex = 0,
                             title = file.name, durationMs = file.durationMs, hasNext = true),
                         artwork = artwork.value,
-                        queue = listOf(file),
+                        queue = rows,
                         lyrics = null,
                         showFileDetails = true,
-                        editableQueue = false,
+                        editableQueue = editable,
                         blackDiscMode = disc,
                         language = AppLanguage.ENGLISH,
                         controller = null,
@@ -61,13 +65,14 @@ class AudioNowPlayingTest {
                         onHome = { homeCalls++ },
                         onClose = { closeCalls++ },
                         onTogglePlay = { playCalls++ },
-                        onPrevious = {}, onNext = {}, onSeek = {}, onSpeed = {}, onRepeat = {},
+                        onPrevious = {}, onNext = {}, onSeek = { seekCalls++ }, onSpeed = {}, onRepeat = {},
                         onSleepTimer = {}, sleepTimer = SleepTimerState(), onSeekBy = {},
-                        onPlayQueueItem = {}, onLoadThumbnail = { null }, onLoadWaveform = { null },
-                        onMoveQueueItem = { _, _ -> }, onRemoveQueueItem = {},
+                        onPlayQueueItem = { queueCalls.add(it) }, onLoadThumbnail = { null }, onLoadWaveform = { null },
+                        onMoveQueueItem = { _, _ -> editCalls++ }, onRemoveQueueItem = { editCalls++ },
                         onBeginTemporaryDoubleSpeed = { false }, onEndTemporaryDoubleSpeed = {},
                         onLockTemporaryDoubleSpeed = { false }, isFavourite = false,
                         onToggleFavourite = {}, onShareCurrentMedia = {}, onShareQueue = {},
+                        onAddQueueItemToList = { editCalls++ },
                         systemOverlay = true, initialFullscreen = initialFullscreen,
                         onFullscreenChanged = { fullscreen.add(it) },
                     )
@@ -137,6 +142,46 @@ class AudioNowPlayingTest {
             assertEquals(1, homeCalls)
             assertEquals(listOf(false, true, false), fullscreen)
         }
+    }
+
+    @Test fun lockedQueueScrollsButCannotPlayOrEditUntilUnlocked() {
+        val rows = (0..39).map { file.copy(path = "/test/$it.mp3", name = "Queue %02d".format(it)) }
+        show(rows = rows, editable = true)
+        val playPosition = compose.onNodeWithContentDescription("Play").fetchSemanticsNode().boundsInRoot.center
+        val seekPosition = compose.onNode(SemanticsMatcher.keyIsDefined(SemanticsProperties.ProgressBarRangeInfo))
+            .fetchSemanticsNode().boundsInRoot.center
+        compose.onNodeWithContentDescription("Lock player controls").performClick()
+        val list = compose.onNodeWithTag("NOW_PLAYING_QUEUE_LIST")
+        val before = list.fetchSemanticsNode().config[SemanticsProperties.VerticalScrollAxisRange].value()
+        list.performTouchInput { swipeUp() }
+        compose.waitForIdle()
+        val after = list.fetchSemanticsNode().config[SemanticsProperties.VerticalScrollAxisRange].value()
+        assertTrue("Locked queue must still scroll", after > before)
+        list.performTouchInput { click(center) }
+        list.performTouchInput { click(androidx.compose.ui.geometry.Offset(width * .94f, height * .5f)) }
+        val gate = compose.onNodeWithTag("PLAYER_LOCK_INPUT_BLOCKER")
+        val origin = gate.fetchSemanticsNode().boundsInRoot.topLeft
+        gate.performTouchInput { click(playPosition - origin); click(seekPosition - origin) }
+        compose.onNodeWithContentDescription("Play").assertDoesNotExist()
+        compose.runOnIdle {
+            assertEquals(emptyList<Int>(), queueCalls)
+            assertEquals(0, editCalls)
+            assertEquals(0, playCalls)
+            assertEquals(0, seekCalls)
+        }
+        compose.onNodeWithContentDescription("Unlock player controls").performClick()
+        list.performTouchInput { click(androidx.compose.ui.geometry.Offset(width * .4f, height * .5f)) }
+        compose.runOnIdle { assertTrue("Unlocked queue must still play", queueCalls.isNotEmpty()) }
+    }
+
+    @Test fun audioTimelineReadoutsDoNotOverlapTheSlider() {
+        show()
+        val slider = compose.onNode(SemanticsMatcher.keyIsDefined(SemanticsProperties.ProgressBarRangeInfo))
+            .fetchSemanticsNode().boundsInRoot
+        val hint = compose.onNodeWithText("Waveform unavailable; seeking still works").fetchSemanticsNode().boundsInRoot
+        val time = compose.onNodeWithText("0:00").fetchSemanticsNode().boundsInRoot
+        assertTrue("Waveform hint stays below the slider", hint.top >= slider.bottom)
+        assertTrue("Time stays below the hint", time.top >= hint.bottom)
     }
 
     @Test fun lockedTouchShowsReminderButDoesNotActivatePlaybackAndNoticeExpires() {

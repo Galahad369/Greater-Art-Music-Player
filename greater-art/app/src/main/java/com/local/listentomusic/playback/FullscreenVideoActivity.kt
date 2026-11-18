@@ -67,9 +67,10 @@ class FullscreenVideoActivity : ComponentActivity() {
             val artwork by produceState<android.graphics.Bitmap?>(null, playback.currentPath,
                 settings.localOverrides[playback.currentPath]) {
                 value = null
-                // Player Ambient is independent of the browsing wallpaper. Use
-                // cached artwork until native video-color samples are available.
-                value = viewModel.loadCurrentArtwork(playback.currentPath, cachedOnly = true)
+                // Use the same artwork loading path as expanded Now Playing.
+                // A cache-only miss could leave fullscreen with a flat fallback
+                // while the expanded player already showed a reflected palette.
+                value = viewModel.loadCurrentArtwork(playback.currentPath)
             }
             val sleepTimer by viewModel.sleepTimer.collectAsState()
             val inspector = remember { UiInspectorState() }

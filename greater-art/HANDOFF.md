@@ -8,6 +8,63 @@ This file describes the **current repository state only**. Historical session no
 
 ## Current Android builds
 
+**Current 1.22.50/code 371 — PR #246 and Library integration, SOURCE_ONLY:**
+Keep the icon-only playlist selector immediately left of the filter: 48dp touch
+target, 4dp gap, remaining row width for search, active-list checkmark inside
+the menu. The expanded player retains the centered DEV badge and its full-size
+panel, locked queue scrolling, pull-to-previous-screen, and theme-matched
+half-transparent notices. PR #246's SDR fullscreen Ambient, contrast, Fit/Crop,
+native fallback and real touch tests remain. Review both sides of the shared
+Now Playing and theme files; do not trade one set of controls for the other.
+The previous local 1.22.48 APK remains immutable. Its version identity was
+separately consumed by PR #246, so import behavior, not its duplicate commits.
+Check the exact signed candidate on the A55 for playlist/filter, pull and
+fullscreen handoff. Emulator evidence is not physical HDR acceptance or an
+original-public-signer release.
+
+**Previous 1.22.49/code 370 — PR #246 toolbar test compile repair, SOURCE_ONLY:**
+The Android check at `6a31f8c` failed in `compileDebugAndroidTestKotlin` because
+the physical toolbar-tap test called Compose's `click(center)` extension
+without importing it. Keep the test's physical taps, drag and assertions;
+do not replace them with semantics clicks. No production renderer or input
+behavior changes. An instrumentation APK that compiles is not device evidence.
+Keep the PR draft until fullscreen Ambient, gestures and surface transitions
+are verified on the exact candidate.
+
+**Previous 1.22.48/code 369 — preserve ordinary slider during fullscreen review repair, SOURCE_ONLY:**
+[Focused correction and gates](docs/FULLSCREEN_AMBIENT_PARITY_1.22.48.md).
+The prior 47 fullscreen-backdrop change introduced a second inactive-track
+draw to ordinary audio/Stack sliders by accident. Fix the default false
+`videoOverlay` track wrapper so the ordinary 3dp track retains exactly one
+34%-alpha paint. The fullscreen opt-in keeps its separate dark12dp backing.
+Add a rendered regular-track pixel assertion and keep earlier theme/pull tests.
+No Ambient decoder/path, media quality, data, signing, Nodes, Stack mix or desktop
+changes. CI on exact new head and real A55/optimized visual/surface testing
+remain outstanding; preserve immutable verified1.21.93 and source47 evidence.
+
+**Current 1.22.47/code 368 — PR #246 review correction, SOURCE_ONLY:**
+[Review repair and exact verification boundary](docs/FULLSCREEN_AMBIENT_PARITY_1.22.47.md).
+The prior eligible fullscreen SDR frame-Ambient compositor and native HDR/Power-saving
+fallback are preserved. Contrasting themed fullscreen speed/timeline glyphs now have
+real local dark backing (including timestamps), rather than applying a plate-based
+color rule to unbacked text. The central 72dp pull gesture lane is protected; its
+three actions on each side are symmetrically spaced without overlapping the lane.
+Instrumented rendered pixels, actual button-center touch, pull and gap assertions,
+plus palette/geometry unit regressions are included. Final PR-head CI and
+exact A55/optimized visual acceptance are separate and **not yet completed**.
+Preserve original signing, immutable verified1.21.93, video quality, Stack, Nodes,
+and all 46 historical evidence.
+
+**Current 1.22.46/code 367 — fullscreen Ambient + Now Playing control parity, SOURCE_ONLY:**
+[Scope and verification boundary](docs/FULLSCREEN_AMBIENT_PARITY_1.22.46.md).
+Reuses the existing one-decoder, same-frame SDR Ambient compositor in eligible fullscreen presentations, including actual Fit video bounds, Crop and interactive zoom/pan. Unsupported/HDR/power-saving footage retains the native SurfaceView and periodic sample fallback; no general HDR or zero-latency parity claim.
+Refresh full artwork on cache miss as Expanded already does. Video controls choose the selected theme color only when it passes both light/dark frame contrast probes, otherwise keep the existing fixed high-contrast glyph. Give controls an existing black local plate; align normal-player bottom transport consistently and tint its speed caption. No Nodes, Stack sync, offline/storage, release keys or verified APK changes. **This source proposal is not yet built or visually verified**; the earlier draft
+PR #245 incorrectly left build.gradle at1.22.44 despite declaring1.22.45.
+Its strict version guard failed; preserve that published attempt, do not
+reuse1.22.45, and adopt clean1.22.46/code367 with a documented consumed transition.
+ test exact PR head via CI, optimized assembly and A55 actual fullscreen/portrait/SRD/HDR/battery-saving/geometry gestures before accepting it. Preserve verified1.21.93 and 1.22.44 source history.
+
+
 **Current 1.22.44/code 365 — versioned Gradle 9.9.1 update, SOURCE_ONLY:**
 [Review and acceptance](docs/GRADLE_1.22.44.md). Carry PR242's exact wrapper changes
 in the same commit as the required version bump. The original bot commit fails

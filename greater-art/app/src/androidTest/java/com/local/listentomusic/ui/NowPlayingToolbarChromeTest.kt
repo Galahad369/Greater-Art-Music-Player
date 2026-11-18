@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asAndroidBitmap
 import androidx.compose.ui.platform.LocalDensity
@@ -17,15 +18,19 @@ import androidx.compose.ui.test.assertHasClickAction
 import androidx.compose.ui.test.assertHeightIsEqualTo
 import androidx.compose.ui.test.assertWidthIsEqualTo
 import androidx.compose.ui.test.captureToImage
+import androidx.compose.ui.test.click
 import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performTouchInput
+import androidx.compose.ui.test.swipe
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
 import com.local.listentomusic.data.AppLanguage
 import com.local.listentomusic.data.ThemeMode
+import com.local.listentomusic.playback.expandedPlayerPullInput
 import com.local.listentomusic.ui.theme.GreaterArtTheme
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotEquals
@@ -55,7 +60,8 @@ class NowPlayingToolbarChromeTest {
         val after = compose.onAllNodes(hasClickAction()).fetchSemanticsNodes()
             .map { it.boundsInRoot }.sortedBy { it.left }
         assertEquals("No action may move when Lock changes state", before, after)
-        assertEquals(gap, compose.onNodeWithTag("EXPANDED_TOOLBAR_HANDLE_GAP").fetchSemanticsNode().boundsInRoot)
+        assertEquals("The pull zone must not move when Lock is toggled", gap,
+            compose.onNodeWithTag("EXPANDED_TOOLBAR_HANDLE_GAP").fetchSemanticsNode().boundsInRoot)
         val selected = compose.onNodeWithTag("toolbar-content").captureToImage().asAndroidBitmap()
         try {
             val bounds = compose.onNodeWithContentDescription("Unlock player controls").fetchSemanticsNode().boundsInRoot
@@ -74,14 +80,18 @@ class NowPlayingToolbarChromeTest {
             .sortedBy { it.boundsInRoot.left }
         assertEquals("Keep all six top actions", 6, buttons.size)
         val gap = compose.onNodeWithTag("EXPANDED_TOOLBAR_HANDLE_GAP").fetchSemanticsNode().boundsInRoot
-        assertTrue("Reserve at least 72dp for the handle", gap.width >= 72f * (buttons.first().boundsInRoot.width / 48f) - 1f)
-        for (button in buttons) assertTrue("No action may occupy the handle gap",
-            button.boundsInRoot.right <= gap.left + 1 || button.boundsInRoot.left >= gap.right - 1)
-        for (group in buttons.chunked(3)) {
-            val intervals = group.zipWithNext { left, right ->
+        val toolbar = compose.onNodeWithTag("toolbar-content").fetchSemanticsNode().boundsInRoot
+        val minimumGapPx = buttons.first().boundsInRoot.width * (72f / 48f)
+        assertTrue("Protect the 72dp center pull gesture: $gap", gap.width >= minimumGapPx - 1f)
+        assertTrue("Keep the pull lane centered", kotlin.math.abs(gap.center.x - toolbar.center.x) <= 1.01f)
+        for (button in buttons) assertTrue("No action may overlap the pull gesture",
+            button.boundsInRoot.right <= gap.left + 1f || button.boundsInRoot.left >= gap.right - 1f)
+        for (side in buttons.chunked(3)) {
+            val intervals = side.zipWithNext { left, right ->
                 right.boundsInRoot.center.x - left.boundsInRoot.center.x
             }
-            assertTrue("Distribute each side evenly: $intervals", intervals.max() - intervals.min() <= 1.01f)
+            assertTrue("Distribute each group symmetrically: $intervals",
+                intervals.max() - intervals.min() <= 1.01f)
         }
         checkToolbarPixels { bitmap ->
             val centerX = bitmap.width / 2
@@ -98,6 +108,52 @@ class NowPlayingToolbarChromeTest {
                 .assertWidthIsEqualTo(48.dp).assertHeightIsEqualTo(48.dp).performClick()
         }
         compose.runOnIdle { assertEquals(actions, clicks) }
+    }
+
+
+    @Test fun nativeIconCenterTapsAndCentralPullGestureCoexist() {
+        val clicked = mutableListOf<String>()
+        var pulls = 0
+        var ends = 0
+        compose.setContent {
+            DeviceConfigurationOverride(DeviceConfigurationOverride.ForcedSize(DpSize(384.dp, 200.dp))) {
+                val density = LocalDensity.current.density
+                GreaterArtTheme(ThemeMode.DARK) {
+                    Box(Modifier.width(384.dp).background(Color(backdrop))) {
+                        NowPlayingTopBar(
+                            language = AppLanguage.ENGLISH,
+                            onPictureInPicture = { clicked += "Open floating player" },
+                            onHome = { clicked += "Home" },
+                            onFullscreen = { clicked += "Fullscreen" },
+                            onClose = { clicked += "Close player" },
+                            onLock = { clicked += "Lock player controls" },
+                            reservePullHandle = true,
+                            modifier = Modifier.testTag("gesture-toolbar").expandedPlayerPullInput(
+                                true, density, { pulls++ }, { _, _ -> ends++ }, {},
+                            ),
+                        )
+                    }
+                }
+            }
+        }
+        val buttons = listOf("Open floating player", "Home", "Lock player controls",
+            "Fullscreen", "Close player")
+        for (label in buttons) {
+            compose.onNodeWithContentDescription(label).performTouchInput { click(center) }
+        }
+        compose.runOnIdle {
+            assertEquals(buttons, clicked)
+            assertEquals("Button presses must not become pull gestures", 0, pulls)
+            assertEquals(0, ends)
+        }
+        compose.onNodeWithTag("gesture-toolbar").performTouchInput {
+            swipe(Offset(center.x, 14.dp.toPx()), Offset(center.x, 62.dp.toPx()), 350)
+        }
+        compose.runOnIdle {
+            assertTrue("The central pull lane remains usable", pulls > 0)
+            assertEquals(1, ends)
+            assertEquals("Central pull must not activate toolbar actions", buttons, clicked)
+        }
     }
 
     @Test fun fullscreenToolbarRetainsItsContrastScrim() {

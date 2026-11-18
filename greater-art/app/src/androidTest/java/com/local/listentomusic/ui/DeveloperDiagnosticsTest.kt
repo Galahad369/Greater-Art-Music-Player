@@ -2,6 +2,10 @@ package com.local.listentomusic.ui
 
 import android.content.ClipboardManager
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.size
+import androidx.compose.ui.Modifier
 import androidx.compose.runtime.remember
 import androidx.compose.ui.test.*
 import androidx.compose.ui.test.junit4.v2.createComposeRule
@@ -15,6 +19,23 @@ import org.junit.Test
 class DeveloperDiagnosticsTest {
     @get:Rule val compose = createComposeRule()
     private val detail = "version=test\ndecoder=complete\nfirstFrameAttribution=retained\nlastImportantKey=42"
+
+    @Test fun badgeInNarrowSlotKeepsServicePanelFullWidth() {
+        compose.setContent {
+            MaterialTheme {
+                val state = remember { DeveloperDiagnosticsState() }
+                Box(Modifier.fillMaxSize()) {
+                    Box(Modifier.size(72.dp,52.dp)) { DeveloperDiagnosticsBadge(false, state::openPanel) }
+                    DeveloperDiagnostics(listOf("App: test"), detail, emptyList(), false,
+                        remember { UiInspectorState() }, {}, systemOverlay = true, state = state, showBadge = false)
+                }
+            }
+        }
+        compose.onNodeWithText("DEV").performClick()
+        compose.onNodeWithTag("DEVELOPER_PANEL").assertWidthIsAtLeast(280.dp)
+        compose.onNodeWithText("Pick an element").assertIsDisplayed().assertHeightIsAtLeast(48.dp).performClick()
+        compose.onNodeWithText("Developer").assertDoesNotExist()
+    }
 
     private fun show(warning: Boolean = false) {
         compose.setContent { MaterialTheme {

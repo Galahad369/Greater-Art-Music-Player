@@ -18,6 +18,24 @@ public final class FrameAmbientGeometry {
                 drawnWidth, drawnHeight};
     }
 
+    /** Compose pan is top-down; GL stage coordinates are bottom-up. Scale uniformly. */
+    public static float[] transform(float[] rect, float zoom, float panX, float panY) {
+        if (rect == null || rect.length != 4 || !Float.isFinite(zoom) || zoom < 1f
+                || !Float.isFinite(panX) || !Float.isFinite(panY)
+                || !Float.isFinite(rect[2]) || !Float.isFinite(rect[3])
+                || rect[2] <= 0f || rect[3] <= 0f)
+            throw new IllegalArgumentException("Invalid video transform");
+        float width = rect[2] * zoom;
+        float height = rect[3] * zoom;
+        if (!Float.isFinite(width) || !Float.isFinite(height))
+            throw new IllegalArgumentException("Video transform exceeds finite bounds");
+        return new float[] {
+            rect[0] - (width - rect[2]) / 2f + panX,
+            rect[1] - (height - rect[3]) / 2f - panY,
+            width, height
+        };
+    }
+
     public static int dominant(int rgb) {
         int r = (rgb >>> 16) & 255;
         int g = (rgb >>> 8) & 255;
