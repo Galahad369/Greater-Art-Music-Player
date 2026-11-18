@@ -8,7 +8,16 @@ This file describes the **current repository state only**. Historical session no
 
 ## Current Android builds
 
-**Current 1.22.48/code 369 — preserve ordinary slider during fullscreen review repair, SOURCE_ONLY:**
+**Current 1.22.49/code 370 — PR #246 toolbar test compile repair, SOURCE_ONLY:**
+The Android check at `6a31f8c` failed in `compileDebugAndroidTestKotlin` because
+the physical toolbar-tap test called Compose's `click(center)` extension
+without importing it. Keep the test's physical taps, drag and assertions;
+do not replace them with semantics clicks. No production renderer or input
+behavior changes. An instrumentation APK that compiles is not device evidence.
+Keep the PR draft until fullscreen Ambient, gestures and surface transitions
+are verified on the exact candidate.
+
+**Previous 1.22.48/code 369 — preserve ordinary slider during fullscreen review repair, SOURCE_ONLY:**
 [Focused correction and gates](docs/FULLSCREEN_AMBIENT_PARITY_1.22.48.md).
 The prior 47 fullscreen-backdrop change introduced a second inactive-track
 draw to ordinary audio/Stack sliders by accident. Fix the default false

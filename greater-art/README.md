@@ -4,7 +4,7 @@ Greater Art is a native Kotlin/Jetpack Compose player for local music and video.
 
 ## Current Android builds
 
-- Latest source: **1.22.48 / code 369 — SOURCE_ONLY**. [Fullscreen control regression correction](docs/FULLSCREEN_AMBIENT_PARITY_1.22.48.md) preserves the original audio/Stack seek-track opacity while retaining backed fullscreen color accents and the protected center pull lane. Fullscreen SDR Ambient and native HDR/Power-saving fallback remain unchanged. Current CI, optimized candidate and A55 visual/interaction acceptance remain pending; verified 1.21.93 is unchanged.
+- Latest source: **1.22.49 / code 370 — SOURCE_ONLY**. The toolbar touch test imports the Compose click extension; the [fullscreen and slider work](docs/FULLSCREEN_AMBIENT_PARITY_1.22.48.md) is unchanged. CI and A55 visual and touch acceptance are separate; verified 1.21.93 is unchanged.
 - The retained [1.22.33 disabled PCM experiment](docs/STACK_PCM_KERNEL_1.22.33.md) and its incomplete backing/output/parity gates remain unchanged. No production engine replacement, public release, push or merge.
 - [Later acceptance checkpoint](docs/STACK_ALIGNMENT_ACCEPTANCE_1.22.33.md): current A55 picture Quick/Wide regressions pass. A different clean-reference sound experiment passes 18 known numeric controls but fails a stronger independent-region check and the six-original target. Earlier actual-mix gain failures remain. No production adoption, full backing or release acceptance.
 - Verified repository download: [GreaterArt-1.21.93.apk](releases/GreaterArt-1.21.93.apk), code 316. See the [release receipt](docs/RELEASE_1.21.93.md) for signing and test limits.
