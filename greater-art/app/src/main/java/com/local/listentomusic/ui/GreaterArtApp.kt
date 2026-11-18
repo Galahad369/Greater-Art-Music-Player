@@ -631,7 +631,7 @@ fun GreaterArtApp(
             }
             val undoMessage by viewModel.undoMessage.collectAsStateWithLifecycle()
             undoMessage?.let { message ->
-                androidx.compose.material3.Snackbar(modifier = Modifier.align(Alignment.BottomCenter).navigationBarsPadding()
+                ThemedNotice(modifier = Modifier.align(Alignment.BottomCenter).navigationBarsPadding()
                     .padding(bottom =
                         (if (playback.hasMedia) (com.local.listentomusic.model.MiniWindowMetrics.HEIGHT_DP * com.local.listentomusic.model.MiniWindowMetrics.scale(settings.miniWindowSize)).dp else 0.dp) +
                             (if (screen == Screen.LIBRARY && libraryPager.currentPage == 0) 120.dp else 0.dp)

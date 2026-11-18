@@ -8,7 +8,21 @@ This file describes the **current repository state only**. Historical session no
 
 ## Current Android builds
 
-**Current 1.22.49/code 370 — PR #246 toolbar test compile repair, SOURCE_ONLY:**
+**Current 1.22.50/code 371 — PR #246 and Library integration, SOURCE_ONLY:**
+Keep the icon-only playlist selector immediately left of the filter: 48dp touch
+target, 4dp gap, remaining row width for search, active-list checkmark inside
+the menu. The expanded player retains the centered DEV badge and its full-size
+panel, locked queue scrolling, pull-to-previous-screen, and theme-matched
+half-transparent notices. PR #246's SDR fullscreen Ambient, contrast, Fit/Crop,
+native fallback and real touch tests remain. Review both sides of the shared
+Now Playing and theme files; do not trade one set of controls for the other.
+The previous local 1.22.48 APK remains immutable. Its version identity was
+separately consumed by PR #246, so import behavior, not its duplicate commits.
+Check the exact signed candidate on the A55 for playlist/filter, pull and
+fullscreen handoff. Emulator evidence is not physical HDR acceptance or an
+original-public-signer release.
+
+**Previous 1.22.49/code 370 — PR #246 toolbar test compile repair, SOURCE_ONLY:**
 The Android check at `6a31f8c` failed in `compileDebugAndroidTestKotlin` because
 the physical toolbar-tap test called Compose's `click(center)` extension
 without importing it. Keep the test's physical taps, drag and assertions;

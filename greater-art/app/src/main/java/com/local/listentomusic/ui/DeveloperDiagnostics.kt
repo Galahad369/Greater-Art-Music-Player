@@ -34,6 +34,40 @@ import com.local.listentomusic.ui.theme.GaRadius
 import com.local.listentomusic.ui.theme.GaSpacing
 import com.local.listentomusic.ui.theme.inspectorThemeColors
 
+/** Badge and service-hosted panel share state, but not layout constraints. */
+@Stable
+internal class DeveloperDiagnosticsState {
+    val open = mutableStateOf(false)
+    val showRegions = mutableStateOf(false)
+    val showAdvanced = mutableStateOf(false)
+    val warning = mutableStateOf(false)
+
+    fun openPanel() {
+        showRegions.value = false
+        showAdvanced.value = false
+        open.value = true
+    }
+}
+
+@Composable
+internal fun DeveloperDiagnosticsBadge(warning: Boolean, onOpen: () -> Unit, modifier: Modifier = Modifier) {
+    val colors = inspectorThemeColors(MaterialTheme.colorScheme)
+    val accent = if (warning) colors.error else colors.accent
+    Surface(
+        onClick = onOpen,
+        modifier = modifier.sizeIn(minWidth = GaControl.touchTarget, minHeight = GaControl.touchTarget)
+            .inspectElement("DEVELOPER_BUTTON", "Opens local diagnostics and element inspector"),
+        shape = RoundedCornerShape(GaRadius.compact), color = colors.surface,
+        border = BorderStroke(1.dp, accent.copy(alpha = .9f)),
+    ) {
+        Text(if (warning) "DEV!" else "DEV",
+            Modifier.padding(horizontal = 9.dp, vertical = 5.dp).wrapContentHeight(Alignment.CenterVertically),
+            textAlign = androidx.compose.ui.text.style.TextAlign.Center, color = accent,
+            fontFamily = FontFamily.Monospace, fontWeight = FontWeight.Bold,
+            style = MaterialTheme.typography.labelSmall)
+    }
+}
+
 /** Local presentation only. The full copy payload is independent of the bounded summary. */
 @Composable
 internal fun DeveloperDiagnostics(
@@ -47,10 +81,13 @@ internal fun DeveloperDiagnostics(
     systemOverlay: Boolean = false,
     badgeAlignment: Alignment = if (systemOverlay) Alignment.TopCenter else Alignment.TopStart,
     language: AppLanguage = AppLanguage.ENGLISH,
+    state: DeveloperDiagnosticsState = remember { DeveloperDiagnosticsState() },
+    showBadge: Boolean = true,
 ) {
     val context = LocalContext.current
     val density = LocalDensity.current
     val colors = inspectorThemeColors(MaterialTheme.colorScheme)
+    val accent = if (warning) colors.error else colors.accent
     var overlayAllowed by remember { mutableStateOf(Settings.canDrawOverlays(context)) }
     val lifecycleOwner = androidx.lifecycle.compose.LocalLifecycleOwner.current
     DisposableEffect(lifecycleOwner, context) {
@@ -62,10 +99,11 @@ internal fun DeveloperDiagnostics(
         lifecycleOwner.lifecycle.addObserver(observer)
         onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
     }
-    var open by remember { mutableStateOf(false) }
-    var showRegions by remember { mutableStateOf(false) }
-    var showAdvanced by remember { mutableStateOf(false) }
-    val accent = if (warning) colors.error else colors.accent
+    var open by state.open
+    var showRegions by state.showRegions
+    var showAdvanced by state.showAdvanced
+    SideEffect { state.warning.value = warning }
+    LaunchedEffect(open) { if (open) overlayAllowed = Settings.canDrawOverlays(context) }
     fun text(key: String) = diagnosticsText(language, key)
 
     Box(Modifier.fillMaxSize()) {
@@ -79,30 +117,15 @@ internal fun DeveloperDiagnostics(
                     fontFamily = FontFamily.Monospace, style = MaterialTheme.typography.labelSmall)
             }
         }
-        Surface(
-            onClick = {
-                overlayAllowed = Settings.canDrawOverlays(context)
-                showAdvanced = false
-                showRegions = false
-                open = true
-            },
+        if (showBadge) DeveloperDiagnosticsBadge(
+            warning = warning,
+            onOpen = state::openPanel,
             modifier = modifier.align(badgeAlignment)
                 .then(if (systemOverlay) Modifier else Modifier.statusBarsPadding())
                 .padding(start = if (!systemOverlay && badgeAlignment == Alignment.TopStart) 18.dp else 0.dp,
                     end = if (!systemOverlay && badgeAlignment == Alignment.TopEnd) 18.dp else 0.dp,
-                    top = if (systemOverlay) 2.dp else 16.dp)
-                .sizeIn(minWidth = GaControl.touchTarget, minHeight = GaControl.touchTarget)
-                .inspectElement("DEVELOPER_BUTTON", "Opens local diagnostics and element inspector"),
-            shape = RoundedCornerShape(GaRadius.compact),
-            color = colors.surface,
-            border = BorderStroke(1.dp, accent.copy(alpha = .9f)),
-        ) {
-            Text(if (warning) "DEV!" else "DEV",
-                Modifier.padding(horizontal = 9.dp, vertical = 5.dp).wrapContentHeight(Alignment.CenterVertically),
-                textAlign = androidx.compose.ui.text.style.TextAlign.Center, color = accent,
-                fontFamily = FontFamily.Monospace, fontWeight = FontWeight.Bold,
-                style = MaterialTheme.typography.labelSmall)
-        }
+                    top = if (systemOverlay) 2.dp else 16.dp),
+        )
     }
 
     if (open) DiagnosticsDialog(

@@ -1061,7 +1061,10 @@ class MiniWindowOverlayService : Service(), LifecycleOwner, ViewModelStoreOwner,
             pullDismissReached(position, density, viewportHeightPx) ||
             expandedPullFastFlingReached(totalDragPx, averageVelocityYPxPerSecond, density)
         ) {
-            returnToLibrary()
+            // A handle dismisses this overlay; unlike Home, it must not launch
+            // MainActivity or replace the page/app already visible underneath.
+            switchMode(if (PlayerWindowVisibility.libraryShowing.value) PlayerWindowMode.DOCKED else PlayerWindowMode.DETACHED)
+            if (selectedFloatingMode != FloatingWindowMode.MINI_WINDOW && !PlayerWindowVisibility.libraryShowing.value) stopSelf()
         } else {
             resetExpandedPull()
         }

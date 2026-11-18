@@ -46,6 +46,7 @@ internal object GaMotion {
 }
 
 internal object GaAlpha {
+    const val notice = 0.5f
     const val chrome = 0.68f
     const val divider = 0.38f
     const val secondary = 0.72f
