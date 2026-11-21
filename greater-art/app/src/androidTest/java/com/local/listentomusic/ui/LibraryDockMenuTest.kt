@@ -149,7 +149,7 @@ class LibraryDockMenuTest {
                 .assertIsDisplayed().performClick()
             compose.onNodeWithText("Share original media files?").assertIsDisplayed()
             compose.onNodeWithText("Cancel").performClick()
-            awaitDock("selection popup dismissed")
+            awaitDock("selection popup dismissed", opened)
             compose.onNodeWithText("Clear").performClick()
 
             compose.onNodeWithContentDescription("Playlists").performClick()
@@ -158,7 +158,7 @@ class LibraryDockMenuTest {
                 .assertIsDisplayed().performClick()
             compose.onNodeWithText("Delete playlist?").assertIsDisplayed()
             compose.onNodeWithText("Cancel").performClick()
-            awaitDock("playlist popup dismissed")
+            awaitDock("playlist popup dismissed", opened)
 
             val dockAfter = onMain { dockWindow() }
             assertNotNull(dockAfter)
@@ -225,12 +225,26 @@ class LibraryDockMenuTest {
             " visibleState=" + PlayerWindowVisibility.dockedVisible.value)
     }
 
-    private suspend fun awaitDock(context: String) {
-        await(context) {
-            onMain {
-                PlayerWindowVisibility.dockedVisible.value &&
-                    dockWindow()?.let { it.alpha == 1f && !it.untouchable } == true
+    private suspend fun awaitDock(context: String, activity: ActivityScenario<MainActivity>) {
+        val deadline = SystemClock.elapsedRealtime() + 30_000L
+        while (true) {
+            // Record the real focus and visibility inputs in the JUnit failure.
+            // Never manually restore focus: that would mask a production defect.
+            var activityFocused = false
+            activity.onActivity { activityFocused = it.hasWindowFocus() }
+            val dock = onMain { dockWindow() }
+            val visible = PlayerWindowVisibility.dockedVisible.value
+            if (visible && dock?.alpha == 1f && !dock.untouchable) return
+            if (SystemClock.elapsedRealtime() >= deadline) {
+                assertTrue("Timed out waiting for " + context +
+                    "; activityFocused=" + activityFocused +
+                    ", libraryShowing=" + PlayerWindowVisibility.libraryShowing.value +
+                    ", dockSurfaceReserved=" + PlayerWindowVisibility.dockSurfaceReserved.value +
+                    ", keyboardShowing=" + PlayerWindowVisibility.keyboardShowing.value +
+                    ", expandedShowing=" + PlayerWindowVisibility.expandedShowing.value +
+                    ", dockVisible=" + visible + ", dock=" + dock, false)
             }
+            delay(40)
         }
     }
 

@@ -8,6 +8,20 @@ This file describes the **current repository state only**. Historical session no
 
 ## Current Android builds
 
+**Current 1.22.56/code377 — diagnose Library dock restoration after popup, SOURCE_ONLY:**
+[Hosted test failure and added focus diagnostics](docs/ISSUE_147_LIBRARY_DOCK_MENU_1.22.56.md).
+The 1.22.55 API36 job ran all15 methods: the earlier14 fullscreen component
+checks passed, and the long Library selection's final Share action opened
+its confirmation. The dock visibility did not recover within30s after
+Cancel; the test stopped before checking the separate playlist dropdown.
+Do not claim popup overlap: a click already worked. Capture actual Activity
+focus, Library/IME/expanded dock policy and WindowManager alpha/touch state
+in the still-required restoration assertion. Do not synthesize a focus event
+or weaken its 30-second gate. No production Library/player, permission,
+media, package signature or existing user data change. Keep PR draft;
+real A55/physical checks remain separate.
+
+
 **Current 1.22.55/code376 — fix test harness before Library popup diagnosis, SOURCE_ONLY:**
 [Failed test setup and repair](docs/ISSUE_147_LIBRARY_DOCK_MENU_1.22.55.md).
 The initial test-first1.22.54 commit failed Android instrumentation compilation

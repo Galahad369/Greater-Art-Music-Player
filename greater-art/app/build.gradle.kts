@@ -11,8 +11,8 @@ android {
         applicationId = "com.local.listentomusic"
         minSdk = 26
         targetSdk = 37
-        versionCode = 376
-        versionName = "1.22.55"
+        versionCode = 377
+        versionName = "1.22.56"
         buildConfigField("boolean", "STACK_PCM_PROTOTYPE", (providers.gradleProperty("stackPcmPrototype").orNull == "true").toString())
         buildConfigField("boolean", "STACK_PCM_PARALLEL", (providers.gradleProperty("stackPcmParallel").orNull == "true").toString())
 
