@@ -8,6 +8,86 @@ This file describes the **current repository state only**. Historical session no
 
 ## Current Android builds
 
+**Current 1.22.56/code377 — diagnose Library dock restoration after popup, SOURCE_ONLY:**
+[Hosted test failure and added focus diagnostics](docs/ISSUE_147_LIBRARY_DOCK_MENU_1.22.56.md).
+The 1.22.55 API36 job ran all15 methods: the earlier14 fullscreen component
+checks passed, and the long Library selection's final Share action opened
+its confirmation. The dock visibility did not recover within30s after
+Cancel; the test stopped before checking the separate playlist dropdown.
+Do not claim popup overlap: a click already worked. Capture actual Activity
+focus, Library/IME/expanded dock policy and WindowManager alpha/touch state
+in the still-required restoration assertion. Do not synthesize a focus event
+or weaken its 30-second gate. No production Library/player, permission,
+media, package signature or existing user data change. Keep PR draft;
+real A55/physical checks remain separate.
+
+
+**Current 1.22.55/code376 — fix test harness before Library popup diagnosis, SOURCE_ONLY:**
+[Failed test setup and repair](docs/ISSUE_147_LIBRARY_DOCK_MENU_1.22.55.md).
+The initial test-first1.22.54 commit failed Android instrumentation compilation
+because ActivityScenario.launch lacked an explicit MainActivity type. The hosted
+API36 runner also executed zero tests after a changed workflow cache identity
+could not resolve Kotlin Compose2.4.21, and permissions failed without an app.
+Repair only the test generic, restore the previously successful workflow name,
+and explicitly install the disposable debug fixture APK before test-only appops.
+Do not alter production Library menu positioning, app dependencies, playback,
+verified APKs, current permissions, or hardware signer. Require actual fresh
+15-method JUnit XML and full Android/security/Windows CI on this exact head;
+no popup occlusion claim until the real-dock test runs.
+
+
+**Current 1.22.54/code375 — test-first Library dropdown/dock investigation, SOURCE_ONLY:**
+[Focused evidence and test contract](docs/ISSUE_147_LIBRARY_DOCK_MENU_1.22.54.md).
+Extends existing optional API36 runner with one real-service Library test: a
+UUID-owned WAV, 12 temporary playlists, LARGE WindowManager dock, scroll to
+the final selection/playlist actions and exercise physical Compose taps.
+It records dock visibility and requires music/overlay identity to remain stable,
+then removes only test-owned data and restores touched preferences.
+Do **not** shift Library menus speculatively: Material3 already scrolls long
+DropdownMenu lists and the Activity-focus policy can hide the dock. First
+run is pending; any failed assertion must be diagnosed before production
+UI changes. The test-only workflow grants declared permissions on a disposable
+emulator, never handles the owner's A55 APK or release signer.
+Existing 14/14 hosted component pass, Android/security/Windows results for
+1.22.53 remain preserved. Exact signed A55 popup/HDR/physical checks are
+separate, with issue #147 still open.
+
+
+**Current 1.22.53/code374 — component fixture targeting and diagnostics, SOURCE_ONLY:**
+[Observed results and fixture correction](docs/ISSUE_147_HOSTED_EMULATOR_1.22.52.md#diagnostic-and-fixture-follow-up-12253code374).
+The actual 1.22.52 hosted run executed all 14: 12 passed, two color-class tests
+failed and none skipped. Its aggregate log did not retain failure method names.
+Source review found a missing fixture testTag for the fullscreen slider and an
+ordinary-slider capture using the 100dp parent's midpoint instead of the 48dp
+slider's own bounds. Correct these fixtures and preserve every pixel threshold.
+Record individual test outcomes and full XML assertion details on the next run.
+No production UI/rendering/playback change. Exact optimized A55, real SDR/HDR,
+Battery Saver/Mini, physical and original-public-signing gates remain separate.
+
+**Previous 1.22.52/code373 — hosted component runner repair, SOURCE_ONLY:**
+[Failure, correction and evidence boundary](docs/ISSUE_147_HOSTED_EMULATOR_1.22.52.md).
+The 1.22.51 hosted emulator booted, then its action's sh invocation failed
+before Gradle or any instrumented test ran. Keep that failed run and commit.
+One Python entry point now invokes the four existing classes independently
+and verifies their fresh XML: 4 + 4 + 2 + 4 unique tests, no skips/errors/failures.
+Earlier reports are retained, and actual test names/results are printed to CI.
+This changes the test runner only; all app code and test assertions are preserved.
+Actual hosted results remain pending until CI completes. The private optimized
+A55 APK, real SDR/HDR/Battery Saver/Mini matrix, physical hardware and original
+public signer remain separate acceptance gates; keep #147 open.
+
+**Previous 1.22.51/code372 — optional hosted API36 component smoke, SOURCE_ONLY:**
+[Issue #147 test coverage and limits](docs/ISSUE_147_HOSTED_EMULATOR_1.22.51.md).
+Introduce an opt-in GitHub Actions workflow running fixture-free Compose
+fullscreen toolbar/contrast/geometry tests on a disposable API36 emulator.
+It is scoped to its own PR and manual workflow dispatch, uses a SHA-pinned
+action, read-only permissions, no user media, no keystore, and uploads no APK.
+The new CI result is **not** the private optimized A55-signed 1.22.50 APK,
+not a real-media Ambient/HDR equivalence test, and not physical-device QA.
+Android app runtime, playback, media quality, Stack, Nodes, stored data and
+verified 1.21.93 APK remain unchanged. Android release-gate preflight and
+exact-device acceptance remain separate; do not mark #147 complete.
+
 **Current 1.22.50/code 371 — PR #246 and Library integration, SOURCE_ONLY:**
 Keep the icon-only playlist selector immediately left of the filter: 48dp touch
 target, 4dp gap, remaining row width for search, active-list checkmark inside

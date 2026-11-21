@@ -1,0 +1,70 @@
+name: Android API36 Fullscreen Component Smoke
+
+# Optional, non-release instrumentation (including a disposable, test-owned WAV). Not a required
+# status check and never handles the owner's privately signed APK.
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - ".github/workflows/android-api36-fullscreen-smoke.yml"
+      - "scripts/run-api36-fullscreen-smoke.py"
+      - "greater-art/app/src/androidTest/java/com/local/listentomusic/ui/LibraryDockMenuTest.kt"
+      - "greater-art/app/src/main/java/com/local/listentomusic/ui/LibraryScreen.kt"
+      - "greater-art/app/src/main/java/com/local/listentomusic/ui/GreaterArtApp.kt"
+      - "greater-art/app/src/main/java/com/local/listentomusic/playback/MiniWindowOverlayService.kt"
+      - "greater-art/app/src/main/java/com/local/listentomusic/playback/PlayerWindowVisibility.kt"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ga-api36-fullscreen-smoke-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  fullscreen-components:
+    name: API36 fullscreen UI + real dock menu (not A55 acceptance)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    steps:
+      - name: Checkout source (no persisted token)
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up Java 21
+        uses: actions/setup-java@77dd5b2ce225ea11469928ac317850245a74ae78 # v6.2.0
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@8da46b539cd8fe6ab27ca75128919a18d757604c # v6.4.1
+
+      - name: Make wrapper executable
+        run: chmod +x greater-art/gradlew
+
+      - name: Enable KVM for disposable emulator
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+
+      - name: Execute fullscreen component and isolated Library-dock integration on API 36
+        uses: reactivecircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d # v2.38.0
+        with:
+          api-level: 36
+          target: google_apis
+          arch: x86_64
+          profile: pixel_5
+          disable-animations: true
+          emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim -camera-back none -camera-front none
+          # The action executes each script line in a separate sh process.
+          # One Python entry point owns subprocess arguments and result checks.
+          script: python3 scripts/run-api36-fullscreen-smoke.py
+
+# Deliberately no artifact upload: runner-debug signed APK is not the pinned
+# personal optimized APK. Test owns/deletes only its UUID WAV and playlists; no user media or signing secrets.
