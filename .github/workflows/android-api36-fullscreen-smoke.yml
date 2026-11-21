@@ -1,4 +1,4 @@
-name: Android API36 Player UI and Library Dock Smoke
+name: Android API36 Fullscreen Component Smoke
 
 # Optional, non-release instrumentation (including a disposable, test-owned WAV). Not a required
 # status check and never handles the owner's privately signed APK.

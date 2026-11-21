@@ -2,6 +2,7 @@
 """Run and verify API36 UI component and isolated real-dock menu tests."""
 from datetime import datetime, timezone
 import json
+import os
 from pathlib import Path
 import shutil
 import subprocess
@@ -66,9 +67,22 @@ def inspect_results(directory, class_name, expected):
     return report
 
 
-def allow_disposable_dock_test():
-    """Grant only declared app permissions on the fresh hosted emulator."""
+def allow_disposable_dock_test(project):
+    """Install the owned debug fixture and grant declared appops on hosted API36 only."""
+    serial = os.environ.get("ANDROID_SERIAL", "")
+    if not serial.startswith("emulator-"):
+        return ["Refusing to modify permissions outside a disposable Android emulator"]
     package = "com.local.listentomusic"
+    apk = project / "app/build/outputs/apk/debug/app-debug.apk"
+    installed = subprocess.run(("adb", "shell", "pm", "path", package),
+                               check=False, capture_output=True, text=True)
+    if installed.returncode or "package:" not in installed.stdout:
+        if not apk.is_file():
+            return ["Prior Gradle build did not produce the expected disposable debug APK"]
+        attempt = subprocess.run(("adb", "install", "-r", str(apk)),
+                                 check=False, capture_output=True, text=True)
+        if attempt.returncode:
+            return [f"Could not install owned debug test APK: {attempt.stderr.strip()}"]
     commands = (
         ("adb", "shell", "appops", "set", package, "SYSTEM_ALERT_WINDOW", "allow"),
         ("adb", "shell", "appops", "set", package, "MANAGE_EXTERNAL_STORAGE", "allow"),
@@ -107,7 +121,7 @@ def run(project):
     for short_name, expected in CLASSES:
         class_name = PACKAGE + short_name
         print(f"Running {class_name}; expected {expected} tests", flush=True)
-        preflight = allow_disposable_dock_test() if short_name == "LibraryDockMenuTest" else []
+        preflight = allow_disposable_dock_test(project) if short_name == "LibraryDockMenuTest" else []
         if preflight:
             print(f"Dock permission setup failed: {preflight}", flush=True)
         command = [str(project / "gradlew"), ":app:connectedDebugAndroidTest", "--no-daemon",

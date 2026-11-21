@@ -89,7 +89,7 @@ class LibraryDockMenuTest {
             testPlaylistIds += preferences.createPlaylistWithPaths(prefix + " 01", listOf(fixture.path))
             preferences.setActivePlaylist(testPlaylistIds.first())
 
-            val opened = ActivityScenario.launch(Intent(context, MainActivity::class.java))
+            val opened: ActivityScenario<MainActivity> = ActivityScenario.launch(Intent(context, MainActivity::class.java))
             activity = opened
             lateinit var viewModel: MainViewModel
             opened.onActivity { viewModel = ViewModelProvider(it)[MainViewModel::class.java] }

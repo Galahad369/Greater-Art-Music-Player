@@ -8,6 +8,20 @@ This file describes the **current repository state only**. Historical session no
 
 ## Current Android builds
 
+**Current 1.22.55/code376 — fix test harness before Library popup diagnosis, SOURCE_ONLY:**
+[Failed test setup and repair](docs/ISSUE_147_LIBRARY_DOCK_MENU_1.22.55.md).
+The initial test-first1.22.54 commit failed Android instrumentation compilation
+because ActivityScenario.launch lacked an explicit MainActivity type. The hosted
+API36 runner also executed zero tests after a changed workflow cache identity
+could not resolve Kotlin Compose2.4.21, and permissions failed without an app.
+Repair only the test generic, restore the previously successful workflow name,
+and explicitly install the disposable debug fixture APK before test-only appops.
+Do not alter production Library menu positioning, app dependencies, playback,
+verified APKs, current permissions, or hardware signer. Require actual fresh
+15-method JUnit XML and full Android/security/Windows CI on this exact head;
+no popup occlusion claim until the real-dock test runs.
+
+
 **Current 1.22.54/code375 — test-first Library dropdown/dock investigation, SOURCE_ONLY:**
 [Focused evidence and test contract](docs/ISSUE_147_LIBRARY_DOCK_MENU_1.22.54.md).
 Extends existing optional API36 runner with one real-service Library test: a
