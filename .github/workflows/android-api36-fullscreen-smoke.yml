@@ -1,6 +1,6 @@
-name: Android API36 Fullscreen Component Smoke
+name: Android API36 Player UI and Library Dock Smoke
 
-# Optional, non-release instrumentation. This workflow is not a required
+# Optional, non-release instrumentation (including a disposable, test-owned WAV). Not a required
 # status check and never handles the owner's privately signed APK.
 on:
   pull_request:
@@ -8,6 +8,11 @@ on:
     paths:
       - ".github/workflows/android-api36-fullscreen-smoke.yml"
       - "scripts/run-api36-fullscreen-smoke.py"
+      - "greater-art/app/src/androidTest/java/com/local/listentomusic/ui/LibraryDockMenuTest.kt"
+      - "greater-art/app/src/main/java/com/local/listentomusic/ui/LibraryScreen.kt"
+      - "greater-art/app/src/main/java/com/local/listentomusic/ui/GreaterArtApp.kt"
+      - "greater-art/app/src/main/java/com/local/listentomusic/playback/MiniWindowOverlayService.kt"
+      - "greater-art/app/src/main/java/com/local/listentomusic/playback/PlayerWindowVisibility.kt"
   workflow_dispatch:
 
 permissions:
@@ -19,7 +24,7 @@ concurrency:
 
 jobs:
   fullscreen-components:
-    name: API36 virtual fullscreen UI / geometry (not A55 acceptance)
+    name: API36 fullscreen UI + real dock menu (not A55 acceptance)
     runs-on: ubuntu-24.04
     timeout-minutes: 60
     steps:
@@ -48,7 +53,7 @@ jobs:
           sudo udevadm control --reload-rules
           sudo udevadm trigger --name-match=kvm
 
-      - name: Execute fixture-free fullscreen instrumentation on API 36
+      - name: Execute fullscreen component and isolated Library-dock integration on API 36
         uses: reactivecircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d # v2.38.0
         with:
           api-level: 36
@@ -62,4 +67,4 @@ jobs:
           script: python3 scripts/run-api36-fullscreen-smoke.py
 
 # Deliberately no artifact upload: runner-debug signed APK is not the pinned
-# personal optimized APK. No user media, signing secrets or local test data.
+# personal optimized APK. Test owns/deletes only its UUID WAV and playlists; no user media or signing secrets.

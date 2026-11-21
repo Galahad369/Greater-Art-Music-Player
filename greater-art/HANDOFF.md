@@ -8,6 +8,23 @@ This file describes the **current repository state only**. Historical session no
 
 ## Current Android builds
 
+**Current 1.22.54/code375 — test-first Library dropdown/dock investigation, SOURCE_ONLY:**
+[Focused evidence and test contract](docs/ISSUE_147_LIBRARY_DOCK_MENU_1.22.54.md).
+Extends existing optional API36 runner with one real-service Library test: a
+UUID-owned WAV, 12 temporary playlists, LARGE WindowManager dock, scroll to
+the final selection/playlist actions and exercise physical Compose taps.
+It records dock visibility and requires music/overlay identity to remain stable,
+then removes only test-owned data and restores touched preferences.
+Do **not** shift Library menus speculatively: Material3 already scrolls long
+DropdownMenu lists and the Activity-focus policy can hide the dock. First
+run is pending; any failed assertion must be diagnosed before production
+UI changes. The test-only workflow grants declared permissions on a disposable
+emulator, never handles the owner's A55 APK or release signer.
+Existing 14/14 hosted component pass, Android/security/Windows results for
+1.22.53 remain preserved. Exact signed A55 popup/HDR/physical checks are
+separate, with issue #147 still open.
+
+
 **Current 1.22.53/code374 — component fixture targeting and diagnostics, SOURCE_ONLY:**
 [Observed results and fixture correction](docs/ISSUE_147_HOSTED_EMULATOR_1.22.52.md#diagnostic-and-fixture-follow-up-12253code374).
 The actual 1.22.52 hosted run executed all 14: 12 passed, two color-class tests

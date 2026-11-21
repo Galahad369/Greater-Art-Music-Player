@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Run and verify the existing fixture-free API36 component test classes."""
+"""Run and verify API36 UI component and isolated real-dock menu tests."""
 from datetime import datetime, timezone
 import json
 from pathlib import Path
@@ -14,6 +14,7 @@ CLASSES = (
     ("FullscreenTransportIconColorTest", 4),
     ("FullscreenAmbientBoundsTest", 2),
     ("FullscreenToolbarTest", 4),
+    ("LibraryDockMenuTest", 1),
 )
 PACKAGE = "com.local.listentomusic.ui."
 
@@ -65,6 +66,27 @@ def inspect_results(directory, class_name, expected):
     return report
 
 
+def allow_disposable_dock_test():
+    """Grant only declared app permissions on the fresh hosted emulator."""
+    package = "com.local.listentomusic"
+    commands = (
+        ("adb", "shell", "appops", "set", package, "SYSTEM_ALERT_WINDOW", "allow"),
+        ("adb", "shell", "appops", "set", package, "MANAGE_EXTERNAL_STORAGE", "allow"),
+        ("adb", "shell", "pm", "grant", package, "android.permission.POST_NOTIFICATIONS"),
+    )
+    problems = []
+    for command in commands:
+        try:
+            result = subprocess.run(command, check=False, capture_output=True, text=True)
+        except OSError as error:
+            problems.append(str(error))
+            continue
+        if result.returncode:
+            problems.append(f"App permission preflight exit {result.returncode}: "
+                            f"{' '.join(command)}: {result.stderr.strip()}")
+    return problems
+
+
 def run(project):
     evidence_root = project / "app/build/reports/api36-fullscreen-components"
     evidence_root.mkdir(parents=True, exist_ok=True)
@@ -85,22 +107,27 @@ def run(project):
     for short_name, expected in CLASSES:
         class_name = PACKAGE + short_name
         print(f"Running {class_name}; expected {expected} tests", flush=True)
+        preflight = allow_disposable_dock_test() if short_name == "LibraryDockMenuTest" else []
+        if preflight:
+            print(f"Dock permission setup failed: {preflight}", flush=True)
         command = [str(project / "gradlew"), ":app:connectedDebugAndroidTest", "--no-daemon",
                    f"-Pandroid.testInstrumentationRunnerArguments.class={class_name}"]
         try:
-            exit_code = subprocess.run(command, cwd=project, check=False).returncode
+            exit_code = subprocess.run(command, cwd=project, check=False).returncode if not preflight else 1
             launch_error = None
         except OSError as error:
             exit_code, launch_error = 1, str(error)
         report = inspect_results(archive(short_name), class_name, expected)
         report["gradle_exit_code"] = exit_code
+        report["problems"].extend(preflight)
         if exit_code:
             report["problems"].append(f"Gradle exited with {exit_code}")
         if launch_error:
             report["problems"].append(launch_error)
         reports.append(report)
         print(json.dumps(report, indent=2), flush=True)
-    summary = dict(scope="Fixture-free components only; not exact-APK or A55 acceptance",
+    summary = dict(scope="Fixture-free components plus temporary WAV/playlist real-dock integration; "
+                   "not exact-APK or physical A55 acceptance",
                    expected_tests=sum(count for _, count in CLASSES),
                    observed_tests=sum(report["tests"] for report in reports), classes=reports)
     passed = all(not report["problems"] for report in reports)
